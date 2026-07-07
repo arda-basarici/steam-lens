@@ -1,0 +1,27 @@
+# --- secrets (never in source; env or secret store only) ---
+.env
+.env.*
+*.pem
+*.key
+
+# --- working files (disposable by design) ---
+WHITEBOARD.md
+
+# --- data & runtime artifacts (regenerable; provenance documented in-repo) ---
+data/
+logs/
+*.sqlite
+*.db
+
+# --- python ---
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# --- OS noise ---
+Thumbs.db
+.DS_Store
