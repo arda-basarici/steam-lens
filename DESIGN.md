@@ -118,11 +118,22 @@ API-quirk knowledge is paid for).
 milestone does, imperfect — the standing counterweight to a known over-investment
 pattern.
 
+**The ops story is a deliverable, not plumbing** (2026-07-08). Two-sided stance: no
+infrastructure without a driving product need (the Kubernetes/Terraform tombstone
+stands), but no skipping an ops opportunity the product genuinely justifies as "not our
+focus" — DevOps/MLOps depth is a deliberate portfolio pillar here. What the product
+already justifies, made visible instead of silent: evals-in-CI regression against the
+gold set, observability (structured logs, cost-per-request, latency, token accounting)
+surfaced in a small ops dashboard, versioned provenance (prompt/model/gold-set versions
+stamped on every artifact), and a deploy pipeline as code. The test for any addition
+stays: does *this product* need it?
+
 ## Scope & non-goals
 
 - In: aspect reports with receipts, narrated live analysis, the event investigator, the
   trust panel, Docker/FastAPI/SQLite/CI deployment, the evaluation methodology as a
-  public artifact.
+  public artifact, the ops story as a public artifact (dashboard + pipeline, per the
+  operational decision above).
 - Deliberately out: fake-review verdicts (tombstoned above) · multilingual evaluation
   claims (post-launch experiment, unverified if shipped) · Kubernetes/Terraform/cloud
   MLOps (zero marginal signal for a portfolio app) · any displayed number sourced from
@@ -134,7 +145,23 @@ pattern.
   the eval harness is ill-defined until it lands.
 - **Cache persistence on an ephemeral free host** — decided in M3 design
   (bake-into-image / dataset sync / paid storage).
-- **LLM tier** — M1 exit, from the measured cost table.
+- **LLM tier** — M1 exit, from the measured cost/quality table, now with three columns:
+  free API tier, cheap paid API, and **self-hosted open-weight** (added 2026-07-08).
+  Decided **per stage, not globally** (refined 2026-07-08): the seam routes each stage
+  independently, and the gap between small and frontier models is stage-dependent —
+  near-zero for phrasing, modest-and-measurable for classification (sarcasm is where it
+  concentrates), largest for the investigation loop's agentic reasoning. The judge is
+  exempt from the choice entirely: always a stronger model than the one it grades
+  (self-preference bias), low volume, API.
+  The self-hosted candidate costs nothing to evaluate — M1 is offline, so a small
+  open-weight model (Qwen/Llama/Gemma class) runs on the local machine behind the same
+  provider seam. Its deployment path, if it wins or ties: serverless GPU with
+  scale-to-zero (pay-per-second fits the budget cap; the cold start is absorbed by the
+  narrated runtime — "waking the model up…" is a legitimate stream line).
+- **Hosting shape: HF Spaces vs. a cheap VPS** — decided in M3 design. The VPS
+  (~$5/mo, docker-compose, own deploy pipeline + monitoring) is stronger DevOps signal
+  and solves cache ephemerality for free; HF Spaces is fewer moving parts. Interacts
+  with the cache-persistence question above.
 - **Runtime sampling policy and sizes** — M2's output, by construction.
 - **System flow** (module boundaries, seams, data contracts) — the next design phase,
   against the fixed vision.

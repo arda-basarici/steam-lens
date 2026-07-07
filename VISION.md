@@ -1,5 +1,15 @@
 # SteamLens — Vision
 
+> **How to read this document: a frozen founding snapshot, not the current spec.**
+> This is the bet the project started from, written 2026-07-07, before any code ran.
+> It is never updated; `DESIGN.md` is the living source of truth for decisions, and
+> where the two disagree, DESIGN.md wins. Claims here come in three strengths —
+> **verified** (live-tested facts, e.g. the Steam API behavior), **decided** (panel
+> rulings, revisable as the design moves), and **hypothesis** (estimates, sizes, and
+> tool/method choices that specific milestones exist to test). Expect the build to
+> diverge from this document on contact with reality — that divergence is part of the
+> deliverable, and `REPORT_NOTES.md` captures it as it happens.
+
 The fixed vision for the project: what the product is, what it proves, how it is built,
 and the milestone path — the document the design phase builds against. Decisions carry
 their reasoning inline; the full deliberation record lives in the private panel archive
