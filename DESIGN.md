@@ -102,8 +102,9 @@ makes every other claim less trustworthy.)*
 
 ## Operational decisions
 
-**The tier deferral, made safe.** Free vs. cheap-paid LLM tier is decided at M1 exit
-from the measured cost/quality table rather than guessed now. Deferral is safe because
+**The tier deferral, made safe.** Free vs. cheap-paid LLM tier is decided at the
+extraction+eval milestone's (M1) exit from the measured cost/quality table rather than
+guessed now. Deferral is safe because
 four things are built regardless: the provider-agnostic client seam, a concurrency-
 capable classify stage (parallelism as config, not architecture), narrated progress,
 and enforced budget caps with an honest at-capacity state. The vision's latency wording
@@ -141,11 +142,12 @@ stays: does *this product* need it?
 
 ## Open questions / deferred
 
-- **Aspect ontology** (open vs. fixed vs. hybrid vocabulary) — decided week 1 of M1;
-  the eval harness is ill-defined until it lands.
-- **Cache persistence on an ephemeral free host** — decided in M3 design
-  (bake-into-image / dataset sync / paid storage).
-- **LLM tier** — M1 exit, from the measured cost/quality table, now with three columns:
+- **Aspect ontology** (open vs. fixed vs. hybrid vocabulary) — decided in week 1 of
+  extraction+eval (M1); the eval harness is ill-defined until it lands.
+- **Cache persistence on an ephemeral free host** — decided in the deployment
+  milestone's (M3) design (bake-into-image / dataset sync / paid storage).
+- **LLM tier** — extraction+eval (M1) exit, from the measured cost/quality table, now
+  with three columns:
   free API tier, cheap paid API, and **self-hosted open-weight** (added 2026-07-08).
   Decided **per stage, not globally** (refined 2026-07-08): the seam routes each stage
   independently, and the gap between small and frontier models is stage-dependent —
@@ -153,15 +155,24 @@ stays: does *this product* need it?
   concentrates), largest for the investigation loop's agentic reasoning. The judge is
   exempt from the choice entirely: always a stronger model than the one it grades
   (self-preference bias), low volume, API.
-  The self-hosted candidate costs nothing to evaluate — M1 is offline, so a small
+  The self-hosted candidate costs nothing to evaluate — that milestone is offline
+  work, so a small
   open-weight model (Qwen/Llama/Gemma class) runs on the local machine behind the same
   provider seam. Its deployment path, if it wins or ties: serverless GPU with
   scale-to-zero (pay-per-second fits the budget cap; the cold start is absorbed by the
   narrated runtime — "waking the model up…" is a legitimate stream line).
-- **Hosting shape: HF Spaces vs. a cheap VPS** — decided in M3 design. The VPS
+- **Hosting shape: HF Spaces vs. a cheap VPS** — decided in the deployment milestone's
+  (M3) design. The VPS
   (~$5/mo, docker-compose, own deploy pipeline + monitoring) is stronger DevOps signal
   and solves cache ephemerality for free; HF Spaces is fewer moving parts. Interacts
-  with the cache-persistence question above.
-- **Runtime sampling policy and sizes** — M2's output, by construction.
+  with the cache-persistence question above. **The free-host premise fell 2026-07-09**
+  (verified on the create-Space form during the smoke-test milestone, M0): compute
+  Spaces — Gradio and Docker alike — now require PRO ($9/mo); only Static Spaces stay
+  free. Hosting therefore costs money on either fork, and the VPS is the *cheaper*
+  option as well as the stronger signal; HF's remaining case is fewer moving parts
+  plus ZeroGPU quota if PRO were bought anyway. Decision stays at M3, on this
+  corrected footing.
+- **Runtime sampling policy and sizes** — the sampling study's (M2) output, by
+  construction.
 - **System flow** (module boundaries, seams, data contracts) — the next design phase,
   against the fixed vision.

@@ -7,7 +7,31 @@ decisions it feeds.
 
 ---
 
-## 2026-07-07 — How four constraints collapsed into one design move
+## 2026-07-09 — The free-host premise died during a smoke test
+
+*The infrastructure story from the smoke-test milestone (M0). Feeds: the deployment
+milestone's (M3) hosting decision and its report's "assumptions that didn't survive
+contact" section.*
+
+The smoke-test milestone's headline question was whether Steam answers API calls from
+datacenter IPs — and the test vehicle was to be a hello-world container on HF Spaces,
+the milestone frame's candidate free host. The vehicle never launched: the
+create-Space form (2026-07-09) revealed that compute Spaces — Gradio and Docker
+alike — now sit behind the PRO plan ($9/mo); only Static Spaces remain free. The
+"free host" the deployment plan leaned on had been repriced out of existence between
+the vision being written and the first probe being deployed.
+
+Two consequences, both cheap because they arrived this early. The probe re-routed to
+a GitHub Actions runner — same probe code, a datacenter IP all the same, zero cost.
+And the hosting fork (HF Spaces vs. cheap VPS) rebalanced: with HF at $9/mo, the
+~$5/mo VPS is now the cheaper option *and* the stronger DevOps story, inverting the
+original cost-vs-control trade. The decision still lands in the deployment
+milestone's design, but on corrected numbers.
+
+The lesson worth a report paragraph: a verified assumption has a shelf life when it
+describes someone else's pricing page. Platform terms are a live dependency, and the
+smoke-test milestone earned its keep here by catching environment drift — not just
+API shapes — before a single line of product code existed.
 
 *The runtime-design story behind the two-track engine and the narrated investigation.
 Feeds: M3/M4 reports, the launch post, and a possible standalone post (captured in the

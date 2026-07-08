@@ -38,14 +38,15 @@ The rules, stated once:
 
 ## Module responsibilities
 
-*To be filled as modules come into existence (M1 onward). Planned seams: `steam_client`
+*To be filled as modules come into existence (extraction+eval, M1, onward). Planned seams: `steam_client`
 (lifted-and-adapted from the frozen steam-reviews pipeline — see DESIGN: copy-and-adapt
 reuse) · `llm_client` · survey pipeline · investigator · report composer · serving
 shell · eval harness (a first-class module, not a script pile).*
 
 ## The life of a run
 
-*To be diagrammed when the first artifacts exist (M1): eval runs and their provenance
+*To be diagrammed when the first artifacts exist (extraction+eval, M1): eval runs and
+their provenance
 (config + model + prompt version + gold-set version → measured numbers the docs cite).*
 
 ## Deliberately not done (restraint)
