@@ -72,6 +72,11 @@ investigation replaces a spinner; minutes become acceptable).
 
 ## Data access — a narrow, buggy, sufficient API
 
+*Verified data shapes from the smoke-test milestone (M0, 2026-07-09) live in
+`probes/FINDINGS.md`: datacenter reachability PASS; histogram granularity
+(monthly history + daily last-30, age-dependent rollup unit); off-topic flags
+(per-window `past_events`, default listings blank whole marked windows).*
+
 **One sampler module owns all review access.** Steam's keyless store API offers
 sequential cursors (~200 req/5 min), an intermittent short-batch bug (no safe batch-size
 constant — detect and retry instead), a cursor-loop bug on the helpfulness sort, and

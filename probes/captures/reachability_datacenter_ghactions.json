@@ -1,0 +1,54 @@
+{
+  "egress_ip": "20.102.223.147",
+  "appid": 440,
+  "histogram": {
+    "endpoint": "appreviewhistogram",
+    "elapsed_ms": 138,
+    "status": 200,
+    "rollup_type": "month",
+    "rollup_buckets": 190,
+    "recent_buckets": 30
+  },
+  "cursor_walk": [
+    {
+      "page": 1,
+      "elapsed_ms": 280,
+      "status": 200,
+      "reviews_returned": 100,
+      "success_flag": 1
+    },
+    {
+      "page": 2,
+      "elapsed_ms": 433,
+      "status": 200,
+      "reviews_returned": 100,
+      "success_flag": 1
+    },
+    {
+      "page": 3,
+      "elapsed_ms": 316,
+      "status": 200,
+      "reviews_returned": 100,
+      "success_flag": 1
+    },
+    {
+      "page": 4,
+      "elapsed_ms": 414,
+      "status": 200,
+      "reviews_returned": 100,
+      "success_flag": 1
+    },
+    {
+      "page": 5,
+      "elapsed_ms": 497,
+      "status": 200,
+      "reviews_returned": 100,
+      "success_flag": 1
+    }
+  ],
+  "verdict": {
+    "pages_attempted": 5,
+    "pages_ok": 5,
+    "all_ok": true
+  }
+}
