@@ -1,0 +1,54 @@
+{
+  "egress_ip": "REDACTED (residential ISP, verified 2026-07-09)",
+  "appid": 440,
+  "histogram": {
+    "endpoint": "appreviewhistogram",
+    "elapsed_ms": 730,
+    "status": 200,
+    "rollup_type": "month",
+    "rollup_buckets": 190,
+    "recent_buckets": 30
+  },
+  "cursor_walk": [
+    {
+      "page": 1,
+      "elapsed_ms": 1724,
+      "status": 200,
+      "reviews_returned": 100,
+      "success_flag": 1
+    },
+    {
+      "page": 2,
+      "elapsed_ms": 1087,
+      "status": 200,
+      "reviews_returned": 100,
+      "success_flag": 1
+    },
+    {
+      "page": 3,
+      "elapsed_ms": 2734,
+      "status": 200,
+      "reviews_returned": 100,
+      "success_flag": 1
+    },
+    {
+      "page": 4,
+      "elapsed_ms": 1772,
+      "status": 200,
+      "reviews_returned": 100,
+      "success_flag": 1
+    },
+    {
+      "page": 5,
+      "elapsed_ms": 940,
+      "status": 200,
+      "reviews_returned": 100,
+      "success_flag": 1
+    }
+  ],
+  "verdict": {
+    "pages_attempted": 5,
+    "pages_ok": 5,
+    "all_ok": true
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "success": 1,
+  "results": {
+    "start_date": 1783468800,
+    "end_date": 1783468800,
+    "weeks": [],
+    "rollups": [
+      {
+        "date": 1783468800,
+        "recommendations_up": 1,
+        "recommendations_down": 0
+      }
+    ],
+    "rollup_type": "week",
+    "recent": [
+      {
+        "date": 1783468800,
+        "recommendations_up": 1,
+        "recommendations_down": 0
+      }
+    ]
+  },
+  "count_all_reviews": true,
+  "expand_graph": false
+}

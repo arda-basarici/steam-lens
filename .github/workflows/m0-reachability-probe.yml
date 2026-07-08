@@ -1,0 +1,28 @@
+# Smoke-test milestone (M0): run the Steam reachability probe from a datacenter IP.
+#
+# GitHub-hosted runners live in Azure datacenter IP ranges, which is what the test
+# needs — the original vehicle (a free HF Space) was repriced behind PRO on
+# 2026-07-09 (see REPORT_NOTES). Manual trigger only; the probe prints its JSON to
+# the job log and uploads it as an artifact for probes/captures/.
+
+name: M0 reachability probe
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - name: Run reachability probe
+        run: |
+          python probes/reachability/app.py | tee probe-result.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reachability-probe-result
+          path: probe-result.json
