@@ -7,6 +7,43 @@ decisions it feeds.
 
 ---
 
+## 2026-07-09 — Four designs argued; the criticism was the product
+
+*The system-flow design story. Feeds: the extraction+eval milestone's (M1) report on
+methodology, and a possible standalone post on adversarial design panels.*
+
+The system flow — module boundaries, seams, data contracts — was settled through a
+design panel: four proposals written blind to each other, each from a different framing
+(smallest-thing-that-ships, contracts-that-never-refactor, failure-modes-backward, and
+established-practice-with-provenance), then four adversarial critics with one job each:
+break the design in front of them.
+
+The blind convergence was itself a result. All four proposals independently produced
+the same four-strata skeleton, the same two-door sampler seam, and — most strikingly —
+the same answer to the open policy question (Valve-marked review-bomb windows count in
+the numbers, disclosed, never silently excluded), each from different reasoning that
+reinforced rather than repeated the others.
+
+The adversarial round then did what convergence cannot: every single proposal claimed
+its numbers-vs-stories separation was "structurally impossible" to violate, and every
+single critic found a concrete bypass. The honest claim that survived is
+defense-in-depth plus auditability — several independent walls and an audit trail, with
+"impossible" banned from the docs. The critics also found a gap no proposal saw: the
+system verifies quotes mechanically but nothing verified *numbers inside LLM-phrased
+prose* — a phrasing model could write "roughly 40%" over a 27% aggregate and pass every
+check. Numeric grounding (the quote-verification move, applied to numerals) entered the
+design from criticism, not from any designer. And the panel's single best catch was
+fatal-by-tracing: one design put the sampling policy inside the Steam client, which
+would have meant the sampling study certifies a simulation while production runs a
+reimplementation — a certified tolerance describing code that never ships.
+
+The lesson worth a report paragraph: independent generation reveals what is *natural*
+(four framings, one skeleton), but only adversarial reading reveals what is *true* —
+and the best decisions in the final design (read-time derivation of bomb-window
+membership, the label pool keyed by content instead of by sample, the numeric grounder)
+came from neither proposals nor critics alone but from the collision. A design that has
+not been attacked is a hypothesis wearing production clothes.
+
 ## 2026-07-09 — The free-host premise died during a smoke test
 
 *The infrastructure story from the smoke-test milestone (M0). Feeds: the deployment

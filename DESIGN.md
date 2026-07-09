@@ -6,8 +6,9 @@ the living source of truth for decisions from the vision phase onward**; `VISION
 the fixed vision-phase snapshot (2026-07-07) and is not updated as the design moves.
 How it's built → ARCHITECTURE; the pitch → README.
 
-*Snapshot of the design as of the fixed vision · last updated 2026-07-07 · system-flow
-design pending (next phase).*
+*Snapshot of the design as of the system-flow settlement · last updated 2026-07-09 ·
+system flow settled via the second design panel (4 blind proposals × 4 adversarial
+critics); the module map lives in ARCHITECTURE.md.*
 
 ## Objective
 
@@ -70,6 +71,77 @@ hypotheses until their check passes. This is a trust feature first (the uncertai
 discipline extended to the process itself) and a latency solution second (a watchable
 investigation replaces a spinner; minutes become acceptable).
 
+## The system flow — module boundaries, seams, contracts (settled 2026-07-09)
+
+Settled through the second design panel: four blind proposals (simplicity / contract /
+risk / practitioner-canon framings), four adversarial critics, synthesis arbitrated by
+Arda; raw material in the private panel archive. The decisions and their reasoning;
+the module map itself lives in ARCHITECTURE.md.
+
+**Four strata, one import law.** Plain-data contracts (import nothing) → pure core
+transforms → effect shells (Steam client, LLM client, store, narration sinks) →
+orchestrator and entry shells (pipeline runners, serving, CLI, study drivers). Core
+never imports a shell; nothing imports the eval harness; a CI import-graph test
+asserts the whole table. All four blind proposals converged on this skeleton
+independently.
+
+**The sampling policy is core code, executed by shells.** A pure plan compiler turns
+histogram + policy into a fetch plan; the Steam client executes plans against the live
+API, the study runner executes the same plans against the corpus. This is the panel's
+load-bearing repair: with policy logic inside the client shell, the sampling study (M2)
+would certify a simulation while production ran a later reimplementation — a measured
+tolerance describing code that never ships.
+
+**Labels are a version-keyed pool, not sample property.** Per-review labels are keyed
+by (review, model, prompt version, ontology version) and carry an origin tag (survey /
+investigation / corpus). Aggregation takes a manifest + the pool + an explicit version
+pin and folds only manifest members with survey origin. The alternative —
+manifest-keyed labels, three of four proposals' instinct — died under critique: strict
+origin-checked aggregation rejects exactly the offline resampling the sampling study
+exists to perform.
+
+**Two-track enforcement is defense-in-depth, never "impossible."** Every proposal
+claimed structural impossibility; every critic found a concrete bypass. The honest
+guarantee, adopted: independent walls — distinct container types at the sampler seam
+(only the survey draw mints a sample manifest; the investigation's window fetch
+returns a manifest-less type), the store's membership join carrying an origin
+predicate, the CI import test — plus origin tags making any leak auditable after the
+fact. "Impossible" is banned vocabulary in these docs.
+
+**Numbers in prose are grounded like quotes.** The panel's most valuable single
+discovery (three critics, independently): quote grounding cannot catch a phrasing
+model writing "roughly 40%" over a 27% aggregate, or laundering an investigation count
+into a percentage-shaped sentence. A numeric-grounding check joins report composition:
+every numeral in rendered narrative must match a value in the aggregates or events the
+claim cites. Harness-side at extraction+eval (M1); a runtime gate at deployment (M3).
+
+**Narration emits from the orchestrator layer.** Core transforms return data; the
+stage/runner shells emit typed narration events between steps (batch-progress loops
+live in the stage layer). Hypothesis→finding promotion is a typed status transition,
+and a finding event is constructible only from a verified conclusion — the honesty
+rule lives in the type, from the first offline console sink onward.
+
+**Budget enforcement is a simple atomic counter.** Reserve-before-dispatch against
+per-query / daily / monthly scopes; typed exhaustion errors become the honest
+at-capacity state; the provider-side cap is the named backstop. A reserve-commit lease
+machine with TTLs was rejected — its own failure modes reintroduce the race it
+prevents. Eval spend is separated from the production cap in config.
+
+**Contracts: rules now, fields later.** Fixed from day one: the import law, the
+membership join + origin predicate, label-pool keying, provenance stamps on every
+persisted artifact, the event-status enum. Record field lists freeze when their first
+consumer lands — pre-building every contract at M1 was rejected after critique showed
+a pre-built M4 contract already missing what M4's own success criterion needs. The
+interval method for displayed shares is likewise the sampling study's (M2) output
+alongside the policy: a stratified design changes the variance math, so committing to
+a formula now would ship a wrong error bar in the product whose thesis is honest
+error bars.
+
+**Ops conventions adopted from the canon framing, fit-tested:** prompts as versioned
+files with content hashes; one spend-ledger table powering the caps, the M1 cost
+table, and the ops dashboard; classify-call caching keyed on content (review-text hash
++ prompt + model + ontology versions); the gold set as versioned files in the repo.
+
 ## Data access — a narrow, buggy, sufficient API
 
 *Verified data shapes from the smoke-test milestone (M0, 2026-07-09) live in
@@ -87,6 +159,23 @@ report's provenance stating which path ran. Refusing the undocumented params (co
 for volatility) was rejected: the documented surface is itself buggy, and the boundary +
 fallback absorbs the volatility that refusal would only avoid by forfeiting the
 product's best capability.
+
+**Marked-window reviews: include + disclose** (settled 2026-07-09; all four panel
+proposals converged on it blind, and no critic landed on the policy itself). Survey
+numbers include sampled reviews falling inside Valve-marked off-topic windows; the
+trust panel discloses the count per window and links the timeline event. Excluding
+would re-apply, by hand, the blunt blanking the unfiltered fetch exists to avoid — the
+probe's marked window split ~50/50, thousands of legitimate reviews inside — and
+per-review classification absorbs bomb reviews into the aspects they actually complain
+about, while the investigation track owns the bomb *story*. Two amendments the
+adversarial round forced: (1) **membership is derived at read time** from the freshest
+`past_events` snapshot — Valve marks windows retroactively, so a fetch-time stamp goes
+stale exactly when it matters; (2) a **marked-share floor** — past a threshold
+(provisional now; tuned at the sampling study, gated on the corpus off-topic probe) the
+report degrades honestly rather than presenting a bomb-dominated sample at full
+confidence, mirroring the language guard's precedent. The exclude-counterfactual stays
+computable offline but is never displayed: at 500-review sample scale the delta is
+noise inside the interval.
 
 **English-first, all-language counts.** Extraction reads English — the language the
 gold set can verify; an unevaluated multilingual layer would contradict the project's
@@ -178,6 +267,16 @@ stays: does *this product* need it?
   plus ZeroGPU quota if PRO were bought anyway. Decision stays at M3, on this
   corrected footing.
 - **Runtime sampling policy and sizes** — the sampling study's (M2) output, by
-  construction.
-- **System flow** (module boundaries, seams, data contracts) — the next design phase,
-  against the fixed vision.
+  construction — now joined by the **interval method** for displayed shares (stratified
+  designs change the variance math; decided with the policy, not before it).
+- **Marked-share floor threshold** — the degradation trigger for bomb-dominated
+  samples: provisional value set during extraction+eval (M1), tuned at the sampling
+  study (M2), gated on the corpus off-topic probe below.
+- **Verification debts at extraction+eval (M1) entry** (both cheap, both from the
+  panel's critique round): the **corpus off-topic probe** — refetch histograms +
+  `past_events` for the 50 corpus games, measure how much of the corpus falls inside
+  marked windows (the prior pipeline may have fetched default-filtered, i.e.
+  bomb-blanked), decide backfill; and the **datacenter windowed-params probe** —
+  extend the existing GitHub Actions probe with the date-window params and the
+  unfiltered flag, since the smoke tests exercised only the documented cursor path
+  from a datacenter IP and the production primary path is otherwise unverified there.
