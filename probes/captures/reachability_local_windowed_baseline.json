@@ -1,0 +1,104 @@
+{
+  "egress_ip": "REDACTED (residential ISP, verified 2026-07-09)",
+  "appid": 440,
+  "histogram": {
+    "endpoint": "appreviewhistogram",
+    "elapsed_ms": 491,
+    "status": 200,
+    "rollup_type": "month",
+    "rollup_buckets": 190,
+    "recent_buckets": 30
+  },
+  "cursor_walk": [
+    {
+      "page": 1,
+      "elapsed_ms": 865,
+      "status": 200,
+      "reviews_returned": 100,
+      "success_flag": 1
+    },
+    {
+      "page": 2,
+      "elapsed_ms": 705,
+      "status": 200,
+      "reviews_returned": 100,
+      "success_flag": 1
+    },
+    {
+      "page": 3,
+      "elapsed_ms": 635,
+      "status": 200,
+      "reviews_returned": 100,
+      "success_flag": 1
+    },
+    {
+      "page": 4,
+      "elapsed_ms": 2050,
+      "status": 200,
+      "reviews_returned": 100,
+      "success_flag": 1
+    },
+    {
+      "page": 5,
+      "elapsed_ms": 569,
+      "status": 200,
+      "reviews_returned": 100,
+      "success_flag": 1
+    }
+  ],
+  "windowed_walk": [
+    {
+      "page": 1,
+      "elapsed_ms": 667,
+      "status": 200,
+      "reviews_returned": 100,
+      "success_flag": 1,
+      "all_inside_window": true
+    },
+    {
+      "page": 2,
+      "elapsed_ms": 639,
+      "status": 200,
+      "reviews_returned": 100,
+      "success_flag": 1,
+      "all_inside_window": true
+    }
+  ],
+  "marked_window": {
+    "appid": 49520,
+    "histogram_elapsed_ms": 609,
+    "past_events": [
+      {
+        "type": 0,
+        "start_date": 1554249600,
+        "end_date": 1555286400
+      }
+    ],
+    "default_listing": [
+      {
+        "page": 1,
+        "elapsed_ms": 463,
+        "status": 200,
+        "reviews_returned": 0,
+        "success_flag": 1
+      }
+    ],
+    "unfiltered_listing": [
+      {
+        "page": 1,
+        "elapsed_ms": 688,
+        "status": 200,
+        "reviews_returned": 100,
+        "success_flag": 1,
+        "all_inside_window": true
+      }
+    ]
+  },
+  "verdict": {
+    "pages_attempted": 5,
+    "pages_ok": 5,
+    "all_ok": true,
+    "windowed_ok": true,
+    "offtopic_filter_ok": true
+  }
+}

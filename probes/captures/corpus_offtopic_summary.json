@@ -1,0 +1,717 @@
+{
+  "probe_date": "2026-07-09",
+  "corpus_source": "steam-reviews (frozen sibling repo), full fetch of 2026-06-12, per its fetch_manifest.json",
+  "corpus_reviews_counted": 298553,
+  "games": [
+    {
+      "app_id": 550,
+      "name": "Left 4 Dead 2",
+      "corpus_reviews": 10000,
+      "corpus_range": {
+        "oldest": 1777448042,
+        "newest": 1781278713
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 620,
+      "name": "Portal 2",
+      "corpus_reviews": 1359,
+      "corpus_range": {
+        "oldest": 1779666271,
+        "newest": 1781278038
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 730,
+      "name": "Counter-Strike 2",
+      "corpus_reviews": 79,
+      "corpus_range": {
+        "oldest": 1781276884,
+        "newest": 1781279000
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 4000,
+      "name": "Garry's Mod",
+      "corpus_reviews": 10000,
+      "corpus_range": {
+        "oldest": 1778052895,
+        "newest": 1781278890
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 8870,
+      "name": "BioShock Infinite",
+      "corpus_reviews": 10000,
+      "corpus_range": {
+        "oldest": 1723137532,
+        "newest": 1781275283
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 39210,
+      "name": "Final Fantasy XIV Online",
+      "corpus_reviews": 2879,
+      "corpus_range": {
+        "oldest": 1763921506,
+        "newest": 1781276892
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 70300,
+      "name": "VVVVVV",
+      "corpus_reviews": 10000,
+      "corpus_range": {
+        "oldest": 1309775647,
+        "newest": 1781278971
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 227300,
+      "name": "Euro Truck Simulator 2",
+      "corpus_reviews": 10000,
+      "corpus_range": {
+        "oldest": 1777689397,
+        "newest": 1781278951
+      },
+      "rollup_type": "month",
+      "past_events": [
+        {
+          "type": 0,
+          "start_date": 1646006400,
+          "end_date": 1656633600
+        }
+      ],
+      "windows": [
+        {
+          "window": {
+            "start": 1646006400,
+            "end": 1656633600
+          },
+          "in_coverage": false,
+          "partially_before_coverage": false,
+          "corpus_in_window": 0,
+          "corpus_flank_before": 0,
+          "corpus_flank_after": 0,
+          "histogram_in_window_up": 34204,
+          "histogram_in_window_down": 2331,
+          "histogram_buckets_overlapping": 5,
+          "event_type": 0
+        }
+      ]
+    },
+    {
+      "app_id": 233720,
+      "name": "Surgeon Simulator",
+      "corpus_reviews": 1999,
+      "corpus_range": {
+        "oldest": 1671670084,
+        "newest": 1781275899
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 236850,
+      "name": "Europa Universalis IV",
+      "corpus_reviews": 3119,
+      "corpus_range": {
+        "oldest": 1761166855,
+        "newest": 1781275186
+      },
+      "rollup_type": "month",
+      "past_events": [
+        {
+          "type": 0,
+          "start_date": 1739491200,
+          "end_date": 1743379200
+        }
+      ],
+      "windows": [
+        {
+          "window": {
+            "start": 1739491200,
+            "end": 1743379200
+          },
+          "in_coverage": false,
+          "partially_before_coverage": false,
+          "corpus_in_window": 0,
+          "corpus_flank_before": 0,
+          "corpus_flank_after": 0,
+          "histogram_in_window_up": 834,
+          "histogram_in_window_down": 901,
+          "histogram_buckets_overlapping": 2,
+          "event_type": 0
+        }
+      ]
+    },
+    {
+      "app_id": 238960,
+      "name": "Path of Exile",
+      "corpus_reviews": 5999,
+      "corpus_range": {
+        "oldest": 1764247029,
+        "newest": 1781277066
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 239030,
+      "name": "Papers, Please",
+      "corpus_reviews": 10000,
+      "corpus_range": {
+        "oldest": 1730574344,
+        "newest": 1781276499
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 245470,
+      "name": "Democracy 3",
+      "corpus_reviews": 2240,
+      "corpus_range": {
+        "oldest": 1517620137,
+        "newest": 1780933001
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 252490,
+      "name": "Rust",
+      "corpus_reviews": 10000,
+      "corpus_range": {
+        "oldest": 1779242181,
+        "newest": 1781278964
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 252950,
+      "name": "Rocket League",
+      "corpus_reviews": 3119,
+      "corpus_range": {
+        "oldest": 1771551799,
+        "newest": 1781275386
+      },
+      "rollup_type": "month",
+      "past_events": [
+        {
+          "type": 0,
+          "start_date": 1556668800,
+          "end_date": 1557446400
+        }
+      ],
+      "windows": [
+        {
+          "window": {
+            "start": 1556668800,
+            "end": 1557446400
+          },
+          "in_coverage": false,
+          "partially_before_coverage": false,
+          "corpus_in_window": 0,
+          "corpus_flank_before": 0,
+          "corpus_flank_after": 0,
+          "histogram_in_window_up": 2103,
+          "histogram_in_window_down": 3217,
+          "histogram_buckets_overlapping": 1,
+          "event_type": 0
+        }
+      ]
+    },
+    {
+      "app_id": 255710,
+      "name": "Cities: Skylines",
+      "corpus_reviews": 3519,
+      "corpus_range": {
+        "oldest": 1773958306,
+        "newest": 1781274741
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 261550,
+      "name": "Mount & Blade II: Bannerlord",
+      "corpus_reviews": 1839,
+      "corpus_range": {
+        "oldest": 1778706148,
+        "newest": 1781278164
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 262060,
+      "name": "Darkest Dungeon",
+      "corpus_reviews": 10000,
+      "corpus_range": {
+        "oldest": 1753671449,
+        "newest": 1781275932
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 265930,
+      "name": "Goat Simulator",
+      "corpus_reviews": 2959,
+      "corpus_range": {
+        "oldest": 1744513058,
+        "newest": 1781263762
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 268910,
+      "name": "Cuphead",
+      "corpus_reviews": 10000,
+      "corpus_range": {
+        "oldest": 1770020195,
+        "newest": 1781278437
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 275850,
+      "name": "No Man's Sky",
+      "corpus_reviews": 10000,
+      "corpus_range": {
+        "oldest": 1772727641,
+        "newest": 1781277932
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 367520,
+      "name": "Hollow Knight",
+      "corpus_reviews": 10000,
+      "corpus_range": {
+        "oldest": 1775777931,
+        "newest": 1781277266
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 374320,
+      "name": "Dark Souls III",
+      "corpus_reviews": 3679,
+      "corpus_range": {
+        "oldest": 1777042353,
+        "newest": 1781277429
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 377160,
+      "name": "Fallout 4",
+      "corpus_reviews": 10000,
+      "corpus_range": {
+        "oldest": 1769972587,
+        "newest": 1781277573
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 391540,
+      "name": "Undertale",
+      "corpus_reviews": 2159,
+      "corpus_range": {
+        "oldest": 1779463739,
+        "newest": 1781278723
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 413150,
+      "name": "Stardew Valley",
+      "corpus_reviews": 10000,
+      "corpus_range": {
+        "oldest": 1778724900,
+        "newest": 1781278841
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 501300,
+      "name": "What Remains of Edith Finch",
+      "corpus_reviews": 10000,
+      "corpus_range": {
+        "oldest": 1732445229,
+        "newest": 1781276217
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 526870,
+      "name": "Satisfactory",
+      "corpus_reviews": 2559,
+      "corpus_range": {
+        "oldest": 1779347063,
+        "newest": 1781278879
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 553850,
+      "name": "Helldivers 2",
+      "corpus_reviews": 9199,
+      "corpus_range": {
+        "oldest": 1778239046,
+        "newest": 1781277591
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 632470,
+      "name": "Disco Elysium",
+      "corpus_reviews": 5759,
+      "corpus_range": {
+        "oldest": 1768842719,
+        "newest": 1781282336
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 659540,
+      "name": "Warsim: The Realm of Aslona",
+      "corpus_reviews": 2180,
+      "corpus_range": {
+        "oldest": 1498704808,
+        "newest": 1781275411
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 698780,
+      "name": "Doki Doki Literature Club!",
+      "corpus_reviews": 2639,
+      "corpus_range": {
+        "oldest": 1777461241,
+        "newest": 1781277345
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 719040,
+      "name": "Wasteland 3",
+      "corpus_reviews": 10000,
+      "corpus_range": {
+        "oldest": 1639195804,
+        "newest": 1781239753
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 739630,
+      "name": "Phasmophobia",
+      "corpus_reviews": 10000,
+      "corpus_range": {
+        "oldest": 1778170857,
+        "newest": 1781278575
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 750920,
+      "name": "Shadow of the Tomb Raider",
+      "corpus_reviews": 639,
+      "corpus_range": {
+        "oldest": 1779080361,
+        "newest": 1781278741
+      },
+      "rollup_type": "month",
+      "past_events": [
+        {
+          "type": 0,
+          "start_date": 1539648000,
+          "end_date": 1540252800
+        }
+      ],
+      "windows": [
+        {
+          "window": {
+            "start": 1539648000,
+            "end": 1540252800
+          },
+          "in_coverage": false,
+          "partially_before_coverage": false,
+          "corpus_in_window": 0,
+          "corpus_flank_before": 0,
+          "corpus_flank_after": 0,
+          "histogram_in_window_up": 993,
+          "histogram_in_window_down": 868,
+          "histogram_buckets_overlapping": 1,
+          "event_type": 0
+        }
+      ]
+    },
+    {
+      "app_id": 881100,
+      "name": "Noita",
+      "corpus_reviews": 1919,
+      "corpus_range": {
+        "oldest": 1773431387,
+        "newest": 1781277567
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 1086940,
+      "name": "Baldur's Gate 3",
+      "corpus_reviews": 10000,
+      "corpus_range": {
+        "oldest": 1775697931,
+        "newest": 1781278956
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 1091500,
+      "name": "Cyberpunk 2077",
+      "corpus_reviews": 8879,
+      "corpus_range": {
+        "oldest": 1777813702,
+        "newest": 1781278791
+      },
+      "rollup_type": "month",
+      "past_events": [
+        {
+          "type": 0,
+          "start_date": 1646265600,
+          "end_date": 1646697600
+        }
+      ],
+      "windows": [
+        {
+          "window": {
+            "start": 1646265600,
+            "end": 1646697600
+          },
+          "in_coverage": false,
+          "partially_before_coverage": false,
+          "corpus_in_window": 0,
+          "corpus_flank_before": 0,
+          "corpus_flank_after": 0,
+          "histogram_in_window_up": 5293,
+          "histogram_in_window_down": 5142,
+          "histogram_buckets_overlapping": 1,
+          "event_type": 0
+        }
+      ]
+    },
+    {
+      "app_id": 1222700,
+      "name": "A Way Out",
+      "corpus_reviews": 3679,
+      "corpus_range": {
+        "oldest": 1774376676,
+        "newest": 1781279102
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 1245620,
+      "name": "Elden Ring",
+      "corpus_reviews": 2959,
+      "corpus_range": {
+        "oldest": 1780109855,
+        "newest": 1781278950
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 1265780,
+      "name": "The Lord of the Rings: Gollum",
+      "corpus_reviews": 959,
+      "corpus_range": {
+        "oldest": 1686415457,
+        "newest": 1781246074
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 1294810,
+      "name": "Redfall",
+      "corpus_reviews": 3279,
+      "corpus_range": {
+        "oldest": 1683081480,
+        "newest": 1780627114
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 1328670,
+      "name": "Mass Effect Legendary Edition",
+      "corpus_reviews": 10000,
+      "corpus_range": {
+        "oldest": 1746371634,
+        "newest": 1781271485
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 1372880,
+      "name": "The Day Before",
+      "corpus_reviews": 5839,
+      "corpus_range": {
+        "oldest": 1702250271,
+        "newest": 1780364700
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 1517290,
+      "name": "Battlefield 2042",
+      "corpus_reviews": 4719,
+      "corpus_range": {
+        "oldest": 1765054396,
+        "newest": 1781277641
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 1525700,
+      "name": "Tavern Master",
+      "corpus_reviews": 3279,
+      "corpus_range": {
+        "oldest": 1732117972,
+        "newest": 1781267210
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 1687950,
+      "name": "Persona 5 Royal",
+      "corpus_reviews": 10000,
+      "corpus_range": {
+        "oldest": 1770893253,
+        "newest": 1781278406
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 1716740,
+      "name": "Starfield",
+      "corpus_reviews": 3199,
+      "corpus_range": {
+        "oldest": 1775056854,
+        "newest": 1781272802
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 1919590,
+      "name": "NBA 2K23",
+      "corpus_reviews": 1920,
+      "corpus_range": {
+        "oldest": 1724159508,
+        "newest": 1781164923
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    },
+    {
+      "app_id": 2357570,
+      "name": "Overwatch 2",
+      "corpus_reviews": 10000,
+      "corpus_range": {
+        "oldest": 1777306750,
+        "newest": 1781278960
+      },
+      "rollup_type": "month",
+      "past_events": [],
+      "windows": []
+    }
+  ]
+}

@@ -56,3 +56,72 @@ fetches unfiltered and carries `past_events` as metadata, and the two-track
 numbers need a documented stance on marked-window reviews.
 (`offtopic_hist_default.json` · `offtopic_reviews_default.json` ·
 `offtopic_reviews_include_offtopic.json`)
+
+---
+
+# Extraction+eval entry findings (M1) — 2026-07-09
+
+The two verification debts the system-flow panel surfaced, cleared before the
+milestone opens. Probe code: this folder · raw payloads: `captures/`.
+
+## 4. Corpus off-topic exposure — CLEAN, by coverage geometry, not by luck of the fetch
+
+Refetched `appreviewhistogram` + `past_events` for all 50 corpus games
+(`corpus_offtopic_probe.py`; 298,553 corpus reviews counted, matching the frozen
+fetch manifest):
+
+- **5 of 50 games carry Valve-marked windows** — Euro Truck Simulator 2
+  (Feb–Jul 2022), Europa Universalis IV (Feb–Mar 2025), Rocket League (May 2019),
+  Shadow of the Tomb Raider (Oct 2018), Cyberpunk 2077 (Mar 2022). Each window
+  shows real review volume in the histogram (ETS2's spans ~36k recommendations).
+- **Every marked window predates its game's corpus coverage** — the prior
+  pipeline's recent-first capped walk reaches back weeks-to-months for these
+  games, and all five windows are older. **Zero corpus reviews (0.000%) fall
+  inside marked windows.** The corpus can't be bomb-blanked where it holds no
+  reviews to blank. (`corpus_offtopic_summary.json` · `corpus_hist_<appid>.json`
+  for the five flagged games)
+- **The blanking mechanism is real, though — confirmed on the plain default
+  walk** (`default_walk_blanking_probe.py`). The corpus couldn't testify (no
+  overlap), so the probe walked EUIV's default listing — the prior pipeline's
+  exact request shape, no date params, no off-topic flag — newest→oldest
+  straight past its marked window: **76 pages, 7,597 reviews seen, 0 inside the
+  window**, while the same window unfiltered holds **1,892 reviews (881 up /
+  1,011 down)** and the windowed default reports 0. A plain default cursor walk
+  silently skips marked windows, with no signal in the payload that anything was
+  dropped. (`defaultwalk_summary_236850.json` ·
+  `defaultwalk_windowed_default_236850.json` ·
+  `defaultwalk_windowed_unfiltered_236850.json`)
+
+**Backfill recommendation: none.** Nothing inside corpus coverage was blanked, so
+there is nothing to backfill. The forward-looking rule the mechanism finding
+hardens: *every* future fetch — the production sampler and any corpus refresh —
+carries `filter_offtopic_activity=0`, which is already the settled marked-window
+stance (DESIGN); a default fetch is now a proven data-integrity bug, not a
+style choice. One knock-on for the sampling study (M2): the marked-share floor
+can't be tuned on this corpus (it contains no marked-window reviews); tuning
+needs windows fetched fresh via the windowed unfiltered path.
+
+*Flagged in passing (FIXLOG'd, out of scope here):* corpus per-game coverage is
+far thinner and more variable than "10k most recent" — the prior fetcher stopped
+on any short page, so e.g. Counter-Strike 2 holds 79 reviews spanning a single
+day and Portal 2 1,359 over 19 days. Matters for extraction+eval sample framing.
+
+## 5. Windowed params from a datacenter — local baseline green, datacenter leg pending
+
+The production primary path (undocumented `start_date`/`end_date` +
+`filter_offtopic_activity=0`, composed with cursor pagination) had never run from
+a datacenter IP — the smoke tests exercised only the documented cursor path. The
+reachability probe (`reachability/app.py`, same dual-mode code) is extended with:
+
+- a **windowed cursor walk** — one full TF2 month, 2 pages × 100 reviews, every
+  timestamp inside the window;
+- a **marked-window blank/restore check** on Borderlands 2 — window taken from
+  the live histogram's `past_events`, default listing must return 0, the
+  unfiltered flag must restore it;
+- two new verdict booleans: `windowed_ok`, `offtopic_filter_ok`.
+
+Residential baseline: both true, all statuses 200
+(`reachability_local_windowed_baseline.json`). **Datacenter verdict: PENDING** —
+run the `Steam reachability probe` workflow (GitHub Actions) after this lands on
+main; its artifact becomes `reachability_datacenter_windowed_ghactions.json` and
+this line gets replaced with the verdict.

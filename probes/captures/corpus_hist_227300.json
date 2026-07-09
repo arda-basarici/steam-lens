@@ -1,0 +1,987 @@
+{
+  "success": 1,
+  "results": {
+    "start_date": 1358294400,
+    "end_date": 1783555200,
+    "weeks": [],
+    "rollups": [
+      {
+        "date": 1356998400,
+        "recommendations_up": 96,
+        "recommendations_down": 0
+      },
+      {
+        "date": 1359676800,
+        "recommendations_up": 81,
+        "recommendations_down": 0
+      },
+      {
+        "date": 1362096000,
+        "recommendations_up": 75,
+        "recommendations_down": 0
+      },
+      {
+        "date": 1364774400,
+        "recommendations_up": 66,
+        "recommendations_down": 0
+      },
+      {
+        "date": 1367366400,
+        "recommendations_up": 51,
+        "recommendations_down": 1
+      },
+      {
+        "date": 1370044800,
+        "recommendations_up": 39,
+        "recommendations_down": 0
+      },
+      {
+        "date": 1372636800,
+        "recommendations_up": 237,
+        "recommendations_down": 0
+      },
+      {
+        "date": 1375315200,
+        "recommendations_up": 90,
+        "recommendations_down": 1
+      },
+      {
+        "date": 1377993600,
+        "recommendations_up": 94,
+        "recommendations_down": 0
+      },
+      {
+        "date": 1380585600,
+        "recommendations_up": 124,
+        "recommendations_down": 2
+      },
+      {
+        "date": 1383264000,
+        "recommendations_up": 367,
+        "recommendations_down": 2
+      },
+      {
+        "date": 1385856000,
+        "recommendations_up": 1314,
+        "recommendations_down": 13
+      },
+      {
+        "date": 1388534400,
+        "recommendations_up": 690,
+        "recommendations_down": 10
+      },
+      {
+        "date": 1391212800,
+        "recommendations_up": 379,
+        "recommendations_down": 5
+      },
+      {
+        "date": 1393632000,
+        "recommendations_up": 325,
+        "recommendations_down": 5
+      },
+      {
+        "date": 1396310400,
+        "recommendations_up": 736,
+        "recommendations_down": 7
+      },
+      {
+        "date": 1398902400,
+        "recommendations_up": 492,
+        "recommendations_down": 9
+      },
+      {
+        "date": 1401580800,
+        "recommendations_up": 1926,
+        "recommendations_down": 27
+      },
+      {
+        "date": 1404172800,
+        "recommendations_up": 1028,
+        "recommendations_down": 10
+      },
+      {
+        "date": 1406851200,
+        "recommendations_up": 703,
+        "recommendations_down": 2
+      },
+      {
+        "date": 1409529600,
+        "recommendations_up": 605,
+        "recommendations_down": 7
+      },
+      {
+        "date": 1412121600,
+        "recommendations_up": 932,
+        "recommendations_down": 16
+      },
+      {
+        "date": 1414800000,
+        "recommendations_up": 1230,
+        "recommendations_down": 19
+      },
+      {
+        "date": 1417392000,
+        "recommendations_up": 2770,
+        "recommendations_down": 50
+      },
+      {
+        "date": 1420070400,
+        "recommendations_up": 1661,
+        "recommendations_down": 53
+      },
+      {
+        "date": 1422748800,
+        "recommendations_up": 839,
+        "recommendations_down": 21
+      },
+      {
+        "date": 1425168000,
+        "recommendations_up": 763,
+        "recommendations_down": 12
+      },
+      {
+        "date": 1427846400,
+        "recommendations_up": 767,
+        "recommendations_down": 14
+      },
+      {
+        "date": 1430438400,
+        "recommendations_up": 1125,
+        "recommendations_down": 42
+      },
+      {
+        "date": 1433116800,
+        "recommendations_up": 1906,
+        "recommendations_down": 61
+      },
+      {
+        "date": 1435708800,
+        "recommendations_up": 941,
+        "recommendations_down": 30
+      },
+      {
+        "date": 1438387200,
+        "recommendations_up": 977,
+        "recommendations_down": 22
+      },
+      {
+        "date": 1441065600,
+        "recommendations_up": 795,
+        "recommendations_down": 17
+      },
+      {
+        "date": 1443657600,
+        "recommendations_up": 987,
+        "recommendations_down": 31
+      },
+      {
+        "date": 1446336000,
+        "recommendations_up": 1353,
+        "recommendations_down": 37
+      },
+      {
+        "date": 1448928000,
+        "recommendations_up": 2614,
+        "recommendations_down": 100
+      },
+      {
+        "date": 1451606400,
+        "recommendations_up": 2482,
+        "recommendations_down": 82
+      },
+      {
+        "date": 1454284800,
+        "recommendations_up": 1631,
+        "recommendations_down": 57
+      },
+      {
+        "date": 1456790400,
+        "recommendations_up": 899,
+        "recommendations_down": 44
+      },
+      {
+        "date": 1459468800,
+        "recommendations_up": 798,
+        "recommendations_down": 35
+      },
+      {
+        "date": 1462060800,
+        "recommendations_up": 1109,
+        "recommendations_down": 32
+      },
+      {
+        "date": 1464739200,
+        "recommendations_up": 1404,
+        "recommendations_down": 57
+      },
+      {
+        "date": 1467331200,
+        "recommendations_up": 1638,
+        "recommendations_down": 55
+      },
+      {
+        "date": 1470009600,
+        "recommendations_up": 948,
+        "recommendations_down": 28
+      },
+      {
+        "date": 1472688000,
+        "recommendations_up": 829,
+        "recommendations_down": 25
+      },
+      {
+        "date": 1475280000,
+        "recommendations_up": 973,
+        "recommendations_down": 28
+      },
+      {
+        "date": 1477958400,
+        "recommendations_up": 5085,
+        "recommendations_down": 82
+      },
+      {
+        "date": 1480550400,
+        "recommendations_up": 2823,
+        "recommendations_down": 80
+      },
+      {
+        "date": 1483228800,
+        "recommendations_up": 2472,
+        "recommendations_down": 97
+      },
+      {
+        "date": 1485907200,
+        "recommendations_up": 1327,
+        "recommendations_down": 45
+      },
+      {
+        "date": 1488326400,
+        "recommendations_up": 1053,
+        "recommendations_down": 36
+      },
+      {
+        "date": 1491004800,
+        "recommendations_up": 1164,
+        "recommendations_down": 28
+      },
+      {
+        "date": 1493596800,
+        "recommendations_up": 2523,
+        "recommendations_down": 87
+      },
+      {
+        "date": 1496275200,
+        "recommendations_up": 2829,
+        "recommendations_down": 102
+      },
+      {
+        "date": 1498867200,
+        "recommendations_up": 3424,
+        "recommendations_down": 146
+      },
+      {
+        "date": 1501545600,
+        "recommendations_up": 1808,
+        "recommendations_down": 68
+      },
+      {
+        "date": 1504224000,
+        "recommendations_up": 1303,
+        "recommendations_down": 39
+      },
+      {
+        "date": 1506816000,
+        "recommendations_up": 1672,
+        "recommendations_down": 77
+      },
+      {
+        "date": 1509494400,
+        "recommendations_up": 8275,
+        "recommendations_down": 143
+      },
+      {
+        "date": 1512086400,
+        "recommendations_up": 3663,
+        "recommendations_down": 170
+      },
+      {
+        "date": 1514764800,
+        "recommendations_up": 3398,
+        "recommendations_down": 131
+      },
+      {
+        "date": 1517443200,
+        "recommendations_up": 1968,
+        "recommendations_down": 81
+      },
+      {
+        "date": 1519862400,
+        "recommendations_up": 1421,
+        "recommendations_down": 75
+      },
+      {
+        "date": 1522540800,
+        "recommendations_up": 1031,
+        "recommendations_down": 44
+      },
+      {
+        "date": 1525132800,
+        "recommendations_up": 2183,
+        "recommendations_down": 103
+      },
+      {
+        "date": 1527811200,
+        "recommendations_up": 2202,
+        "recommendations_down": 135
+      },
+      {
+        "date": 1530403200,
+        "recommendations_up": 2365,
+        "recommendations_down": 141
+      },
+      {
+        "date": 1533081600,
+        "recommendations_up": 1562,
+        "recommendations_down": 92
+      },
+      {
+        "date": 1535760000,
+        "recommendations_up": 1941,
+        "recommendations_down": 123
+      },
+      {
+        "date": 1538352000,
+        "recommendations_up": 1311,
+        "recommendations_down": 76
+      },
+      {
+        "date": 1541030400,
+        "recommendations_up": 9449,
+        "recommendations_down": 173
+      },
+      {
+        "date": 1543622400,
+        "recommendations_up": 2698,
+        "recommendations_down": 152
+      },
+      {
+        "date": 1546300800,
+        "recommendations_up": 2267,
+        "recommendations_down": 124
+      },
+      {
+        "date": 1548979200,
+        "recommendations_up": 1820,
+        "recommendations_down": 90
+      },
+      {
+        "date": 1551398400,
+        "recommendations_up": 1399,
+        "recommendations_down": 78
+      },
+      {
+        "date": 1554076800,
+        "recommendations_up": 1115,
+        "recommendations_down": 46
+      },
+      {
+        "date": 1556668800,
+        "recommendations_up": 1459,
+        "recommendations_down": 88
+      },
+      {
+        "date": 1559347200,
+        "recommendations_up": 5918,
+        "recommendations_down": 115
+      },
+      {
+        "date": 1561939200,
+        "recommendations_up": 7420,
+        "recommendations_down": 165
+      },
+      {
+        "date": 1564617600,
+        "recommendations_up": 1258,
+        "recommendations_down": 71
+      },
+      {
+        "date": 1567296000,
+        "recommendations_up": 1315,
+        "recommendations_down": 54
+      },
+      {
+        "date": 1569888000,
+        "recommendations_up": 2405,
+        "recommendations_down": 66
+      },
+      {
+        "date": 1572566400,
+        "recommendations_up": 14197,
+        "recommendations_down": 150
+      },
+      {
+        "date": 1575158400,
+        "recommendations_up": 16119,
+        "recommendations_down": 320
+      },
+      {
+        "date": 1577836800,
+        "recommendations_up": 8943,
+        "recommendations_down": 195
+      },
+      {
+        "date": 1580515200,
+        "recommendations_up": 7533,
+        "recommendations_down": 201
+      },
+      {
+        "date": 1583020800,
+        "recommendations_up": 7661,
+        "recommendations_down": 152
+      },
+      {
+        "date": 1585699200,
+        "recommendations_up": 11753,
+        "recommendations_down": 256
+      },
+      {
+        "date": 1588291200,
+        "recommendations_up": 8665,
+        "recommendations_down": 243
+      },
+      {
+        "date": 1590969600,
+        "recommendations_up": 7601,
+        "recommendations_down": 204
+      },
+      {
+        "date": 1593561600,
+        "recommendations_up": 9324,
+        "recommendations_down": 226
+      },
+      {
+        "date": 1596240000,
+        "recommendations_up": 6606,
+        "recommendations_down": 156
+      },
+      {
+        "date": 1598918400,
+        "recommendations_up": 4811,
+        "recommendations_down": 140
+      },
+      {
+        "date": 1601510400,
+        "recommendations_up": 7193,
+        "recommendations_down": 154
+      },
+      {
+        "date": 1604188800,
+        "recommendations_up": 11516,
+        "recommendations_down": 181
+      },
+      {
+        "date": 1606780800,
+        "recommendations_up": 10954,
+        "recommendations_down": 248
+      },
+      {
+        "date": 1609459200,
+        "recommendations_up": 8852,
+        "recommendations_down": 221
+      },
+      {
+        "date": 1612137600,
+        "recommendations_up": 8581,
+        "recommendations_down": 198
+      },
+      {
+        "date": 1614556800,
+        "recommendations_up": 8354,
+        "recommendations_down": 182
+      },
+      {
+        "date": 1617235200,
+        "recommendations_up": 8693,
+        "recommendations_down": 213
+      },
+      {
+        "date": 1619827200,
+        "recommendations_up": 8542,
+        "recommendations_down": 215
+      },
+      {
+        "date": 1622505600,
+        "recommendations_up": 8107,
+        "recommendations_down": 212
+      },
+      {
+        "date": 1625097600,
+        "recommendations_up": 10630,
+        "recommendations_down": 284
+      },
+      {
+        "date": 1627776000,
+        "recommendations_up": 6054,
+        "recommendations_down": 167
+      },
+      {
+        "date": 1630454400,
+        "recommendations_up": 7514,
+        "recommendations_down": 210
+      },
+      {
+        "date": 1633046400,
+        "recommendations_up": 6418,
+        "recommendations_down": 175
+      },
+      {
+        "date": 1635724800,
+        "recommendations_up": 14228,
+        "recommendations_down": 224
+      },
+      {
+        "date": 1638316800,
+        "recommendations_up": 8800,
+        "recommendations_down": 229
+      },
+      {
+        "date": 1640995200,
+        "recommendations_up": 10189,
+        "recommendations_down": 281
+      },
+      {
+        "date": 1643673600,
+        "recommendations_up": 7261,
+        "recommendations_down": 207
+      },
+      {
+        "date": 1646092800,
+        "recommendations_up": 7386,
+        "recommendations_down": 1082
+      },
+      {
+        "date": 1648771200,
+        "recommendations_up": 6278,
+        "recommendations_down": 218
+      },
+      {
+        "date": 1651363200,
+        "recommendations_up": 7020,
+        "recommendations_down": 499
+      },
+      {
+        "date": 1654041600,
+        "recommendations_up": 6259,
+        "recommendations_down": 325
+      },
+      {
+        "date": 1656633600,
+        "recommendations_up": 6751,
+        "recommendations_down": 231
+      },
+      {
+        "date": 1659312000,
+        "recommendations_up": 6189,
+        "recommendations_down": 185
+      },
+      {
+        "date": 1661990400,
+        "recommendations_up": 6472,
+        "recommendations_down": 187
+      },
+      {
+        "date": 1664582400,
+        "recommendations_up": 6445,
+        "recommendations_down": 162
+      },
+      {
+        "date": 1667260800,
+        "recommendations_up": 11215,
+        "recommendations_down": 224
+      },
+      {
+        "date": 1669852800,
+        "recommendations_up": 7564,
+        "recommendations_down": 247
+      },
+      {
+        "date": 1672531200,
+        "recommendations_up": 8644,
+        "recommendations_down": 225
+      },
+      {
+        "date": 1675209600,
+        "recommendations_up": 6049,
+        "recommendations_down": 155
+      },
+      {
+        "date": 1677628800,
+        "recommendations_up": 7217,
+        "recommendations_down": 194
+      },
+      {
+        "date": 1680307200,
+        "recommendations_up": 7306,
+        "recommendations_down": 261
+      },
+      {
+        "date": 1682899200,
+        "recommendations_up": 6684,
+        "recommendations_down": 204
+      },
+      {
+        "date": 1685577600,
+        "recommendations_up": 5288,
+        "recommendations_down": 209
+      },
+      {
+        "date": 1688169600,
+        "recommendations_up": 9422,
+        "recommendations_down": 269
+      },
+      {
+        "date": 1690848000,
+        "recommendations_up": 9196,
+        "recommendations_down": 345
+      },
+      {
+        "date": 1693526400,
+        "recommendations_up": 6700,
+        "recommendations_down": 304
+      },
+      {
+        "date": 1696118400,
+        "recommendations_up": 9307,
+        "recommendations_down": 302
+      },
+      {
+        "date": 1698796800,
+        "recommendations_up": 16400,
+        "recommendations_down": 344
+      },
+      {
+        "date": 1701388800,
+        "recommendations_up": 9634,
+        "recommendations_down": 313
+      },
+      {
+        "date": 1704067200,
+        "recommendations_up": 8410,
+        "recommendations_down": 261
+      },
+      {
+        "date": 1706745600,
+        "recommendations_up": 5899,
+        "recommendations_down": 200
+      },
+      {
+        "date": 1709251200,
+        "recommendations_up": 7448,
+        "recommendations_down": 257
+      },
+      {
+        "date": 1711929600,
+        "recommendations_up": 6468,
+        "recommendations_down": 200
+      },
+      {
+        "date": 1714521600,
+        "recommendations_up": 7617,
+        "recommendations_down": 395
+      },
+      {
+        "date": 1717200000,
+        "recommendations_up": 6010,
+        "recommendations_down": 270
+      },
+      {
+        "date": 1719792000,
+        "recommendations_up": 13770,
+        "recommendations_down": 521
+      },
+      {
+        "date": 1722470400,
+        "recommendations_up": 7040,
+        "recommendations_down": 241
+      },
+      {
+        "date": 1725148800,
+        "recommendations_up": 7430,
+        "recommendations_down": 363
+      },
+      {
+        "date": 1727740800,
+        "recommendations_up": 6531,
+        "recommendations_down": 254
+      },
+      {
+        "date": 1730419200,
+        "recommendations_up": 7679,
+        "recommendations_down": 263
+      },
+      {
+        "date": 1733011200,
+        "recommendations_up": 11239,
+        "recommendations_down": 380
+      },
+      {
+        "date": 1735689600,
+        "recommendations_up": 8931,
+        "recommendations_down": 312
+      },
+      {
+        "date": 1738368000,
+        "recommendations_up": 7012,
+        "recommendations_down": 264
+      },
+      {
+        "date": 1740787200,
+        "recommendations_up": 8963,
+        "recommendations_down": 350
+      },
+      {
+        "date": 1743465600,
+        "recommendations_up": 7259,
+        "recommendations_down": 262
+      },
+      {
+        "date": 1746057600,
+        "recommendations_up": 5909,
+        "recommendations_down": 228
+      },
+      {
+        "date": 1748736000,
+        "recommendations_up": 5657,
+        "recommendations_down": 192
+      },
+      {
+        "date": 1751328000,
+        "recommendations_up": 9185,
+        "recommendations_down": 363
+      },
+      {
+        "date": 1754006400,
+        "recommendations_up": 6438,
+        "recommendations_down": 260
+      },
+      {
+        "date": 1756684800,
+        "recommendations_up": 5641,
+        "recommendations_down": 245
+      },
+      {
+        "date": 1759276800,
+        "recommendations_up": 7767,
+        "recommendations_down": 288
+      },
+      {
+        "date": 1761955200,
+        "recommendations_up": 7196,
+        "recommendations_down": 265
+      },
+      {
+        "date": 1764547200,
+        "recommendations_up": 9424,
+        "recommendations_down": 379
+      },
+      {
+        "date": 1767225600,
+        "recommendations_up": 8023,
+        "recommendations_down": 262
+      },
+      {
+        "date": 1769904000,
+        "recommendations_up": 7879,
+        "recommendations_down": 407
+      },
+      {
+        "date": 1772323200,
+        "recommendations_up": 7143,
+        "recommendations_down": 294
+      },
+      {
+        "date": 1775001600,
+        "recommendations_up": 6880,
+        "recommendations_down": 266
+      },
+      {
+        "date": 1777593600,
+        "recommendations_up": 6858,
+        "recommendations_down": 273
+      },
+      {
+        "date": 1780272000,
+        "recommendations_up": 5557,
+        "recommendations_down": 210
+      },
+      {
+        "date": 1782864000,
+        "recommendations_up": 2277,
+        "recommendations_down": 89
+      }
+    ],
+    "rollup_type": "month",
+    "recent": [
+      {
+        "date": 1781049600,
+        "recommendations_up": 126,
+        "recommendations_down": 5
+      },
+      {
+        "date": 1781136000,
+        "recommendations_up": 151,
+        "recommendations_down": 4
+      },
+      {
+        "date": 1781222400,
+        "recommendations_up": 149,
+        "recommendations_down": 5
+      },
+      {
+        "date": 1781308800,
+        "recommendations_up": 165,
+        "recommendations_down": 4
+      },
+      {
+        "date": 1781395200,
+        "recommendations_up": 170,
+        "recommendations_down": 8
+      },
+      {
+        "date": 1781481600,
+        "recommendations_up": 148,
+        "recommendations_down": 8
+      },
+      {
+        "date": 1781568000,
+        "recommendations_up": 145,
+        "recommendations_down": 7
+      },
+      {
+        "date": 1781654400,
+        "recommendations_up": 141,
+        "recommendations_down": 6
+      },
+      {
+        "date": 1781740800,
+        "recommendations_up": 300,
+        "recommendations_down": 8
+      },
+      {
+        "date": 1781827200,
+        "recommendations_up": 194,
+        "recommendations_down": 12
+      },
+      {
+        "date": 1781913600,
+        "recommendations_up": 205,
+        "recommendations_down": 9
+      },
+      {
+        "date": 1782000000,
+        "recommendations_up": 185,
+        "recommendations_down": 8
+      },
+      {
+        "date": 1782086400,
+        "recommendations_up": 152,
+        "recommendations_down": 13
+      },
+      {
+        "date": 1782172800,
+        "recommendations_up": 150,
+        "recommendations_down": 6
+      },
+      {
+        "date": 1782259200,
+        "recommendations_up": 152,
+        "recommendations_down": 2
+      },
+      {
+        "date": 1782345600,
+        "recommendations_up": 143,
+        "recommendations_down": 7
+      },
+      {
+        "date": 1782432000,
+        "recommendations_up": 220,
+        "recommendations_down": 9
+      },
+      {
+        "date": 1782518400,
+        "recommendations_up": 241,
+        "recommendations_down": 8
+      },
+      {
+        "date": 1782604800,
+        "recommendations_up": 273,
+        "recommendations_down": 6
+      },
+      {
+        "date": 1782691200,
+        "recommendations_up": 264,
+        "recommendations_down": 11
+      },
+      {
+        "date": 1782777600,
+        "recommendations_up": 349,
+        "recommendations_down": 7
+      },
+      {
+        "date": 1782864000,
+        "recommendations_up": 282,
+        "recommendations_down": 15
+      },
+      {
+        "date": 1782950400,
+        "recommendations_up": 282,
+        "recommendations_down": 10
+      },
+      {
+        "date": 1783036800,
+        "recommendations_up": 245,
+        "recommendations_down": 8
+      },
+      {
+        "date": 1783123200,
+        "recommendations_up": 274,
+        "recommendations_down": 13
+      },
+      {
+        "date": 1783209600,
+        "recommendations_up": 326,
+        "recommendations_down": 7
+      },
+      {
+        "date": 1783296000,
+        "recommendations_up": 290,
+        "recommendations_down": 9
+      },
+      {
+        "date": 1783382400,
+        "recommendations_up": 294,
+        "recommendations_down": 13
+      },
+      {
+        "date": 1783468800,
+        "recommendations_up": 276,
+        "recommendations_down": 14
+      },
+      {
+        "date": 1783555200,
+        "recommendations_up": 8,
+        "recommendations_down": 0
+      }
+    ]
+  },
+  "count_all_reviews": false,
+  "past_events": [
+    {
+      "type": 0,
+      "start_date": 1646006400,
+      "end_date": 1656633600
+    }
+  ],
+  "expand_graph": true
+}

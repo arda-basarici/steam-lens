@@ -271,12 +271,14 @@ stays: does *this product* need it?
   designs change the variance math; decided with the policy, not before it).
 - **Marked-share floor threshold** — the degradation trigger for bomb-dominated
   samples: provisional value set during extraction+eval (M1), tuned at the sampling
-  study (M2), gated on the corpus off-topic probe below.
-- **Verification debts at extraction+eval (M1) entry** (both cheap, both from the
-  panel's critique round): the **corpus off-topic probe** — refetch histograms +
-  `past_events` for the 50 corpus games, measure how much of the corpus falls inside
-  marked windows (the prior pipeline may have fetched default-filtered, i.e.
-  bomb-blanked), decide backfill; and the **datacenter windowed-params probe** —
-  extend the existing GitHub Actions probe with the date-window params and the
-  unfiltered flag, since the smoke tests exercised only the documented cursor path
-  from a datacenter IP and the production primary path is otherwise unverified there.
+  study (M2). The corpus off-topic probe resolved its gate with a twist: the corpus
+  holds zero marked-window reviews, so tuning can't use it — it needs windows fetched
+  fresh through the windowed unfiltered path.
+- **Verification debts at extraction+eval (M1) entry** (both from the panel's
+  critique round) — **corpus off-topic probe: CLEARED 2026-07-09** (corpus clean by
+  coverage geometry — no marked window overlaps any game's coverage, 0 of 298,553
+  reviews affected, no backfill; the blanking mechanism itself confirmed real on a
+  plain default walk, making unfiltered fetching a data-integrity requirement, not a
+  preference); **datacenter windowed-params probe: extended and green from the
+  residential baseline, datacenter leg pending one workflow dispatch.** Verdicts and
+  evidence: `probes/FINDINGS.md`, extraction+eval entry findings.

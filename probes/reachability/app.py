@@ -6,6 +6,12 @@ calls the local baseline made — one histogram fetch plus a sequential cursor w
 over `appreviews` — and reports per-request status, latency, and payload sanity,
 plus the egress IP so the run proves where it ran from.
 
+Extended at extraction+eval (M1) entry with the production primary path, which the
+smoke tests never exercised from a datacenter: a date-windowed cursor walk using the
+undocumented `start_date`/`end_date` params plus `filter_offtopic_activity=0`, and a
+marked-window check on Borderlands 2 (default listing blanks Valve's marked window;
+the unfiltered flag must restore it — the local behavior `offtopic_probe.py` found).
+
 Dual-mode so local and datacenter runs are the same code:
     python app.py            -> run once, print the probe JSON (baseline mode)
     python app.py --serve    -> HTTP server on :7860 (HF Spaces Docker mode);
@@ -17,12 +23,19 @@ Probe-grade: sequential, no retries — a transient failure is itself data here.
 import json
 import sys
 import time
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
 
 import requests
 
 APPID = 440  # Team Fortress 2 — the local baseline's old_large profile
+MARKED_APPID = 49520  # Borderlands 2 — carries the first Valve-marked off-topic window
+# Plain-window walk target: one arbitrary full TF2 month (TF2's histogram carries no
+# past_events), far enough back that its contents no longer change under us.
+WINDOW_START = int(datetime(2023, 6, 1, tzinfo=timezone.utc).timestamp())
+WINDOW_END = int(datetime(2023, 6, 30, 23, 59, 59, tzinfo=timezone.utc).timestamp())
+WINDOWED_PAGES = 2
 PORT = 7860
 DEFAULT_PAGES = 5
 MAX_PAGES = 10
@@ -95,19 +108,107 @@ def probe_cursor_walk(pages: int) -> list[dict]:
     return walk
 
 
+def probe_windowed_walk(appid: int, start: int, end: int,
+                        extra_params: dict, pages: int) -> list[dict]:
+    """Walk cursor pages of a date-windowed `appreviews` fetch — the production
+    primary path: the undocumented start/end date params composed with cursor
+    pagination, plus whatever flags `extra_params` adds."""
+    walk = []
+    cursor = "*"
+    for page in range(1, pages + 1):
+        resp, elapsed_ms, err = timed_get(
+            f"https://store.steampowered.com/appreviews/{appid}",
+            {
+                "json": 1, "filter": "recent", "language": "all",
+                "purchase_type": "all", "num_per_page": 100,
+                "start_date": start, "end_date": end,
+                "date_range_type": "include", "cursor": cursor,
+                **extra_params,
+            },
+        )
+        report = {"page": page, "elapsed_ms": round(elapsed_ms)}
+        if resp is None:
+            walk.append({**report, "error": err})
+            break
+        report["status"] = resp.status_code
+        try:
+            data = resp.json()
+            reviews = data.get("reviews", [])
+            report["reviews_returned"] = len(reviews)
+            report["success_flag"] = data.get("success")
+            if reviews:
+                stamps = [int(r.get("timestamp_created", 0)) for r in reviews]
+                report["all_inside_window"] = start <= min(stamps) and max(stamps) <= end
+            cursor = data.get("cursor", "")
+        except ValueError:
+            report["error"] = "non-JSON body: " + resp.text[:200]
+        walk.append(report)
+        if report.get("status") != 200 or not cursor or not report.get("reviews_returned"):
+            break
+        time.sleep(1)
+    return walk
+
+
+def probe_marked_window() -> dict:
+    """The unfiltered flag, from wherever this runs: Borderlands 2's Valve-marked
+    window should come back blanked by the default listing and restored by
+    `filter_offtopic_activity=0` — the behavior the local `offtopic_probe.py` found.
+    The window itself comes from the live histogram's `past_events`, not a constant,
+    so this also confirms the annotation is visible from this egress."""
+    resp, elapsed_ms, err = timed_get(
+        f"https://store.steampowered.com/appreviewhistogram/{MARKED_APPID}",
+        {"l": "english"},
+    )
+    report = {"appid": MARKED_APPID, "histogram_elapsed_ms": round(elapsed_ms)}
+    if resp is None:
+        return {**report, "error": err}
+    try:
+        events = resp.json().get("past_events", [])
+    except ValueError:
+        return {**report, "error": "non-JSON body: " + resp.text[:200]}
+    report["past_events"] = events
+    if not events:
+        return {**report, "error": "histogram carries no past_events to probe"}
+    start, end = int(events[0]["start_date"]), int(events[0]["end_date"])
+    time.sleep(1)
+    report["default_listing"] = probe_windowed_walk(
+        MARKED_APPID, start, end, {}, pages=1)
+    time.sleep(1)
+    report["unfiltered_listing"] = probe_windowed_walk(
+        MARKED_APPID, start, end, {"filter_offtopic_activity": 0}, pages=1)
+    return report
+
+
 def run_probe(pages: int = DEFAULT_PAGES) -> dict:
     pages = max(1, min(pages, MAX_PAGES))
     walk = probe_cursor_walk(pages)
     statuses = [p.get("status") for p in walk]
+    time.sleep(1)
+    windowed = probe_windowed_walk(
+        APPID, WINDOW_START, WINDOW_END,
+        {"filter_offtopic_activity": 0}, WINDOWED_PAGES)
+    time.sleep(1)
+    marked = probe_marked_window()
+    default_first = (marked.get("default_listing") or [{}])[0]
+    unfiltered_first = (marked.get("unfiltered_listing") or [{}])[0]
     return {
         "egress_ip": egress_ip(),
         "appid": APPID,
         "histogram": probe_histogram(),
         "cursor_walk": walk,
+        "windowed_walk": windowed,
+        "marked_window": marked,
         "verdict": {
             "pages_attempted": pages,
             "pages_ok": statuses.count(200),
             "all_ok": statuses == [200] * pages,
+            "windowed_ok": bool(windowed) and all(
+                p.get("status") == 200 and p.get("reviews_returned")
+                and p.get("all_inside_window") for p in windowed),
+            "offtopic_filter_ok": (
+                default_first.get("reviews_returned") == 0
+                and bool(unfiltered_first.get("reviews_returned"))
+                and unfiltered_first.get("all_inside_window") is True),
         },
     }
 

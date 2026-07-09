@@ -1,0 +1,32 @@
+{
+  "probe_date": "2026-07-09",
+  "appid": 236850,
+  "window": {
+    "start": 1739491200,
+    "end": 1743379200
+  },
+  "windowed_default_query_summary": {
+    "num_reviews": 0,
+    "review_score": 0,
+    "review_score_desc": "No user reviews",
+    "total_positive": 0,
+    "total_negative": 0,
+    "total_reviews": 0
+  },
+  "windowed_unfiltered_query_summary": {
+    "num_reviews": 100,
+    "review_score": 5,
+    "review_score_desc": "Mixed",
+    "total_positive": 881,
+    "total_negative": 1011,
+    "total_reviews": 1892
+  },
+  "plain_default_walk": {
+    "pages": 76,
+    "reviews_seen": 7597,
+    "in_window": 0,
+    "short_pages": 3,
+    "oldest_reached": 1739115203,
+    "reached_window_start": true
+  }
+}

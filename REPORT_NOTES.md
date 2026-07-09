@@ -7,6 +7,42 @@ decisions it feeds.
 
 ---
 
+## 2026-07-09 — The corpus dodged a bullet it never knew was fired
+
+*The data-trust story from the extraction+eval milestone's (M1) entry probes. Feeds:
+that milestone's report section on validating inherited data, and the standing
+"trust no raw data" theme.*
+
+The design panel left a debt: the 298k-review corpus inherited from the prior
+steam-reviews pipeline was fetched with Steam's defaults, and the smoke tests had
+shown the default *windowed* listing silently blanks entire Valve-marked review-bomb
+windows — legitimate reviews included. Was the corpus full of holes exactly where
+events live?
+
+The refetch said: five of the fifty corpus games carry marked windows, every one
+showing thousands of recommendations in the histogram — and not one window overlaps
+its game's corpus coverage. Zero of 298,553 corpus reviews fall inside a marked
+window. Clean verdict, but for an uncomfortable reason: the corpus is clean by
+*coverage geometry* — the capped recent-first walk simply never reached back far
+enough to meet a bomb — not because the fetch was safe.
+
+So the probe asked the sharper question the corpus couldn't answer: does a plain
+default cursor walk — the corpus's exact request shape — actually skip marked
+windows? Europa Universalis IV's window (Feb–Mar 2025) was recent enough to test
+directly. The walk saw 7,597 reviews across 76 pages, sailed straight past the
+window's start date, and returned **zero** reviews from inside it — while the same
+window, fetched with `filter_offtopic_activity=0`, holds 1,892. Nothing in the
+payload signals the omission: no gap marker, no short page, no count mismatch you
+could notice without already knowing the window exists.
+
+The narrative worth a report paragraph: the corpus was one calendar accident away
+from silently missing the exact periods the product exists to explain, and no
+validation *of the corpus itself* would have caught it — the holes only show against
+an external reference (the histogram's `past_events`). "Trust no raw data" usually
+means validating what arrived; this was about validating what *didn't arrive*.
+Unfiltered fetching is now a data-integrity requirement, proven, not a design
+preference.
+
 ## 2026-07-09 — Four designs argued; the criticism was the product
 
 *The system-flow design story. Feeds: the extraction+eval milestone's (M1) report on

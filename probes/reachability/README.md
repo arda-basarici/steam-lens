@@ -21,4 +21,11 @@ header above and the Dockerfile still describe — was repriced behind HF PRO on
 2026-07-09 before it ever launched (see REPORT_NOTES); kept because the deployment
 milestone (M3) may still land on HF-with-PRO.
 
+Extended at the extraction+eval milestone's (M1) entry with the production primary
+path the smoke tests never exercised from a datacenter: a date-windowed cursor walk
+(undocumented `start_date`/`end_date` params + `filter_offtopic_activity=0`) and a
+marked-window blank/restore check on Borderlands 2. Same dual-mode code, same
+local-vs-datacenter comparison; the verdict block gains `windowed_ok` and
+`offtopic_filter_ok`.
+
 Probe, not product — disposable by design once the milestone verdict is recorded.

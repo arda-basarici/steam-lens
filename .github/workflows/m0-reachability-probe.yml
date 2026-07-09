@@ -1,11 +1,13 @@
-# Smoke-test milestone (M0): run the Steam reachability probe from a datacenter IP.
+# Run the Steam reachability probe from a datacenter IP. Born in the smoke-test
+# milestone (M0); extended at extraction+eval (M1) entry with the production
+# primary path (date-window params + the unfiltered off-topic flag).
 #
 # GitHub-hosted runners live in Azure datacenter IP ranges, which is what the test
 # needs — the original vehicle (a free HF Space) was repriced behind PRO on
 # 2026-07-09 (see REPORT_NOTES). Manual trigger only; the probe prints its JSON to
 # the job log and uploads it as an artifact for probes/captures/.
 
-name: M0 reachability probe
+name: Steam reachability probe
 
 on:
   workflow_dispatch:
