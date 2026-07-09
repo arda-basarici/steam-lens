@@ -38,3 +38,11 @@ product's identity.
 [VISION](VISION.md) — the fixed vision: product, milestones, decisions ·
 [DESIGN](DESIGN.md) — the living decisions narrative ·
 [ARCHITECTURE](ARCHITECTURE.md) — the structure, growing with the build
+
+## License
+
+Code is released under the [MIT License](LICENSE). Steam review content fetched or
+quoted by the app belongs to its respective authors and Valve — it is analyzed and
+excerpted as evidence, not redistributed under this license. Generated reports are
+LLM-derived analyses of that content, provided as-is; their reliability is what the
+product's own published error rate measures.
