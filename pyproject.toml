@@ -1,0 +1,44 @@
+[project]
+name = "steamlens"
+version = "0.1.0"
+description = "Aspect, event-investigation, and evaluation over Steam reviews."
+authors = [
+    { name = "arda başarıcı", email = "ardabasarici@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = []
+
+[build-system]
+requires = ["uv_build>=0.11.26,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pdoc>=16.0.0",
+    "pyright>=1.1.411",
+    "pytest>=9.1.1",
+    "ruff>=0.15.20",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+# probes/ are one-shot investigation scripts (their findings are the artifact,
+# not their style); the lint gate covers the library + tests, matching pyright.
+extend-exclude = ["probes"]
+
+[tool.ruff.lint]
+# pyflakes + pycodestyle, import sorting, pyupgrade, bugbear, simplify.
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.pyright]
+include = ["src", "tests"]
+typeCheckingMode = "strict"
+pythonVersion = "3.13"
+venvPath = "."
+venv = ".venv"
+
+[tool.pytest.ini_options]
+# doctests are caller-contract examples and run alongside the tests.
+addopts = "--doctest-modules"
+testpaths = ["src", "tests"]

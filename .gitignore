@@ -13,6 +13,9 @@ logs/
 *.sqlite
 *.db
 
+# --- generated docs (pdoc output; regenerated from docstrings) ---
+docs/api/
+
 # --- python ---
 .venv/
 __pycache__/
