@@ -279,6 +279,8 @@ stays: does *this product* need it?
   coverage geometry — no marked window overlaps any game's coverage, 0 of 298,553
   reviews affected, no backfill; the blanking mechanism itself confirmed real on a
   plain default walk, making unfiltered fetching a data-integrity requirement, not a
-  preference); **datacenter windowed-params probe: extended and green from the
-  residential baseline, datacenter leg pending one workflow dispatch.** Verdicts and
-  evidence: `probes/FINDINGS.md`, extraction+eval entry findings.
+  preference); **datacenter windowed-params probe: CLEARED 2026-07-09** (the
+  production primary path — date-window params + the unfiltered flag with cursor
+  pagination — verified identical from a GitHub Actions datacenter IP, faster than
+  residential). Verdicts and evidence: `probes/FINDINGS.md`, extraction+eval entry
+  findings.

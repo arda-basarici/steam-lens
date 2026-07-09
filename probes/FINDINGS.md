@@ -121,7 +121,14 @@ reachability probe (`reachability/app.py`, same dual-mode code) is extended with
 - two new verdict booleans: `windowed_ok`, `offtopic_filter_ok`.
 
 Residential baseline: both true, all statuses 200
-(`reachability_local_windowed_baseline.json`). **Datacenter verdict: PENDING** —
-run the `Steam reachability probe` workflow (GitHub Actions) after this lands on
-main; its artifact becomes `reachability_datacenter_windowed_ghactions.json` and
-this line gets replaced with the verdict.
+(`reachability_local_windowed_baseline.json`). **Datacenter verdict: PASS** — the
+same probe from a GitHub Actions runner (Azure, egress 20.51.199.19) returned
+identical behavior: `windowed_ok` and `offtopic_filter_ok` both true, all
+statuses 200, windowed pages at ~210–310 ms (vs. ~640–670 ms residential), the
+marked window blanked by default and fully restored by the flag. The production
+primary path is verified from a datacenter IP.
+(`reachability_datacenter_windowed_ghactions.json`)
+
+*Limits of the claim, unchanged from the smoke tests:* one run; GH Actions is
+Azure, not the eventual host's IP range — the deployment milestone (M3) rechecks
+from whatever host its fork picks.
