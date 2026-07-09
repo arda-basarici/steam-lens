@@ -1,9 +1,49 @@
 """The plain-data spine — every record that crosses a module seam.
 
-Frozen, slotted dataclasses only. This package imports nothing (not even the
-rest of ``steamlens``), so it sits at the base of the dependency law. Raw
+Frozen, slotted dataclasses (and the sink ``Protocol``) only. This package
+imports nothing outside itself, so it sits at the base of the dependency law:
+everything may import ``contracts``, ``contracts`` imports no other layer. Raw
 external data is validated into these records at the shells, never here — once
 built, a record is trusted by construction. See DESIGN's contract-modeling
-decision for the reasoning; the record set fills in with the extraction+eval
-milestone.
+decision for the reasoning.
+
+Callers import the public names straight from the package
+(``from steamlens.contracts import Review``); the module split below is an
+internal navigation aid, not part of the contract.
 """
+
+from steamlens.contracts.aggregate import AspectAggregate, SentimentCounts
+from steamlens.contracts.classification import AspectMention, ReviewClassification
+from steamlens.contracts.enums import AspectSlot, Origin, Sentiment, StageKind
+from steamlens.contracts.ontology import AspectDef, AspectOntology, OntologyVersion
+from steamlens.contracts.provenance import ClassifierVersions, Provenance
+from steamlens.contracts.reviews import Review
+from steamlens.contracts.telemetry import MetricEvent, Sink, SinkEvent, StageEvent
+
+__all__ = [
+    # enums
+    "Origin",
+    "AspectSlot",
+    "Sentiment",
+    "StageKind",
+    # provenance
+    "Provenance",
+    "ClassifierVersions",
+    # ontology
+    "AspectDef",
+    "AspectOntology",
+    "OntologyVersion",
+    # reviews
+    "Review",
+    # classification
+    "AspectMention",
+    "ReviewClassification",
+    # aggregate
+    "AspectAggregate",
+    "SentimentCounts",
+    # telemetry
+    "Sink",
+    "StageEvent",
+    "MetricEvent",
+    "SinkEvent",
+]
