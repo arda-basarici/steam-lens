@@ -1,0 +1,2295 @@
+{
+  "provenance": {
+    "method": "LLM grouping, conservative-merge rules, single pass",
+    "grouped_by": "claude-sonnet subagent",
+    "date": "2026-07-09",
+    "status": "pending human review",
+    "source": "extractions.jsonl (406 distinct labels expected; use actual count)"
+  },
+  "groups": [
+    {
+      "canonical": "vague_verdict",
+      "members": [
+        "basic game",
+        "care and thought",
+        "charm",
+        "craftsmanship",
+        "current state",
+        "dedication",
+        "detail",
+        "developer dedication",
+        "enjoyment",
+        "excitement",
+        "experience",
+        "feel-good",
+        "fun",
+        "game",
+        "game experience",
+        "game originality",
+        "game recommendation",
+        "joy",
+        "moments",
+        "overall experience",
+        "overall quality",
+        "player experience",
+        "polish",
+        "shortcomings",
+        "uniqueness",
+        "vibe"
+      ],
+      "mentions": 80
+    },
+    {
+      "canonical": "gameplay",
+      "members": [
+        "gameplay"
+      ],
+      "mentions": 25
+    },
+    {
+      "canonical": "story",
+      "members": [
+        "narrative",
+        "stories",
+        "story",
+        "story plot"
+      ],
+      "mentions": 23
+    },
+    {
+      "canonical": "replayability",
+      "members": [
+        "replay value",
+        "replayability"
+      ],
+      "mentions": 18
+    },
+    {
+      "canonical": "graphics",
+      "members": [
+        "graphics",
+        "visuals"
+      ],
+      "mentions": 16
+    },
+    {
+      "canonical": "relaxation",
+      "members": [
+        "chill",
+        "relaxation",
+        "relaxing",
+        "relaxing aspect",
+        "relaxing gameplay"
+      ],
+      "mentions": 16
+    },
+    {
+      "canonical": "characters",
+      "members": [
+        "characters"
+      ],
+      "mentions": 15
+    },
+    {
+      "canonical": "addictiveness",
+      "members": [
+        "addiction",
+        "addictiveness"
+      ],
+      "mentions": 10
+    },
+    {
+      "canonical": "bugs",
+      "members": [
+        "bugs",
+        "bugs and glitches",
+        "glitches"
+      ],
+      "mentions": 8
+    },
+    {
+      "canonical": "multiplayer",
+      "members": [
+        "multiplayer",
+        "online multiplayer"
+      ],
+      "mentions": 8
+    },
+    {
+      "canonical": "immersion",
+      "members": [
+        "immersion"
+      ],
+      "mentions": 7
+    },
+    {
+      "canonical": "combat",
+      "members": [
+        "combat",
+        "combat mechanics",
+        "combat system"
+      ],
+      "mentions": 6
+    },
+    {
+      "canonical": "coziness",
+      "members": [
+        "coziness"
+      ],
+      "mentions": 6
+    },
+    {
+      "canonical": "farming",
+      "members": [
+        "farming",
+        "farming gameplay"
+      ],
+      "mentions": 6
+    },
+    {
+      "canonical": "music",
+      "members": [
+        "music",
+        "soundtrack"
+      ],
+      "mentions": 6
+    },
+    {
+      "canonical": "playstyles",
+      "members": [
+        "multiple playstyles",
+        "play styles",
+        "playstyle variety",
+        "playstyles"
+      ],
+      "mentions": 6
+    },
+    {
+      "canonical": "time consumption",
+      "members": [
+        "time commitment",
+        "time consumption",
+        "time investment",
+        "time sink"
+      ],
+      "mentions": 6
+    },
+    {
+      "canonical": "completion time",
+      "members": [
+        "completion time",
+        "game length",
+        "game time"
+      ],
+      "mentions": 5
+    },
+    {
+      "canonical": "dlc",
+      "members": [
+        "dlc"
+      ],
+      "mentions": 5
+    },
+    {
+      "canonical": "lore",
+      "members": [
+        "lore"
+      ],
+      "mentions": 5
+    },
+    {
+      "canonical": "mods",
+      "members": [
+        "mods"
+      ],
+      "mentions": 5
+    },
+    {
+      "canonical": "price",
+      "members": [
+        "cost",
+        "price"
+      ],
+      "mentions": 5
+    },
+    {
+      "canonical": "updates",
+      "members": [
+        "patches",
+        "post-launch improvements",
+        "updates"
+      ],
+      "mentions": 5
+    },
+    {
+      "canonical": "atmosphere",
+      "members": [
+        "atmosphere"
+      ],
+      "mentions": 4
+    },
+    {
+      "canonical": "content depth",
+      "members": [
+        "content depth"
+      ],
+      "mentions": 4
+    },
+    {
+      "canonical": "dialogue choices",
+      "members": [
+        "dialogue choices"
+      ],
+      "mentions": 4
+    },
+    {
+      "canonical": "driving experience",
+      "members": [
+        "driving",
+        "driving experience"
+      ],
+      "mentions": 4
+    },
+    {
+      "canonical": "endings",
+      "members": [
+        "endings"
+      ],
+      "mentions": 4
+    },
+    {
+      "canonical": "performance",
+      "members": [
+        "current performance",
+        "game performance",
+        "performance"
+      ],
+      "mentions": 4
+    },
+    {
+      "canonical": "player choices",
+      "members": [
+        "choices",
+        "decisions",
+        "player choices"
+      ],
+      "mentions": 4
+    },
+    {
+      "canonical": "radio feature",
+      "members": [
+        "radio",
+        "radio feature",
+        "radio station"
+      ],
+      "mentions": 4
+    },
+    {
+      "canonical": "realism",
+      "members": [
+        "realism"
+      ],
+      "mentions": 4
+    },
+    {
+      "canonical": "romance options",
+      "members": [
+        "romance options"
+      ],
+      "mentions": 4
+    },
+    {
+      "canonical": "side quests",
+      "members": [
+        "side missions",
+        "side objectives",
+        "side quests"
+      ],
+      "mentions": 4
+    },
+    {
+      "canonical": "skill tree",
+      "members": [
+        "ability/combat trees",
+        "skill tree"
+      ],
+      "mentions": 4
+    },
+    {
+      "canonical": "trading",
+      "members": [
+        "trading",
+        "trading system"
+      ],
+      "mentions": 4
+    },
+    {
+      "canonical": "value for money",
+      "members": [
+        "value",
+        "value for money"
+      ],
+      "mentions": 4
+    },
+    {
+      "canonical": "bot crisis",
+      "members": [
+        "bot crisis",
+        "bots",
+        "bots and deddosers"
+      ],
+      "mentions": 3
+    },
+    {
+      "canonical": "challenge",
+      "members": [
+        "challenge"
+      ],
+      "mentions": 3
+    },
+    {
+      "canonical": "customer support",
+      "members": [
+        "customer support",
+        "developer support",
+        "support"
+      ],
+      "mentions": 3
+    },
+    {
+      "canonical": "dialogues",
+      "members": [
+        "dialogue",
+        "dialogues"
+      ],
+      "mentions": 3
+    },
+    {
+      "canonical": "emotional impact",
+      "members": [
+        "emotional impact"
+      ],
+      "mentions": 3
+    },
+    {
+      "canonical": "epic games' management",
+      "members": [
+        "epic games' competence",
+        "epic games' management"
+      ],
+      "mentions": 3
+    },
+    {
+      "canonical": "exploration",
+      "members": [
+        "exploration"
+      ],
+      "mentions": 3
+    },
+    {
+      "canonical": "game design",
+      "members": [
+        "game design"
+      ],
+      "mentions": 3
+    },
+    {
+      "canonical": "game progression",
+      "members": [
+        "game progression",
+        "progression system"
+      ],
+      "mentions": 3
+    },
+    {
+      "canonical": "gameplay loop",
+      "members": [
+        "core gameplay loop",
+        "gameplay loop"
+      ],
+      "mentions": 3
+    },
+    {
+      "canonical": "learning curve",
+      "members": [
+        "learning curve",
+        "learning difficulty"
+      ],
+      "mentions": 3
+    },
+    {
+      "canonical": "scenery",
+      "members": [
+        "scenery"
+      ],
+      "mentions": 3
+    },
+    {
+      "canonical": "storytelling",
+      "members": [
+        "storytelling"
+      ],
+      "mentions": 3
+    },
+    {
+      "canonical": "truck driver life simulation",
+      "members": [
+        "truck driver life simulation",
+        "truck life simulation",
+        "trucking genre"
+      ],
+      "mentions": 3
+    },
+    {
+      "canonical": "turn-based combat",
+      "members": [
+        "turn-based combat"
+      ],
+      "mentions": 3
+    },
+    {
+      "canonical": "voice acting",
+      "members": [
+        "voice acting"
+      ],
+      "mentions": 3
+    },
+    {
+      "canonical": "world",
+      "members": [
+        "world"
+      ],
+      "mentions": 3
+    },
+    {
+      "canonical": "writing",
+      "members": [
+        "writing"
+      ],
+      "mentions": 3
+    },
+    {
+      "canonical": "ai",
+      "members": [
+        "ai"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "appeal to truck enthusiasts",
+      "members": [
+        "appeal to truck enthusiasts",
+        "appeal to truck lovers"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "build variety",
+      "members": [
+        "build variety"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "character creation",
+      "members": [
+        "character creation",
+        "character customization"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "character development",
+      "members": [
+        "character development"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "cheaters",
+      "members": [
+        "cheaters"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "comfort",
+      "members": [
+        "comfort"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "community",
+      "members": [
+        "community"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "comparison to harvest moon",
+      "members": [
+        "comparison to harvest moon"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "comparison to minecraft",
+      "members": [
+        "comparison to minecraft"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "competitive experience",
+      "members": [
+        "competitive experience",
+        "competitive play"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "content",
+      "members": [
+        "content",
+        "content amount"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "crashes",
+      "members": [
+        "crashes",
+        "game crashes"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "customization",
+      "members": [
+        "customization"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "cutscenes",
+      "members": [
+        "cutscenes"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "cyberware mechanics",
+      "members": [
+        "cyberware mechanics",
+        "cyberware system"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "d&d experience",
+      "members": [
+        "d&d experience",
+        "dnd experience"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "dnd mechanics",
+      "members": [
+        "dnd mechanics",
+        "dungeons and dragons integration"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "escapism",
+      "members": [
+        "escapism"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "farm life simulation",
+      "members": [
+        "farm life simulation",
+        "farm simulation"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "fishing",
+      "members": [
+        "fishing"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "game launch",
+      "members": [
+        "game launch"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "interactivity",
+      "members": [
+        "interactivity"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "longevity",
+      "members": [
+        "longevity"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "loot system",
+      "members": [
+        "loot system"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "main story",
+      "members": [
+        "main story"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "map size",
+      "members": [
+        "map size",
+        "world size"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "matchmaking",
+      "members": [
+        "matchmaking",
+        "matchmaking system"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "mod support",
+      "members": [
+        "mod support",
+        "modding support"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "multiplayer with friends",
+      "members": [
+        "multiplayer with friends",
+        "playing with friends"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "night city detail",
+      "members": [
+        "night city detail"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "open world",
+      "members": [
+        "open world",
+        "open-world"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "optional content",
+      "members": [
+        "optional content",
+        "side content"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "pc requirements",
+      "members": [
+        "pc requirements"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "phantom liberty dlc",
+      "members": [
+        "phantom liberty dlc"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "physics",
+      "members": [
+        "physics"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "quality of life improvements",
+      "members": [
+        "quality of life improvements",
+        "quality-of-life updates"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "rpg elements",
+      "members": [
+        "rpg elements"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "simplicity",
+      "members": [
+        "simplicity"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "simulation quality",
+      "members": [
+        "simulation quality"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "smurfs",
+      "members": [
+        "smurfs"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "stress",
+      "members": [
+        "stress",
+        "stress level"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "truck customization",
+      "members": [
+        "truck customization"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "trucks",
+      "members": [
+        "trucks"
+      ],
+      "mentions": 2
+    },
+    {
+      "canonical": "2.0 update",
+      "members": [
+        "2.0 update"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "3d combat",
+      "members": [
+        "3d combat"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "account linking",
+      "members": [
+        "account linking"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "accumulating wealth",
+      "members": [
+        "accumulating wealth"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "achievements",
+      "members": [
+        "achievements"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "act 2",
+      "members": [
+        "act 2"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "act 3",
+      "members": [
+        "act 3"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "act 3 fights",
+      "members": [
+        "act 3 fights"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "advanced technology",
+      "members": [
+        "advanced technology"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "adventure story",
+      "members": [
+        "adventure story"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "aesthetic",
+      "members": [
+        "aesthetic"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "age",
+      "members": [
+        "age"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "anger outlet",
+      "members": [
+        "anger outlet"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "animation",
+      "members": [
+        "animation"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "anime",
+      "members": [
+        "anime"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "artwork",
+      "members": [
+        "artwork"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "audio",
+      "members": [
+        "audio"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "base game story",
+      "members": [
+        "base game story"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "build mechanics",
+      "members": [
+        "build mechanics"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "car hitboxes",
+      "members": [
+        "car hitboxes"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "car soccer",
+      "members": [
+        "car soccer"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "casual gameplay",
+      "members": [
+        "casual gameplay"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "cavern exploration",
+      "members": [
+        "cavern exploration"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "character (johnny)",
+      "members": [
+        "character (johnny)"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "character building",
+      "members": [
+        "character building"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "character gender impact",
+      "members": [
+        "character gender impact"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "character leah",
+      "members": [
+        "character leah"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "character robin",
+      "members": [
+        "character robin"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "character shane",
+      "members": [
+        "character shane"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "character specs",
+      "members": [
+        "character specs"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "choices impact",
+      "members": [
+        "choices impact"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "city activities",
+      "members": [
+        "city activities"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "city completeness",
+      "members": [
+        "city completeness"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "city detail",
+      "members": [
+        "city detail"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "city emptiness",
+      "members": [
+        "city emptiness"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "city immersiveness",
+      "members": [
+        "city immersiveness"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "clunky issues",
+      "members": [
+        "clunky issues"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "co-op",
+      "members": [
+        "co-op"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "coding",
+      "members": [
+        "coding"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "coffee empire",
+      "members": [
+        "coffee empire"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "collectables",
+      "members": [
+        "collectables"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "combat builds",
+      "members": [
+        "combat builds"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "combat difficulty",
+      "members": [
+        "combat difficulty"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "combat realism",
+      "members": [
+        "combat realism"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "comparison to american truck simulator",
+      "members": [
+        "comparison to american truck simulator"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "comparison to gta",
+      "members": [
+        "comparison to gta"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "consequences of mistakes",
+      "members": [
+        "consequences of mistakes"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "controller support",
+      "members": [
+        "controller support"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "convoy towing feature",
+      "members": [
+        "convoy towing feature"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "corporate history",
+      "members": [
+        "corporate history"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "cosmetic additions",
+      "members": [
+        "cosmetic additions"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "crates and keys",
+      "members": [
+        "crates and keys"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "creativity",
+      "members": [
+        "creativity"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "custom music",
+      "members": [
+        "custom music"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "cyberpunk style",
+      "members": [
+        "cyberpunk style"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "design and style",
+      "members": [
+        "design and style"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "developer studio",
+      "members": [
+        "developer studio"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "developer turnaround",
+      "members": [
+        "developer turnaround"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "development time",
+      "members": [
+        "development time"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "dialogue interactions",
+      "members": [
+        "dialogue interactions"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "dialogue options",
+      "members": [
+        "dialogue options"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "difficulty",
+      "members": [
+        "difficulty"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "difficulty options",
+      "members": [
+        "difficulty options"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "dismemberment",
+      "members": [
+        "dismemberment"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "dlc price",
+      "members": [
+        "dlc price"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "driving test preparation",
+      "members": [
+        "driving test preparation"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "drops",
+      "members": [
+        "drops"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "environment depth",
+      "members": [
+        "environment depth"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "epic games account requirement",
+      "members": [
+        "epic games account requirement"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "europe setting",
+      "members": [
+        "europe setting"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "exposition",
+      "members": [
+        "exposition"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "finishers",
+      "members": [
+        "finishers"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "free content updates",
+      "members": [
+        "free content updates"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "free to play model",
+      "members": [
+        "free to play model"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "futurism",
+      "members": [
+        "futurism"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "game concept",
+      "members": [
+        "game concept"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "game exit functionality",
+      "members": [
+        "game exit functionality"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "game mechanics",
+      "members": [
+        "game mechanics"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "game size",
+      "members": [
+        "game size"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "game style",
+      "members": [
+        "game style"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "gameplay experience",
+      "members": [
+        "gameplay experience"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "gameplay freedom",
+      "members": [
+        "gameplay freedom"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "gameplay inconsistencies",
+      "members": [
+        "gameplay inconsistencies"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "gameplay interactions",
+      "members": [
+        "gameplay interactions"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "gameplay style",
+      "members": [
+        "gameplay style"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "gameplay understanding",
+      "members": [
+        "gameplay understanding"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "gangs",
+      "members": [
+        "gangs"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "genre appeal",
+      "members": [
+        "genre appeal"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "graphical issues",
+      "members": [
+        "graphical issues"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "grass",
+      "members": [
+        "grass"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "grind",
+      "members": [
+        "grind"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "guns",
+      "members": [
+        "guns"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "heavy cargo",
+      "members": [
+        "heavy cargo"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "implants",
+      "members": [
+        "implants"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "in-game technology",
+      "members": [
+        "in-game technology"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "indie development",
+      "members": [
+        "indie development"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "initial problems",
+      "members": [
+        "initial problems"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "integration with other apps",
+      "members": [
+        "integration with other apps"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "item management",
+      "members": [
+        "item management"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "japan region content",
+      "members": [
+        "japan region content"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "job length",
+      "members": [
+        "job length"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "keanu reeves acting",
+      "members": [
+        "keanu reeves acting"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "lag",
+      "members": [
+        "lag"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "landscapes",
+      "members": [
+        "landscapes"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "late game",
+      "members": [
+        "late game"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "launch performance",
+      "members": [
+        "launch performance"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "launch stigma",
+      "members": [
+        "launch stigma"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "leisurely activities",
+      "members": [
+        "leisurely activities"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "level system",
+      "members": [
+        "level system"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "lobby toxicity",
+      "members": [
+        "lobby toxicity"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "long distance trips",
+      "members": [
+        "long distance trips"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "lore integration",
+      "members": [
+        "lore integration"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "mac support",
+      "members": [
+        "mac support"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "male v actor",
+      "members": [
+        "male v actor"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "map design",
+      "members": [
+        "map design"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "mastery difficulty",
+      "members": [
+        "mastery difficulty"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "mission execution",
+      "members": [
+        "mission execution"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "mobile version",
+      "members": [
+        "mobile version"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "mod dependency",
+      "members": [
+        "mod dependency"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "modding community",
+      "members": [
+        "modding community"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "monetization",
+      "members": [
+        "monetization"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "money flow",
+      "members": [
+        "money flow"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "movement mechanics",
+      "members": [
+        "movement mechanics"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "multi-platform experience",
+      "members": [
+        "multi-platform experience"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "music listening",
+      "members": [
+        "music listening"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "ncpd missions",
+      "members": [
+        "ncpd missions"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "night city believability",
+      "members": [
+        "night city believability"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "night city life",
+      "members": [
+        "night city life"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "nomad start",
+      "members": [
+        "nomad start"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "notifications",
+      "members": [
+        "notifications"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "npc life",
+      "members": [
+        "npc life"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "official guidebook",
+      "members": [
+        "official guidebook"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "on-road tow option",
+      "members": [
+        "on-road tow option"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "open-world polish",
+      "members": [
+        "open-world polish"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "origin characters",
+      "members": [
+        "origin characters"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "overall message",
+      "members": [
+        "overall message"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "pace",
+      "members": [
+        "pace"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "panam content",
+      "members": [
+        "panam content"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "party member romance",
+      "members": [
+        "party member romance"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "pc version",
+      "members": [
+        "pc version"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "penny character",
+      "members": [
+        "penny character"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "performance on low spec pc",
+      "members": [
+        "performance on low spec pc"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "perks",
+      "members": [
+        "perks"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "personality choices",
+      "members": [
+        "personality choices"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "phantom liberty dlc content",
+      "members": [
+        "phantom liberty dlc content"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "phantom liberty dlc ending",
+      "members": [
+        "phantom liberty dlc ending"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "phantom liberty dlc integration",
+      "members": [
+        "phantom liberty dlc integration"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "phantom liberty story",
+      "members": [
+        "phantom liberty story"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "phantom liberty weapons",
+      "members": [
+        "phantom liberty weapons"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "plants",
+      "members": [
+        "plants"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "platform availability",
+      "members": [
+        "platform availability"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "player agency",
+      "members": [
+        "player agency"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "player options",
+      "members": [
+        "player options"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "playing with randoms",
+      "members": [
+        "playing with randoms"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "popularity",
+      "members": [
+        "popularity"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "possession gamemode",
+      "members": [
+        "possession gamemode"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "powerups",
+      "members": [
+        "powerups"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "protagonist (v)",
+      "members": [
+        "protagonist (v)"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "quest issues",
+      "members": [
+        "quest issues"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "realistic graphics",
+      "members": [
+        "realistic graphics"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "relationships",
+      "members": [
+        "relationships"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "release complaints",
+      "members": [
+        "release complaints"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "reward",
+      "members": [
+        "reward"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "road trip experience",
+      "members": [
+        "road trip experience"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "rocky launch",
+      "members": [
+        "rocky launch"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "rpg depth",
+      "members": [
+        "rpg depth"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "rpg experience",
+      "members": [
+        "rpg experience"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "rpg potential",
+      "members": [
+        "rpg potential"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "rpg quality",
+      "members": [
+        "rpg quality"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "russian voiceover",
+      "members": [
+        "russian voiceover"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "sandbox gameplay",
+      "members": [
+        "sandbox gameplay"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "scandal",
+      "members": [
+        "scandal"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "sci-fi sandbox",
+      "members": [
+        "sci-fi sandbox"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "sense of achievement",
+      "members": [
+        "sense of achievement"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "servers",
+      "members": [
+        "servers"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "setting",
+      "members": [
+        "setting"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "settings",
+      "members": [
+        "settings"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "shoving mechanic",
+      "members": [
+        "shoving mechanic"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "simulation realism",
+      "members": [
+        "simulation realism"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "single-player",
+      "members": [
+        "single-player"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "skill ceiling",
+      "members": [
+        "skill ceiling"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "skill element",
+      "members": [
+        "skill element"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "skill gap",
+      "members": [
+        "skill gap"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "skill improvement",
+      "members": [
+        "skill improvement"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "skill-based gameplay",
+      "members": [
+        "skill-based gameplay"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "sniping",
+      "members": [
+        "sniping"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "social impact",
+      "members": [
+        "social impact"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "steering turning ratio",
+      "members": [
+        "steering turning ratio"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "steering wheel support",
+      "members": [
+        "steering wheel support"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "story choices",
+      "members": [
+        "story choices"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "story content",
+      "members": [
+        "story content"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "story impact",
+      "members": [
+        "story impact"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "story themes",
+      "members": [
+        "story themes"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "story understanding",
+      "members": [
+        "story understanding"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "storylines",
+      "members": [
+        "storylines"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "stress relief",
+      "members": [
+        "stress relief"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "stuttering",
+      "members": [
+        "stuttering"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "tactical combat",
+      "members": [
+        "tactical combat"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "team quality",
+      "members": [
+        "team quality"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "teammates",
+      "members": [
+        "teammates"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "texture pop-in",
+      "members": [
+        "texture pop-in"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "texture quality",
+      "members": [
+        "texture quality"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "time slowing mechanic",
+      "members": [
+        "time slowing mechanic"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "time-pass",
+      "members": [
+        "time-pass"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "toll booths",
+      "members": [
+        "toll booths"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "tone",
+      "members": [
+        "tone"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "turn-based gameplay",
+      "members": [
+        "turn-based gameplay"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "turn-based rpg",
+      "members": [
+        "turn-based rpg"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "tutorials",
+      "members": [
+        "tutorials"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "vr mode",
+      "members": [
+        "vr mode"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "weapon variety",
+      "members": [
+        "weapon variety"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "world ads",
+      "members": [
+        "world ads"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "world building",
+      "members": [
+        "world building"
+      ],
+      "mentions": 1
+    },
+    {
+      "canonical": "world emptiness",
+      "members": [
+        "world emptiness"
+      ],
+      "mentions": 1
+    }
+  ]
+}

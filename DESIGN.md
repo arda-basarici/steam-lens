@@ -209,6 +209,23 @@ internals are lifted into a fresh `steam_client` module. Importing the frozen re
 rejected (a portfolio repo must run standalone); rewriting fresh was rejected (the
 API-quirk knowledge is paid for).
 
+**The aspect ontology: hybrid with a fixed core** (decided 2026-07-09, on the week-1
+probe's evidence — `probes/FINDINGS.md` §6). Open extraction over 5 genre-diverse
+games showed a flat, game-specific vocabulary (top-15 grouped labels cover only 28%
+of mentions; half of all mentions are single-game vocabulary), so a fixed set would
+flatten exactly the specificity the product sells, while pure open stays dominated
+(normalization cost AND a blurred eval anchor). The working shape: the vocabulary is
+a **versioned design-time artifact** (fixed core seeded from the probe's cross-game
+groups, built/revised offline by a strong model, human-gated); runtime extraction is
+**two-slot** — classify into the pinned vocabulary, or emit a free-form candidate
+when nothing honestly fits; recurring candidates are counted and displayed as a
+**disclosed emergent stratum** (real survey numbers, honestly marked uncalibrated —
+include+disclose again); **promotion is offline and gated**, bumping the ontology
+version, so every displayed number always knows which vocabulary produced it. The
+aspect-normalization step this adds to core was a planned possibility, now real code
+and part of the eval surface; the gold set and judge calibrate against the pinned
+core, with honestly weaker claims on the tail.
+
 **The post ships with the milestone.** Every milestone's public artifact ships when the
 milestone does, imperfect — the standing counterweight to a known over-investment
 pattern.
@@ -236,8 +253,9 @@ stays: does *this product* need it?
 
 ## Open questions / deferred
 
-- **Aspect ontology** (open vs. fixed vs. hybrid vocabulary) — decided in week 1 of
-  extraction+eval (M1); the eval harness is ill-defined until it lands.
+- **Aspect ontology** — DECIDED 2026-07-09: hybrid with a fixed core (see Operational
+  decisions; evidence in `probes/FINDINGS.md` §6). The eval harness is now definable:
+  gold set + judge calibrate against the pinned core vocabulary.
 - **Cache persistence on an ephemeral free host** — decided in the deployment
   milestone's (M3) design (bake-into-image / dataset sync / paid storage).
 - **LLM tier** — extraction+eval (M1) exit, from the measured cost/quality table, now

@@ -7,7 +7,37 @@ decisions it feeds.
 
 ---
 
-## 2026-07-09 — The corpus dodged a bullet it never knew was fired
+## 2026-07-09 — The vocabulary decided itself, and the instrument kept changing under us
+
+*The aspect-ontology decision story plus the free-tier field report, from
+extraction+eval (M1) week 1. Feeds: the milestone report's ontology section and its
+cost-table sidebar.*
+
+The plan was simple: run open extraction over 500 reviews, see if a dozen labels
+cover 90% of what players talk about. The answer arrived emphatically negative —
+but the run itself became a story first. The probe burned through three models in
+an afternoon: the newest Flash turned out to be quota-gated to 20 free requests
+total (learned mid-run, from the error body, not the docs); its sibling
+*out-thought its own output budget* — 7,865 hidden reasoning tokens on one
+10-review batch, starving the JSON it was supposed to write; the workhorse that
+finished the job was the previous generation with thinking switched off. Three
+durable lessons rode along: the quota dashboard beats every third-party doc;
+thinking tokens are billed output, so a model's sticker price understates its real
+per-request cost; and per-model daily quotas make "the free API tier" a per-model
+claim, not a provider-level one.
+
+The vocabulary itself: 406 distinct labels for 704 mentions, and honest merging
+collapsed them only to 313 — the flat curve was never surface-form noise. Half of
+all mentions live in vocabulary unique to a single game: truck-sim players talk
+about `realism` and `scenery`, farmers about `coziness`, Cyberpunk players about
+`dlc` and `night city believability`. A fixed set would flatten exactly the
+specificity this product sells. The ruling — hybrid with a fixed core — came with
+its mechanics argued from first principles in conversation before anyone noticed
+they were re-deriving the design doc's hybrid option: a pinned, versioned
+vocabulary for the numbers; a candidate slot at runtime for what doesn't fit;
+emergent aspects counted and shown, disclosed as uncalibrated; promotion into the
+core offline, gated, version-bumped. Include-and-disclose, the house pattern,
+third appearance.
 
 *The data-trust story from the extraction+eval milestone's (M1) entry probes. Feeds:
 that milestone's report section on validating inherited data, and the standing

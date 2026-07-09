@@ -1,0 +1,61 @@
+13:10:41  run start: 5 games x 100 reviews, model gemini-3.5-flash, seed 20260709
+13:11:06  Euro Truck Simulator 2: batch 1/10 ok (8 aspect mentions so far)
+13:11:23  Euro Truck Simulator 2: batch 2/10 ok (14 aspect mentions so far)
+13:12:05  Euro Truck Simulator 2: batch 3/10 ok (23 aspect mentions so far)
+13:12:25  Euro Truck Simulator 2: batch 4/10 ok (25 aspect mentions so far)
+13:13:13  Euro Truck Simulator 2: batch 5/10 ok (30 aspect mentions so far)
+13:13:47  Euro Truck Simulator 2: batch 6/10 ok (37 aspect mentions so far)
+13:14:04  Euro Truck Simulator 2: batch 7/10 ok (50 aspect mentions so far)
+13:14:18  Euro Truck Simulator 2: batch 8/10 ok (59 aspect mentions so far)
+13:14:27  Euro Truck Simulator 2: batch 9/10 ok (78 aspect mentions so far)
+13:14:36  Euro Truck Simulator 2: batch 10/10 ok (82 aspect mentions so far)
+13:14:47  Baldur's Gate 3: batch 1/10 ok (21 aspect mentions so far)
+13:15:28  Baldur's Gate 3: batch 2/10 ok (39 aspect mentions so far)
+13:15:37  Baldur's Gate 3: batch 3/10 ok (45 aspect mentions so far)
+13:15:59  Baldur's Gate 3: batch 4/10 ok (58 aspect mentions so far)
+13:16:16  Baldur's Gate 3: batch 5/10 ok (74 aspect mentions so far)
+13:19:38  Baldur's Gate 3: batch 6/10 ok (84 aspect mentions so far)
+13:23:59  run start: 5 games x 100 reviews, model gemini-3-flash-preview, seed 20260709
+13:24:06  Euro Truck Simulator 2: batch 1/10 ok (12 aspect mentions so far)
+13:24:16  Euro Truck Simulator 2: batch 2/10 ok (18 aspect mentions so far)
+13:24:32  Euro Truck Simulator 2: batch 3/10 ok (32 aspect mentions so far)
+13:24:43  Euro Truck Simulator 2: batch 4/10 ok (34 aspect mentions so far)
+13:24:55  Euro Truck Simulator 2: batch 5/10 ok (41 aspect mentions so far)
+13:25:04  Euro Truck Simulator 2: batch 6/10 ok (47 aspect mentions so far)
+13:26:42  run start: 5 games x 100 reviews, model gemini-3-flash-preview, seed 20260709
+13:26:51  Euro Truck Simulator 2: batch 1/10 ok (11 aspect mentions so far)
+13:26:58  Euro Truck Simulator 2: batch 2/10 ok (17 aspect mentions so far)
+13:27:08  Euro Truck Simulator 2: batch 3/10 ok (33 aspect mentions so far)
+13:27:13  Euro Truck Simulator 2: batch 4/10 ok (35 aspect mentions so far)
+13:27:21  Euro Truck Simulator 2: batch 5/10 ok (41 aspect mentions so far)
+13:27:33  Euro Truck Simulator 2: batch 6/10 ok (47 aspect mentions so far)
+13:27:36  Euro Truck Simulator 2: batch 7/10 ok (62 aspect mentions so far)
+13:27:47  Euro Truck Simulator 2: batch 8/10 ok (72 aspect mentions so far)
+13:27:58  Euro Truck Simulator 2: batch 9/10 ok (92 aspect mentions so far)
+13:28:04  Euro Truck Simulator 2: batch 10/10 ok (97 aspect mentions so far)
+13:28:16  Baldur's Gate 3: batch 1/10 ok (23 aspect mentions so far)
+13:28:22  Baldur's Gate 3: batch 2/10 ok (41 aspect mentions so far)
+13:28:31  Baldur's Gate 3: batch 3/10 ok (50 aspect mentions so far)
+13:34:53  run start: 5 games x 100 reviews, model gemini-2.5-flash, seed 20260709
+13:35:03  Euro Truck Simulator 2: batch 1/3 ok (48 aspect mentions so far)
+13:35:13  Euro Truck Simulator 2: batch 2/3 ok (75 aspect mentions so far)
+13:35:26  Euro Truck Simulator 2: batch 3/3 ok (113 aspect mentions so far)
+13:35:40  Baldur's Gate 3: batch 1/3 ok (51 aspect mentions so far)
+13:35:56  Baldur's Gate 3: batch 2/3 ok (113 aspect mentions so far)
+13:36:04  Baldur's Gate 3: batch 3/3 ok (141 aspect mentions so far)
+13:36:19  Rocket League: batch 1/3 ok (41 aspect mentions so far)
+13:36:30  Rocket League: batch 2/3 ok (59 aspect mentions so far)
+13:36:43  Rocket League: batch 3/3 ok (89 aspect mentions so far)
+13:36:58  Stardew Valley: batch 1/3 ok (41 aspect mentions so far)
+13:37:12  Stardew Valley: batch 2/3 ok (93 aspect mentions so far)
+13:37:22  Stardew Valley: batch 3/3 ok (118 aspect mentions so far)
+13:39:43  run start: 5 games x 100 reviews, model gemini-2.5-flash, seed 20260709
+13:39:43  Euro Truck Simulator 2: already captured, skipping
+13:39:43  Baldur's Gate 3: already captured, skipping
+13:39:43  Rocket League: already captured, skipping
+13:39:43  Stardew Valley: already captured, skipping
+13:39:53  Cyberpunk 2077: batch 1/3 ok (69 aspect mentions so far)
+13:40:10  Cyberpunk 2077: batch 2/3 ok (178 aspect mentions so far)
+13:40:20  Cyberpunk 2077: batch 3/3 ok (243 aspect mentions so far)
+13:40:20  done: 500 reviews, 3 requests, tokens {'prompt': 7985, 'output': 7942}
+13:40:20  captures: extractions.jsonl + run_meta.json in C:\Users\ardab\Desktop\projects\steam-lens\probes\captures\aspect_vocab

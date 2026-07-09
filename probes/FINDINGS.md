@@ -132,3 +132,41 @@ primary path is verified from a datacenter IP.
 *Limits of the claim, unchanged from the smoke tests:* one run; GH Actions is
 Azure, not the eventual host's IP range — the deployment milestone (M3) rechecks
 from whatever host its fork picks.
+
+## 6. The aspect-ontology probe — the emergent vocabulary is flat-tailed and game-specific; ruling: hybrid with a fixed core
+
+The week-1 discriminator from the framing handoff: run open extraction (the model
+names aspects freely) and read the vocabulary's shape. Method: 100 seeded-random
+English reviews from each of 5 genre-diverse corpus games (ETS2 / Baldur's Gate 3 /
+Rocket League / Stardew Valley / Cyberpunk 2077), single instrument
+(gemini-2.5-flash, temperature 0, thinking disabled, prompt v1 — deliberately zero
+example labels, so no vocabulary seeding), 34-review batches. Captures + provenance:
+`captures/aspect_vocab/` (`extractions.jsonl`, `run_meta.json`, `label_groups.json`,
+`build_groups.py`); analysis: `aspect_vocab_analysis.py`.
+
+- **Raw shape:** 500 reviews → 704 aspect mentions, 406 distinct labels; top-15
+  coverage 27%; 46% of reviews yield zero aspects (memes/bare verdicts).
+- **Grouped shape (the decision-grade view, conservative LLM merging, human-reviewed
+  mapping):** 406 labels collapse only to 313 groups — top-15 coverage 28%, top-50
+  under 50%, and **52% of mentions live in groups appearing in exactly one game**
+  (`coziness`/`farming` vs `realism`/`scenery` vs `dlc`/`night city believability`).
+  Surface-form variance was NOT what flattened the curve; the tail is real,
+  game-specific player vocabulary. 17 groups recur in ≥3 of 5 games — the natural
+  fixed-core candidates (`gameplay, story, replayability, graphics, characters,
+  bugs, multiplayer, music, relaxation, updates, combat, …`).
+- **Verdict (pre-registered criterion fired):** a dozen-ish labels do NOT cover ~90%
+  — **hybrid-with-fixed-core wins**; pure open stays dominated (pays normalization
+  AND blurs the eval anchor). Ruling + runtime mechanics recorded in DESIGN.md
+  (two-slot extraction, disclosed emergent stratum, offline gated promotion).
+
+*Instrument facts learned in passing (feed the M1-exit cost table):* tier-0 Gemini
+free keys give 5 RPM / 20 RPD **per model** on the main Flash lines (3.1-flash-lite:
+15 RPM / 500 RPD — the free headroom lives in the lite tier; dashboard beats docs);
+thinking models bill thoughts as output tokens (observed 7,865 thought tokens on one
+10-review batch, 8× the answer — sticker price understates real cost).
+
+*Limits of the claim:* one instrument (a second-instrument shape check is parked in
+the stream FIXLOG, Grok's signup credit as candidate); English-only by design
+(multilingual claims are out of scope); 500 reviews — coverage points are noisy but
+the shape gap (28% vs the 90% criterion) dwarfs the noise; grouping is a reviewed
+artifact, not a seeded computation (`label_groups.json` carries its provenance).
