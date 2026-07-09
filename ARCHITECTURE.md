@@ -83,6 +83,49 @@ milestone by milestone). Four strata, imports strictly downward:
     contracts; core imports only contracts; nothing imports evals. A CI import-graph
     test asserts this table — it doubles as a two-track wall.
 
+### The contracts surface — the M1 records
+
+The first records to freeze under DESIGN's *rules now, fields later* (contract modeling):
+their consumers all land at M1. All are `@dataclass(frozen=True, slots=True)` — immutable,
+hashable, closed-shape; validation lives in the shells (a pydantic parser at each ingest
+point → a clean contract), never in core. Field detail is authoritative in the code
+docstrings once A1 lands; the shapes below are the build spec.
+
+- `Review` — one cleaned review: `review_id` (Steam recommendationid), `app_id`,
+  `created_at`, `language`, `text`, `voted_up` (the reviewer's overall verdict).
+  Reception metadata (helpful votes, playtime) deferred until detection/weighting needs it.
+- `ReviewClassification` — the per-review envelope: `review_id`, `origin`, `versions`
+  (the content-cache key), `run` (provenance), `mentions: tuple[AspectMention, ...]`
+  (possibly empty — a recorded "processed, found nothing" the flat alternative can't
+  express; DESIGN: contract modeling).
+- `AspectMention` — one aspect atom: `aspect`, `slot` (PINNED | CANDIDATE), `sentiment`
+  (POSITIVE | NEGATIVE | MIXED | NEUTRAL — *per aspect*, distinct from the review's
+  `voted_up`), `evidence: str | None` (a supporting span; encouraged, not required — a
+  mandatory quote would induce fabrication and corrupt the fabricated-quote metric).
+- `AspectAggregate` — the minted number: `aspect`, `slot`, `reviews_with_aspect`,
+  per-sentiment counts, `sample_size`, `versions`, `manifest_id`. Raw counts only; the
+  evidence floor is a compose-time presentation rule, not baked in.
+- `AspectOntology` / `OntologyVersion` — the loaded pinned vocabulary (`version`,
+  `aspects: tuple[AspectDef, ...]`, where a def carries label + definition + example
+  synonyms, feeding both the classify prompt and the gold-set instructions) and its cheap
+  stamp (`version` + `content_hash`).
+- `Provenance` / `ClassifierVersions` — the two-layer stamp: a universal run record
+  (`run_id`, `code_version`, `created_at`, `config_hash`) orthogonal to the content-cache
+  key (`model_version`, `prompt_version`, `ontology_version`).
+- Enums (`StrEnum`): `Origin` (SURVEY | INVESTIGATION), `AspectSlot`, `Sentiment`.
+
+Deferred until their consumers land: `SampleManifest` member/minter machinery (Phase C),
+`DetectedEvent` + investigation records (the investigator, M4), `ReportDocument`
+(deployment, M3).
+
+**The narration/telemetry sink — one seam, many shells.** `Sink` is a `Protocol` in
+contracts with a single `emit(event)`; `SinkEvent` is a closed union of `StageEvent`
+(stage · kind STARTED|PROGRESS|DONE|WARN · message — the human story) and `MetricEvent`
+(stage · name · value · unit — tokens, cost, latency, quota). Implementations live in
+shells: M1 ships `ConsoleSink` (the studies driver) plus a structured-log sink; `SSESink`
+lands with `serve` (M3). Defining the protocol at the foundation is what makes
+observability structural instead of retrofitted.
+
 ## Runtime & deployment topology
 
 One container, few wires — the module map above is the real communication diagram:
@@ -113,7 +156,7 @@ console sink.
 | 4 | Event detection | `core/detect` | snapshot → `DetectedEvent[]` (bucket-aligned, unit carried, Valve-overlap flag) | `events` | granularity-aware thresholds per rollup unit; localization honesty (a month-resolution event is only month-accurate) |
 | 5 | Plan compilation | `core/sampling` | histogram + policy → `FetchPlan` (windows + quotas) | (inside the manifest) | the same pure code the sampling study (M2) certifies — policy is never reimplemented in a shell |
 | 6 | Survey draw | `steam_client` | `FetchPlan` → reviews + `SampleManifest` (the only minter) | `reviews`, `sample_manifests`, `sample_members` | windowed primary with semantic validation (returned timestamps ∈ requested window); per-window cursor fallback under a feasibility bound (estimated depth vs the rate budget → skip-and-disclose); per-window provenance |
-| 7 | Classification | `pipeline` loop → `core/classify` + `llm_client` (CLASSIFY) | reviews → `PerReviewLabel[]`, origin=survey, keyed (review, model, prompt, ontology versions) | label pool; content-keyed cache — bought labels never re-paid | atomic budget counter (reserve before dispatch); English-first filter; review text in a delimited data channel, output parsed against a closed schema |
+| 7 | Classification | `pipeline` loop → `core/classify` + `llm_client` (CLASSIFY) | reviews → one `ReviewClassification` per review (zero-or-more `AspectMention`), origin=survey, keyed (review, model, prompt, ontology versions) | label pool; content-keyed cache — bought labels never re-paid | atomic budget counter (reserve before dispatch); English-first filter; review text in a delimited data channel, output parsed against a closed schema |
 | 8 | Aggregation | `core/aggregate` | manifest + label pool + version pin → `AspectAggregate[]` | `aggregates` | folds manifest members ∩ origin=survey ∩ pinned version only — the number mint's one door; evidence floor |
 | 9 | Investigation (the investigator milestone, M4) | see the loop below | events + survey signals → explained / withheld / unexplained | `investigation_rounds` | round cap, per-query budget, language guard, manifest-less types |
 | 10 | Compose + phrase | `core/compose` + `llm_client` (PHRASE) | aggregates + events + manifest → `ReportDocument` | `reports` (cache write) | quote grounding; numeric grounding (every numeral in prose matches a cited value); unreferenced claims refused; marked-window membership derived here at read time from the freshest `past_events`; the marked-share floor; weak evidence greyed, never dropped |
@@ -141,6 +184,19 @@ the offline/runtime unification made concrete):
 *Eval-run provenance detail (config + model + prompt version + gold-set version → the
 measured numbers the docs cite) gets its own diagram when the first artifacts exist at
 the extraction+eval milestone (M1).*
+
+## Toolchain & layout
+
+Python **3.13** (the deploy interpreter is pinned in the M3 image, so the host's system
+Python is moot — the dev env sets the version); `src/steamlens/` **src-layout** (forces a
+real editable install, catching packaging bugs the flat layout hides). **uv** for resolve
++ lock (reproducible by construction); **ruff** for lint + format; **pyright `--strict`**
+as the type gate — chosen over mypy for editor parity, since Pylance runs the same engine,
+so CI and the editor never disagree; **pytest** with `--doctest-modules` (doctests double
+as caller-contract examples); **pdoc** for the generated API reference (regen script
+committed, output never hand-edited). CI (GitHub Actions) runs lint · pyright · pytest ·
+the import-graph test on every change; the image build and eval soft-gate join per the
+topology above.
 
 ## Deliberately not done (restraint)
 

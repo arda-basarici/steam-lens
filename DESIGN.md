@@ -204,10 +204,20 @@ capable classify stage (parallelism as config, not architecture), narrated progr
 and enforced budget caps with an honest at-capacity state. The vision's latency wording
 is conditional by design.
 
-**Copy-and-adapt reuse.** The prior steam-reviews pipeline's battle-tested fetcher
-internals are lifted into a fresh `steam_client` module. Importing the frozen repo was
-rejected (a portfolio repo must run standalone); rewriting fresh was rejected (the
-API-quirk knowledge is paid for).
+**`steam_client`: donor, not template** (reframed 2026-07-09). The module is a fresh
+build to the windowed-unfiltered sampler contract, *not* a copy of the prior
+steam-reviews fetcher — that file is a **donor reference** whose paid-for Steam-API
+knowledge (the retry/backoff GET, the identity guard against wrong-appid pulls, endpoint
+quirks — `success==2` for no-reviews, the cursor-loop guard, edition-prefix name
+matching) is deliberately harvested, while everything structural is rebuilt to this
+project's bar. Three alternatives rejected: importing the frozen repo (a portfolio repo
+must run standalone); rewriting from scratch (the API-quirk knowledge is paid for); and a
+naive file copy — the frozen default-walk loop *is* the proven-unsafe blanking path (the
+M1 entry probe showed a plain filtered walk silently skips Valve-marked windows), and its
+silence on structured logs / cost / latency is exactly the observability gap this project
+treats as a deliverable. Net: harvest the bones, rebuild the sampling brain, instrument
+it. The reframe corrected an earlier "copy-and-adapt" shorthand that anchored on the old
+code as the baseline.
 
 **The aspect ontology: hybrid with a fixed core** (decided 2026-07-09, on the week-1
 probe's evidence — `probes/FINDINGS.md` §6). Open extraction over 5 genre-diverse
@@ -239,6 +249,28 @@ gold set, observability (structured logs, cost-per-request, latency, token accou
 surfaced in a small ops dashboard, versioned provenance (prompt/model/gold-set versions
 stamped on every artifact), and a deploy pipeline as code. The test for any addition
 stays: does *this product* need it?
+
+**Contract modeling: frozen dataclasses, validated at the shell** (2026-07-09, the M1
+foundation). The plain-data spine is `@dataclass(frozen=True, slots=True)` — immutable,
+hashable, closed-shape, importing nothing; validation lives in the shells, where a
+pydantic parser turns raw external JSON (Steam payloads, LLM responses) into a clean
+contract, so *trust no raw data* and *plain data crossing the seam* are both honored and
+pydantic never reaches core. Two record-design calls carry weight. **(1) The
+classification envelope:** one review yields one `ReviewClassification` — recording *that*
+it was classified, under which versions, with zero-or-more aspect mentions — rather than a
+flat mention list, because the probe's 46%-yield-nothing reviews make an empty result
+indistinguishable from an unprocessed one under a flat shape, which breaks resume/caching
+(empty reviews re-paid every run) and honest denominators ("46% yield zero" is only
+statable if *processed* counts separately from *produced mentions*). **(2) Dual
+sentiment:** the reviewer's overall verdict (`voted_up`) and per-aspect sentiment are
+separate fields, because they dissociate constantly ("refunded it, but the soundtrack is
+gorgeous") and both are needed to say things like "70% of negative reviews still praise
+the art." Provenance is **two-layer** — a universal run stamp (run id, code sha, config
+hash) orthogonal to the content-cache key (model + prompt + ontology versions) — and the
+narration/telemetry **sink is a Protocol in contracts**, so every shell inherits one
+emission contract and the ops-story observability is structural from the first commit
+rather than retrofitted. These are the first fields to freeze under *rules now, fields
+later*: their consumers all land at M1, and the field lists become authoritative in code.
 
 ## Scope & non-goals
 
