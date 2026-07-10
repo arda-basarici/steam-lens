@@ -7,6 +7,71 @@ decisions it feeds.
 
 ---
 
+## 2026-07-10 — Synonyms are not sub-concepts, and the gold set almost certified itself
+
+*The ontology-authoring story from extraction+eval (M1), task B1 — plus the gold-set
+methodology settled early, ahead of its own task. Feeds: the milestone report's ontology
+and evaluation-design sections.*
+
+The first candidate core came out of the probe data looking tidy: twenty-two labels,
+each with a fat synonym list, covering two-thirds of all probe mentions. Arda read six
+rows and found the flaw: `lore` was listed as a synonym of `story`, `voice acting`
+under `audio`, `romance options` under `characters`, `immersion` pooled with `open
+world`. Those aren't synonyms — they're distinct concepts folded together to
+concentrate evidence. The distinction matters because the two failure directions are
+asymmetric in this architecture: folding is *irreversible* (the label pool stores
+mentions under the pinned label, keyed by ontology version — once a lore mention is
+written down as `story`, no later analysis recovers it), while not-pinning is nearly
+free (the candidate slot preserves an unpinned aspect's identity at runtime, and the
+promotion path can pin it next version with real evidence). The rule that survived:
+synonyms are surface forms of the *same* concept, nothing else; a distinct concept
+earns its own slot or stays a candidate. No umbrella labels.
+
+The same asymmetry, priced out, flipped the size instinct. The draft had assumed a
+small core; the argument for generosity won: a pinned aspect that most games never
+mention costs nothing at display (the classifier only labels what reviews say; the
+evidence floor hides what's below threshold) but pays fully for the games where it
+carries half the conversation — voice acting was the motivating case. And promoting
+later isn't free: a version bump invalidates the content-keyed classify cache, so
+pinning a crisp concept now is cheaper than promoting it after the corpus run. What
+actually bounds the vocabulary isn't a number — it's that near-neighbor labels degrade
+labeling consistency (the narrative cluster can only be sliced so thin before nobody
+routes `story`/`writing`/`lore` the same way twice), and that rare pins ship with weak
+certification. The bar that replaced "keep it small": crisp boundary, plausibly
+load-bearing for some real class of games, no near-duplicates — landing the draft
+near fifty pins instead of twenty.
+
+The evaluation design then nearly ate its own anchor. The tempting scale move — let a
+frontier model write a ten-thousand-review gold set — died on circularity: a gold set
+authored by a model measures model-model agreement, not correctness, and frontier
+models share systematic blind spots (Steam irony, mixed sentiment) that more examples
+measure more precisely without ever seeing. The shape that survived keeps the human
+anchor and buys the scale legitimately: diverse strong models pre-label, the human
+ratifies everything (verification being several times cheaper than annotation),
+disagreements get adjudicated, unanimous labels get audited at a sampled rate — and
+the eval's reach beyond the human core comes from the LLM-judge, calibrated against
+that core with stated error. Arda independently invented enriched stratified
+sampling — recruit ~20 reviews per aspect so every pinned label has gold coverage —
+and supplied its own correctness condition: a recruited review must carry *all* its
+labels, not just the one that recruited it, or correct classifier output scores as
+false positives. Two amendments made it sound: annotate each review exhaustively once
+at recruitment (not re-reviewing the pool per aspect), and keep a randomly-sampled
+core alongside the enriched strata — retrieval finds the findable mentions, and only
+a random core can certify the corpus-level numbers and the empty-output behavior that
+the fabrication metric lives on, since nearly half of real reviews carry no aspect at
+all.
+
+One structural addition closed the session's design work: child tags — proposed as a
+way to make big aspects distinguishable — entered not as labels but as a routing rule.
+An `includes` list per aspect ("progression *includes* endgame progression, pacing,
+reworks — always label the parent") teaches the classifier and the gold labeler where
+an aspect's edges are without fragmenting the numbers across taxonomy levels; any real
+hierarchy gets *derived* from accumulated spans at v2, a measurement instead of a
+guess. And the ratification itself was re-scoped honestly: the vocabulary is a
+v1-draft with a designed revision point — writing the gold-set instructions is the
+best boundary test there is, and the lock-in only becomes expensive after the corpus
+labeling run pins the cache to a version.
+
 ## 2026-07-09 — The vocabulary decided itself, and the instrument kept changing under us
 
 *The aspect-ontology decision story plus the free-tier field report, from
