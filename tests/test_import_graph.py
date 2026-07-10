@@ -1,7 +1,7 @@
 """Import-graph test — enforces DESIGN's dependency law (the two-track wall).
 
-The law: entry shells → pipeline → clients/store → contracts; ``core`` imports
-only ``contracts``; nothing imports ``evals``. A module may import only from its
+The law: entry shells → pipeline → clients/store/ontology → contracts; ``core``
+imports only ``contracts``; nothing imports ``evals``. A module may import only from its
 own layer or a lower one. This test parses intra-package imports statically and
 fails on any forbidden edge, so a misplaced import is a red build, not a silent
 erosion of the boundary. It is deliberately structural and grows as modules land
@@ -24,6 +24,7 @@ _LAYER_RANK: dict[str, int] = {
     "steam_client": 2,
     "llm_client": 2,
     "store": 2,
+    "ontology": 2,  # the artifact-loading shell; core receives the loaded record
     "pipeline": 3,
     "serve": 4,
     "studies": 4,
@@ -74,7 +75,5 @@ def test_dependency_law() -> None:
             if dst_sub in _IMPORT_FORBIDDEN:
                 violations.append(f"{'.'.join(parts)} imports forbidden '{dst_sub}'")
             elif _LAYER_RANK[src_sub] < _LAYER_RANK[dst_sub]:
-                violations.append(
-                    f"{'.'.join(parts)} ({src_sub}) imports higher layer '{dst_sub}'"
-                )
+                violations.append(f"{'.'.join(parts)} ({src_sub}) imports higher layer '{dst_sub}'")
     assert not violations, "dependency-law violations:\n" + "\n".join(violations)

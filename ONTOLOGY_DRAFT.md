@@ -1,13 +1,21 @@
 # Aspect ontology — v1 working draft (codebook)
 
-**Status: DRAFT — under Arda's review. Not ratified, not loaded by code.**
+**Status: FROZEN 2026-07-10 — superseded by `src/steamlens/ontology/v1.toml`,
+the single source since the same day. Never edit this file again; it stays as
+the audit trail (boundary rulings, probe evidence, the decision history below).**
 
-This file is the single-source codebook for the v1 pinned aspect ontology. At
-ratification it converts to the versioned artifact (TOML under
-`src/steamlens/ontology/`) that loads into `AspectOntology`; both the classify
-prompt (compact render: definition + aliases + do-not line) and the gold-set
-labeling instructions (full render, with examples) derive from it. Edit here;
-nothing downstream consumes this file yet.
+Conversion moved ahead of ratification by Arda's call (2026-07-10): the TOML
+carries `version = "v1-draft"` until Arda closes the free-edit window at
+gold-set pilot labeling (D1), where it ratifies to `v1`. Casual refinement
+edits until then land in the TOML (the validating loader is the safety net);
+Arda's pruning pass (the certified-number bar, "Open decisions" below) remains
+open there. Probe-evidence lines (`≈N · G games`) were deliberately not carried
+over — they are frozen history and live only here.
+
+This file was the single-source codebook for the v1 pinned aspect ontology.
+Both the classify prompt (compact render: definition + aliases + do-not line)
+and the gold-set labeling instructions (full render, with examples) derive
+from the TOML artifact it converted into.
 
 Authored by Arda 2026-07-10 over the aspect-vocabulary probe's grouped labels
 (`probes/captures/aspect_vocab/label_groups.json`, 313 groups / 704 mentions /

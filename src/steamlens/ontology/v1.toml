@@ -1,0 +1,1027 @@
+# Aspect ontology - the pinned core vocabulary (annotation codebook).
+# SINGLE SOURCE since 2026-07-10. Boundary-decision history and probe evidence:
+# ONTOLOGY_DRAFT.md (frozen) and REPORT_NOTES.md. Loaded and validated by
+# steamlens.ontology; backticked tokens in prose are pinned-label references.
+# Free-edit window is open until gold-set pilot labeling (D1) starts; version
+# flips to "v1" at ratification, and later changes cost a version bump.
+
+version = "v1-draft"
+
+categories = [
+  "play",
+  "narrative",
+  "presentation_world",
+  "technical",
+  "content_value",
+  "live_meta",
+  "player_experience",
+]
+
+global_rules = [
+  "Aspect, not mood. An aspect is a property of the game or the experience around it — never the reviewer's life or state (\"I was depressed and this helped\" → no label unless a game property is evaluated).",
+  "Bare verdicts get no label. \"Masterpiece\", \"10/10\", \"trash\" with no subject → zero aspects. A zero-aspect review is a first-class result (~46% of reviews in the probe).",
+  "Multi-label is normal. Label every distinct aspect a review evaluates; one clause can only carry one label — pick the most specific that fits.",
+  "Child-shaped mentions take the parent. The aliases and \"label when\" lines route; sub-flavors (\"endgame progression\") are never their own label.",
+  "Not listed ≠ not recorded. A genuine aspect with no pinned home is a CANDIDATE: keep the reviewer's own wording as a free-form label. Never force-fit into the nearest pinned label.",
+  "Sentiment attaches per mention (pos / neg / mixed), independent of the review's thumbs-up.",
+  "Labels are snake_case identifiers; display names are a downstream concern.",
+  "Categories are organizational only — never classification targets.",
+]
+
+[[aspects]]
+label = "gameplay"
+category = "play"
+definition = "Moment-to-moment play and core mechanics, when no more specific label applies."
+aliases = [
+  "gameplay loop",
+  "core mechanics",
+  "mechanics",
+]
+label_when = "The reviewer evaluates the basic act of playing."
+do_not_label_when = "They mention combat, controls, progression, level design, or another specific system — use that label. `gameplay` is the fallback for play-talk, not an extra label on top of a specific one."
+examples = [
+  "\"The gameplay is fun but gets repetitive.\" → `gameplay`",
+  "\"Shooting feels punchy and the bosses are great.\" → `combat`, not `gameplay`",
+]
+
+[[aspects]]
+label = "combat"
+category = "play"
+definition = "Fighting systems, encounters, weapons, abilities, enemies as combat opponents."
+aliases = [
+  "fighting",
+  "combat system",
+  "gunplay",
+  "melee",
+  "battles",
+  "encounters",
+]
+label_when = "The review evaluates fighting or combat encounters."
+do_not_label_when = "The complaint is about enemy intelligence specifically — use `ai_behavior`. Unfair tuning of weapons/classes — use `balance`."
+examples = [
+  "\"Turn-based combat with real tactical depth.\" → `combat`",
+  "\"Enemies just stand there while you shoot them.\" → `ai_behavior`, not `combat`",
+]
+
+[[aspects]]
+label = "controls"
+category = "play"
+definition = "Input feel, responsiveness, handling, keybinds, controller support."
+aliases = [
+  "handling",
+  "input",
+  "responsiveness",
+  "keybinds",
+  "controller support",
+  "movement feel",
+  "game feel",
+]
+label_when = "The reviewer talks about how it feels to control the game — input in general."
+do_not_label_when = "The issue is menus/HUD — use `ui`. \"Vehicle handling\" as simulation behavior — use `physics`. The clunky/smooth feel of a named system (\"combat feels clunky\") — label that system; `controls` is for input generally, not system feel."
+examples = [
+  "\"Controls are floaty and the deadzone settings don't help.\" → `controls`",
+  "\"Inventory is a nightmare to navigate.\" → `ui`, not `controls`",
+]
+
+[[aspects]]
+label = "camera"
+category = "play"
+definition = "Camera movement, perspective, lock-on camera, visibility, FOV, camera-caused discomfort."
+aliases = [
+  "camera angle",
+  "lock-on",
+  "field of view",
+  "FOV",
+  "perspective",
+  "motion sickness",
+]
+label_when = "The camera itself is praised or criticized."
+do_not_label_when = "The issue is general controls unless the camera is clearly the cause."
+examples = [
+  "\"The camera fights you in every boss arena.\" → `camera`",
+]
+
+[[aspects]]
+label = "difficulty"
+category = "play"
+definition = "How hard the game is after the player understands it."
+aliases = [
+  "challenge",
+  "hard",
+  "easy",
+  "difficulty options",
+]
+label_when = "The reviewer evaluates challenge level."
+do_not_label_when = "The issue is learning/onboarding — use `learning_curve`. Unfair tuning or spikes — use `balance`."
+examples = [
+  "\"Brutally hard but always fair.\" → `difficulty`",
+  "\"Act 3 suddenly triples the enemy damage for no reason.\" → `balance`, not `difficulty`",
+]
+
+[[aspects]]
+label = "learning_curve"
+category = "play"
+definition = "How easy or hard it is to learn, understand, or get into the game."
+aliases = [
+  "onboarding",
+  "tutorials",
+  "beginner friendly",
+  "hard to get into",
+  "confusing at first",
+]
+label_when = "The review focuses on entry friction or learning."
+do_not_label_when = "The game is simply hard — use `difficulty`."
+examples = [
+  "\"Takes 20 hours before it clicks; the tutorial explains nothing.\" → `learning_curve`",
+]
+
+[[aspects]]
+label = "progression"
+category = "play"
+definition = "Advancement systems: leveling, unlocks, skill trees, perks, gear progression, ranks. Includes endgame progression and pacing of advancement."
+aliases = [
+  "leveling",
+  "unlocks",
+  "skill tree",
+  "perks",
+  "advancement",
+  "progression system",
+]
+label_when = "The review evaluates how the player advances."
+do_not_label_when = "The issue is repetitive effort required to progress — use `grind`."
+examples = [
+  "\"The skill tree actually changes how you play.\" → `progression`",
+  "\"You repeat the same three missions to level anything.\" → `grind`, not `progression`",
+]
+
+[[aspects]]
+label = "grind"
+category = "play"
+definition = "Repetitive busywork or excessive repetition required to advance, unlock, earn, or complete."
+aliases = [
+  "grindy",
+  "grinding",
+  "repetitive farming",
+  "chore",
+  "tedious progression",
+]
+label_when = "The reviewer evaluates repetition as required effort — criticism or praise (\"satisfying grind\" counts; sentiment carries the polarity)."
+do_not_label_when = "They only say the game is long — use `game_length`. The repetition is enjoyed/voluntary (\"can't stop doing runs\") — use `addictiveness`."
+examples = [
+  "\"Everything past level 30 is a grind wall.\" → `grind`",
+]
+
+[[aspects]]
+label = "balance"
+category = "play"
+definition = "Fairness and tuning of mechanics, weapons, classes, enemies, economy, difficulty spikes, or progression."
+aliases = [
+  "balancing",
+  "overpowered",
+  "underpowered",
+  "nerf",
+  "buff",
+  "unfair",
+  "broken meta",
+  "difficulty spike",
+]
+label_when = "The review says something is unfair, overtuned, undertuned, or poorly balanced."
+do_not_label_when = "They only say the game is hard — use `difficulty`."
+examples = [
+  "\"One weapon type invalidates every other build.\" → `balance`",
+]
+
+[[aspects]]
+label = "player_choice"
+category = "play"
+definition = "Whether choices matter; agency, consequences, branching decisions."
+aliases = [
+  "player agency",
+  "choices matter",
+  "consequences",
+  "dialogue choices",
+  "branching",
+]
+label_when = "The reviewer evaluates meaningful decisions or lack of them."
+do_not_label_when = "They are talking about builds/playstyles — use `build_variety`."
+examples = [
+  "\"Your choices genuinely change act two.\" → `player_choice`",
+  "\"So many viable ways to build your character.\" → `build_variety`, not `player_choice`",
+]
+
+[[aspects]]
+label = "exploration"
+category = "play"
+definition = "Discovering places, secrets, routes, locations, hidden content."
+aliases = [
+  "discovery",
+  "secrets",
+  "open world exploration",
+  "roaming",
+  "exploration rewards",
+]
+label_when = "The player evaluates the act/reward of exploring."
+do_not_label_when = "The issue is the map/level structure itself — use `level_design`."
+examples = [
+  "\"Every cave hides something worth finding.\" → `exploration`",
+]
+
+[[aspects]]
+label = "level_design"
+category = "play"
+definition = "Layout and structure of levels, maps, dungeons, arenas, routes, spaces."
+aliases = [
+  "map design",
+  "level layout",
+  "dungeon design",
+  "arena design",
+  "stage design",
+]
+label_when = "The review evaluates authored spaces."
+do_not_label_when = "They only say they like discovering things — use `exploration`. The world as setting/content — use `world`."
+examples = [
+  "\"Interconnected maps that loop back on themselves brilliantly.\" → `level_design`",
+]
+
+[[aspects]]
+label = "quest_design"
+category = "play"
+definition = "Quality, structure, variety, and objectives of quests or missions."
+aliases = [
+  "missions",
+  "quests",
+  "side quests",
+  "objectives",
+  "tasks",
+  "mission design",
+]
+label_when = "The review evaluates quest/mission structure."
+do_not_label_when = "The review evaluates plot — use `story`. Sheer volume of quests/things to do — use `content_amount`."
+examples = [
+  "\"Side quests are all fetch-and-return filler.\" → `quest_design`",
+  "\"The main questline's twist floored me.\" → `story`, not `quest_design`",
+]
+
+[[aspects]]
+label = "build_variety"
+category = "play"
+definition = "Variety of viable builds, playstyles, classes, strategies, weapons, or approaches."
+aliases = [
+  "playstyle variety",
+  "build diversity",
+  "class variety",
+  "different ways to play",
+]
+label_when = "The review evaluates whether players can approach the game in different ways."
+do_not_label_when = "It is only about cosmetic customization — use `customization`."
+examples = [
+  "\"Stealth, guns-blazing, or full netrunner — all viable.\" → `build_variety`",
+]
+
+[[aspects]]
+label = "replayability"
+category = "play"
+definition = "Whether the game rewards replaying or returning after completion/failure."
+aliases = [
+  "replay value",
+  "longevity",
+  "repeat runs",
+  "replayable",
+  "keeps me coming back",
+]
+label_when = "The review evaluates long-term return value."
+do_not_label_when = "The review says the game is addictive in a psychological-pull sense — use `addictiveness`."
+examples = [
+  "\"Three playthroughs and I'm still finding new content.\" → `replayability`",
+  "\"One more run turns into 3 a.m. every night.\" → `addictiveness`, not `replayability`",
+]
+
+[[aspects]]
+label = "ai_behavior"
+category = "play"
+definition = "Quality of enemy, NPC, teammate, or bot behavior."
+aliases = [
+  "enemy AI",
+  "NPC behavior",
+  "bot teammates",
+  "companion AI",
+  "pathfinding",
+]
+label_when = "The review evaluates non-player behavior."
+do_not_label_when = "\"Bots\" means cheaters/fake players in online matches — use `cheating` or `multiplayer`."
+examples = [
+  "\"NPCs walk into walls and forget you exist.\" → `ai_behavior`",
+]
+
+[[aspects]]
+label = "physics"
+category = "play"
+definition = "Physical simulation, collisions, movement physics, vehicle handling, object interactions."
+aliases = [
+  "physics",
+  "collision",
+  "ragdoll",
+  "vehicle handling",
+  "simulation",
+  "floaty movement",
+]
+label_when = "The review evaluates simulation/physical behavior."
+do_not_label_when = "\"Handling\" just means input feel — use `controls`."
+examples = [
+  "\"Ball physics are pixel-perfect and predictable.\" → `physics`",
+]
+
+[[aspects]]
+label = "story"
+category = "narrative"
+definition = "Plot, narrative arc, major events, ending."
+aliases = [
+  "narrative",
+  "plot",
+  "ending",
+  "final act",
+  "story arc",
+]
+label_when = "The reviewer evaluates what happens in the story."
+do_not_label_when = "The issue is prose/dialogue quality — use `writing`. Rhythm/momentum complaints, narrative or play alike (\"drags\", \"rushed\") — use `pacing`, which owns all pacing-talk."
+examples = [
+  "\"The ending recontextualizes the whole game.\" → `story`",
+  "\"The plot is fine but every line of dialogue is cringe.\" → `writing` (and `story` only if the plot is separately evaluated)",
+]
+
+[[aspects]]
+label = "writing"
+category = "narrative"
+definition = "Quality of prose, dialogue, script, jokes, lines, text, or written delivery."
+aliases = [
+  "dialogue",
+  "script",
+  "writing quality",
+  "jokes",
+]
+label_when = "The reviewer evaluates how the story/dialogue is written."
+do_not_label_when = "They evaluate the plot itself — use `story`. Voice performance — use `voice_acting`."
+examples = [
+  "\"Sharpest dialogue I've read in years.\" → `writing`",
+]
+
+[[aspects]]
+label = "lore"
+category = "narrative"
+definition = "World backstory, history, mythology, setting background."
+aliases = [
+  "lore",
+  "backstory",
+  "world history",
+  "mythos",
+  "codex",
+]
+label_when = "The review evaluates background knowledge/world history."
+do_not_label_when = "They evaluate the explorable world itself — use `world`."
+examples = [
+  "\"The codex entries are better than most novels.\" → `lore`",
+]
+
+[[aspects]]
+label = "characters"
+category = "narrative"
+definition = "Cast depth, likability, development, companions, relationships."
+aliases = [
+  "character development",
+  "companions",
+  "cast",
+  "relationships",
+]
+label_when = "The reviewer evaluates characters as people/entities."
+do_not_label_when = "They evaluate voice performance — use `voice_acting`. A romance-systems evaluation (options, dating mechanics) is deliberately unpinned — record it as a CANDIDATE (romance), not as `characters`."
+examples = [
+  "\"Every companion feels like a real person.\" → `characters`",
+  "\"The romance options are the best part.\" → CANDIDATE romance, not `characters`",
+]
+
+[[aspects]]
+label = "voice_acting"
+category = "narrative"
+definition = "Voice performance quality."
+aliases = [
+  "voiceover",
+  "voice acting",
+  "VA",
+  "voice performance",
+  "narration voice",
+]
+label_when = "The review evaluates spoken performance."
+do_not_label_when = "They evaluate the written dialogue — use `writing`. Which languages are voiced/subtitled — use `localization`."
+examples = [
+  "\"The lead actor carries every scene.\" → `voice_acting`",
+]
+
+[[aspects]]
+label = "emotional_impact"
+category = "narrative"
+definition = "Whether the game is moving, memorable, scary, sad, powerful, or emotionally affecting."
+aliases = [
+  "emotional depth",
+  "moving",
+  "heartbreaking",
+  "memorable",
+  "powerful",
+  "touching",
+]
+label_when = "The review emphasizes emotional effect on the player — it scared, moved, or stayed with them."
+do_not_label_when = "The game sustains a scary/tense/cozy mood as a property of its presentation — use `atmosphere` (`atmosphere` = the mood the game holds; `emotional_impact` = the player being affected). The feeling is calm/stress while playing — use `relaxation`."
+examples = [
+  "\"I cried twice and I'm not ashamed.\" → `emotional_impact`",
+]
+
+[[aspects]]
+label = "graphics"
+category = "presentation_world"
+definition = "Visual fidelity and technical image quality."
+aliases = [
+  "visuals",
+  "visual quality",
+  "textures",
+  "lighting",
+  "resolution",
+  "fidelity",
+]
+label_when = "The review evaluates technical visual quality."
+do_not_label_when = "They evaluate aesthetic identity — use `art_style`."
+examples = [
+  "\"Textures pop in and the lighting is last-gen.\" → `graphics`",
+  "\"It's not photorealistic, but the watercolor look is gorgeous.\" → `art_style`, not `graphics`",
+]
+
+[[aspects]]
+label = "art_style"
+category = "presentation_world"
+definition = "Art direction, aesthetic identity, visual taste, style coherence."
+aliases = [
+  "aesthetic",
+  "artwork",
+  "art direction",
+  "visual style",
+  "stylized",
+]
+label_when = "The review evaluates how the game looks artistically."
+do_not_label_when = "They talk about raw fidelity — use `graphics`."
+examples = [
+  "\"The neon-noir aesthetic never gets old.\" → `art_style`",
+]
+
+[[aspects]]
+label = "animation"
+category = "presentation_world"
+definition = "Character, combat, facial, movement, or environmental animation quality."
+aliases = [
+  "animations",
+  "facial animation",
+  "movement animation",
+  "janky animation",
+]
+label_when = "The review evaluates motion/animation."
+do_not_label_when = "The issue is control responsiveness — use `controls`. \"Jank\" as broken behavior — use `bugs`; janky motion belongs here."
+examples = [
+  "\"Facial animations are stiff in every cutscene.\" → `animation`",
+]
+
+[[aspects]]
+label = "music"
+category = "presentation_world"
+definition = "Music and soundtrack."
+aliases = [
+  "soundtrack",
+  "OST",
+  "score",
+  "tracks",
+  "music",
+]
+label_when = "The review evaluates music."
+do_not_label_when = "The review evaluates sound effects/audio feedback — use `sound_design`."
+examples = [
+  "\"The OST alone is worth the price.\" → `music`",
+]
+
+[[aspects]]
+label = "sound_design"
+category = "presentation_world"
+definition = "Non-music audio: sound effects, ambience, audio feedback, mixing, impact sounds."
+aliases = [
+  "audio",
+  "SFX",
+  "sound effects",
+  "ambience",
+  "weapon sounds",
+  "footsteps",
+  "audio feedback",
+]
+label_when = "The review evaluates sound that is not mainly music."
+do_not_label_when = "The review evaluates soundtrack/OST — use `music`."
+examples = [
+  "\"Every weapon sounds like it means it.\" → `sound_design`",
+]
+
+[[aspects]]
+label = "atmosphere"
+category = "presentation_world"
+definition = "Mood, tone, tension, coziness, horror feeling, general sensory mood."
+aliases = [
+  "atmosphere",
+  "mood",
+  "tone",
+  "ambiance",
+  "immersive atmosphere",
+  "immersive",
+]
+label_when = "The review evaluates the feeling the game sustains. Bare \"immersion\" praise about being pulled in routes here (settled ruling, 2026-07-10)."
+do_not_label_when = "\"Immersion\" is broken by bugs/performance/UI — label the concrete cause. Bare \"good vibes\" with no referent is a vague verdict — no label. Believability of the world as a place — use `world`. \"It genuinely scared/moved me\" as personal effect — use `emotional_impact`."
+examples = [
+  "\"The fog, the music cues, the dread — the mood never breaks.\" → `atmosphere`",
+]
+
+[[aspects]]
+label = "world"
+category = "presentation_world"
+definition = "The built world or setting as content and as a whole: places, setting identity, world density, world coherence, world beauty/impressiveness, and world liveliness — an inhabited world where life visibly goes on around the player."
+aliases = [
+  "setting",
+  "world",
+  "worldbuilding",
+  "world design",
+  "world feels alive",
+  "living world",
+  "empty world",
+  "scenery",
+  "landscapes",
+]
+label_when = "The review evaluates the world/setting itself — its internal consistency and lived-in coherence as a fictional place, the world as a whole (\"beautiful world\", \"impressive world\"), or how alive/inhabited it feels (city life, NPCs living their own lives, things happening without the player)."
+do_not_label_when = "They evaluate backstory/history — use `lore`. Authored level layouts — use `level_design`. Fidelity to real life (accurate simulation, historical accuracy) — use `realism`. Rendering/image quality — use `graphics`; art direction — use `art_style`; the world as a place being beautiful routes here. The quality of NPC behavior itself (dumb, broken, robotic NPCs) — use `ai_behavior`; the world feeling alive as an overall property routes here."
+examples = [
+  "\"Night City feels alive in a way no open world has.\" → `world`",
+  "\"Driving through the Alps at sunset is breathtaking.\" → `world`, not `graphics`",
+  "\"NPCs teleport and forget you in two seconds.\" → `ai_behavior`, not `world`",
+]
+
+[[aspects]]
+label = "realism"
+category = "presentation_world"
+definition = "How realistic or true-to-life something is — visuals, animations, mechanics, behavior, simulation, or the experience as a whole. Cross-cutting: applies inside fantastical settings too (realistic lighting in a fantasy world counts)."
+aliases = [
+  "realistic",
+  "realism",
+  "authenticity",
+  "simulation realism",
+  "historically accurate",
+  "realistic graphics",
+  "lifelike",
+]
+label_when = "The evaluated property is realisticness/trueness to life, whatever it attaches to — graphics, mechanics, world behavior."
+do_not_label_when = "They evaluate physics mechanics specifically — use `physics`. Internal consistency/coherence of a fictional world as a lived-in place — use `world`. Visual quality praised without realism being the point (\"looks amazing\") — use `graphics`."
+examples = [
+  "\"The routes, the tolls, the fatigue rules — it's the real job.\" → `realism`",
+  "\"Rain on the windshield looks absolutely real.\" → `realism`, not `graphics`",
+]
+
+[[aspects]]
+label = "performance"
+category = "technical"
+definition = "Runtime smoothness and optimization: FPS, stutter, loading, hardware demands."
+aliases = [
+  "optimization",
+  "FPS",
+  "frame rate",
+  "stutter",
+  "loading times",
+  "runs well",
+  "runs poorly",
+]
+label_when = "The review evaluates how well the game runs."
+do_not_label_when = "The game crashes/freezes — use `stability`. Online lag/desync — use `servers_netcode`."
+examples = [
+  "\"Constant stutter on a 4080 is embarrassing.\" → `performance`",
+  "\"Crashes to desktop every hour.\" → `stability`, not `performance`",
+]
+
+[[aspects]]
+label = "stability"
+category = "technical"
+definition = "Crashes, freezes, save corruption, launch failures, hard technical failures."
+aliases = [
+  "crash",
+  "freeze",
+  "softlock",
+  "save corrupted",
+  "won't launch",
+  "black screen",
+]
+label_when = "The review describes severe failure states."
+do_not_label_when = "It is a non-fatal glitch or broken quest — use `bugs`."
+examples = [
+  "\"Lost a 40-hour save to corruption.\" → `stability`",
+]
+
+[[aspects]]
+label = "bugs"
+category = "technical"
+definition = "Broken behavior: glitches, broken quests, broken mechanics, visual bugs, scripting errors."
+aliases = [
+  "bug",
+  "glitch",
+  "broken quest",
+  "broken mechanic",
+  "jank",
+  "bugged",
+]
+label_when = "The game behaves incorrectly but not necessarily as a hard crash/freeze."
+do_not_label_when = "It is mainly low FPS/stutter — use `performance`. Broken motion specifically — use `animation`."
+examples = [
+  "\"The quest marker points at a door that never opens.\" → `bugs`",
+]
+
+[[aspects]]
+label = "ui"
+category = "technical"
+definition = "Menus, HUD, inventory screens, readability, navigation, interface friction."
+aliases = [
+  "UI",
+  "UX",
+  "menus",
+  "HUD",
+  "interface",
+  "inventory UI",
+  "readability",
+  "menu navigation",
+  "settings menu",
+  "options menu",
+]
+label_when = "The review evaluates interface design."
+do_not_label_when = "The review evaluates input responsiveness — use `controls`."
+examples = [
+  "\"Four submenus to change one setting.\" → `ui`",
+]
+
+[[aspects]]
+label = "servers_netcode"
+category = "technical"
+definition = "Online technical quality: servers, lag, disconnects, desync, netcode, online stability."
+aliases = [
+  "servers",
+  "netcode",
+  "lag",
+  "ping",
+  "desync",
+  "disconnects",
+  "rubberbanding",
+]
+label_when = "The review evaluates online infrastructure/connection quality."
+do_not_label_when = "The issue is bad player matching — use `matchmaking`."
+examples = [
+  "\"Desync decides more matches than skill does.\" → `servers_netcode`",
+]
+
+[[aspects]]
+label = "platform_access"
+category = "technical"
+definition = "Ports, launchers, account requirements, DRM, Steam Deck/Linux support, region/platform access."
+aliases = [
+  "port",
+  "launcher",
+  "account requirement",
+  "DRM",
+  "Steam Deck",
+  "Linux",
+  "console port",
+  "login required",
+]
+label_when = "The review criticizes access/friction outside the core game itself."
+do_not_label_when = "The issue is pricing by region — usually `price_value` (regional pricing events are the investigator's territory, not the ontology's)."
+examples = [
+  "\"Forcing a third-party account on a paid game is insulting.\" → `platform_access`",
+]
+
+[[aspects]]
+label = "localization"
+category = "technical"
+definition = "Translation quality, subtitles, language support, regional text/audio support."
+aliases = [
+  "translation",
+  "subtitles",
+  "language support",
+  "localization",
+  "machine translation",
+  "dubbed audio",
+]
+label_when = "The review evaluates language/translation support — including which languages get voiced audio or subtitles at all."
+do_not_label_when = "The issue is general writing quality in the original language — use `writing`. Subtitle options (size, readability) — use `accessibility`."
+examples = [
+  "\"The Turkish translation reads like machine output.\" → `localization`",
+]
+
+[[aspects]]
+label = "accessibility"
+category = "technical"
+definition = "Options that affect whether different players can comfortably play."
+aliases = [
+  "accessibility",
+  "colorblind mode",
+  "remapping",
+  "font size",
+  "subtitle options",
+  "motion blur",
+  "accessibility options",
+]
+label_when = "The review evaluates accessibility or comfort options."
+do_not_label_when = "It only says the game is easy/hard — use `difficulty`. Subtitle translation/existence — use `localization`."
+examples = [
+  "\"No colorblind mode in a color-coded puzzle game.\" → `accessibility`",
+]
+
+[[aspects]]
+label = "content_amount"
+category = "content_value"
+definition = "Volume of things to do: modes, quests, maps, items, activities, variety of content."
+aliases = [
+  "amount of content",
+  "content",
+  "lots to do",
+  "lack of content",
+  "content variety",
+]
+label_when = "The review evaluates how much content exists."
+do_not_label_when = "It only discusses hours to finish — use `game_length`. Quality/structure of the quests rather than their volume — use `quest_design`."
+examples = [
+  "\"A hundred hours in and the activity list keeps growing.\" → `content_amount`",
+]
+
+[[aspects]]
+label = "game_length"
+category = "content_value"
+definition = "Time to finish, total hours, campaign length, short/long duration."
+aliases = [
+  "length",
+  "campaign length",
+  "hours",
+  "too short",
+  "too long",
+  "completion time",
+  "time sink",
+]
+label_when = "The review evaluates duration or the time the game demands."
+do_not_label_when = "The issue is repetitive required work — use `grind`. The hours pile up because of voluntary pull — use `addictiveness`."
+examples = [
+  "\"Twelve hours and the credits rolled. At full price.\" → `game_length`",
+]
+
+[[aspects]]
+label = "price_value"
+category = "content_value"
+definition = "Whether the game is worth the asking price."
+aliases = [
+  "price",
+  "value",
+  "worth it",
+  "not worth",
+  "sale",
+  "full price",
+  "overpriced",
+]
+label_when = "The reviewer evaluates value-for-money."
+do_not_label_when = "The issue is microtransactions or the monetization model — use `monetization`."
+examples = [
+  "\"Even at full price this is a steal.\" → `price_value`",
+  "\"The game is fine; the $20 skins are not.\" → `monetization`, not `price_value`",
+]
+
+[[aspects]]
+label = "monetization"
+category = "content_value"
+definition = "How the game charges beyond purchase: MTX, loot boxes, battle pass, F2P economy, pay-to-win."
+aliases = [
+  "microtransactions",
+  "MTX",
+  "loot boxes",
+  "crates",
+  "battle pass",
+  "pay to win",
+  "F2P model",
+]
+label_when = "The review evaluates monetization systems."
+do_not_label_when = "It only says the base price is too high — use `price_value`."
+examples = [
+  "\"Battle pass FOMO in a full-priced game.\" → `monetization`",
+]
+
+[[aspects]]
+label = "dlc"
+category = "content_value"
+definition = "DLC quality, DLC policy, expansions, missing content sold separately."
+aliases = [
+  "DLC",
+  "expansion",
+  "season pass",
+  "paid content",
+  "downloadable content",
+]
+label_when = "The review evaluates DLC specifically."
+do_not_label_when = "The issue is general microtransactions — use `monetization`."
+examples = [
+  "\"The expansion is better than the base game.\" → `dlc`",
+]
+
+[[aspects]]
+label = "customization"
+category = "content_value"
+definition = "Appearance, identity, character creation, cosmetic personalization, personalization systems."
+aliases = [
+  "customization",
+  "character creation",
+  "cosmetics",
+  "skins",
+  "outfits",
+  "personalization",
+]
+label_when = "The review evaluates customization options."
+do_not_label_when = "It evaluates build/playstyle options — use `build_variety`."
+examples = [
+  "\"Spent two hours in the character creator alone.\" → `customization`",
+]
+
+[[aspects]]
+label = "updates"
+category = "live_meta"
+definition = "Post-launch patches, content cadence, update quality, support over time."
+aliases = [
+  "updates",
+  "patches",
+  "roadmap",
+  "post-launch support",
+  "dev updates",
+  "abandoned",
+]
+label_when = "The review evaluates how the game changed or was maintained after launch."
+do_not_label_when = "It evaluates the developer's ethics/communication directly — use `developer_conduct`."
+examples = [
+  "\"Two years of free updates and it keeps getting better.\" → `updates`",
+]
+
+[[aspects]]
+label = "developer_conduct"
+category = "live_meta"
+definition = "Studio/publisher behavior, communication, trust, moderation, support attitude, promises."
+aliases = [
+  "developers",
+  "publisher",
+  "communication",
+  "customer support",
+  "dev behavior",
+  "broken promises",
+]
+label_when = "The review evaluates the people/company behind the game."
+do_not_label_when = "The issue is only patch cadence — use `updates`."
+examples = [
+  "\"They promised mod tools for three years and went silent.\" → `developer_conduct`",
+]
+
+[[aspects]]
+label = "mods"
+category = "live_meta"
+definition = "Mod support, workshop support, modding ecosystem, mod compatibility."
+aliases = [
+  "mods",
+  "modding",
+  "workshop",
+  "Steam Workshop",
+  "mod support",
+  "community mods",
+]
+label_when = "The review evaluates modding."
+do_not_label_when = "The review only talks about community behavior — use `community`."
+examples = [
+  "\"The workshop scene keeps this game alive.\" → `mods`",
+]
+
+[[aspects]]
+label = "community"
+category = "live_meta"
+definition = "Player-base character: friendliness, toxicity, helpfulness, culture."
+aliases = [
+  "community",
+  "player base",
+  "toxic",
+  "friendly players",
+  "helpful community",
+]
+label_when = "The review evaluates the social character of players."
+do_not_label_when = "The issue is cheaters/hackers — use `cheating`."
+examples = [
+  "\"Most toxic ranked community I've ever met.\" → `community`",
+]
+
+[[aspects]]
+label = "cheating"
+category = "live_meta"
+definition = "Integrity of online play: cheaters, hackers, bots, smurfs, anti-cheat failure."
+aliases = [
+  "cheaters",
+  "hackers",
+  "bots",
+  "smurfs",
+  "anti-cheat",
+  "exploiters",
+]
+label_when = "The review evaluates unfair online play integrity."
+do_not_label_when = "\"Bots\" means NPC/enemy AI — use `ai_behavior`."
+examples = [
+  "\"Every lobby has a spinbotter; the anti-cheat is asleep.\" → `cheating`",
+]
+
+[[aspects]]
+label = "multiplayer"
+category = "live_meta"
+definition = "General online, PvP, co-op, social, or multiplayer experience."
+aliases = [
+  "online",
+  "co-op",
+  "PvP",
+  "multiplayer",
+  "friends",
+  "party play",
+]
+label_when = "The review evaluates the multiplayer experience broadly."
+do_not_label_when = "The issue is specifically matchmaking, cheating, or servers — use those labels. Like `gameplay`, this is a fallback, not an extra label."
+examples = [
+  "\"With three friends this is the best co-op on Steam.\" → `multiplayer`",
+]
+
+[[aspects]]
+label = "matchmaking"
+category = "live_meta"
+definition = "Player pairing quality, rank balance, queue quality, skill matching."
+aliases = [
+  "matchmaking",
+  "queue",
+  "ranked match",
+  "skill-based matchmaking",
+  "SBMM",
+  "unbalanced teams",
+]
+label_when = "The review evaluates how players are matched."
+do_not_label_when = "The issue is server lag/disconnects — use `servers_netcode`."
+examples = [
+  "\"Every match is a stomp in one direction or the other.\" → `matchmaking`",
+]
+
+[[aspects]]
+label = "relaxation"
+category = "player_experience"
+definition = "Whether the game feels relaxing, cozy, stressful, calming, or tense to play."
+aliases = [
+  "chill",
+  "cozy",
+  "relaxing",
+  "stressful",
+  "calming",
+  "comfort game",
+]
+label_when = "The review evaluates stress/comfort level."
+do_not_label_when = "\"Vibe\" refers more to horror/mood/world tone — use `atmosphere`."
+examples = [
+  "\"My comfort game after work; nothing ever rushes you.\" → `relaxation`",
+]
+
+[[aspects]]
+label = "addictiveness"
+category = "player_experience"
+definition = "The pull to keep playing; one-more-run/session quality."
+aliases = [
+  "addictive",
+  "one more run",
+  "hooked",
+  "can't stop playing",
+  "compulsive",
+]
+label_when = "The review evaluates the game's pull or habit-forming quality."
+do_not_label_when = "The review evaluates objective replay content — use `replayability`."
+examples = [
+  "\"'One quick match' cost me a weekend.\" → `addictiveness`",
+]
+
+[[aspects]]
+label = "pacing"
+category = "player_experience"
+definition = "Distribution of action, downtime, story beats, repetition, escalation, and momentum."
+aliases = [
+  "pacing",
+  "slow",
+  "dragged",
+  "rushed",
+  "padding",
+  "momentum",
+  "too much downtime",
+]
+label_when = "The review evaluates rhythm/flow over time — of play or of the narrative. `pacing` owns all pacing-talk; `story` keeps what happens, `pacing` keeps how it flows."
+do_not_label_when = "The complaint is only that the game is long — use `game_length`."
+examples = [
+  "\"The middle third drags with padding missions.\" → `pacing`",
+]
