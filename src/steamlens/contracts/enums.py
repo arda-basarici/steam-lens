@@ -59,6 +59,49 @@ class Sentiment(StrEnum):
     NEUTRAL = "neutral"
 
 
+class LlmStage(StrEnum):
+    """Which pipeline job a model call serves — the routing key at the LLM door.
+
+    Every model call carries its stage, and the client's routing table maps it
+    to a provider, model, and params — so retargeting a stage (say, moving
+    classification to a paid tier at the milestone-exit decision) is a config
+    edit, never a code change. ``CLASSIFY`` labels survey reviews, ``JUDGE`` is
+    the eval harness's calibrated judge, ``PHRASE`` writes report prose over the
+    minted numbers, ``INVESTIGATE`` drives the event investigator. The set grows
+    as stages land; a new member plus a route is the whole cost.
+
+    >>> LlmStage.CLASSIFY == "classify"
+    True
+    """
+
+    CLASSIFY = "classify"
+    JUDGE = "judge"
+    PHRASE = "phrase"
+    INVESTIGATE = "investigate"
+
+
+class FinishReason(StrEnum):
+    """How a generation ended, normalized across providers — the truncation guard's read.
+
+    Adapters map each provider's own vocabulary (Gemini's ``MAX_TOKENS``,
+    another vendor's ``length``) into this closed set, so the client's guards
+    are written once, provider-independent. ``STOP`` is a clean finish;
+    ``LENGTH`` means the output was cut by the token ceiling — a truncated
+    classification is never retried, because a temperature-0 call re-truncates
+    identically; ``REFUSAL`` is the provider declining to complete (safety
+    blocks and the like); ``OTHER`` is the honest bucket for anything an adapter
+    cannot map — surfaced, never silently coerced to a known reason.
+
+    >>> FinishReason.LENGTH == "length"
+    True
+    """
+
+    STOP = "stop"
+    LENGTH = "length"
+    REFUSAL = "refusal"
+    OTHER = "other"
+
+
 class StageKind(StrEnum):
     """The kind of a stage-progress event carried over the narration sink.
 

@@ -14,7 +14,22 @@ internal navigation aid, not part of the contract.
 
 from steamlens.contracts.aggregate import AspectAggregate, SentimentCounts
 from steamlens.contracts.classification import AspectMention, ReviewClassification
-from steamlens.contracts.enums import AspectSlot, Origin, Sentiment, StageKind
+from steamlens.contracts.enums import (
+    AspectSlot,
+    FinishReason,
+    LlmStage,
+    Origin,
+    Sentiment,
+    StageKind,
+)
+from steamlens.contracts.llm import (
+    ClassifyCache,
+    LlmRequest,
+    LlmResponse,
+    SpendLedger,
+    SpendRecord,
+    TokenUsage,
+)
 from steamlens.contracts.ontology import AspectDef, AspectOntology, OntologyVersion
 from steamlens.contracts.provenance import ClassifierVersions, Provenance
 from steamlens.contracts.reviews import Review
@@ -26,6 +41,8 @@ __all__ = [
     "AspectSlot",
     "Sentiment",
     "StageKind",
+    "LlmStage",
+    "FinishReason",
     # provenance
     "Provenance",
     "ClassifierVersions",
@@ -46,4 +63,11 @@ __all__ = [
     "StageEvent",
     "MetricEvent",
     "SinkEvent",
+    # llm seam
+    "LlmRequest",
+    "LlmResponse",
+    "TokenUsage",
+    "SpendRecord",
+    "ClassifyCache",
+    "SpendLedger",
 ]
