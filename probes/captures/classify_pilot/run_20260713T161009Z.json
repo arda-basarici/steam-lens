@@ -1,0 +1,93 @@
+{
+  "started_at": "2026-07-13T16:09:54.201359+00:00",
+  "prompt_version": "classify-v1",
+  "ontology_version": "v1-draft",
+  "model": "gemini-2.5-flash",
+  "seed": 20260713,
+  "batches": [
+    {
+      "size": 1,
+      "review_ids": [
+        "226851887"
+      ],
+      "model_version": "gemini-2.5-flash",
+      "finish_reason": "stop",
+      "usage": {
+        "prompt": 7295,
+        "output": 13,
+        "thinking": 0
+      },
+      "raw_response": "[{\"idx\": 0, \"aspects\": []}]",
+      "parsed": [
+        {
+          "review_id": "226851887",
+          "mentions": []
+        }
+      ],
+      "failures": [],
+      "repairs": []
+    },
+    {
+      "size": 5,
+      "review_ids": [
+        "226902607",
+        "226124245",
+        "225439272",
+        "225012275",
+        "227525686"
+      ],
+      "model_version": "gemini-2.5-flash",
+      "finish_reason": "stop",
+      "usage": {
+        "prompt": 7394,
+        "output": 213,
+        "thinking": 0
+      },
+      "raw_response": "[\n  {\n    \"idx\": 0,\n    \"aspects\": [\n      {\n        \"aspect\": \"gameplay\",\n        \"sentiment\": \"positive\",\n        \"evidence\": \"its extremely fun\"\n      },\n      {\n        \"aspect\": \"relaxation\",\n        \"sentiment\": \"positive\",\n        \"evidence\": \"relaxing to play before bed\"\n      }\n    ]\n  },\n  {\n    \"idx\": 1,\n    \"aspects\": []\n  },\n  {\n    \"idx\": 2,\n    \"aspects\": [\n      {\n        \"aspect\": \"story\",\n        \"sentiment\": \"positive\",\n        \"evidence\": \"great story\"\n      }\n    ]\n  },\n  {\n    \"idx\": 3,\n    \"aspects\": []\n  },\n  {\n    \"idx\": 4,\n    \"aspects\": []\n  }\n]",
+      "parsed": [
+        {
+          "review_id": "226902607",
+          "mentions": [
+            {
+              "aspect": "gameplay",
+              "slot": "pinned",
+              "sentiment": "positive",
+              "evidence": "its extremely fun"
+            },
+            {
+              "aspect": "relaxation",
+              "slot": "pinned",
+              "sentiment": "positive",
+              "evidence": "relaxing to play before bed"
+            }
+          ]
+        },
+        {
+          "review_id": "226124245",
+          "mentions": []
+        },
+        {
+          "review_id": "225439272",
+          "mentions": [
+            {
+              "aspect": "story",
+              "slot": "pinned",
+              "sentiment": "positive",
+              "evidence": "great story"
+            }
+          ]
+        },
+        {
+          "review_id": "225012275",
+          "mentions": []
+        },
+        {
+          "review_id": "227525686",
+          "mentions": []
+        }
+      ],
+      "failures": [],
+      "repairs": []
+    }
+  ]
+}
