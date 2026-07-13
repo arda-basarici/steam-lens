@@ -16,8 +16,10 @@ from steamlens.llm_client.errors import (
     LlmConfigError,
     LlmError,
     LlmUnavailableError,
+    ProviderPermanentError,
     ProviderTransientError,
 )
+from steamlens.llm_client.gemini import gemini_entry
 from steamlens.llm_client.memory import InMemoryClassifyCache, InMemorySpendLedger
 from steamlens.llm_client.registry import (
     PROVIDERS,
@@ -44,12 +46,15 @@ __all__ = [
     "ParseResponse",
     "PROVIDERS",
     "register_provider",
+    # adapters
+    "gemini_entry",
     # errors
     "LlmError",
     "LlmConfigError",
     "AtCapacityError",
     "LlmUnavailableError",
     "ProviderTransientError",
+    "ProviderPermanentError",
     "GenerationIncompleteError",
     # in-memory bindings
     "InMemoryClassifyCache",

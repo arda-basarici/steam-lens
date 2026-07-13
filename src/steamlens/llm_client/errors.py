@@ -49,6 +49,13 @@ class ProviderTransientError(LlmError):
     """
 
 
+class ProviderPermanentError(LlmError):
+    """An adapter's verdict that the provider rejected the call for keeps — a
+    bad request, a bad key, an unknown model. Never retried: this is a
+    configuration or code bug surfacing, and the fix is an edit, not patience.
+    The message carries the status and a body snippet, never credentials."""
+
+
 class GenerationIncompleteError(LlmError):
     """The provider answered but did not finish cleanly — truncation, refusal,
     or an unmappable reason.

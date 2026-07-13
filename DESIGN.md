@@ -287,6 +287,21 @@ whether the module map's "judge-route refusals" phrase meant handling refusals o
 judge route or routing refused generations to the judge — settles at the judge's design
 (D2); the typed-refusal mechanism serves either reading.
 
+**`llm_client`: the build-time refinements** (2026-07-13, three forks ruled at the
+client-core build; the code docstrings carry the detail). Token prices are *data in the
+config's per-model table* alongside rpm/rpd (free tier is honest zeros; the paid flip
+stays a number edit) — not computed in adapters, not deferred. "Reserve before
+dispatch" means an atomic worst-case reservation (pessimistic prompt estimate + the
+route's full output ceiling, priced) settled to the actual cost on completion —
+overshoot impossible by construction, and daily-quota admission counts ledger rows
+*plus in-flight calls*, since the ledger alone lags dispatch by exactly the racing
+window. Rate and quota limits key by *model*, never by route, so two stages sharing a
+model share one real quota pool instead of each believing it owns the whole one.
+Consequence of the reservation: `max_output_tokens` is the one field lifted out of the
+opaque provider-params block into the typed route — the estimator must price it. The
+hammer tests pin the exact-admission property (cap of N admits exactly N under racing
+threads — overshoot catches a racy check, undershoot catches a leaked reservation).
+
 **The post ships with the milestone.** Every milestone's public artifact ships when the
 milestone does, imperfect — the standing counterweight to a known over-investment
 pattern.
