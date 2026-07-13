@@ -3,7 +3,7 @@
     "method": "LLM grouping, conservative-merge rules, single pass",
     "grouped_by": "claude-sonnet subagent",
     "date": "2026-07-09",
-    "status": "pending human review",
+    "status": "human-reviewed 2026-07-09 (mapping audited: conservative, invariants verified)",
     "source": "extractions.jsonl (406 distinct labels expected; use actual count)"
   },
   "groups": [
