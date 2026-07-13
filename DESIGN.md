@@ -236,6 +236,57 @@ aspect-normalization step this adds to core was a planned possibility, now real 
 and part of the eval surface; the gold set and judge calibrate against the pinned
 core, with honestly weaker claims on the tail.
 
+**`llm_client`: the seam design** (settled 2026-07-13, five-fork design discussion).
+The one door is a single generic entry point — `complete()` over a stage-keyed request —
+never per-stage methods: the per-stage routing table stays *data* (stage → provider,
+model, params), so retargeting a stage at the M1-exit tier decision is a config edit.
+The request/response records live in contracts; the response carries everything guards,
+ledger, and provenance need (token usage *split* including thinking tokens, normalized
+finish reason, resolved model version) — downstream can only record what crosses the
+seam, so the probe's sticker-price lesson is a required field, not a footnote. Each
+route carries an opaque provider-params block passed to the adapter untranslated,
+dodging the lowest-common-denominator squeeze without widening the seam. Providers are
+registered *functions* (a dict registry, constructor-injectable for tests), speaking
+raw HTTP via httpx; the aspect-vocab probe script is the Gemini adapter's donor
+reference. Rejected: an aggregator library (litellm — a large fast-moving dependency
+that normalizes away exactly the provider-specific fields the earned guards watch, and
+whose own budget/rate features would sit ambiguously beside ours) and per-provider
+SDKs (vendor retry machinery overlaps ours — double-retry against a 20-requests/day
+quota; an SDK may still slot *inside* one adapter later without touching the seam).
+Config is validated against the registry at construction — an unknown provider fails
+at startup, never mid-run.
+
+**`llm_client`: concurrency, persistence, errors** (same discussion). One code path,
+concurrency-shaped, dialed to sequential: the client is synchronous (asyncio rejected —
+coloring spreads to every caller while the throughput ceiling is the provider quota,
+5–15 RPM free-tier, and the self-hosted column is GPU-serial; sync composes with M3's
+async serve via standard thread offloading), its one stateful bundle (budget, pacer,
+ledger appends) is lock-guarded and hammer-tested from commit one, and the worker pool
+lives in the *caller* with `max_workers` as config defaulting to 1 — the paid-tier flip
+is a route edit plus a number, zero code. Persistence: `ClassifyCache` and
+`SpendLedger` are protocols in contracts (the `Sink` precedent — defined at the base,
+implemented in shells, bound at composition); B3's own commits run on in-memory
+implementations, the SQLite pair lands with the store (two small tables added to B5's
+scope; the first corpus-labeling run requires the durable pair — the cache's whole job
+is cross-run "bought labels never re-paid"). The RPM pacer stays in-memory (losing it
+costs at worst a brief 429), while daily-quota and cost tracking are *derived by ledger
+query*, so they survive restarts because the record is the counter. The cache stores
+raw responses keyed by a content hash of (request payload + model) — which resolves the
+parked `raw_label` question: pre-normalization phrases live in the cached raw
+responses, normalization stays re-runnable over bought labels, no extra field on
+`AspectMention`. Errors are typed in the client's public surface (contracts stays a
+data spine): transients are retried inside with bounded backoff+jitter and surface as
+`LlmUnavailableError` only when exhausted; `AtCapacityError` (our own reserve refusing
+— budget cap or daily headroom) is never retried and is deliberately distinct — one is
+the world failing, the other is us keeping a promise, and only the latter becomes the
+honest at-capacity state; truncation (`GenerationIncompleteError`) is not retried
+(temperature-0 classify re-truncates identically) and carries the normalized reason for
+the caller to decide. Guards are placed once: adapters normalize finish reason and the
+usage split, the client enforces and accounts above them, provider-independent. Open:
+whether the module map's "judge-route refusals" phrase meant handling refusals on the
+judge route or routing refused generations to the judge — settles at the judge's design
+(D2); the typed-refusal mechanism serves either reading.
+
 **The post ships with the milestone.** Every milestone's public artifact ships when the
 milestone does, imperfect — the standing counterweight to a known over-investment
 pattern.
