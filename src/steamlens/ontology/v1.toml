@@ -23,7 +23,7 @@ global_rules = [
   "Multi-label is normal. Label every distinct aspect a review evaluates; one clause can only carry one label — pick the most specific that fits.",
   "Child-shaped mentions take the parent. The aliases and \"label when\" lines route; sub-flavors (\"endgame progression\") are never their own label.",
   "Not listed ≠ not recorded. A genuine aspect with no pinned home is a CANDIDATE: keep the reviewer's own wording as a free-form label. Never force-fit into the nearest pinned label.",
-  "Sentiment attaches per mention (pos / neg / mixed), independent of the review's thumbs-up.",
+  "Sentiment attaches per mention (positive / negative / mixed / neutral), independent of the review's thumbs-up. Neutral is a real outcome: a factual mention with no polarity (\"it has cloud saves\") is recorded as neutral, never forced into a polarity and never dropped.",
   "Labels are snake_case identifiers; display names are a downstream concern.",
   "Categories are organizational only — never classification targets.",
 ]
