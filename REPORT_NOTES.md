@@ -7,6 +7,79 @@ decisions it feeds.
 
 ---
 
+## 2026-07-13 — The labeling LLM on trial: overkill in tier, not in kind
+
+*The prompt-design session for extraction+eval (M1), task B4 (`core/classify`) — the
+six prompt/parse rulings landed in DESIGN's two `core/classify` operational-decisions
+entries; this is the narrative around them. Feeds: the milestone report's methodology
+section (why an LLM reads the reviews; the prompt-design decisions), and a possible
+post-M1 optimization chapter (distillation).*
+
+Mid-session, Arda put the whole approach on trial: the LLM was supposed to be the
+storyteller — the final report, the narration — so why is one also labeling reviews in
+the middle? Isn't that overkill for a mid-step? The cheaper alternatives got an honest
+hearing and each died on evidence already in hand. A keyword/alias lexicon dies on the
+probe's own data: the review vocabulary is flat and game-specific (top-15 grouped
+labels cover only 28% of mentions, half of all mentions are single-game vocabulary —
+probes/FINDINGS.md §6), so a lexicon misses "runs like a slideshow on my 3080" and can
+never emit a free-form candidate, killing the emergent stratum by construction. A
+trained classifier — the standard pre-LLM answer for what NLP calls aspect-based
+sentiment analysis — dies on a chicken-and-egg: it needs thousands of labeled examples
+that don't exist, and the ~250-review gold set can't be spent on training because it is
+the eval anchor. Embedding similarity is a worse LLM, not a cheaper equivalent: no
+sarcasm, no per-aspect sentiment, no candidates, and 55 per-label thresholds to
+calibrate. The deeper answer is thesis-level: the labeling step is not plumbing that
+happens to use an LLM — it is *the object M1 evaluates*. The gold set, the judge, the
+agreement numbers, the fabricated-quote rate all measure this step; remove the LLM
+from labeling and M1's deliverable doesn't get cheaper, it disappears. Where the
+overkill instinct is right is *tier*, not *kind* — whether a small or self-hosted
+model suffices for classification is already scheduled for measurement (the per-stage
+tier decision at M1 exit, from the cost/quality table).
+
+The trial birthed an idea rather than a reversal. Arda's proposal: if the LLM
+annotates, use a *stronger* teacher offline to generate training data and distill a
+student classifier for runtime — the canonical LLM-as-annotator + knowledge-distillation
+pattern, independently reinvented. It survives scrutiny as a post-M1 candidate with
+teeth: C1's corpus labels double as a free training set (an unplanned dividend of the
+label-pool design), but a fixed-head student structurally loses the two things the
+product sells — free-form candidates and verbatim evidence spans — and the teacher
+must be *measured* before distilling, because the training data's quality is exactly
+the teacher's gold-set error, compounded at scale. Its real rival is the local 8B
+model behind the same seam, which pitches the same free inference with zero training
+pipeline. Parked in the stream's IDEAS.md with its graduation trigger: the M1-exit
+cost table landing in the corner where local quality disappoints and API cost stings.
+
+The batching fork produced the session's turnaround, and the credit is Arda's. The
+initial recommendation was one review per call, argued mostly from the cache: batching
+would coarsen the content-keyed classify cache to whole batches and break the
+"bought labels never re-paid" promise. Arda pushed back — batch size will obviously
+need tuning, so why fix it at one? — and walking the layers under the push-back showed
+the cache argument was substantially phantom: the never-re-paid promise actually lives
+in the *label pool*, which keys per review (review, model, prompt version, ontology
+version), so a driver that selects only unlabeled reviews before composing batches
+re-buys nothing regardless of batch composition. The raw-response cache only ever owed
+re-parseability. The ruling flipped to batch-native with size as config, one prompt
+version serving every batch size. The same architecture then paid again at the failure
+-policy fork: at temperature 0, re-asking an identical failed request re-buys the
+identical wrong answer (and the cache would return it without even spending), so any
+retry must vary the request — and failed reviews re-entering the driver's
+unlabeled-selection loop regroup into *fresh* batches, which is exactly that variation,
+for free. No corrective prompting exists anywhere in the system.
+
+Two smaller finds worth the report's margins. First, a silent-and-fatal near-miss in
+the structured-output ruling: Gemini's constrained decoding takes a response schema,
+and the tempting move — encode the aspect field as an enum of the 55 pinned labels for
+maximum enforcement — would have structurally forbidden the model from ever emitting a
+free-form candidate, killing the emergent stratum at the decoding level with zero
+error surfacing anywhere. The aspect field stays a free string (normalize resolves
+pinned-vs-candidate deterministically); sentiment is the closed enum. Second, Arda's
+question about when ontology edits stop being free moved a deadline: the free-edit
+window was framed as closing when gold labeling (D1) starts, but bought labels and the
+classify cache key to the ontology *content hash* — so the first paid corpus run (C1)
+is an equal cost lock, the window closes at whichever comes first, and the pruning
+pass must precede C1 or the corpus gets labeled against rows about to be demoted
+(TODO resequenced accordingly).
+
 ## 2026-07-10 — Synonyms are not sub-concepts, and the gold set almost certified itself
 
 *The ontology-authoring story from extraction+eval (M1), task B1 — plus the gold-set

@@ -302,6 +302,59 @@ opaque provider-params block into the typed route — the estimator must price i
 hammer tests pin the exact-admission property (cap of N admits exactly N under racing
 threads — overshoot catches a racy check, undershoot catches a leaked reservation).
 
+**`core/classify`: the prompt** (settled 2026-07-13, six-fork design discussion, forks
+1–5). The prompt is a versioned artifact (file + content hash + changelog, per the ops
+conventions) rendering the codebook **full-fidelity** — every field, all aspects,
+category-grouped — so the machine annotator reads the same instructions the human
+annotator reads at gold labeling, keeping the agreement number clean of instruction
+gaps; the compact rendering (decision surface only: definition + label_when +
+do_not_label_when) is pre-registered twice — as the cost fallback if the M1-exit table
+demands it, and as the first prompt *experiment* once the judge exists (D2), because
+"does a leaner rule set beat a muddier context" is measurable, not arguable.
+Classification is **batch-native with size as config**: the builder takes idx-tagged
+review tuples, the parser returns per-idx envelopes, one prompt version serves every
+batch size (the template never changes, only the data channel grows), and N rides in
+the run's config hash. The never-re-paid promise lives in the *label pool*, not the
+response cache — the driver selects only reviews lacking labels under the current
+version key before composing batches, so batch composition varies freely across runs;
+gold-set evals run at the production batch size (certify what ships), and batch-size
+contamination (N=1 vs production-N agreement) is a registered D2 experiment. **The
+model emits label strings only**: pinned-vs-candidate resolution belongs to
+`core/normalize`'s deterministic surface index, never to the model's self-declaration —
+the prompt teaches the two-slot *behavior* (never force-fit; the reviewer's own words
+when nothing fits), code decides the slot. Output shape is enforced twice: Gemini
+`responseSchema` rides in the route's opaque provider-params block (constrained
+decoding kills the malformed-syntax class server-side; the aspect field stays a *free
+string* — an enum of the pinned labels there would structurally forbid candidates,
+silently — while sentiment is a closed enum), and the prompt still states the shape in
+one line (provider-portable, and models track formats they understand). **Three
+synthetic few-shot examples** demonstrate the edge behavior the codebook's per-aspect
+examples can't: the zero-aspect review, a multi-label review with dissociated
+sentiments (one evidence quote present, one honestly omitted), a candidate emission.
+Synthetic so gold-set disjointness is structural rather than remembered; mid-tail
+labels so the frequency thumb stays off the aspects reports will headline; a sarcasm
+example deliberately omitted (one example teaches over-reading irony, not sarcasm —
+that stays a measured model property), kept as a future option.
+
+**`core/classify`: parse and failure policy** (same discussion, fork 6). The parse is
+pure and **salvages per idx**: every valid entry becomes an envelope, every failed idx
+lands in a typed failure report — one bad row costs one review, never the batch, and
+the report is data the driver must handle, not a log line. Evidence failing the
+verbatim-substring check is **repaired, not fatal** — the mention survives with
+evidence=None and the repair is counted through the sink (the label may be right while
+the quote is sloppy; a rising repair rate is the early smell of what the
+fabricated-quote metric measures properly at D2). Retry is **re-batching, not
+corrective prompting**: at temperature 0 an identical request re-buys the identical
+wrong answer (and our cache would return it without even spending), so the retry must
+vary the request — and failed reviews re-entering the driver's unlabeled-selection loop
+regroup into fresh batches, which *is* the variation, for free. One round, then the
+review is marked unclassifiable-under-this-version and disclosed in the run report —
+the include-and-disclose spirit, applied to our own failures. Truncation stays the
+client's typed error, answered operationally (batch size and the route's output ceiling
+are sized together, conservatively — the reservation prices the full ceiling). All
+failure classes are instrumented from the first call; the policy dials (retry rounds,
+batch-halving, corrective prompting if ever) reopen on pilot numbers, not guesses.
+
 **The post ships with the milestone.** Every milestone's public artifact ships when the
 milestone does, imperfect — the standing counterweight to a known over-investment
 pattern.
