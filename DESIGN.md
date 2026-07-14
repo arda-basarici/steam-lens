@@ -355,6 +355,76 @@ are sized together, conservatively — the reservation prices the full ceiling).
 failure classes are instrumented from the first call; the policy dials (retry rounds,
 batch-halving, corrective prompting if ever) reopen on pilot numbers, not guesses.
 
+**`store`: scope and schema lifecycle** (settled 2026-07-14, six-fork design
+discussion, forks 1–2). B5 lands only the tables with a landed or next-task consumer:
+the durable `ClassifyCache` + `SpendLedger` pair (binding into the client's existing
+constructor slots), `reviews`, and the label pool. The `aggregates` and `eval_runs`
+tables named in the module map are deferred to their consumers (C2, D2) per *rules now,
+fields later* — a table's first consumer forces its real design, and pre-building
+`eval_runs` would guess at exactly what D2's run-manifest design exists to decide (the
+pre-built-M4-contract critique, replayed). Schema lifecycle is a hand-rolled
+ordered-steps **migration runner with exactly one step** — the full initial schema as a
+reviewable constant, stamped via `PRAGMA user_version`; a file stamped newer than the
+code fails loud with both numbers. Alembic was rejected (SQLAlchemy machinery on a raw
+`sqlite3` store — infrastructure without a driving need), but so was a bare
+create-if-missing: the runner's machinery costs ~ten lines more and means the first
+real migration slots into standing structure instead of a reshape. The **freeze rule**
+scopes the discipline to when it pays: until the first file holds paid data (C1), the
+step list may be rewritten freely — schema churn during C2/D2 design edits step 1,
+files are disposable; after C1, steps freeze append-only. Steps are **additive by
+default** (`ADD COLUMN` with a default, `CREATE TABLE` — never transforming existing
+rows); a data-rewriting step is a design smell requiring a stated reason. Underneath
+sits the two-versionings distinction the discussion sharpened: the schema version
+protects bought data from *our storage* changing; the content-version keys
+(`ClassifierVersions`) protect correctness from *the question* changing — orthogonal
+axes, never converted into each other (old-version labels aren't migrated, they
+coexist under their own key, which is what makes the pool accretive).
+
+**`store`: shape, schema, validation, tests** (same discussion, forks 3–6). One
+`Store` class owns the file — connection, pragmas (WAL, foreign keys, busy timeout),
+the migration runner — and the surfaces are small tenant classes handed that
+connection, exposed as attributes (`classify_cache`, `spend_ledger`, `reviews`,
+`labels`); composition wires `store.classify_cache` straight into the client's slot,
+so the client never learns SQLite exists. The store adds **no locking of its own**: the
+client already serializes every cache/ledger touch under its one lock (the discipline
+the in-memory pair documents and the SQLite pair inherits); WAL + busy-timeout is the
+safety net, not the concurrency design. The label pool is **normalized, never a JSON
+blob** — the load-bearing queries (C2's origin ∩ version fold, the two-track wall's
+origin predicate, denominator counts) all reach *inside* the envelope, and a blob would
+make each one a scan-and-parse in Python. Four tables: `runs` (provenance normalized —
+one C1 run stamps thousands of envelopes with identical values, `run_id` determines the
+rest), `classifications` (UNIQUE on review_id + the versions triple; **origin
+deliberately outside the key** — same review under same versions is the same answer
+regardless of track, bought once, origin recording how it entered; the
+investigation-labeled-then-surveyed edge is C2's membership-join question, its columns
+already present), `mentions`, and `classification_failures` — separate from envelopes
+because an empty-mentions envelope means "processed, found nothing" while a failure is
+precisely not-an-envelope, and a durable failure mark is what stops the driver's
+selection loop from re-buying the same failure every run (keyed by the same triple, so
+a prompt bump correctly reopens failed reviews). Representation: datetimes as ISO-8601
+text **normalized to UTC at write** — string order is chronological order only under a
+single shared offset, so mixed-offset writes would silently corrupt every windowed
+query (a build-time refinement: the design said "sortable as strings", the build made
+it true); enums by value, the token split as three integers, cost as REAL. **Validation is asymmetric by design**: writes take frozen
+contracts trusted by construction (structural constraints only — NOT NULL, FK, UNIQUE);
+reads treat the file as raw external data and validate by *reconstruction* — enum
+constructors plus a naive-timestamp-rejecting datetime parse, failing loud with the
+offending row; pydantic stays at the JSON ingest points per contract modeling. No
+value-set CHECK constraints (they duplicate the read parse and turn every enum addition
+into a migration, against the additive rule). Write semantics follow each contract's
+own docstring: cache `put` upserts, ledger `append` is insert-only, envelope/failure
+inserts fail loud on UNIQUE violation — a duplicate envelope means the driver's
+unlabeled-selection is broken, and `OR REPLACE` would hide exactly that bug. Tests:
+one **protocol-compliance suite parametrized over the in-memory and SQLite pairs**
+(substitutability is the claim the client's existing tests need, and it retroactively
+deepens B3's coverage), contract round-trips (`==` on frozen dataclasses, including
+empty mentions and `evidence=None`), runner behaviors, and the selection-query edges
+C1's correctness hangs on — all against real SQLite files in `tmp_path`, no mocks. The
+thread-hammer is deliberately *not* re-run against the SQLite pair (the client's lock
+is the tested serializer; the store never sees concurrency by design), but one
+end-to-end smoke binds the durable pair into a real client instance to pin the
+constructor-slot substitution.
+
 **The post ships with the milestone.** Every milestone's public artifact ships when the
 milestone does, imperfect — the standing counterweight to a known over-investment
 pattern.

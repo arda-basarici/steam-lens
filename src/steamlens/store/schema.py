@@ -1,0 +1,155 @@
+"""The schema as ordered migration steps, and the runner that applies them.
+
+The whole schema lives here as one reviewable artifact: ``MIGRATION_STEPS`` is
+an ordered tuple of steps, a step is a tuple of DDL statements, and a step's
+version is its position (step N sits at index N-1) — so a version number can
+never disagree with the order. ``PRAGMA user_version`` stamps how far a file
+has been brought; the runner applies exactly the missing steps in one
+transaction, or fails loud when the file claims a version this code has never
+heard of.
+
+The freeze rule (DESIGN: `store` scope and schema lifecycle): until the first
+file holds paid data — the first corpus-labeling run — this step list may be
+rewritten freely; files are disposable. After that, steps freeze append-only:
+a schema change is a *new* step, never an edit to an old one, and steps stay
+additive by default (``ADD COLUMN`` with a default, ``CREATE TABLE``) — a
+data-rewriting step is a design smell that needs a stated reason.
+"""
+
+from __future__ import annotations
+
+import sqlite3
+
+from steamlens.store.errors import SchemaVersionError
+
+# Step 1 — the full initial schema. Value vocabularies (origin, slot, sentiment,
+# stage) are deliberately NOT CHECK-constrained: the read boundary re-validates
+# through the enum constructors, and a CHECK would turn every enum addition into
+# a migration. Structural constraints (NOT NULL, FK, UNIQUE) are the schema's job.
+_STEP_1: tuple[str, ...] = (
+    # The bought-responses cache: raw provider bodies keyed by the client's
+    # content hash of (request payload + model). Values replace on re-put.
+    """
+    CREATE TABLE classify_cache (
+        key          TEXT PRIMARY KEY,
+        raw_response TEXT NOT NULL
+    ) WITHOUT ROWID
+    """,
+    # The append-only spend journal. Timestamps are ISO-8601 normalized to UTC
+    # (+00:00, microsecond precision) so string order is chronological order and
+    # the `since` queries stay index-range scans.
+    """
+    CREATE TABLE spend_ledger (
+        id              INTEGER PRIMARY KEY,
+        created_at      TEXT    NOT NULL,
+        stage           TEXT    NOT NULL,
+        model           TEXT    NOT NULL,
+        model_version   TEXT    NOT NULL,
+        prompt_tokens   INTEGER NOT NULL,
+        output_tokens   INTEGER NOT NULL,
+        thinking_tokens INTEGER NOT NULL,
+        cost            REAL    NOT NULL
+    )
+    """,
+    "CREATE INDEX idx_spend_model_created ON spend_ledger (model, created_at)",
+    "CREATE INDEX idx_spend_created ON spend_ledger (created_at)",
+    # One cleaned review; voted_up stores the bool as 0/1.
+    """
+    CREATE TABLE reviews (
+        review_id  TEXT    PRIMARY KEY,
+        app_id     INTEGER NOT NULL,
+        created_at TEXT    NOT NULL,
+        language   TEXT    NOT NULL,
+        text       TEXT    NOT NULL,
+        voted_up   INTEGER NOT NULL CHECK (voted_up IN (0, 1))
+    ) WITHOUT ROWID
+    """,
+    # Provenance normalized: one run stamps thousands of envelopes with the same
+    # four values, and run_id determines the rest.
+    """
+    CREATE TABLE runs (
+        run_id       TEXT PRIMARY KEY,
+        code_version TEXT NOT NULL,
+        created_at   TEXT NOT NULL,
+        config_hash  TEXT NOT NULL
+    ) WITHOUT ROWID
+    """,
+    # The label pool's envelope: UNIQUE on (review, versions-triple) is the
+    # never-re-paid key; origin is deliberately outside it — the same review
+    # under the same versions is the same answer regardless of track.
+    """
+    CREATE TABLE classifications (
+        id               INTEGER PRIMARY KEY,
+        review_id        TEXT NOT NULL REFERENCES reviews (review_id),
+        origin           TEXT NOT NULL,
+        model_version    TEXT NOT NULL,
+        prompt_version   TEXT NOT NULL,
+        ontology_version TEXT NOT NULL,
+        run_id           TEXT NOT NULL REFERENCES runs (run_id),
+        UNIQUE (review_id, model_version, prompt_version, ontology_version)
+    )
+    """,
+    """
+    CREATE TABLE mentions (
+        id                INTEGER PRIMARY KEY,
+        classification_id INTEGER NOT NULL REFERENCES classifications (id),
+        aspect            TEXT    NOT NULL,
+        slot              TEXT    NOT NULL,
+        sentiment         TEXT    NOT NULL,
+        evidence          TEXT
+    )
+    """,
+    "CREATE INDEX idx_mentions_classification ON mentions (classification_id)",
+    # Unclassifiable-under-this-version marks — precisely not envelopes (an
+    # empty-mentions envelope means "processed, found nothing"). Keyed by the
+    # same versions triple, so a prompt bump correctly reopens failed reviews.
+    """
+    CREATE TABLE classification_failures (
+        id               INTEGER PRIMARY KEY,
+        review_id        TEXT NOT NULL REFERENCES reviews (review_id),
+        model_version    TEXT NOT NULL,
+        prompt_version   TEXT NOT NULL,
+        ontology_version TEXT NOT NULL,
+        run_id           TEXT NOT NULL REFERENCES runs (run_id),
+        reason           TEXT NOT NULL,
+        UNIQUE (review_id, model_version, prompt_version, ontology_version)
+    )
+    """,
+)
+
+MIGRATION_STEPS: tuple[tuple[str, ...], ...] = (_STEP_1,)
+
+SCHEMA_VERSION = len(MIGRATION_STEPS)
+
+
+def apply_migrations(conn: sqlite3.Connection) -> None:
+    """Bring the connected file to ``SCHEMA_VERSION``, applying missing steps in order.
+
+    All missing steps run in one transaction with the version stamp, so a file
+    is only ever observed fully at a version, never between two. A file already
+    current is a no-op; a file stamped *ahead* of this code raises
+    ``SchemaVersionError`` before any statement runs. Expects a connection in
+    autocommit mode (``Store``'s) — the runner manages its own transaction with
+    explicit BEGIN/COMMIT.
+    """
+    row = conn.execute("PRAGMA user_version").fetchone()
+    current = int(row[0])
+    if current > SCHEMA_VERSION:
+        raise SchemaVersionError(
+            f"file schema is v{current}, but this code understands up to v{SCHEMA_VERSION} — "
+            "the file was written by newer code"
+        )
+    if current == SCHEMA_VERSION:
+        return
+    conn.execute("BEGIN")
+    try:
+        for version in range(current + 1, SCHEMA_VERSION + 1):
+            for statement in MIGRATION_STEPS[version - 1]:
+                conn.execute(statement)
+        # PRAGMA user_version cannot be parameterized; SCHEMA_VERSION is a
+        # module constant, never user input.
+        conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+        conn.execute("COMMIT")
+    except BaseException:
+        conn.execute("ROLLBACK")
+        raise

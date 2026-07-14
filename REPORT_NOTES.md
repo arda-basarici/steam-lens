@@ -7,6 +7,59 @@ decisions it feeds.
 
 ---
 
+## 2026-07-14 — Serving the same report twice is the honest option, not the lazy one
+
+*The closing Q&A of the store-layer (B5) design session, extraction+eval (M1) — a
+product-level interrogation of the caching design rather than a build decision. Feeds:
+the deployment milestone (M3) report's caching/freshness section, the sampling study's
+(M2) framing, and a portfolio-vs-product post angle.*
+
+Both turns of this story started from Arda's questions. The first exposed a naming
+trap worth keeping for the report: the phrase "client-side caching" suggests the
+user's browser, but in this codebase `llm_client` and `steam_client` are *API
+clients* — backend modules that are clients *of* Gemini and *of* Steam — so every
+cache in the design is server-side. What Arda wished the system had ("cache the
+reviews on the backend, so different users searching popular games get reports
+without going to Steam") turned out to be the committed architecture already: fetched
+reviews persist in the store's reviews table, and a report cache serves repeat
+queries — the cold path's stage 2 is literally "cache check → fresh `ReportDocument`
+or miss" (ARCHITECTURE, the life-of-a-request table). The wish and the design agreed;
+only the word "client" stood between them.
+
+The second question had real teeth: if a user runs the same game twice, do they get a
+report over exactly the same reviews? "This feels a bit wrong." The design's answer is
+yes within a freshness window — and the defense is worth the report because it runs
+through two different layers that are easy to conflate. The classify cache and the
+label pool exist for *cost correctness* and carry no staleness question at all: the
+same review under the same model/prompt/ontology versions is the same answer, so
+re-paying for it is simply waste — bought labels are never re-bought (the
+"never-re-paid" invariant from the LLM-client build). The report cache is where
+staleness lives, and it is governed by a freshness rule plus a disclosure: the trust
+panel states the report's age. Serving a cached report inside that window is
+deliberate on two grounds. Cost: the cold path is the expensive path, and re-running
+it per click would burn the budget caps the LLM client enforces. And statistical
+honesty, the less obvious ground: the displayed numbers carry error bars, and two
+fresh samples drawn hours apart would jitter *within* those bars while reading as "the
+game changed" — a stable sample with a disclosed timestamp is more honest than numbers
+that shuffle on refresh. The failure mode actually worth fearing is presenting a stale
+report as current, and that dies by disclosure, not by re-fetching.
+
+The keeper, though, is Arda's product counterfactual: in a real product — not a
+portfolio piece — he'd grow the review pool additively, each run fetching more, every
+report a little better than the last. The analysis that followed sharpened it into a
+clean trade. The content-keyed cache makes additive growth *economical* — each
+increment pays only for genuinely new reviews, the pool absorbs the rest — so cost is
+not the obstacle. The real price is the estimator: an opportunistically accumulated
+pool is a mixture over fetch moments, and a percentage folded over it estimates
+nothing well-defined — no reference period, no known inclusion probabilities. A real
+product absorbs that with dated strata, rolling windows, or weighted estimation —
+genuine methodology work, and exactly the terrain the sampling study (M2) exists to
+map. So the trade reads: fixed-sample plus disclosed age buys a defensible error bar
+with minimal machinery; the accumulating pool buys ever-improving reports at the price
+of a weighting scheme someone must design and defend. SteamLens picks the first side
+because its thesis is honest numbers on a portfolio budget; a funded product could
+justifiably pick the second — same trade, different side.
+
 ## 2026-07-13 — The labeling LLM on trial: overkill in tier, not in kind
 
 *The prompt-design session for extraction+eval (M1), task B4 (`core/classify`) — the
