@@ -1,4 +1,4 @@
-"""Value conversion at the store's write boundary — one timestamp format, enforced.
+"""Value conversion at the store's boundaries — one timestamp format, validated reads.
 
 SQLite has no datetime type, so timestamps are stored as ISO-8601 text — and
 the `since` queries compare that text. String order only equals chronological
@@ -6,11 +6,19 @@ order if every stored timestamp shares one offset and one precision, so writes
 normalize to UTC at microsecond precision here, in exactly one place. A naive
 datetime is rejected loud: guessing its zone would silently corrupt the
 ordering guarantee every windowed query leans on.
+
+Reads go the other way and trust nothing: a stored file is raw external data
+(hand-edited, half-migrated, written by other code), so values re-enter the
+contracts through the parsers below, which raise ``StoreDataError`` naming the
+offending value instead of letting a corrupt row cross into the pipeline.
 """
 
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from enum import StrEnum
+
+from steamlens.store.errors import StoreDataError
 
 
 def utc_isoformat(moment: datetime) -> str:
@@ -27,3 +35,33 @@ def utc_isoformat(moment: datetime) -> str:
     if moment.tzinfo is None:
         raise ValueError(f"naive datetime crossing the store boundary: {moment!r}")
     return moment.astimezone(UTC).isoformat(timespec="microseconds")
+
+
+def parse_utc_isoformat(text: str, *, context: str) -> datetime:
+    """The timezone-aware datetime stored as ``text``; ``StoreDataError`` if it isn't one.
+
+    ``context`` names the row for the error message — the read boundary's whole
+    job is failing with enough to find the corruption.
+    """
+    try:
+        moment = datetime.fromisoformat(text)
+    except ValueError as exc:
+        raise StoreDataError(f"{context}: unparseable timestamp {text!r}") from exc
+    if moment.tzinfo is None:
+        raise StoreDataError(f"{context}: naive timestamp {text!r} — the store only writes UTC")
+    return moment
+
+
+def parse_enum[E: StrEnum](enum_cls: type[E], value: str, *, context: str) -> E:
+    """``value`` as a member of ``enum_cls``; ``StoreDataError`` if the vocabulary rejects it.
+
+    The schema deliberately carries no CHECK constraints on enum columns (an
+    enum addition must not be a migration), so this parser is where a stored
+    label proves it still belongs to the closed vocabulary.
+    """
+    try:
+        return enum_cls(value)
+    except ValueError as exc:
+        raise StoreDataError(
+            f"{context}: {value!r} is not a valid {enum_cls.__name__}"
+        ) from exc

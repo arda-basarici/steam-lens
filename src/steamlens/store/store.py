@@ -1,11 +1,13 @@
 """The one owner of the SQLite file — connection, pragmas, migrations, surfaces.
 
 ``Store`` opens the file exactly once, brings it to the current schema, and
-hands its connection to small tenant surfaces exposed as attributes — the
+hands its connection to small tenant surfaces exposed as attributes: the
 durable ``classify_cache``/``spend_ledger`` pair binds into the LLM client's
-constructor slots, so the client never learns SQLite exists. One owner, dumb
-tenants: pragmas and migrations run once per open instead of once per surface,
-and "which connection has WAL set" stays a single fact.
+constructor slots (the client never learns SQLite exists), ``reviews`` holds
+the corpus snapshot and the driver's selection query, ``labels`` is the label
+pool. One owner, dumb tenants: pragmas and migrations run once per open
+instead of once per surface, and "which connection has WAL set" stays a
+single fact.
 
 The store adds no locking of its own: the client already serializes every
 cache and ledger touch under its one lock, and the labeling driver is
@@ -20,7 +22,9 @@ from pathlib import Path
 from types import TracebackType
 
 from steamlens.store.cache import SqliteClassifyCache
+from steamlens.store.labels import LabelPool
 from steamlens.store.ledger import SqliteSpendLedger
+from steamlens.store.reviews import ReviewStore
 from steamlens.store.schema import apply_migrations
 
 
@@ -54,6 +58,8 @@ class Store:
         apply_migrations(self._conn)
         self.classify_cache = SqliteClassifyCache(self._conn)
         self.spend_ledger = SqliteSpendLedger(self._conn)
+        self.reviews = ReviewStore(self._conn)
+        self.labels = LabelPool(self._conn)
 
     def close(self) -> None:
         """Close the underlying connection; the instance is unusable afterwards."""

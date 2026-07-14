@@ -19,11 +19,19 @@ from pathlib import Path
 import pytest
 
 from steamlens.contracts import (
+    AspectMention,
+    AspectSlot,
+    ClassifierVersions,
     ClassifyCache,
     FinishReason,
     LlmRequest,
     LlmResponse,
     LlmStage,
+    Origin,
+    Provenance,
+    Review,
+    ReviewClassification,
+    Sentiment,
     SinkEvent,
     SpendLedger,
     SpendRecord,
@@ -39,7 +47,7 @@ from steamlens.llm_client import (
     ProviderPayload,
     Route,
 )
-from steamlens.store import SchemaVersionError, Store
+from steamlens.store import SchemaVersionError, Store, StoreDataError, StoreError
 from steamlens.store.schema import SCHEMA_VERSION
 
 _NOON = datetime(2026, 7, 14, 12, 0, tzinfo=UTC)
@@ -269,3 +277,186 @@ def test_bought_response_survives_a_restart(tmp_path: Path) -> None:
         assert client.complete(request).text == "labeled"
         assert second.sends == 0
         assert store.spend_ledger.request_count_since("m", _EPOCH) == 1
+
+
+# --- the record surfaces: the corpus snapshot and the label pool ---
+
+
+@pytest.fixture
+def store(tmp_path: Path) -> Iterator[Store]:
+    with Store(tmp_path / "steamlens.sqlite3") as s:
+        yield s
+
+
+def _review(review_id: str = "r1", *, created_at: datetime = _NOON) -> Review:
+    return Review(
+        review_id=review_id,
+        app_id=440,
+        created_at=created_at,
+        language="english",
+        text="great gunplay, weak netcode",
+        voted_up=True,
+    )
+
+
+def _versions(prompt_version: str = "classify-v1") -> ClassifierVersions:
+    return ClassifierVersions(
+        model_version="scripted-001",
+        prompt_version=prompt_version,
+        ontology_version="v1-draft",
+    )
+
+
+def _provenance(run_id: str = "run-1") -> Provenance:
+    return Provenance(
+        run_id=run_id, code_version="abc1234", created_at=_NOON, config_hash="cfg-hash"
+    )
+
+
+_MENTIONS = (
+    AspectMention(
+        aspect="gunplay",
+        slot=AspectSlot.PINNED,
+        sentiment=Sentiment.POSITIVE,
+        evidence="great gunplay",
+    ),
+    AspectMention(
+        aspect="netcode", slot=AspectSlot.PINNED, sentiment=Sentiment.NEGATIVE, evidence=None
+    ),
+)
+
+
+def _classification(
+    review_id: str = "r1",
+    *,
+    mentions: tuple[AspectMention, ...] = _MENTIONS,
+    versions: ClassifierVersions | None = None,
+) -> ReviewClassification:
+    return ReviewClassification(
+        review_id=review_id,
+        origin=Origin.SURVEY,
+        versions=versions if versions is not None else _versions(),
+        run=_provenance(),
+        mentions=mentions,
+    )
+
+
+def _seed(store: Store, *review_ids: str) -> None:
+    """One recorded run plus the named reviews — what every envelope write needs first."""
+    store.reviews.put_many(_review(rid) for rid in review_ids)
+    store.labels.record_run(_provenance())
+
+
+class TestReviewStore:
+    def test_round_trip_preserves_the_instant(self, store: Store) -> None:
+        """A +03:00 review reads back equal: normalization changes text, never the instant."""
+        plus3 = timezone(timedelta(hours=3))
+        review = _review(created_at=datetime(2026, 7, 14, 12, 0, tzinfo=plus3))
+        store.reviews.put_many([review])
+        assert store.reviews.get("r1") == review
+
+    def test_get_missing_returns_none(self, store: Store) -> None:
+        assert store.reviews.get("absent") is None
+
+    def test_ingest_is_idempotent_and_counts_only_the_new(self, store: Store) -> None:
+        assert store.reviews.put_many([_review("r1"), _review("r2")]) == 2
+        assert store.reviews.put_many([_review("r1"), _review("r2"), _review("r3")]) == 1
+        assert store.reviews.count() == 3
+
+
+class TestLabelPool:
+    def test_envelope_round_trip(self, store: Store) -> None:
+        _seed(store, "r1")
+        classification = _classification()
+        store.labels.put(classification)
+        assert store.labels.get("r1", _versions()) == classification
+
+    def test_empty_mentions_envelope_is_a_first_class_result(self, store: Store) -> None:
+        _seed(store, "r1")
+        processed_found_nothing = _classification(mentions=())
+        store.labels.put(processed_found_nothing)
+        assert store.labels.get("r1", _versions()) == processed_found_nothing
+
+    def test_get_misses_on_absent_review_and_on_other_versions(self, store: Store) -> None:
+        _seed(store, "r1")
+        store.labels.put(_classification())
+        assert store.labels.get("r2", _versions()) is None
+        assert store.labels.get("r1", _versions(prompt_version="classify-v2")) is None
+
+    def test_duplicate_envelope_fails_loud(self, store: Store) -> None:
+        _seed(store, "r1")
+        store.labels.put(_classification())
+        with pytest.raises(StoreError, match="duplicate"):
+            store.labels.put(_classification())
+
+    def test_envelope_for_unrecorded_run_is_rejected(self, store: Store) -> None:
+        store.reviews.put_many([_review("r1")])  # review present, run never recorded
+        with pytest.raises(StoreError, match="not recorded"):
+            store.labels.put(_classification())
+
+    def test_envelope_for_unrecorded_review_is_rejected(self, store: Store) -> None:
+        store.labels.record_run(_provenance())  # run present, review never ingested
+        with pytest.raises(StoreError, match="not recorded"):
+            store.labels.put(_classification())
+
+    def test_duplicate_run_fails_loud(self, store: Store) -> None:
+        store.labels.record_run(_provenance())
+        with pytest.raises(StoreError, match="already recorded"):
+            store.labels.record_run(_provenance())
+
+    def test_duplicate_failure_mark_fails_loud(self, store: Store) -> None:
+        _seed(store, "r1")
+        store.labels.record_failure("r1", _versions(), "run-1", "no entry in the response")
+        with pytest.raises(StoreError, match="duplicate"):
+            store.labels.record_failure("r1", _versions(), "run-1", "no entry in the response")
+
+
+class TestSelectionLoop:
+    """The query C1's never-re-paid promise loops on."""
+
+    def test_labeled_and_failed_are_excluded_and_a_version_bump_reopens(
+        self, store: Store
+    ) -> None:
+        _seed(store, "r1", "r2", "r3")
+        store.labels.put(_classification("r1"))
+        store.labels.record_failure("r2", _versions(), "run-1", "idx was never in the input batch")
+
+        remaining = store.reviews.unlabeled_under(_versions())
+        assert [r.review_id for r in remaining] == ["r3"]
+
+        bumped = _versions(prompt_version="classify-v2")
+        reopened = store.reviews.unlabeled_under(bumped)
+        assert [r.review_id for r in reopened] == ["r1", "r2", "r3"]  # deterministic order
+
+    def test_selection_order_is_by_review_id_not_insertion(self, store: Store) -> None:
+        store.reviews.put_many([_review("r2"), _review("r1")])
+        assert [r.review_id for r in store.reviews.unlabeled_under(_versions())] == ["r1", "r2"]
+
+
+class TestReadBoundary:
+    """A stored value re-proves itself on the way out — corruption fails loud, named."""
+
+    def _mangle(self, path: Path, sql: str) -> None:
+        conn = sqlite3.connect(path)
+        try:
+            conn.execute(sql)
+            conn.commit()
+        finally:
+            conn.close()
+
+    def test_corrupt_sentiment_fails_loud(self, tmp_path: Path) -> None:
+        path = tmp_path / "steamlens.sqlite3"
+        with Store(path) as store:
+            _seed(store, "r1")
+            store.labels.put(_classification())
+        self._mangle(path, "UPDATE mentions SET sentiment = 'glorious'")
+        with Store(path) as store, pytest.raises(StoreDataError, match="glorious"):
+            store.labels.get("r1", _versions())
+
+    def test_naive_stored_timestamp_fails_loud(self, tmp_path: Path) -> None:
+        path = tmp_path / "steamlens.sqlite3"
+        with Store(path) as store:
+            store.reviews.put_many([_review("r1")])
+        self._mangle(path, "UPDATE reviews SET created_at = '2026-07-14T12:00:00'")
+        with Store(path) as store, pytest.raises(StoreDataError, match="naive"):
+            store.reviews.get("r1")
