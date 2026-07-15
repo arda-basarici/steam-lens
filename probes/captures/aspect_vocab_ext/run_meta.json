@@ -1,0 +1,27 @@
+{
+  "probe": "aspect_vocab_ext_probe",
+  "question": "evidence for the genre-starved pinned aspects (B1 pruning pass)",
+  "extends": "aspect_vocab_probe (captures/aspect_vocab/), same instrument verbatim",
+  "model": "gemini-2.5-flash",
+  "prompt_version": "v1",
+  "prompt_template": "You are extracting aspects from Steam reviews of the game {game_name}.\n\nFor each review, list the distinct aspects of the game the reviewer comments on.\nName each aspect yourself: a short lowercase noun phrase (1-3 words) that best\ndescribes it. Do not use a predefined list. An aspect is a property of the game or\nof the experience around it - not the reviewer's mood, and not a bare verdict with\nno subject. If a review carries no aspect commentary (a joke, a meme, a plain\nrecommendation with no reasons), return an empty aspect list for it.\n\nFor each aspect, give the reviewer's sentiment toward it: \"pos\", \"neg\", or \"mixed\".\n\nReviews as JSON:\n{reviews_json}\n\nReturn JSON only, one entry per input review, same idx values:\n[{{\"idx\": 0, \"aspects\": [{{\"aspect\": \"...\", \"sentiment\": \"pos\"}}]}}, ...]\n",
+  "seed": 20260715,
+  "n_per_game": 100,
+  "language_filter": "english",
+  "games": {
+    "1245620": "Elden Ring",
+    "2357570": "Overwatch 2",
+    "1517290": "Battlefield 2042",
+    "238960": "Path of Exile",
+    "739630": "Phasmophobia",
+    "39210": "Final Fantasy XIV Online"
+  },
+  "source": "frozen steam-reviews corpus (data/raw/reviews/*.jsonl)",
+  "requests": 3,
+  "tokens": {
+    "prompt": 7543,
+    "output": 6752
+  },
+  "started_utc": "2026-07-14T21:49:26.301638+00:00",
+  "finished_utc": "2026-07-14T21:50:02.743880+00:00"
+}

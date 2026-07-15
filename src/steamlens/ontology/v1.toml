@@ -1,11 +1,15 @@
 # Aspect ontology - the pinned core vocabulary (annotation codebook).
 # SINGLE SOURCE since 2026-07-10. Boundary-decision history and probe evidence:
-# ONTOLOGY_DRAFT.md (frozen) and REPORT_NOTES.md. Loaded and validated by
-# steamlens.ontology; backticked tokens in prose are pinned-label references.
-# Free-edit window is open until gold-set pilot labeling (D1) starts; version
-# flips to "v1" at ratification, and later changes cost a version bump.
+# ONTOLOGY_DRAFT.md (frozen), ONTOLOGY_PRUNING.md (the B1 pruning-pass ledger:
+# corpus-complete evidence, demotion rulings, reopen conditions), REPORT_NOTES.md.
+# Loaded and validated by steamlens.ontology; backticked tokens in prose are
+# pinned-label references.
+# RATIFIED 2026-07-15 (51 pins, pruned from 55 against 49 games / ~4,900 reviews).
+# The casual-edit era is over: changes from here batch into deliberate version
+# bumps, and bought labels key to this content's hash — an edit after the first
+# paid run (C1) re-prices everything it touches.
 
-version = "v1-draft"
+version = "v1"
 
 categories = [
   "play",
@@ -84,24 +88,6 @@ examples = [
 ]
 
 [[aspects]]
-label = "camera"
-category = "play"
-definition = "Camera movement, perspective, lock-on camera, visibility, FOV, camera-caused discomfort."
-aliases = [
-  "camera angle",
-  "lock-on",
-  "field of view",
-  "FOV",
-  "perspective",
-  "motion sickness",
-]
-label_when = "The camera itself is praised or criticized."
-do_not_label_when = "The issue is general controls unless the camera is clearly the cause."
-examples = [
-  "\"The camera fights you in every boss arena.\" → `camera`",
-]
-
-[[aspects]]
 label = "difficulty"
 category = "play"
 definition = "How hard the game is after the player understands it."
@@ -148,27 +134,10 @@ aliases = [
   "progression system",
 ]
 label_when = "The review evaluates how the player advances."
-do_not_label_when = "The issue is repetitive effort required to progress — use `grind`."
+do_not_label_when = "The complaint is purely the repetitive effort required to progress (\"grind wall\") — grind talk is deliberately unpinned; record it as a CANDIDATE, keeping the reviewer's wording."
 examples = [
   "\"The skill tree actually changes how you play.\" → `progression`",
-  "\"You repeat the same three missions to level anything.\" → `grind`, not `progression`",
-]
-
-[[aspects]]
-label = "grind"
-category = "play"
-definition = "Repetitive busywork or excessive repetition required to advance, unlock, earn, or complete."
-aliases = [
-  "grindy",
-  "grinding",
-  "repetitive farming",
-  "chore",
-  "tedious progression",
-]
-label_when = "The reviewer evaluates repetition as required effort — criticism or praise (\"satisfying grind\" counts; sentiment carries the polarity)."
-do_not_label_when = "They only say the game is long — use `game_length`. The repetition is enjoyed/voluntary (\"can't stop doing runs\") — use `addictiveness`."
-examples = [
-  "\"Everything past level 30 is a grind wall.\" → `grind`",
+  "\"You repeat the same three missions to level anything.\" → CANDIDATE (grind), not `progression`",
 ]
 
 [[aspects]]
@@ -411,7 +380,7 @@ aliases = [
   "narration voice",
 ]
 label_when = "The review evaluates spoken performance."
-do_not_label_when = "They evaluate the written dialogue — use `writing`. Which languages are voiced/subtitled — use `localization`."
+do_not_label_when = "They evaluate the written dialogue — use `writing`. Language/translation support (which languages are voiced/subtitled, translation quality) is deliberately unpinned while the pipeline is English-only — record as a CANDIDATE."
 examples = [
   "\"The lead actor carries every scene.\" → `voice_acting`",
 ]
@@ -701,43 +670,6 @@ examples = [
 ]
 
 [[aspects]]
-label = "localization"
-category = "technical"
-definition = "Translation quality, subtitles, language support, regional text/audio support."
-aliases = [
-  "translation",
-  "subtitles",
-  "language support",
-  "localization",
-  "machine translation",
-  "dubbed audio",
-]
-label_when = "The review evaluates language/translation support — including which languages get voiced audio or subtitles at all."
-do_not_label_when = "The issue is general writing quality in the original language — use `writing`. Subtitle options (size, readability) — use `accessibility`."
-examples = [
-  "\"The Turkish translation reads like machine output.\" → `localization`",
-]
-
-[[aspects]]
-label = "accessibility"
-category = "technical"
-definition = "Options that affect whether different players can comfortably play."
-aliases = [
-  "accessibility",
-  "colorblind mode",
-  "remapping",
-  "font size",
-  "subtitle options",
-  "motion blur",
-  "accessibility options",
-]
-label_when = "The review evaluates accessibility or comfort options."
-do_not_label_when = "It only says the game is easy/hard — use `difficulty`. Subtitle translation/existence — use `localization`."
-examples = [
-  "\"No colorblind mode in a color-coded puzzle game.\" → `accessibility`",
-]
-
-[[aspects]]
 label = "content_amount"
 category = "content_value"
 definition = "Volume of things to do: modes, quests, maps, items, activities, variety of content."
@@ -768,7 +700,7 @@ aliases = [
   "time sink",
 ]
 label_when = "The review evaluates duration or the time the game demands."
-do_not_label_when = "The issue is repetitive required work — use `grind`. The hours pile up because of voluntary pull — use `addictiveness`."
+do_not_label_when = "The complaint is repetitive required work rather than sheer duration — grind talk is deliberately unpinned; record it as a CANDIDATE. The hours pile up because of voluntary pull — use `addictiveness`."
 examples = [
   "\"Twelve hours and the credits rolled. At full price.\" → `game_length`",
 ]

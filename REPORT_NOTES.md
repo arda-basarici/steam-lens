@@ -7,6 +7,94 @@ decisions it feeds.
 
 ---
 
+## 2026-07-15 — The pruning pass measures the whole corpus in one night, and the priors lose
+
+*The codebook pruning session for extraction+eval (M1), task B1's final tail —
+ratification landed the same night (`v1.toml` at `version = "v1"`, 51 pins; every
+ruling with evidence and reopen conditions in `ONTOLOGY_PRUNING.md`). Feeds: the M1
+post's methodology story (evidence-driven codebook pruning; prior-vs-measurement), a
+deployment-milestone (M3) design section (how reports present candidate-talk), and
+the C1 cost-estimate session (the flash-lite lane note in the stream TODO).*
+
+The pass opened on a known weakness: the aspect-vocabulary probe behind the codebook
+covered five games, and the slate's genre skew starved exactly the rows under
+question — no souls-like for camera, no competitive shooter for matchmaking, no
+broken launch for stability. The plan was one gap-slate extension. Arda pushed it
+further twice — first "go through 5 other games, make this data stronger," then,
+when quota walls appeared, "continue adding until we hit the limit" — and the
+extension snowballed into something the plan never promised: corpus-complete
+evidence, all 49 usable games, ~4,900 reviews, ~7,500 extracted mentions, in one
+night (captures in `probes/captures/aspect_vocab_ext/` and `aspect_vocab_lite/`;
+label→pin mapping in `probes/pruning_evidence_table.py`).
+
+The enabling discovery is worth the report on its own: free-tier quotas are
+per-model. The pinned instrument (gemini-2.5-flash) hit its hard 20-requests/day
+wall mid-run — but Arda, reading the AI Studio quota dashboard, spotted
+gemini-3.1-flash-lite sitting at 500/day, and that turned a projected week of
+daily drip into a 90-minute sweep. The methodological price was paid up front
+rather than discovered later: a different model is a different instrument, so the
+lite run opened with a calibration game the pinned instrument had already measured
+(Elden Ring, identical task and pool). The calibration caught a real defect —
+flash-lite's bare-verdict filter is much weaker (31% zero-aspect share vs flash's
+62%; the excess is vague labels like "overall experience" that flash correctly
+refuses) — and also showed the defect self-corrects for existence-counting, since
+vague labels map to no pinned aspect and the real-aspect readings tracked flash
+(~91 vs 88 mapped-relevant mentions on the same 100 reviews). Two instrument
+hardenings rode along, both fail-loud-then-tolerate: a first-JSON-value parse that
+discards flash-lite's occasional trailing output *visibly*, and
+connection-error backoff after the home router's DNS twice flaked on exactly one
+hostname. The instrument files carry the full record.
+
+Then the priors started losing. The session's first recommendation — keep the
+whole "genre-critical, probe-zero" class on faith, because the probe's five games
+couldn't have surfaced them — died against its own targeted test: camera produced
+zero mentions in 100 Elden Ring reviews, then one mention in ~1,900 (Dark Souls
+III), across the two souls-likes where camera complaints are supposedly canonical.
+Grind fell harder, and more instructively: "one of gaming's most common
+complaints" by prior — an outside model reviewing a stale copy of the codebook
+confidently demanded it be pinned — measured 15 mentions in 4,900 reviews and
+never more than 2 in any single game, *including* Path of Exile, FFXIV, and
+Darkest Dungeon, the grindiest games the corpus holds. The recommendation on grind
+honestly flip-flopped (demote → toss-up → demote) as evidence arrived; Arda ruled
+the drop. Meanwhile the same targeted tests rescued rows the skew had starved:
+physics (~11 mentions the moment Goat Simulator / Garry's Mod / Surgeon Simulator
+were sampled), pacing (Persona 5 Royal, Disco Elysium), ui (EU4, Democracy 3),
+sound_design, level_design. Matchmaking crystallized the demotion criterion the
+whole pass ended up running on: 16 mentions corpus-wide *but 11 of them in
+Overwatch 2 alone* — the question is never corpus frequency, it's whether the talk
+clusters on the games where the certified number matters.
+
+The criterion earned its one caveat when Arda challenged servers_netcode — the
+session's only keep-ruling that survived a real attack. The honest count looked
+demotable: ~21 mentions, one genuine cluster (FFXIV's DDoS era), and Helldivers 2 —
+the most famous server-meltdown launch on Steam — gave zero. But that zero is the
+tell, not the verdict: a uniform-lifetime sample dilutes an event to nothing, and
+the product samples *windows*. The same night's Phasmophobia capture demonstrated
+the mechanism live — its sample happened to land mid update-backlash, and `updates`
+exploded to 41-of-43 negative. Event-shaped aspects cluster in time, not just in
+genre; judging them against uniform probes optimizes for a sampling design the
+product doesn't use. Ruled keep, and the time-axis caveat went into the ledger's
+criterion.
+
+Endgame: 55 → 51 pins (camera, accessibility, localization, grind demoted — each
+entry in `ONTOLOGY_PRUNING.md` records the merge alternatives considered and the
+concrete condition that would reopen it), the corpus's addition candidates
+(puzzles at 23 mentions/8 games the strongest) deliberately declined under the
+genre-mechanics policy, and ratification the same night. One more artifact came
+out of a side question — "can we generate a mock report, so I can imagine what
+we're getting?" — answered with real probe data rather than lorem ipsum:
+`mocks/phasmophobia_aspect_report_mock.html` renders the Phasmophobia sample as
+the product's two-track page (sentiment-by-aspect bars over an evidence floor,
+quote-grounded aspect cards, an uncertified "what else players talk about" section,
+an investigation-track placeholder). Building it surfaced a real M3 design fork:
+candidate-talk in reports must stay qualitative, because "players frequently
+mention grind (negative-leaning)" smuggles an uncertified number through the back
+door. The two-track rule turns out to constrain prose, not just tables.
+
+Figure: the starved-rows before/after table (original 5-game counts → corpus-complete
+counts, rescued vs demoted) — or the mock report's sentiment-by-aspect chart, which
+is already built.
+
 ## 2026-07-14 — Serving the same report twice is the honest option, not the lazy one
 
 *The closing Q&A of the store-layer (B5) design session, extraction+eval (M1) — a

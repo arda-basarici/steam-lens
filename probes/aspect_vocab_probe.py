@@ -43,7 +43,6 @@ CAPTURE_DIR = Path(__file__).resolve().parent / "captures" / "aspect_vocab"
 # whole Gemini 3 generation is gated to 5 RPM / 20 RPD free — unusable for a
 # 50-request run. The older 2.5 generation carries the roomier free quota.
 MODEL = "gemini-2.5-flash"
-API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent"
 PROMPT_VERSION = "v1"
 SEED = 20260709
 N_PER_GAME = 100
@@ -99,13 +98,18 @@ def load_english_reviews(app_id: str) -> list[dict]:
     return pool
 
 
-def call_gemini(prompt: str, api_key: str) -> tuple[str, dict]:
+def call_gemini(prompt: str, api_key: str, model: str = MODEL) -> tuple[str, dict]:
     """One generateContent call; returns (response text, usage metadata).
 
     Temperature 0: the probe wants a stable instrument, not creative variety.
     Retries transient failures (429/5xx) with a flat backoff; anything else is
     a real error and raises with the response body (never the key).
+
+    `model` defaults to this probe's pinned instrument; the lite-instrument
+    extension (aspect_vocab_lite_probe.py) passes its own. Free-tier quotas are
+    per model, so the override is also the quota lever.
     """
+    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     body = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
@@ -120,9 +124,21 @@ def call_gemini(prompt: str, api_key: str) -> tuple[str, dict]:
         },
     }
     for attempt in range(4):
-        resp = requests.post(
-            API_URL, headers={"x-goog-api-key": api_key}, json=body, timeout=120
-        )
+        try:
+            resp = requests.post(
+                api_url, headers={"x-goog-api-key": api_key}, json=body, timeout=120
+            )
+        except requests.exceptions.ConnectionError as err:
+            # The home router's resolver intermittently times out on exactly this
+            # hostname while other names resolve (diagnosed 2026-07-15; 8.8.8.8
+            # answers fine). A DNS flake is transient the same way a 503 is —
+            # back off and retry; a persistent outage still fails after 4 attempts.
+            if attempt < 3:
+                wait = 30 * (attempt + 1)
+                print(f"    connection error ({err.__class__.__name__}), backing off {wait}s...")
+                time.sleep(wait)
+                continue
+            raise
         if resp.status_code in (429, 500, 503) and attempt < 3:
             wait = 30 * (attempt + 1)
             print(f"    HTTP {resp.status_code}, backing off {wait}s...")
@@ -150,8 +166,17 @@ def parse_extractions(text: str, expected_idxs: set[int]) -> dict[int, list[dict
     The contract: one entry per input idx, aspects as {aspect: str, sentiment in
     pos/neg/mixed}. A silent mismatch here would corrupt the vocabulary counts the
     whole probe exists to measure, so violations raise instead of being skipped.
+
+    One tolerated deviation, discarded loudly: gemini-3.1-flash-lite sometimes
+    emits trailing data after the JSON list (deterministically, so the re-ask
+    can't fix it — observed on Disco Elysium 2026-07-15). The first JSON value is
+    taken and must still satisfy the full idx contract; the leftover is narrated,
+    never silently dropped.
     """
-    entries = json.loads(text)
+    entries, end = json.JSONDecoder().raw_decode(text.strip())
+    leftover = text.strip()[end:].strip()
+    if leftover:
+        print(f"    note: discarded {len(leftover)} chars of trailing data after the JSON list")
     if not isinstance(entries, list):
         raise ValueError(f"expected a JSON list, got {type(entries).__name__}")
     out: dict[int, list[dict]] = {}
@@ -174,20 +199,22 @@ def parse_extractions(text: str, expected_idxs: set[int]) -> dict[int, list[dict
     return out
 
 
-def extract_batch(game_name: str, batch: list[dict], api_key: str) -> tuple[dict[int, list[dict]], dict]:
+def extract_batch(
+    game_name: str, batch: list[dict], api_key: str, model: str = MODEL
+) -> tuple[dict[int, list[dict]], dict]:
     """Extract one batch of reviews; one re-ask on a malformed response, then raise."""
     payload = [{"idx": i, "text": r["text"]} for i, r in enumerate(batch)]
     prompt = PROMPT_TEMPLATE.format(
         game_name=game_name, reviews_json=json.dumps(payload, ensure_ascii=False)
     )
     expected = set(range(len(batch)))
-    text, usage = call_gemini(prompt, api_key)
+    text, usage = call_gemini(prompt, api_key, model)
     try:
         return parse_extractions(text, expected), usage
     except (ValueError, KeyError, json.JSONDecodeError) as err:
         print(f"    malformed response ({err}); tail of response text:\n"
               f"    ...{text[-300:]}\n    one re-ask...")
-        text, usage = call_gemini(prompt, api_key)
+        text, usage = call_gemini(prompt, api_key, model)
         return parse_extractions(text, expected), usage
 
 

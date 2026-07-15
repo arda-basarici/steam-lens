@@ -1,0 +1,277 @@
+<title>SteamLens · Phasmophobia — mock aspect report</title>
+<style>
+  .viz-root {
+    color-scheme: light;
+    --page:        #f9f9f7;
+    --surface-1:   #fcfcfb;
+    --ink-1:       #0b0b0b;
+    --ink-2:       #52514e;
+    --ink-mute:    #898781;
+    --hairline:    #e1e0d9;
+    --border:      rgba(11,11,11,0.10);
+    --pos:         #2a78d6;
+    --mixed:       #eda100;
+    --neutral:     #a5a49d;
+    --neg:         #e34948;
+    --warn:        #fab219;
+    --warn-bg:     #fdf4de;
+    --card:        #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --page:      #0d0d0d;
+      --surface-1: #1a1a19;
+      --ink-1:     #ffffff;
+      --ink-2:     #c3c2b7;
+      --ink-mute:  #898781;
+      --hairline:  #2c2c2a;
+      --border:    rgba(255,255,255,0.10);
+      --pos:       #3987e5;
+      --mixed:     #c98500;
+      --neutral:   #83827b;
+      --neg:       #e66767;
+      --warn:      #fab219;
+      --warn-bg:   #2b2413;
+      --card:      #212120;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --page:      #0d0d0d;
+    --surface-1: #1a1a19;
+    --ink-1:     #ffffff;
+    --ink-2:     #c3c2b7;
+    --ink-mute:  #898781;
+    --hairline:  #2c2c2a;
+    --border:    rgba(255,255,255,0.10);
+    --pos:       #3987e5;
+    --mixed:     #c98500;
+    --neutral:   #83827b;
+    --neg:       #e66767;
+    --warn:      #fab219;
+    --warn-bg:   #2b2413;
+    --card:      #212120;
+  }
+  .viz-root {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page); color: var(--ink-1);
+    margin: 0; padding: 28px 16px 48px;
+    line-height: 1.45;
+  }
+  .sheet { max-width: 880px; margin: 0 auto; }
+  .mockband {
+    display: flex; gap: 10px; align-items: flex-start;
+    background: var(--warn-bg); border: 1px solid var(--warn);
+    border-radius: 8px; padding: 10px 14px; margin-bottom: 22px;
+    font-size: 13px; color: var(--ink-2);
+  }
+  .mockband .ic { font-size: 16px; line-height: 1.2; }
+  .mockband b { color: var(--ink-1); }
+  h1 { font-size: 26px; margin: 0 0 2px; letter-spacing: -0.3px; }
+  .sub { color: var(--ink-2); font-size: 14px; margin-bottom: 22px; }
+  .tiles { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 28px; }
+  .tile {
+    flex: 1 1 150px; background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 16px;
+  }
+  .tile .v { font-size: 26px; font-weight: 650; }
+  .tile .k { font-size: 12px; color: var(--ink-mute); margin-top: 2px; }
+  h2 { font-size: 16px; margin: 30px 0 4px; }
+  .secnote { font-size: 12.5px; color: var(--ink-mute); margin: 0 0 14px; }
+  .panel {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px 20px;
+  }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); margin-bottom: 14px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .chip { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .row { display: flex; align-items: center; gap: 12px; margin: 7px 0; }
+  .row .lbl { flex: 0 0 158px; font-size: 13px; text-align: right; color: var(--ink-1); }
+  .row .lbl .n { color: var(--ink-mute); font-size: 11.5px; margin-left: 5px; }
+  .bar { flex: 1; display: flex; height: 22px; border-radius: 0 4px 4px 0; overflow: hidden; }
+  .seg {
+    height: 100%; margin-right: 2px; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; color: #fff; min-width: 0; cursor: default;
+  }
+  .seg:last-child { margin-right: 0; }
+  .seg.s-pos   { background: var(--pos); }
+  .seg.s-mixed { background: var(--mixed); }
+  .seg.s-neg   { background: var(--neg); }
+  .seg.s-neutral { background: var(--neutral); }
+  .floornote { font-size: 12px; color: var(--ink-mute); margin-top: 14px; border-top: 1px solid var(--hairline); padding-top: 10px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 12px; }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;
+  }
+  .card h3 { margin: 0 0 2px; font-size: 14px; }
+  .card .split { font-size: 12px; color: var(--ink-2); margin-bottom: 10px; }
+  .q { font-size: 13px; color: var(--ink-2); border-left: 3px solid var(--hairline); padding: 2px 0 2px 10px; margin: 8px 0; }
+  .q .tag { font-size: 10.5px; font-weight: 700; border-radius: 4px; padding: 1px 6px; color: #fff; margin-right: 6px; vertical-align: 1px; }
+  .tag.t-pos { background: var(--pos); } .tag.t-neg { background: var(--neg); } .tag.t-mixed { background: var(--mixed); }
+  .cands { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .cand {
+    font-size: 12.5px; border: 1px dashed var(--ink-mute); color: var(--ink-2);
+    border-radius: 15px; padding: 3px 12px;
+  }
+  .placeholder {
+    border: 1.5px dashed var(--hairline); border-radius: 12px; padding: 16px 20px;
+    color: var(--ink-mute); font-size: 13.5px; background: transparent;
+  }
+  .placeholder b { color: var(--ink-2); }
+  footer { margin-top: 34px; font-size: 11.5px; color: var(--ink-mute); border-top: 1px solid var(--hairline); padding-top: 12px; }
+  footer code { font-family: ui-monospace, Consolas, monospace; font-size: 11px; }
+  .tt {
+    position: fixed; pointer-events: none; z-index: 10; display: none;
+    background: var(--ink-1); color: var(--page); font-size: 12px;
+    padding: 5px 9px; border-radius: 6px; max-width: 240px;
+  }
+</style>
+<div class="viz-root">
+<div class="sheet">
+
+  <div class="mockband"><span class="ic">⚠︎</span>
+    <div><b>Mock report — probe-grade data, illustrative form.</b> Built from a uniform
+    100-review probe sample (not the fixed survey design), open extraction (not the pinned
+    classifier), no eval certification. Real reviews, real sentiment splits, real quotes —
+    but every number shows the report's <b>shape</b>, not a certified measurement.</div>
+  </div>
+
+  <h1>Phasmophobia — aspect report</h1>
+  <div class="sub">SteamLens · sample drawn from the frozen review corpus · English reviews · 2026-07-15</div>
+
+  <div class="tiles">
+    <div class="tile"><div class="v">100</div><div class="k">reviews sampled</div></div>
+    <div class="tile"><div class="v">276</div><div class="k">aspect mentions extracted</div></div>
+    <div class="tile"><div class="v">16%</div><div class="k">zero-aspect reviews (memes, bare verdicts)</div></div>
+    <div class="tile"><div class="v">10<span style="font-size:15px;color:var(--ink-mute)"> / 51</span></div><div class="k">aspects above the evidence floor (n ≥ 5)</div></div>
+  </div>
+
+  <h2>What players evaluate — sentiment by aspect</h2>
+  <p class="secnote">The certified-numbers track: aggregates are minted only for pinned codebook aspects with enough evidence. Hover a segment for its count.</p>
+  <div class="panel">
+    <div class="legend">
+      <span><span class="chip" style="background:var(--pos)"></span>positive</span>
+      <span><span class="chip" style="background:var(--mixed)"></span>mixed</span>
+      <span><span class="chip" style="background:var(--neutral)"></span>neutral</span>
+      <span><span class="chip" style="background:var(--neg)"></span>negative</span>
+    </div>
+    <div id="chart"></div>
+    <div class="floornote">14 more aspects were mentioned but sit below the evidence floor (each n &lt; 5):
+      ai_behavior, stability, graphics, sound_design, mods, monetization, platform_access, community,
+      difficulty, progression, learning_curve, cheating, replayability, servers_netcode — recorded, not displayed.</div>
+  </div>
+
+  <h2>Evidence behind the numbers</h2>
+  <p class="secnote">Every aggregate is quote-grounded — verbatim reviewer words, sentiment attached per mention.</p>
+  <div class="cards">
+    <div class="card"><h3>updates</h3><div class="split">43 mentions — 41 negative · 1 mixed · 1 positive</div>
+      <div class="q"><span class="tag t-neg">NEG</span>“Update is an actual insult to the fanbase”</div>
+      <div class="q"><span class="tag t-neg">NEG</span>“Used to be a great game till the character ‘customization’ update. Game looks and runs way worse.”</div>
+    </div>
+    <div class="card"><h3>developer_conduct</h3><div class="split">22 mentions — 21 negative · 1 positive</div>
+      <div class="q"><span class="tag t-neg">NEG</span>“Developers can't accept accountability for anything these days”</div>
+      <div class="q"><span class="tag t-neg">NEG</span>“Devs hate their player base and ignore them.”</div>
+    </div>
+    <div class="card"><h3>bugs</h3><div class="split">18 mentions — 17 negative · 1 positive</div>
+      <div class="q"><span class="tag t-neg">NEG</span>“I can't believe the update was this bugged. My group and I were so excited to play it but it's abysmal.”</div>
+      <div class="q"><span class="tag t-pos">POS</span>“some bug is good and funny i love this goofy game”</div>
+    </div>
+    <div class="card"><h3>atmosphere</h3><div class="split">14 mentions — 12 positive · 2 negative</div>
+      <div class="q"><span class="tag t-pos">POS</span>“goated game and spooky”</div>
+      <div class="q"><span class="tag t-pos">POS</span>“very fun and scary :) recommend so muchness!!”</div>
+    </div>
+    <div class="card"><h3>multiplayer</h3><div class="split">14 mentions — 11 positive · 3 negative</div>
+      <div class="q"><span class="tag t-pos">POS</span>“Its very fun with friends and overall i started playing years ago and i enjoy it everytime i play it!”</div>
+    </div>
+    <div class="card"><h3>animation</h3><div class="split">11 mentions — 11 negative</div>
+      <div class="q"><span class="tag t-neg">NEG</span>“The animations make me think that I am the ghost all along”</div>
+      <div class="q"><span class="tag t-neg">NEG</span>“the animations look like they were made by a toddler”</div>
+    </div>
+  </div>
+
+  <h2>What else players talk about</h2>
+  <p class="secnote">Candidate-space: recorded in the reviewers' own words, <b>no certified numbers</b> — these
+  surface here qualitatively and become pinned aspects at a version bump if they keep clustering.</p>
+  <div class="panel">
+    <div class="cands">
+      <span class="cand">early access status</span><span class="cand">crossover events</span>
+      <span class="cand">tanglewood map</span><span class="cand">ghost types</span>
+      <span class="cand">playability</span><span class="cand">jumpscares</span>
+    </div>
+    <div class="q"><span class="tag t-neg">NEG</span>“Early access forever, the company is making the game worse in every update.” <i>(early access status)</i></div>
+    <div class="q"><span class="tag t-neg">NEG</span>“Game feels completely unplayable since the Alan Wake crossover event” <i>(crossover events)</i></div>
+    <div class="q"><span class="tag t-mixed">MIX</span>“its a very good game but i think they made the game a bit worse with tangle wood” <i>(tanglewood map)</i></div>
+  </div>
+
+  <h2>Event investigation</h2>
+  <div class="placeholder">
+    <b>Investigation track — not built yet (the investigator, M4).</b> This is where SteamLens would
+    answer “what happened here?”: the sentiment collapse above is one event — a controversial
+    character-model update (players date it to the recent “Alan Wake” era) — and the investigator
+    would time-slice reviews around it, separate before/after sentiment, and tell that story with
+    dated evidence. Stories live here; they never mix into the numbers above (the two-track rule).
+  </div>
+
+  <footer>
+    Provenance (mock): capture <code>probes/captures/aspect_vocab_ext/</code> · instrument
+    <code>gemini-2.5-flash · prompt v1 · temp 0 · seed 20260715</code> · uniform n=100 English sample from the
+    frozen corpus · label→aspect mapping = the B1 pruning-pass surface map · ontology <code>v1-draft</code>
+    (51 pins) · evidence floor n ≥ 5 (illustrative — the real floor is a C2 decision).
+    In the real pipeline every number arrives via the fixed survey sample, the pinned classifier
+    (<code>classify-v1</code>), and the eval harness (gold-set agreement, fabricated-quote rate) before display.
+  </footer>
+</div>
+<div class="tt" id="tt"></div>
+</div>
+<script>
+  const DATA = [
+    ["updates",           1, 1, 0, 41],
+    ["developer_conduct", 1, 0, 0, 21],
+    ["bugs",              1, 0, 0, 17],
+    ["atmosphere",       12, 0, 0,  2],
+    ["multiplayer",      11, 0, 0,  3],
+    ["customization",     1, 0, 0, 11],
+    ["animation",         0, 0, 0, 11],
+    ["gameplay",          3, 1, 0,  7],
+    ["content_amount",    7, 0, 0,  2],
+    ["performance",       0, 0, 0,  8],
+  ];
+  const SENTS = ["pos", "mixed", "neutral", "neg"];
+  const NAMES = { pos: "positive", mixed: "mixed", neutral: "neutral", neg: "negative" };
+  const maxT = Math.max(...DATA.map(d => d[1] + d[2] + d[3] + d[4]));
+  const chart = document.getElementById("chart");
+  const tt = document.getElementById("tt");
+  for (const [label, ...counts] of DATA) {
+    const total = counts.reduce((a, b) => a + b, 0);
+    const row = document.createElement("div");
+    row.className = "row";
+    const lbl = document.createElement("div");
+    lbl.className = "lbl";
+    lbl.innerHTML = `${label}<span class="n">${total}</span>`;
+    const bar = document.createElement("div");
+    bar.className = "bar";
+    bar.style.width = (total / maxT * 100) + "%";
+    counts.forEach((c, i) => {
+      if (!c) return;
+      const seg = document.createElement("div");
+      seg.className = "seg s-" + SENTS[i];
+      seg.style.flex = c;
+      if (c / total >= 0.12) seg.textContent = c;
+      seg.addEventListener("mousemove", e => {
+        tt.style.display = "block";
+        tt.textContent = `${label} — ${NAMES[SENTS[i]]}: ${c} of ${total} mentions`;
+        tt.style.left = Math.min(e.clientX + 14, innerWidth - 250) + "px";
+        tt.style.top = (e.clientY + 14) + "px";
+      });
+      seg.addEventListener("mouseleave", () => { tt.style.display = "none"; });
+      bar.appendChild(seg);
+    });
+    row.appendChild(lbl);
+    const wrap = document.createElement("div");
+    wrap.style.flex = "1";
+    wrap.appendChild(bar);
+    row.appendChild(wrap);
+    chart.appendChild(row);
+  }
+</script>
