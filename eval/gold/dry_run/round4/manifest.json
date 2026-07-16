@@ -1,0 +1,26 @@
+{
+  "purpose": "dry-run slice for the gold-instructions acceptance test; ids are gold-excluded",
+  "round": 4,
+  "drawn_at": "2026-07-16T14:46:29.006839+00:00",
+  "seed": 20260719,
+  "rule": "per game: one english review, 200-2000 chars, dev-slice and earlier-round ids excluded",
+  "corpus": "C:\\Users\\ardab\\Desktop\\projects\\steam-reviews\\data",
+  "instructions_version": "gold-instructions-v1",
+  "reviews": [
+    {
+      "id": "227194693",
+      "app_id": "391540",
+      "game": "Undertale"
+    },
+    {
+      "id": "219829651",
+      "app_id": "238960",
+      "game": "Path of Exile"
+    },
+    {
+      "id": "226948562",
+      "app_id": "252490",
+      "game": "Rust"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "purpose": "dry-run slice for the gold-instructions acceptance test; ids are gold-excluded",
+  "round": 2,
+  "drawn_at": "2026-07-16T12:53:25.904013+00:00",
+  "seed": 20260717,
+  "rule": "per game: one english review, 200-2000 chars, dev-slice and earlier-round ids excluded",
+  "corpus": "C:\\Users\\ardab\\Desktop\\projects\\steam-reviews\\data",
+  "instructions_version": "gold-instructions-v1",
+  "skips": [
+    {
+      "id": "225144321",
+      "app_id": "367520",
+      "game": "Hollow Knight",
+      "reason": "non-english text (Spanish) despite language=english in the corpus row - the Steam language field is reviewer-selected and unreliable; skip ruled at labeling per INSTRUCTIONS section 8",
+      "replacement": "none - dry-run slot served its purpose by exercising the skip rule; the id stays gold-excluded (exposure happened)"
+    }
+  ],
+  "reviews": [
+    {
+      "id": "225883828",
+      "app_id": "2357570",
+      "game": "Overwatch 2"
+    },
+    {
+      "id": "225144321",
+      "app_id": "367520",
+      "game": "Hollow Knight"
+    },
+    {
+      "id": "153482587",
+      "app_id": "1372880",
+      "game": "The Day Before"
+    }
+  ]
+}

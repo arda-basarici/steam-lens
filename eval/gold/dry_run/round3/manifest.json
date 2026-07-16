@@ -1,0 +1,26 @@
+{
+  "purpose": "dry-run slice for the gold-instructions acceptance test; ids are gold-excluded",
+  "round": 3,
+  "drawn_at": "2026-07-16T13:59:24.179696+00:00",
+  "seed": 20260718,
+  "rule": "per game: one english review, 200-2000 chars, dev-slice and earlier-round ids excluded",
+  "corpus": "C:\\Users\\ardab\\Desktop\\projects\\steam-reviews\\data",
+  "instructions_version": "gold-instructions-v1",
+  "reviews": [
+    {
+      "id": "189121108",
+      "app_id": "1919590",
+      "game": "NBA 2K23"
+    },
+    {
+      "id": "225419924",
+      "app_id": "262060",
+      "game": "Darkest Dungeon"
+    },
+    {
+      "id": "223074927",
+      "app_id": "275850",
+      "game": "No Man's Sky"
+    }
+  ]
+}

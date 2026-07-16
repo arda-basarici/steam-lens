@@ -1,10 +1,12 @@
 # Gold-set labeling instructions
 
-**Status: DRY-RUN ACCEPTED (2026-07-16) — twelve rulings settled: seven at the
-drafting interview, five more at the dry-run acceptance test (Arda hand-labeled
-three fresh reviews from this document alone; the unaided pass and its friction
-record live in `dry_run/SHEET.md`). Next: the seeded gold draw script, then
-assist pre-annotation.**
+**Status: GOLD-READY (2026-07-16) — nineteen rulings: seven at the drafting
+interview, twelve across four dry-run rounds (unaided passes + consensus
+records in `dry_run/round<N>/SHEET.md`). The zero-new-rulings convergence
+criterion was retired after round 4 (ruling rate 5 → 3 → 2 → 2: structural
+rules stable since round 1; routing precedents are additive and effectively
+inexhaustible at 3-review sampling) in favor of the residual-rulings channel
+(section 8). Next: the seeded gold draw, then assist pre-annotation.**
 
 | | |
 |---|---|
@@ -104,7 +106,11 @@ For each review, in order:
    that failure mode doesn't apply to a human). Copy-paste verbatim — never
    retype (the dry run caught a retyped quote silently drifting to
    "suprisingly"); omit only when the mention is genuinely diffuse (e.g.
-   sarcasm spread across the whole review). Evidence is verification material, never an agreement target — the
+   sarcasm spread across the whole review). **Evidence is one continuous
+   span, for every mention** — never stitch two spans into one string (dry
+   run round 3 caught a two-span join with a rewritten "?" — the joined
+   string isn't in the review, which is the eval's definition of
+   fabrication). The rule was first stated for `mixed` below; it is general. Evidence is verification material, never an agreement target — the
    machine omitting evidence where gold has one is not scored as a miss.
 
    **Evidence for `mixed` mentions** (ruled 2026-07-16): evidence is one
@@ -147,6 +153,58 @@ these up at the v2 wording batch — see FIXLOG):
   separate mention. In the dry-run review the recreation-of-Europe context
   reads "rendering" as rendition → it supports the `realism` mention, not a
   separate `graphics`.
+- **Marketing fidelity** (round 2, 2026-07-16). "Didn't look like half of
+  what the trailers had shown" — misrepresentation vs. trailers/marketing is
+  a trust charge with a pinned home: `developer_conduct` / negative ("broken
+  promises" is in its aliases). No new label; if marketing-fidelity recurs as
+  its own cluster in the candidate pool, that's the ordinary promotion path.
+  Rider: a summary genre-verdict over a list of concrete complaints ("wasn't
+  really a survival game") is the reviewer's conclusion, not a distinct
+  evaluated property — unlabeled.
+- **In-game exploits** (round 2, 2026-07-16). "Can dupe infinite money" — a
+  duplication glitch is a broken mechanic the game permits → `bugs` /
+  negative. `cheating` only when the charge is other players wielding
+  exploits online; `monetization` never (no real money involved).
+- **Absence routes to the owning pin** (round 2, 2026-07-16). A complaint
+  that a thing is missing is an evaluation of the system that owns it: "no
+  melee weapons" → `combat`; "had no mantle" (a missing vault/climb move) →
+  `gameplay`. When the missing thing's system has no pin, the candidate path
+  applies as usual: "had a weird exfil system" → candidate `exfil system` /
+  negative (worked example 7's pattern).
+- **Always-online gating and server decommission** (round 3, 2026-07-16). A
+  single-player mode unplayable without online servers is an *access*
+  charge → `platform_access` / negative (the DRM / login-required family) —
+  not `servers_netcode` (nothing wrong with the connection) and not
+  `developer_conduct` by default. `developer_conduct` joins as a second
+  mention only when conduct is separately charged ("but wow, this is
+  egregiously scummy") — the same concrete-system + conduct pairing as the
+  sarcastic mock-thanks case.
+- **Anecdotes are not a category** (round 4, 2026-07-16). A narrative
+  review gets the ordinary test — no special anecdote rule in either
+  direction. Pure narration evaluating no game property → zero mentions
+  (the Rust raid story: "cool" praises another player's note, not the
+  player-base's character as a property). But an anecdote *carrying* an
+  explicit evaluation labels normally: "the community is amazing —
+  yesterday a raider rebuilt my base" → `community` / positive, the story
+  serving as evidence.
+- **Pattern vs. state** (round 4, 2026-07-16, Arda's routing). A charge
+  against the post-launch *pattern* ("the constant cycle of nerfs … every
+  new league") → `updates` — the practice is the evaluated target, per the
+  label-the-concrete-cause precedent in `atmosphere`'s routing. A charge
+  against the resulting *state* ("too few viable builds now" → 
+  `build_variety`; "after the patch it stutters constantly" →
+  `performance`) → the affected system's label.
+- **The evidence horizon: text alone** (round 3, 2026-07-16). Label from the
+  review text and nothing else — the machine's horizon is the human's
+  horizon (`build_classify_prompt` receives texts only; no game name, no app
+  id). World knowledge may resolve *vocabulary* ("dupe" = duplication
+  glitch) but never *referents*: knowing a game is celebrated for its 2D art
+  must not turn generic "Visuals and audio 10/10" into `art_style` — the
+  text says generic visuals-praise → `graphics`. Labels are a function of
+  (review text, codebook) only — batch-mates and game identity are
+  accidents, not evidence. If eval disagreements ever cluster on
+  style-vs-fidelity, game-aware context is a deliberate v2 experiment added
+  to *both* sides of the contract, never a gold-side shortcut.
 
 ## 4. Sentiment vocabulary
 
@@ -714,15 +772,30 @@ provenance record and is **banned from the provider bake-off's candidate pool**
 — a candidate scored against labels it helped write would inherit its own
 biases as ground truth.
 
+**The residual-rulings channel** (ruled 2026-07-16, replacing the dry-run
+convergence criterion). During the real pass, an assist-vs-annotator
+disagreement or a flagged uncertainty triggers the same one-question
+mini-interview the dry runs ran; a new precedent lands in section 3's
+routing rulings and section 9's ledger, dated. A precedent that could
+change an already-labeled item triggers a **targeted recheck of that
+pattern only** — never a blanket relabel; structural rules (sentiment
+vocabulary, evidence policy, the fold) are frozen — a structural change
+would invalidate prior labels and therefore forces an explicit
+instructions-version bump and a full relabel decision, taken deliberately
+or not at all.
+
 **Dev-slice exclusion.** The six B4 pilot review ids
 (`probes/captures/classify_pilot/dev_slice.json`) never enter the gold set.
 
-**Dry-run exclusion.** The dry-run acceptance-test reviews
-(`eval/gold/dry_run/manifest.json`) likewise never enter the gold set — this
-document is acceptance-tested, and possibly revised, against them; same
-leakage logic as the dev slice. (Drawn fresh 2026-07-16: the dev slice
-couldn't serve as dry-run material once its six reviews became section 7's
-worked examples — answers printed in the doc.)
+**Dry-run exclusion.** The dry-run acceptance-test reviews — **every round's
+manifest**, at `eval/gold/dry_run/round<N>/manifest.json`
+(`gold_excluded_ids()` in `scripts/draw_gold_dry_run.py` collects them all
+plus the dev slice) — likewise never enter the gold set: this document is acceptance-tested, and
+possibly revised, against them; same leakage logic as the dev slice. (Drawn
+fresh 2026-07-16: the dev slice couldn't serve as dry-run material once its
+six reviews became section 7's worked examples — answers printed in the doc.
+Rounds repeat under the convergence rule: a round settling zero new rulings
+means the doc has converged.)
 
 **Non-English skip-and-redraw** (ruled 2026-07-16). The pipeline is
 English-only by recorded scope, so gold's population is English reviews —
@@ -771,6 +844,35 @@ one-at-a-time with Arda, and the ruling lands back in the section it belongs to:
 12. ~~Ambiguous referents~~ — **RULED 2026-07-16 (dry run): context decides;
     genuinely undecidable → fold into the adjacent mention it most plausibly
     supports, never mint a separate mention** (applied in section 3).
+13. ~~Marketing fidelity~~ — **RULED 2026-07-16 (dry run round 2): trailer /
+    marketing misrepresentation → `developer_conduct` (no new label; "broken
+    promises" is its alias), and a summary genre-verdict over a complaint
+    list stays unlabeled** (applied in section 3).
+14. ~~In-game exploits~~ — **RULED 2026-07-16 (dry run round 2): "can dupe
+    infinite money" → `bugs` (a permitted duplication glitch is a broken
+    mechanic); `cheating` only for other players wielding exploits;
+    `monetization` never** (applied in section 3).
+15. ~~Absence complaints~~ — **RULED 2026-07-16 (dry run round 2): absence
+    routes to the owning pin ("no melee weapons" → `combat`; "no mantle" →
+    `gameplay`); no pin → the candidate path as usual ("weird exfil system"
+    → candidate)** (applied in section 3).
+16. ~~Always-online gating~~ — **RULED 2026-07-16 (dry run round 3):
+    single-player gated behind decommissionable servers → `platform_access`;
+    `developer_conduct` as a second mention only when conduct is separately
+    charged** (applied in section 3).
+17. ~~The evidence horizon~~ — **RULED 2026-07-16 (dry run round 3): text
+    alone, both annotators — world knowledge resolves vocabulary, never
+    referents; game-aware context only ever as a deliberate two-sided v2
+    experiment** (applied in section 3).
+18. ~~Pattern vs. state~~ — **RULED 2026-07-16 (dry run round 4, Arda's
+    routing over the recommendation): charge against the post-launch
+    pattern → `updates`; charge against the resulting state → the affected
+    system** (applied in section 3).
+19. ~~Anecdote reviews~~ — **RULED 2026-07-16 (dry run round 4): not a
+    category — the ordinary test applies; pure narration with no evaluated
+    game property → zero mentions, an anecdote carrying an explicit
+    evaluation labels normally with the story as evidence** (applied in
+    section 3).
 
 ## 10. The slice — size and composition
 

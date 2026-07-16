@@ -7,6 +7,93 @@ decisions it feeds.
 
 ---
 
+## 2026-07-16 — The dry run catches its own answer key, and the fold that felt wrong turns out to be the other track's story
+
+*The gold-set (D1) acceptance-test arc of extraction+eval (M1): the labeling
+instructions' dry run, run the same day the drafting interview closed. Feeds: the
+M1 report/post's gold-set methodology section.*
+
+The dry run nearly began by grading against a published answer key. The plan on
+record said "Arda labels 2–3 dev-slice reviews from the doc alone" — but between
+writing that plan and executing it, all six dev-slice reviews had become the
+instructions document's own worked examples, answers printed in section 7. The
+catch is worth keeping because it names a general trap: material a document
+*teaches from* is disqualified as material to *test* that document, and exclusion
+lists compound quietly. The fix drew three fresh reviews instead — seeded
+(seed 20260716, rule and ids in `eval/gold/dry_run/round1/manifest.json`), one each from
+Helldivers 2, Disco Elysium, and Euro Truck Simulator 2, games deliberately outside
+the worked-example pair so the doc got tested on vocabulary its examples don't
+cover — and those three ids joined the gold-exclusion ledger for exactly the
+dev-slice reason: the instructions were about to be iterated against them.
+
+The draw landed almost uncannily ruling-shaped reviews — a sarcastic servers rant
+ending in a mock-thanks "UPD:", a lukewarm-vs-mixed Disco Elysium opening followed
+by "I'll never forget its characters and atmosphere" (a coordination of exactly
+the shape Arda's counterexample had exposed the day the instructions were
+drafted), and a dense ETS2 paragraph packing five or six routing decisions into
+four sentences. Honesty requires noting this was seeded luck, mostly — though the
+draw's 200–2,000-character window deliberately biased toward aspect-bearing text,
+since bare verdicts test nothing the worked examples hadn't.
+
+The unaided pass held where it mattered most: the sarcasm did not flip Arda's
+polarity, and the addictiveness/realism/dlc routing came out clean. The misses
+concentrated almost entirely in **multi-label recall** — second and third mentions
+left unlabeled (a sarcastic developer-conduct jab inside the UPD, a "really good
+rendering," a "base game is plenty") — rather than in wrong routing, which is the
+better failure mode to have: the codebook's boundaries held; the discipline of
+sweeping a review for *every* evaluated property is what needs the assist model's
+help. One small drift earned a process rule: an evidence quote retyped by hand
+came out "suprisingly" where the review says "surprisingly" — a fabricated span by
+the eval's own strict definition. Copy-paste-only was already a doc line; it is
+now a workflow rule, and the assist pre-annotation makes it the default (accepting
+a pre-filled span beats typing one).
+
+Five rulings came out of the pass, settled interview-mode and applied to the
+instructions the moment each landed (the §9 ledger, entries 8–12). Memorability
+attributed to named aspects routes to those aspects, with `emotional_impact`
+reserved for effect-talk naming no subsystem. Concessive comparisons are not
+charges — "isn't the total Microsoft Flight Simulator level recreation I would
+have liked, but feels surprisingly realistic" stays positive; this one was Arda
+correcting the assistant's mixed-leaning read, and the correction generalized
+cleanly. Reviewer-folded enumerations got the **independently-evaluated test**,
+and it was fought to its final shape from both sides: Arda held that bare
+enumerated contributors ("there are accidents, weather conditions and live radio
+stations") stay inside the immersion mention as evidence — correct — and conceded
+after pushback that "the trucks handle well" carries its own polarity claim and
+mints its own mention. Ambiguous referents ("rendering": image quality, or
+rendition-of-Europe?) fold into the adjacent mention context supports, never
+minting a separate one. And review updates fold like ordinary text.
+
+That last ruling carried the entry's real story. Folding an UPD reversal ("was
+broken; UPD: fixed, great now") into `mixed` felt wrong to Arda — it erases which
+way the reviewer *moved* — and the discomfort dissolved only when the trajectory
+was recognized as belonging to the other track entirely. The fold deliberately
+discards a story, and it must: the survey track mints numbers, and the two-track
+rule forbids numbers from carrying stories. "Which reviews were edited after the
+patch, and did they flip?" is investigation-track material — and Steam hands the
+signal over structurally (`timestamp_updated` vs `timestamp_created` on every
+review row), no UPD-marker parsing required. The idea is parked in the stream's
+IDEAS.md as an investigator (M4) lens. What looked like a labeling-rule
+disagreement was actually the architecture explaining itself.
+
+One asymmetry stays open by design: two of the boundary rulings (memorable-X and
+base-vs-DLC content scoping) live only in the human wrapper for now, because the
+codebook section is generated from the content-hash-pinned ontology TOML — the
+machine sees them at the v2 wording batch (the FIXLOG carries the list). Until
+then, human-vs-machine disagreement on those two boundaries is *expected*, and
+the eval reader should charge it to the version skew, not the classifier.
+
+The document came out accepted: status flipped to dry-run-accepted, version
+de-drafted to `gold-instructions-v1`, and the acceptance record — Arda's unaided
+pass preserved untouched, with the post-discussion consensus labels and their
+diffs beside it — lives in `eval/gold/dry_run/round1/SHEET.md` (committed same day).
+Twelve rulings total now stand behind the instructions: seven from the drafting
+interview, five from the dry run.
+
+Figure: the unaided-vs-consensus label diff as a small table — three reviews down
+the side, mentions across, misses marked by kind (recall vs routing) — is the
+natural visual for "what a dry run buys" in the methodology section.
+
 ## 2026-07-16 — The provider question inverts the roadmap: gold first, then the bake-off, then the buy
 
 *The provider-strategy discussion opening the C1 (corpus-labeling driver) arc of
