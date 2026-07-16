@@ -1,0 +1,146 @@
+{
+  "batch": 17,
+  "annotations": [
+    {
+      "id": "226086519",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226105025",
+      "mentions": [],
+      "flags": [],
+      "note": "\"the passion, thoughtfulness and skill of the artists, writers and programmers\" praises the dev team's effort/craftsmanship broadly but names no concrete game property or conduct charge (no promises/communication/support claim) -- treated as a diffuse quality-verdict (zero mentions), but flagging in case this should route to developer_conduct or split by discipline (art/writing)."
+    },
+    {
+      "id": "223943795",
+      "mentions": [
+        {
+          "aspect": "music",
+          "sentiment": "positive",
+          "evidence": "the music is fire"
+        },
+        {
+          "aspect": "story",
+          "sentiment": "positive",
+          "evidence": "the story is great"
+        },
+        {
+          "aspect": "characters",
+          "sentiment": "positive",
+          "evidence": "the characters are memorable"
+        },
+        {
+          "aspect": "gameplay",
+          "sentiment": "positive",
+          "evidence": "the gameplay is good"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "218752616",
+      "mentions": [
+        {
+          "aspect": "addictiveness",
+          "sentiment": "positive",
+          "evidence": "impossible to put down — I've sunk hundreds of hours into it and still find myself coming back"
+        },
+        {
+          "aspect": "gameplay",
+          "sentiment": "positive",
+          "evidence": "The gameplay itself is genuinely brilliant"
+        },
+        {
+          "aspect": "progression",
+          "sentiment": "negative",
+          "evidence": "gutting the progression system"
+        },
+        {
+          "aspect": "monetization",
+          "sentiment": "negative",
+          "evidence": "turning what used to be a thriving community into a cash-grab storefront"
+        },
+        {
+          "aspect": "community",
+          "sentiment": "mixed",
+          "evidence": "The toxicity in lobbies is real too, though the quick chat 'Nice shot!' after an own goal somehow never gets old."
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "223572684",
+      "mentions": [
+        {
+          "aspect": "updates",
+          "sentiment": "positive",
+          "evidence": "it's gotten better over the years and since the last DLC and patch"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227032118",
+      "mentions": [
+        {
+          "aspect": "updates",
+          "sentiment": "neutral",
+          "evidence": "Just when I was done playing this game they release a new update"
+        }
+      ],
+      "flags": [],
+      "note": "Tone is ambiguous: could read as mildly positive (still actively supported / hard to fully quit) or mildly negative (mild exasperation); no explicit polarity word present, so scored neutral -- human should confirm."
+    },
+    {
+      "id": "208739466",
+      "mentions": [
+        {
+          "aspect": "addictiveness",
+          "sentiment": "positive",
+          "evidence": "This game will keep me occupied until Eu4"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227699370",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226792895",
+      "mentions": [
+        {
+          "aspect": "art_style",
+          "sentiment": "positive",
+          "evidence": "Super cute"
+        },
+        {
+          "aspect": "gameplay",
+          "sentiment": "positive",
+          "evidence": "fun farming game"
+        },
+        {
+          "aspect": "content_amount",
+          "sentiment": "positive",
+          "evidence": "It has a lot of different elements for everyone to enjoy"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227581840",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    }
+  ]
+}

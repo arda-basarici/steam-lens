@@ -1,0 +1,191 @@
+{
+  "batch": 3,
+  "annotations": [
+    {
+      "id": "227339486",
+      "mentions": [
+        {
+          "aspect": "addictiveness",
+          "sentiment": "positive",
+          "evidence": "will still take 5 hours from my day in the blink of an eye"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226814997",
+      "mentions": [
+        {
+          "aspect": "combat",
+          "sentiment": "positive",
+          "evidence": "fighting is fun"
+        },
+        {
+          "aspect": "emotional_impact",
+          "sentiment": "positive",
+          "evidence": "made me cry a little"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "225902010",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "216736442",
+      "mentions": [
+        {
+          "aspect": "characters",
+          "sentiment": "positive",
+          "evidence": "i love kim"
+        }
+      ],
+      "flags": [],
+      "note": "\"kim\" read as an in-game character/companion (common affectionate-naming pattern in this review style); could instead be a real person outside the game with no game property evaluated - human should confirm the reading."
+    },
+    {
+      "id": "220375227",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "220034097",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "182409341",
+      "mentions": [
+        {
+          "aspect": "gameplay",
+          "sentiment": "positive",
+          "evidence": "building up your tavern and managing the customers and stock levels was very enjoyable"
+        },
+        {
+          "aspect": "content_amount",
+          "sentiment": "negative",
+          "evidence": "just didn't expand on the very basic setup it had"
+        },
+        {
+          "aspect": "pacing",
+          "sentiment": "negative",
+          "evidence": "the game pretty much just an afk simulator"
+        },
+        {
+          "aspect": "replayability",
+          "sentiment": "negative",
+          "evidence": "I have no real interest in playing though a second time"
+        },
+        {
+          "aspect": "quest_design",
+          "sentiment": "negative",
+          "evidence": "the very tedious quest system to progress though the tracker"
+        },
+        {
+          "aspect": "price_value",
+          "sentiment": "positive",
+          "evidence": "its probably still worth the price if its on a discount"
+        },
+        {
+          "aspect": "game_length",
+          "sentiment": "neutral",
+          "evidence": "Took 15 hours to 100%"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "158781459",
+      "mentions": [
+        {
+          "aspect": "performance",
+          "sentiment": "positive",
+          "evidence": "it runs smooth"
+        },
+        {
+          "aspect": "gameplay",
+          "sentiment": "mixed",
+          "evidence": "this game plays very poorly"
+        },
+        {
+          "aspect": "pause button",
+          "sentiment": "positive",
+          "evidence": "now there's a pause button"
+        },
+        {
+          "aspect": "atmosphere",
+          "sentiment": "positive",
+          "evidence": "great atmosphere"
+        },
+        {
+          "aspect": "updates",
+          "sentiment": "positive",
+          "evidence": "This is what it should have been at launch"
+        },
+        {
+          "aspect": "missable achievements",
+          "sentiment": "negative",
+          "evidence": "a huge amount of missable achievements, suck"
+        },
+        {
+          "aspect": "price_value",
+          "sentiment": "positive",
+          "evidence": "this game is pretty good and worth getting"
+        },
+        {
+          "aspect": "multiplayer",
+          "sentiment": "negative",
+          "evidence": "I would love to play coop, but sadly those days have passed"
+        },
+        {
+          "aspect": "world",
+          "sentiment": "positive",
+          "evidence": "I actually enjoy the gameplay and the setting"
+        },
+        {
+          "aspect": "art_style",
+          "sentiment": "positive",
+          "evidence": "I like the designs and ascetics"
+        },
+        {
+          "aspect": "replayability",
+          "sentiment": "negative",
+          "evidence": "non replayable missions"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "222391049",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "138062309",
+      "mentions": [
+        {
+          "aspect": "price_value",
+          "sentiment": "negative",
+          "evidence": "Not worth the time or money"
+        },
+        {
+          "aspect": "graphics",
+          "sentiment": "negative",
+          "evidence": "not even a good way to show off my 4090"
+        }
+      ],
+      "flags": [],
+      "note": null
+    }
+  ]
+}

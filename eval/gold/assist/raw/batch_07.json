@@ -1,0 +1,161 @@
+{
+  "batch": 7,
+  "annotations": [
+    {
+      "id": "225151919",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "188302917",
+      "mentions": [
+        {
+          "aspect": "relaxation",
+          "sentiment": "positive",
+          "evidence": "relaxing game"
+        }
+      ],
+      "flags": [],
+      "note": "\"Good for short stints or long runs\" reads as flexibility-of-session-length praise; folded into the relaxation mention rather than minting a separate candidate — borderline call."
+    },
+    {
+      "id": "224963351",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "209230691",
+      "mentions": [
+        {
+          "aspect": "gameplay",
+          "sentiment": "positive",
+          "evidence": "Great fun"
+        },
+        {
+          "aspect": "replayability",
+          "sentiment": "positive",
+          "evidence": "much replayability"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "224054940",
+      "mentions": [
+        {
+          "aspect": "learning_curve",
+          "sentiment": "mixed",
+          "evidence": "the first boss was pretty rough. But after getting good a bit, it's pretty good."
+        },
+        {
+          "aspect": "dlc",
+          "sentiment": "positive",
+          "evidence": "I especially appreciated the Ring City DLC, which is some of the hardest Fromsoft content."
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226948555",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "183580851",
+      "mentions": [
+        {
+          "aspect": "story",
+          "sentiment": "positive",
+          "evidence": "great story line"
+        },
+        {
+          "aspect": "atmosphere",
+          "sentiment": "positive",
+          "evidence": "fully immersive world that pulls you in and keeps you interested"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "215985253",
+      "mentions": [
+        {
+          "aspect": "realism",
+          "sentiment": "positive",
+          "evidence": "True simulator of border chekpoint in cold war"
+        },
+        {
+          "aspect": "player_choice",
+          "sentiment": "neutral",
+          "evidence": "Has some moral choices to do"
+        },
+        {
+          "aspect": "graphics",
+          "sentiment": "neutral",
+          "evidence": "even looking humble"
+        }
+      ],
+      "flags": [],
+      "note": "\"even looking humble\" as a graphics/neutral mention is a stretch — it's a backhanded aside inside a bare-verdict sentence, not a clearly separate evaluation; worth a human check."
+    },
+    {
+      "id": "219945861",
+      "mentions": [
+        {
+          "aspect": "content_amount",
+          "sentiment": "mixed",
+          "evidence": "it's unfortunately a mile wide and an inch deep. It tries to do everything, but doesn't do any one thing better than any other game."
+        },
+        {
+          "aspect": "gameplay",
+          "sentiment": "negative",
+          "evidence": "the game is an exercise in tedium and repetition"
+        },
+        {
+          "aspect": "difficulty",
+          "sentiment": "negative",
+          "evidence": "I was never challenged."
+        },
+        {
+          "aspect": "emotional_impact",
+          "sentiment": "negative",
+          "evidence": "I never felt a sense of danger. I never had epic moments of wonder or of adventure."
+        },
+        {
+          "aspect": "grind",
+          "sentiment": "negative",
+          "evidence": "monotony and incredible grind"
+        },
+        {
+          "aspect": "multiplayer",
+          "sentiment": "negative",
+          "evidence": "The multiplayer aspects of this game are totally unnecessary."
+        },
+        {
+          "aspect": "ui",
+          "sentiment": "negative",
+          "evidence": "It is genuinely one of the worst user interfaces I've ever used in a game."
+        },
+        {
+          "aspect": "bugs",
+          "sentiment": "negative",
+          "evidence": "And the UI constantly overrides itself."
+        }
+      ],
+      "flags": [],
+      "note": "UI is ruled negative (not mixed) despite one backhanded concession (\"that's all that can be said positively about the UI\") — treated like the concessive-comparison precedent rather than a real second charge; worth confirming."
+    },
+    {
+      "id": "203494685",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    }
+  ]
+}

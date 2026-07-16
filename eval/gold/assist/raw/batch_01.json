@@ -1,0 +1,146 @@
+{
+  "batch": 1,
+  "annotations": [
+    {
+      "id": "226435236",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "225687751",
+      "mentions": [
+        {
+          "aspect": "multiplayer",
+          "sentiment": "positive",
+          "evidence": "one of the best co-op experience"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "225044464",
+      "mentions": [
+        {
+          "aspect": "performance",
+          "sentiment": "negative",
+          "evidence": "CSM (one of the things you need to turn on) destroys your performance"
+        },
+        {
+          "aspect": "platform_access",
+          "sentiment": "negative",
+          "evidence": "I'm literally unable to play, since Javelin refuses to notice that secure boot is on, so It's a waste of money."
+        },
+        {
+          "aspect": "cheating",
+          "sentiment": "negative",
+          "evidence": "You can also get around secureboot and cheat anyway, as people have done time and time again in this game and in BF6"
+        },
+        {
+          "aspect": "developer_conduct",
+          "sentiment": "negative",
+          "evidence": "it's EA and they've got a shady past and are a pretty ♥♥♥♥♥♥ company"
+        }
+      ],
+      "flags": [],
+      "note": "Routed the anti-cheat's failure to recognize secure boot (blocking play entirely) to platform_access as an access-gate malfunction rather than bugs -- judgment call, worth a human recheck."
+    },
+    {
+      "id": "226567424",
+      "mentions": [
+        {
+          "aspect": "mods",
+          "sentiment": "positive",
+          "evidence": "mods add a whole new level of customization and options to how you want to play"
+        },
+        {
+          "aspect": "performance",
+          "sentiment": "positive",
+          "evidence": "it runs really well even with mods"
+        },
+        {
+          "aspect": "addictiveness",
+          "sentiment": "positive",
+          "evidence": "genuinely gives me such a dopamine hit i now feel the need to completely finish the game to its fullest potential"
+        },
+        {
+          "aspect": "learning_curve",
+          "sentiment": "positive",
+          "evidence": "it's definitely possible even if you aren't the best at games, there are so many tutorials and tips out there if you need them"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "153482756",
+      "mentions": [],
+      "flags": [],
+      "note": "Single token 'SKAMM' -- ambiguous between an English typo for 'scam' (bare verdict, zero mentions) and Norwegian 'skam' (shame). Both readings yield zero mentions, so left unflagged under the stray-token exception rather than flagged non_english."
+    },
+    {
+      "id": "224533672",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "183164899",
+      "mentions": [
+        {
+          "aspect": "gameplay",
+          "sentiment": "positive",
+          "evidence": "It was fun"
+        },
+        {
+          "aspect": "graphics",
+          "sentiment": "positive",
+          "evidence": "the graphics and stuff are nice"
+        },
+        {
+          "aspect": "characters",
+          "sentiment": "positive",
+          "evidence": "the talking people are good"
+        },
+        {
+          "aspect": "level_design",
+          "sentiment": "negative",
+          "evidence": "sometimes you don't have a clue where to go"
+        }
+      ],
+      "flags": [],
+      "note": "Two calls among plausible neighbors: 'the talking people are good' read as characters (voice_acting or ai_behavior also plausible); 'don't have a clue where to go' read as level_design (quest_design or ui waypoint issue also plausible)."
+    },
+    {
+      "id": "191752086",
+      "mentions": [
+        {
+          "aspect": "price_value",
+          "sentiment": "negative",
+          "evidence": "should be acquired during discount"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "194234270",
+      "mentions": [
+        {
+          "aspect": "emotional_impact",
+          "sentiment": "positive",
+          "evidence": "it left a hole in me the same way it did when I was 13 years old"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227006799",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    }
+  ]
+}

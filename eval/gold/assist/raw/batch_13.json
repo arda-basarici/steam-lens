@@ -1,0 +1,103 @@
+{
+  "batch": 13,
+  "annotations": [
+    {
+      "id": "19910693",
+      "mentions": [
+        {
+          "aspect": "gameplay",
+          "sentiment": "positive",
+          "evidence": "very fun"
+        },
+        {
+          "aspect": "art_style",
+          "sentiment": "positive",
+          "evidence": "The colored graphics, like a Commodore 64 game, is nice"
+        },
+        {
+          "aspect": "music",
+          "sentiment": "positive",
+          "evidence": "The soundtrack is spectacular"
+        },
+        {
+          "aspect": "game_length",
+          "sentiment": "negative",
+          "evidence": "the main game itself is not large"
+        },
+        {
+          "aspect": "difficulty",
+          "sentiment": "mixed",
+          "evidence": "they are almost impossible - if you are patient, a bit of training and soon you can, because has a pattern for beat the levels."
+        }
+      ],
+      "flags": [],
+      "note": "Translated/non-native phrasing; the referent of 'they are almost impossible' (achievements vs. the levels themselves) is a judgment call — read here as the challenge of clearing levels for achievements."
+    },
+    {
+      "id": "137776786",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227781138",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "204023819",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227036945",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "217878319",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "222058162",
+      "mentions": [
+        {
+          "aspect": "emotional_impact",
+          "sentiment": "positive",
+          "evidence": "one that will stick with me for my life"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "153392409",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226895042",
+      "mentions": [
+        {
+          "aspect": "relaxation",
+          "sentiment": "mixed",
+          "evidence": "stressful game. has its good and bad moments. really have to be in the mood though or its just annoying."
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "224512646",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    }
+  ]
+}

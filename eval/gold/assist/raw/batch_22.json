@@ -1,0 +1,168 @@
+{
+  "batch": 22,
+  "annotations": [
+    {
+      "id": "227149274",
+      "mentions": [
+        {
+          "aspect": "addictiveness",
+          "sentiment": "positive",
+          "evidence": "Addicting"
+        },
+        {
+          "aspect": "learning_curve",
+          "sentiment": "mixed",
+          "evidence": "frustrating, sometimes a little ♥♥♥♥♥♥♥♥, but super rewarding when you learn the mechanics"
+        },
+        {
+          "aspect": "level_design",
+          "sentiment": "mixed",
+          "evidence": "Map feels unnecessarily large at times, like there's missing enemies or towns or something, but it's also kind of nice getting a break from enemies caving your skull in, or shooting you with giant magical arrows, or hitting you with heat seeking magic darts, or lighting you on fire with torches, etc."
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "225390615",
+      "mentions": [
+        {
+          "aspect": "graphics",
+          "sentiment": "positive",
+          "evidence": "The remaster looks great"
+        },
+        {
+          "aspect": "performance",
+          "sentiment": "positive",
+          "evidence": "plays smoothly"
+        },
+        {
+          "aspect": "replayability",
+          "sentiment": "positive",
+          "evidence": "makes replaying the whole series feel fresh all over again"
+        },
+        {
+          "aspect": "characters",
+          "sentiment": "positive",
+          "evidence": "Great characters"
+        },
+        {
+          "aspect": "story",
+          "sentiment": "positive",
+          "evidence": "great story"
+        },
+        {
+          "aspect": "player_choice",
+          "sentiment": "positive",
+          "evidence": "great choices"
+        },
+        {
+          "aspect": "addictiveness",
+          "sentiment": "positive",
+          "evidence": "keeps pulling you back in"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "190890586",
+      "mentions": [
+        {
+          "aspect": "graphics",
+          "sentiment": "positive",
+          "evidence": "This game is beautiful"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226260581",
+      "mentions": [
+        {
+          "aspect": "combat",
+          "sentiment": "positive",
+          "evidence": "guns are cool"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227660636",
+      "mentions": [
+        {
+          "aspect": "addictiveness",
+          "sentiment": "positive",
+          "evidence": "this game is a addiction it ruins ur sleep once u play youll never wanna go to work /schoool it will ruin ur life"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "225167709",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "213434008",
+      "mentions": [
+        {
+          "aspect": "replayability",
+          "sentiment": "positive",
+          "evidence": "I keep coming back to this game. Endless replayability"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "224702751",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226995523",
+      "mentions": [
+        {
+          "aspect": "graphics",
+          "sentiment": "positive",
+          "evidence": "The graphics are much better than the previous games, and Lara has a more mature look."
+        },
+        {
+          "aspect": "realism",
+          "sentiment": "positive",
+          "evidence": "It feels so realistic that you might actually get lost!"
+        },
+        {
+          "aspect": "story",
+          "sentiment": "negative",
+          "evidence": "The story and gameplay are a bit weaker compared to the earlier titles."
+        },
+        {
+          "aspect": "gameplay",
+          "sentiment": "negative",
+          "evidence": "The story and gameplay are a bit weaker compared to the earlier titles."
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "191308721",
+      "mentions": [
+        {
+          "aspect": "gameplay",
+          "sentiment": "positive",
+          "evidence": "It's fun"
+        }
+      ],
+      "flags": [],
+      "note": "Praise for 'game mechanics, storylines, characters, everything' is textually attributed to Bioshock 1&2 (the comparison target the reviewer binged before Infinite), not explicitly to the game under review, so I did not mint mentions from it -- flag if that read is wrong. Also left 'doesn't feel like a part of the series' unlabeled: too diffuse, and the reviewer explicitly disclaims certainty ('I'm not sure what it is')."
+    }
+  ]
+}

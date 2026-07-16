@@ -1,0 +1,136 @@
+{
+  "batch": 24,
+  "annotations": [
+    {
+      "id": "224299014",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "222955684",
+      "mentions": [
+        {
+          "aspect": "story",
+          "sentiment": "positive",
+          "evidence": "Solid storytelling"
+        },
+        {
+          "aspect": "atmosphere",
+          "sentiment": "positive",
+          "evidence": "some really good atmosphere"
+        },
+        {
+          "aspect": "gameplay",
+          "sentiment": "negative",
+          "evidence": "There isn't much gameplay per se"
+        },
+        {
+          "aspect": "game_length",
+          "sentiment": "negative",
+          "evidence": "A super short game too (2-2.5 hours max)"
+        },
+        {
+          "aspect": "bugs",
+          "sentiment": "negative",
+          "evidence": "There were a few glitches with Molly and Calvin's stories but they were a one time thing (but I had to restart the game to fix these which was annoying)."
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226179191",
+      "mentions": [
+        {
+          "aspect": "updates",
+          "sentiment": "negative",
+          "evidence": "i wish this got more updates but RIP the owner"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227772847",
+      "mentions": [
+        {
+          "aspect": "music",
+          "sentiment": "neutral",
+          "evidence": "toblerone fox made music in 2015"
+        }
+      ],
+      "flags": [],
+      "note": "'toblerone fox made music in 2015' reads as a composer/date credit with no polarity -- labeled music/neutral as a factual mention, but it may just be off-topic trivia unrelated to a quality evaluation; flag if it should be zero mentions instead."
+    },
+    {
+      "id": "153377321",
+      "mentions": [
+        {
+          "aspect": "gameplay",
+          "sentiment": "negative",
+          "evidence": "I yern for the gameplay loop.\n\nHowever its just not there."
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "175996344",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "179218891",
+      "mentions": [
+        {
+          "aspect": "story",
+          "sentiment": "positive",
+          "evidence": "I actually enjoyed the story"
+        },
+        {
+          "aspect": "characters",
+          "sentiment": "positive",
+          "evidence": "the character"
+        },
+        {
+          "aspect": "animation",
+          "sentiment": "negative",
+          "evidence": "mostly the orcs, look janky AF"
+        },
+        {
+          "aspect": "world",
+          "sentiment": "positive",
+          "evidence": "i did enjoy the environments"
+        }
+      ],
+      "flags": [],
+      "note": "Left 'the MANY problems this game has' unlabeled -- a vague blanket complaint naming no specific system (could be bugs/balance/anything); flag if it deserves a generic candidate mention instead of zero."
+    },
+    {
+      "id": "219109686",
+      "mentions": [
+        {
+          "aspect": "addictiveness",
+          "sentiment": "positive",
+          "evidence": "IT REALLY IS CRACK"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "220558625",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226750332",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    }
+  ]
+}

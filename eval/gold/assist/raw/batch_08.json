@@ -1,0 +1,131 @@
+{
+  "batch": 8,
+  "annotations": [
+    {
+      "id": "226252662",
+      "mentions": [],
+      "flags": ["non_english"],
+      "note": null
+    },
+    {
+      "id": "224930619",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "225497493",
+      "mentions": [
+        {
+          "aspect": "bugs",
+          "sentiment": "negative",
+          "evidence": "bugs is not cool"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227376136",
+      "mentions": [
+        {
+          "aspect": "multiplayer",
+          "sentiment": "positive",
+          "evidence": "best co op game ive played"
+        },
+        {
+          "aspect": "story",
+          "sentiment": "positive",
+          "evidence": "I love the part when Leo and Vincent fought at the end to the death, and the whole time vincent was an undercover cop."
+        }
+      ],
+      "flags": [],
+      "note": "\"PICK LEO he is way better\" names no clear codebook property (character quality vs. mechanical balance are both plausible) — left unlabeled per the ambiguous-referent rule."
+    },
+    {
+      "id": "225161629",
+      "mentions": [
+        {
+          "aspect": "characters",
+          "sentiment": "positive",
+          "evidence": "Monika is very nice and not at all evil"
+        }
+      ],
+      "flags": [],
+      "note": "Labeled literally per the text-alone evidence horizon; outside fandom knowledge about this character could suggest irony, but nothing in the text itself signals it."
+    },
+    {
+      "id": "216776318",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226188026",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "214841803",
+      "mentions": [
+        {
+          "aspect": "content_amount",
+          "sentiment": "positive",
+          "evidence": "So much content"
+        },
+        {
+          "aspect": "ui",
+          "sentiment": "positive",
+          "evidence": "Stash Tabs are a game changer"
+        },
+        {
+          "aspect": "art_style",
+          "sentiment": "positive",
+          "evidence": "great aesthetically"
+        },
+        {
+          "aspect": "carryover to poe2",
+          "sentiment": "positive",
+          "evidence": "they carry over to POE2"
+        }
+      ],
+      "flags": [],
+      "note": "Two judgment calls: Stash Tabs routed to `ui` (inventory tooling) rather than a candidate; \"carry over to POE2\" minted as its own candidate — both worth a second look."
+    },
+    {
+      "id": "220544384",
+      "mentions": [
+        {
+          "aspect": "controls",
+          "sentiment": "negative",
+          "evidence": "cant even play the game with a controller, it just locks all input when i connect"
+        }
+      ],
+      "flags": [],
+      "note": "Routed to `controls` (controller support) rather than `bugs`, since the complaint is specifically about controller input; could go either way."
+    },
+    {
+      "id": "224830431",
+      "mentions": [
+        {
+          "aspect": "gameplay",
+          "sentiment": "positive",
+          "evidence": "Fun and goofy game"
+        },
+        {
+          "aspect": "atmosphere",
+          "sentiment": "positive",
+          "evidence": "Fun and goofy game"
+        },
+        {
+          "aspect": "mods",
+          "sentiment": "positive",
+          "evidence": "highly recommend playing with the steam work shop."
+        }
+      ],
+      "flags": [],
+      "note": null
+    }
+  ]
+}

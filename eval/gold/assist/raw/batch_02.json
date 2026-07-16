@@ -1,0 +1,119 @@
+{
+  "batch": 2,
+  "annotations": [
+    {
+      "id": "226220332",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227184249",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "153398911",
+      "mentions": [
+        {
+          "aspect": "developer_conduct",
+          "sentiment": "negative",
+          "evidence": "the developer shunting down within 4 days of launch"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227269368",
+      "mentions": [
+        {
+          "aspect": "relaxation",
+          "sentiment": "positive",
+          "evidence": "Relaxing game"
+        },
+        {
+          "aspect": "world",
+          "sentiment": "positive",
+          "evidence": "nice map"
+        },
+        {
+          "aspect": "dlc",
+          "sentiment": "positive",
+          "evidence": "many dlc's"
+        },
+        {
+          "aspect": "price_value",
+          "sentiment": "positive",
+          "evidence": "Really worth getting if you like long drives"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "205517739",
+      "mentions": [],
+      "flags": [],
+      "note": "Borderline: \"Run it Vanilla, then Mod It.\" could imply an implicit endorsement of mod support, but states no explicit evaluation (no property named with a charge) -- ruled zero mentions per the bare-verdict/advice test; flagging for a human ruling on whether modding-advice-as-implicit-endorsement should route to `mods`."
+    },
+    {
+      "id": "226472452",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "224898510",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "225162582",
+      "mentions": [],
+      "flags": [],
+      "note": "\"2 words: Watcher Knights\" names a specific boss fight but states no explicit polarity (no charge word attached) -- ruled zero mentions per the bare-naming test; flagging since the terse-highlight framing plausibly implies a charge (memorable/notoriously hard) a human may want to recover."
+    },
+    {
+      "id": "223047254",
+      "mentions": [
+        {
+          "aspect": "stability",
+          "sentiment": "negative",
+          "evidence": "Infinite loading screen on vr... waited for 30 minutes"
+        },
+        {
+          "aspect": "performance",
+          "sentiment": "negative",
+          "evidence": "Please only play with a NASA computer or otherwise..."
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "446366",
+      "mentions": [
+        {
+          "aspect": "difficulty",
+          "sentiment": "positive",
+          "evidence": "Very deceptively challenging."
+        },
+        {
+          "aspect": "art_style",
+          "sentiment": "positive",
+          "evidence": "1980's style and charm"
+        },
+        {
+          "aspect": "music",
+          "sentiment": "positive",
+          "evidence": "a *REALLY* good sound-track"
+        }
+      ],
+      "flags": [],
+      "note": null
+    }
+  ]
+}

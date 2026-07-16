@@ -1,0 +1,146 @@
+{
+  "batch": 14,
+  "annotations": [
+    {
+      "id": "194996135",
+      "mentions": [
+        {
+          "aspect": "unique",
+          "sentiment": "positive",
+          "evidence": "quite a unique game"
+        },
+        {
+          "aspect": "price_value",
+          "sentiment": "positive",
+          "evidence": "cheap"
+        },
+        {
+          "aspect": "performance",
+          "sentiment": "positive",
+          "evidence": "under 1 GB, and low PC requirements."
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "193876523",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "225004997",
+      "mentions": [
+        {
+          "aspect": "story",
+          "sentiment": "positive",
+          "evidence": "the best story Game i have ever played"
+        },
+        {
+          "aspect": "world",
+          "sentiment": "positive",
+          "evidence": "the city could be this big and have that much detail"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226083090",
+      "mentions": [
+        {
+          "aspect": "bugs",
+          "sentiment": "negative",
+          "evidence": "constant pop up errors"
+        },
+        {
+          "aspect": "performance",
+          "sentiment": "negative",
+          "evidence": "horrible lag"
+        },
+        {
+          "aspect": "stability",
+          "sentiment": "negative",
+          "evidence": "crashing, freezing that continued AFTER I seemingly closed the game"
+        },
+        {
+          "aspect": "price_value",
+          "sentiment": "negative",
+          "evidence": "a waste of MY hard earned money on a product that is $32 more expensive than it should be"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227506569",
+      "mentions": [
+        {
+          "aspect": "difficulty",
+          "sentiment": "mixed",
+          "evidence": "Very deep and sometimes frustrating but also very rewarding if you put in the time."
+        },
+        {
+          "aspect": "graphics",
+          "sentiment": "negative",
+          "evidence": "Graphics are basic (arguably dated)"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "225228475",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "223179007",
+      "mentions": [
+        {
+          "aspect": "gameplay",
+          "sentiment": "neutral",
+          "evidence": "general dungeon crawler type of gameplay"
+        },
+        {
+          "aspect": "story",
+          "sentiment": "neutral",
+          "evidence": "anime girl squad with kinda unappropriate visual fighting a cosmic horror beyond human imagination"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "8622584",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227797261",
+      "mentions": [
+        {
+          "aspect": "community",
+          "sentiment": "negative",
+          "evidence": "EVERY GAME IS EITHER AFK's PEOPLE TROLLING/ TEAM KILLING / LOSING ON PURPOSE"
+        },
+        {
+          "aspect": "developer_conduct",
+          "sentiment": "negative",
+          "evidence": "I JUST DROPPED A 30 BOMB FOR A BUNCH OF NERDS ALL DROPPING HARD SLURS AND KILLIG EACHOTHER. FOR ME TOO  THEN GET BANNED  FOR 2 DAYS"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226015609",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    }
+  ]
+}

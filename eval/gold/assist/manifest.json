@@ -1,0 +1,18 @@
+{
+  "purpose": "game-stripped input batches for the assist pre-annotation run; raw model outputs land in raw/, one file per batch, never edited",
+  "created_at": "2026-07-16T21:21:10.504586+00:00",
+  "seed": 20260721,
+  "batch_size": 10,
+  "batches": 25,
+  "reviews": 250,
+  "assist_model": "claude-sonnet-5",
+  "orchestration": "fresh (context-clean) Claude Code agents; wave 1 = one agent per batch (batches 01-03), later waves = three batches per agent (Arda's call, 2026-07-17, overhead amortization); the exact delegation prompt is PROMPT.md in this directory",
+  "source_draw": {
+    "path": "C:\\Users\\ardab\\Desktop\\projects\\steam-lens\\eval\\gold\\draw",
+    "drawn_at": "2026-07-16T19:51:16.931504+00:00",
+    "seed": 20260720
+  },
+  "instructions_version": "gold-instructions-v1",
+  "ontology_version": "v1",
+  "ontology_content_hash": "481d86add78b92e4fd108b389375954fd7285fa0b0985e7222aefc959ca01ebe"
+}

@@ -1,0 +1,104 @@
+{
+  "batch": 25,
+  "annotations": [
+    {
+      "id": "210762918",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226263421",
+      "mentions": [
+        {"aspect": "graphics", "sentiment": "positive", "evidence": "Graphics 100/10 INSANE"},
+        {"aspect": "art_style", "sentiment": "positive", "evidence": "Art Style 100 /10 best"},
+        {"aspect": "animation", "sentiment": "positive", "evidence": "Animation — 10/10"},
+        {"aspect": "story", "sentiment": "positive", "evidence": "Story — 10/10"},
+        {"aspect": "characters", "sentiment": "positive", "evidence": "Characters — 9/10"},
+        {"aspect": "writing", "sentiment": "positive", "evidence": "Dialogue — 7/10"},
+        {"aspect": "gameplay", "sentiment": "positive", "evidence": "Gameplay — 9/10"},
+        {"aspect": "combat", "sentiment": "positive", "evidence": "Combat — 7/10"},
+        {"aspect": "exploration", "sentiment": "positive", "evidence": "Exploration — 10/10"},
+        {"aspect": "controls", "sentiment": "mixed", "evidence": "sometimes i got problems then jumping from wall to wall,very annoying"},
+        {"aspect": "sound_design", "sentiment": "positive", "evidence": "Sound Effects — 10/10"},
+        {"aspect": "music", "sentiment": "mixed", "evidence": "Music — 8/10 menu music is always the same gets annoying"},
+        {"aspect": "voice_acting", "sentiment": "mixed", "evidence": "voice acting and conversation could have been better"},
+        {"aspect": "performance", "sentiment": "positive", "evidence": "Performance — 10/10"},
+        {"aspect": "bugs", "sentiment": "negative", "evidence": "Bugs/Glitches — 0/10"},
+        {"aspect": "content_amount", "sentiment": "positive", "evidence": "Content — 10/10"},
+        {"aspect": "game_length", "sentiment": "positive", "evidence": "Game Length — 10/10"},
+        {"aspect": "replayability", "sentiment": "positive", "evidence": "Replayability — 9/10"},
+        {"aspect": "progression", "sentiment": "positive", "evidence": "Endgame — 10/10"},
+        {"aspect": "difficulty", "sentiment": "positive", "evidence": "Difficulty — 8/10 some exploration may result challenging"},
+        {"aspect": "balance", "sentiment": "positive", "evidence": "Balance — 10/10"},
+        {"aspect": "ui", "sentiment": "positive", "evidence": "UI/UX — 10/10"},
+        {"aspect": "quality of life", "sentiment": "positive", "evidence": "Quality of Life — 10/10"},
+        {"aspect": "originality", "sentiment": "positive", "evidence": "Originality — 10/10"},
+        {"aspect": "atmosphere", "sentiment": "positive", "evidence": "Immersion — 10/10"},
+        {"aspect": "world", "sentiment": "positive", "evidence": "wonderful views"},
+        {"aspect": "learning_curve", "sentiment": "mixed", "evidence": "some people might find it difficult to remember all key bindings for different actions, but with time it becomes easier."},
+        {"aspect": "price_value", "sentiment": "positive", "evidence": "Value for Money — 10/10"}
+      ],
+      "flags": [],
+      "note": "Two borderline routing calls for human review: 'Quality of Life — 10/10' has no clean pinned home (not quite ui) so recorded as a candidate; 'a very atmospheric world filled with wonderful views' was split into atmosphere (already covered by Immersion) + a new world mention on 'wonderful views' rather than folded into one."
+    },
+    {
+      "id": "191831137",
+      "mentions": [],
+      "flags": ["non_english"],
+      "note": null
+    },
+    {
+      "id": "198001254",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "213584969",
+      "mentions": [
+        {"aspect": "gameplay", "sentiment": "positive", "evidence": "Its fun"}
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226237480",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "225312458",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "209643279",
+      "mentions": [
+        {"aspect": "addictiveness", "sentiment": "positive", "evidence": "Very Addicting"}
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "220803577",
+      "mentions": [
+        {"aspect": "characters", "sentiment": "negative", "evidence": "the villians are incredibly shallow"},
+        {"aspect": "story", "sentiment": "negative", "evidence": "it's easily the most lackluster game in the entire extended series in expressing what it really wants to be"}
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "214267431",
+      "mentions": [
+        {"aspect": "monetization", "sentiment": "negative", "evidence": "really p2w and as a f2p it is hard"},
+        {"aspect": "multiplayer", "sentiment": "positive", "evidence": "fun with friends"}
+      ],
+      "flags": [],
+      "note": null
+    }
+  ]
+}

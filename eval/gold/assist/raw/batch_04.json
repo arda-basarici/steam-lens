@@ -1,0 +1,176 @@
+{
+  "batch": 4,
+  "annotations": [
+    {
+      "id": "220204845",
+      "mentions": [
+        {
+          "aspect": "gameplay",
+          "sentiment": "positive",
+          "evidence": "fun"
+        },
+        {
+          "aspect": "difficulty",
+          "sentiment": "neutral",
+          "evidence": "a little hard not that hard thought unless you have a skill issue"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "219635360",
+      "mentions": [
+        {
+          "aspect": "content_amount",
+          "sentiment": "positive",
+          "evidence": "A world of possibilities in your PC. Colonize, conquer, trade whatever you like on world map."
+        },
+        {
+          "aspect": "addictiveness",
+          "sentiment": "positive",
+          "evidence": "Highly addictive."
+        },
+        {
+          "aspect": "performance",
+          "sentiment": "positive",
+          "evidence": "Runs even on potato."
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227794987",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "147937054",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "113484564",
+      "mentions": [
+        {
+          "aspect": "graphics",
+          "sentiment": "positive",
+          "evidence": "Visually quite good"
+        },
+        {
+          "aspect": "voice_acting",
+          "sentiment": "positive",
+          "evidence": "Almost all dialogue has quality voice over for them."
+        },
+        {
+          "aspect": "game_length",
+          "sentiment": "negative",
+          "evidence": "The game is a bit short, without the DLCs you've got about 30 hours from start to finish."
+        },
+        {
+          "aspect": "progression",
+          "sentiment": "negative",
+          "evidence": "if you don't properly plan out your character level ups, you can end up with a real hard end game"
+        },
+        {
+          "aspect": "balance",
+          "sentiment": "negative",
+          "evidence": "there are some cookie cutter OP builds"
+        },
+        {
+          "aspect": "combat",
+          "sentiment": "negative",
+          "evidence": "Most of the difficulty comes from sheer chance on your to hit and resist rolls, besides using cover, there is very little actual strategy in combat, that doesn't really change from fight to fight."
+        },
+        {
+          "aspect": "dlc",
+          "sentiment": "negative",
+          "evidence": "Steeltown DLC adds some crappy new stacking status effects, that are more annoying than interesting to play around with."
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "225269920",
+      "mentions": [
+        {
+          "aspect": "updates",
+          "sentiment": "negative",
+          "evidence": "It took them 2 years of work to put out an update that would never pass QA in any respectful game studio."
+        },
+        {
+          "aspect": "developer_conduct",
+          "sentiment": "negative",
+          "evidence": "they still want to feed community slop"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "221018583",
+      "mentions": [
+        {
+          "aspect": "developer_conduct",
+          "sentiment": "negative",
+          "evidence": "sadly stolen from the OG creators"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "219401784",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "137906713",
+      "mentions": [
+        {
+          "aspect": "performance",
+          "sentiment": "negative",
+          "evidence": "A 30fps that dips when you do just about anything even on a computer that can run all other new games without issue is borderline offensive."
+        },
+        {
+          "aspect": "bugs",
+          "sentiment": "negative",
+          "evidence": "The game is filled with glitches"
+        },
+        {
+          "aspect": "stability",
+          "sentiment": "negative",
+          "evidence": "it already crashed on me (ohh and the black screen counted as \"game-play\" time)"
+        },
+        {
+          "aspect": "price_value",
+          "sentiment": "negative",
+          "evidence": "a $70 price tag for this heap is offensive."
+        },
+        {
+          "aspect": "world",
+          "sentiment": "negative",
+          "evidence": "what is the point of a so-called open world game when one is able to interact with almost nothing?"
+        },
+        {
+          "aspect": "developer_conduct",
+          "sentiment": "negative",
+          "evidence": "where's the accountability?"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "187274843",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    }
+  ]
+}

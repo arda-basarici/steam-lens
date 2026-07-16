@@ -1,0 +1,151 @@
+{
+  "batch": 12,
+  "annotations": [
+    {
+      "id": "177353933",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "189588176",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "194164243",
+      "mentions": [
+        {
+          "aspect": "controls",
+          "sentiment": "negative",
+          "evidence": "I don't think the controls worked properly when I last played it."
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "224665734",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226336168",
+      "mentions": [
+        {
+          "aspect": "gameplay",
+          "sentiment": "positive",
+          "evidence": "this game is fun and addicting"
+        },
+        {
+          "aspect": "addictiveness",
+          "sentiment": "positive",
+          "evidence": "this game is fun and addicting"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "171761606",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "107295727",
+      "mentions": [
+        {
+          "aspect": "bugs",
+          "sentiment": "negative",
+          "evidence": "I find it very Glitchy"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "222339529",
+      "mentions": [
+        {
+          "aspect": "originality",
+          "sentiment": "negative",
+          "evidence": "all I got was pretty much Bioshock 1 in space, all respect to Bioshock 1, to me it seemed like Obsidian straight up copied their formula."
+        },
+        {
+          "aspect": "exploration",
+          "sentiment": "positive",
+          "evidence": "I have the freedom to go to any planet, reset myself in a different universe all together, romance my companions, and fly any ship I want."
+        },
+        {
+          "aspect": "replayability",
+          "sentiment": "positive",
+          "evidence": "I have the freedom to go to any planet, reset myself in a different universe all together, romance my companions, and fly any ship I want."
+        },
+        {
+          "aspect": "romance",
+          "sentiment": "positive",
+          "evidence": "I have the freedom to go to any planet, reset myself in a different universe all together, romance my companions, and fly any ship I want."
+        },
+        {
+          "aspect": "build_variety",
+          "sentiment": "positive",
+          "evidence": "I have the freedom to go to any planet, reset myself in a different universe all together, romance my companions, and fly any ship I want."
+        }
+      ],
+      "flags": [],
+      "note": "Dense comparison-heavy review (Cyberpunk/Bioshock/Obsidian named in-text, not an outside guess). The Neon-nightclub-vs-scope passage was left unlabeled as a hedge/justification rather than a clean charge. The 'freedom to X, Y, Z, W' list was split into four independently-claimed capabilities (exploration, replayability, romance-candidate, build_variety) sharing one span — a judgment call worth checking; 'originality' is a free-form candidate, no pinned home fits a copied-formula charge."
+    },
+    {
+      "id": "222774192",
+      "mentions": [
+        {
+          "aspect": "gameplay",
+          "sentiment": "positive",
+          "evidence": "i love all things city planning"
+        },
+        {
+          "aspect": "platform_access",
+          "sentiment": "negative",
+          "evidence": "the switch one is just not the same"
+        },
+        {
+          "aspect": "mods",
+          "sentiment": "positive",
+          "evidence": "having all kinds of mods on this game makes it ten times better"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "213690557",
+      "mentions": [
+        {
+          "aspect": "emotional_impact",
+          "sentiment": "positive",
+          "evidence": "I couldn't go through any of the story without brawling out."
+        },
+        {
+          "aspect": "story",
+          "sentiment": "positive",
+          "evidence": "The narratives are so so SO gorgeous."
+        },
+        {
+          "aspect": "replayability",
+          "sentiment": "positive",
+          "evidence": "If you have played it, PLAY IT AGAIN."
+        },
+        {
+          "aspect": "learning_curve",
+          "sentiment": "positive",
+          "evidence": "This is one of the games that you have to give it some time to sink in, but it's definitely worth it."
+        }
+      ],
+      "flags": [],
+      "note": null
+    }
+  ]
+}

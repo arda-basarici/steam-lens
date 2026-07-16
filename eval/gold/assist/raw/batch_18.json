@@ -1,0 +1,133 @@
+{
+  "batch": 18,
+  "annotations": [
+    {
+      "id": "227104604",
+      "mentions": [
+        {
+          "aspect": "world",
+          "sentiment": "negative",
+          "evidence": "full of procedurally generated crap. It's basically full of soulless randomly generated nothing."
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "224544453",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "223662031",
+      "mentions": [
+        {
+          "aspect": "player_choice",
+          "sentiment": "mixed",
+          "evidence": "Insane player freedom and reactivity"
+        },
+        {
+          "aspect": "build_variety",
+          "sentiment": "positive",
+          "evidence": "You can solve problems through combat, stealth, persuasion, absurd physics, or just creative nonsense the devs somehow accounted for."
+        },
+        {
+          "aspect": "combat",
+          "sentiment": "positive",
+          "evidence": "Combat is turn-based but extremely flexible."
+        },
+        {
+          "aspect": "characters",
+          "sentiment": "positive",
+          "evidence": "The companions are a huge highlight"
+        },
+        {
+          "aspect": "voice_acting",
+          "sentiment": "positive",
+          "evidence": "well-voiced"
+        },
+        {
+          "aspect": "writing",
+          "sentiment": "positive",
+          "evidence": "deeply written"
+        },
+        {
+          "aspect": "learning_curve",
+          "sentiment": "negative",
+          "evidence": "The game is dense. Systems stack on top of systems (spells, status effects, gear interactions, dialogue checks), and it can feel overwhelming if you’re not used to CRPGs or D&D-style rules."
+        },
+        {
+          "aspect": "pacing",
+          "sentiment": "negative",
+          "evidence": "rougher pacing compared to the near-perfect opening"
+        },
+        {
+          "aspect": "performance",
+          "sentiment": "negative",
+          "evidence": "occasional performance dips"
+        },
+        {
+          "aspect": "content_amount",
+          "sentiment": "positive",
+          "evidence": "Huge amount of content and replayability"
+        },
+        {
+          "aspect": "replayability",
+          "sentiment": "positive",
+          "evidence": "Huge amount of content and replayability"
+        }
+      ],
+      "flags": [],
+      "note": "player_choice scored mixed by tying the Cons-list item 'Easy to miss content due to branching structure' back to the same choice/branching system praised elsewhere (Pros: 'Insane player freedom and reactivity'); an alternative reading routes the missing-content complaint to content_amount or quest_design instead, leaving player_choice purely positive -- please confirm the routing."
+    },
+    {
+      "id": "224097564",
+      "mentions": [
+        {
+          "aspect": "gameplay",
+          "sentiment": "positive",
+          "evidence": "As fun as it gets"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226989955",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226326403",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "225321811",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "224101067",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "224855644",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226110505",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    }
+  ]
+}

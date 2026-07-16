@@ -1,0 +1,116 @@
+{
+  "batch": 21,
+  "annotations": [
+    {
+      "id": "227337506",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "216373062",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "137836984",
+      "mentions": [
+        {
+          "aspect": "worn-out",
+          "sentiment": "negative",
+          "evidence": "this is just a meme game from the worn-out era of QWOP-Likes"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226188837",
+      "mentions": [
+        {
+          "aspect": "music",
+          "sentiment": "positive",
+          "evidence": "The soundtrack is phenomenal."
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "88997682",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "209750598",
+      "mentions": [
+        {
+          "aspect": "balance",
+          "sentiment": "negative",
+          "evidence": "I love RNG events that 100% kill your heir and ruin your run"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "13044747",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "223313256",
+      "mentions": [
+        {
+          "aspect": "gameplay",
+          "sentiment": "positive",
+          "evidence": "look for fun and you'll find it"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227759573",
+      "mentions": [
+        {
+          "aspect": "world",
+          "sentiment": "positive",
+          "evidence": "does a good job of fleshing out such an open map"
+        },
+        {
+          "aspect": "music",
+          "sentiment": "positive",
+          "evidence": "great ost"
+        },
+        {
+          "aspect": "graphics",
+          "sentiment": "positive",
+          "evidence": "visuals"
+        },
+        {
+          "aspect": "gameplay",
+          "sentiment": "positive",
+          "evidence": "gameplay 10/10"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227487926",
+      "mentions": [
+        {
+          "aspect": "addictiveness",
+          "sentiment": "positive",
+          "evidence": "absolute factory, do not download if you have a life."
+        }
+      ],
+      "flags": [],
+      "note": null
+    }
+  ]
+}

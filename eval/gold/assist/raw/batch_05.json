@@ -1,0 +1,155 @@
+{
+  "batch": 5,
+  "annotations": [
+    {
+      "id": "225047115",
+      "mentions": [
+        {
+          "aspect": "gameplay",
+          "sentiment": "positive",
+          "evidence": "its fun"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "223408318",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "225665982",
+      "mentions": [
+        {
+          "aspect": "content_amount",
+          "sentiment": "negative",
+          "evidence": "the base systems and features just arent there"
+        },
+        {
+          "aspect": "mods",
+          "sentiment": "positive",
+          "evidence": "Mods for diplomacy, larger battles and armies are a must."
+        },
+        {
+          "aspect": "build_variety",
+          "sentiment": "positive",
+          "evidence": "you can play the game multiple different ways (Merc, Trader, Vassel, Ruler) and its completely open as to how you want your character to play out, it doesnt force you into a specific type."
+        },
+        {
+          "aspect": "world",
+          "sentiment": "mixed",
+          "evidence": "The world, for the most part, moves pretty consistantly and things constantly change, kingdoms lose towns and castles and armies declare war on you out of the blue."
+        },
+        {
+          "aspect": "combat",
+          "sentiment": "mixed",
+          "evidence": "Battles can be fun and do require some thinking, especially if you find yourself outnumbered."
+        },
+        {
+          "aspect": "writing",
+          "sentiment": "negative",
+          "evidence": "Dialouges are rough and uninteresting, every NPC interaction is identical and repetitive."
+        },
+        {
+          "aspect": "ai_behavior",
+          "sentiment": "negative",
+          "evidence": "AI lords and leaders are terrible when it comes to tactics, both in seiges and in battles."
+        },
+        {
+          "aspect": "graphics",
+          "sentiment": "negative",
+          "evidence": "Graphics are very poor."
+        },
+        {
+          "aspect": "level_design",
+          "sentiment": "negative",
+          "evidence": "Hideouts are bland and monotonous."
+        },
+        {
+          "aspect": "replayability",
+          "sentiment": "negative",
+          "evidence": "I would recommend simply for the joy of the first playthrough, after that the cracks in the game start to spoil the overall enjoyment."
+        },
+        {
+          "aspect": "price_value",
+          "sentiment": "negative",
+          "evidence": "Buy on discount"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "220959394",
+      "mentions": [
+        {
+          "aspect": "story",
+          "sentiment": "positive",
+          "evidence": "Plot twist so hard I had to sit in silence after"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226543612",
+      "mentions": [],
+      "flags": [],
+      "note": "Borderline: 'Must be one the most quintessential puzzle games out there for any type of gamer' could be read as a genre-defining-quality candidate (parallel to the 'creative' worked example) or as a bare superlative verdict with no distinct property named. Called zero mentions; flagging for a ruling."
+    },
+    {
+      "id": "225045919",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "190980847",
+      "mentions": [
+        {
+          "aspect": "platform_access",
+          "sentiment": "negative",
+          "evidence": "THEY DEADASS TOOK THE ♥♥♥♥♥♥♥ SERVERS DOWN AFTER 3 YEARS. And now u are not even able to play mycarrer."
+        },
+        {
+          "aspect": "developer_conduct",
+          "sentiment": "negative",
+          "evidence": "Is this ♥♥♥♥ even legal?"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226962680",
+      "mentions": [
+        {
+          "aspect": "updates",
+          "sentiment": "mixed",
+          "evidence": "Its fun now after all the updates. It was really bad on launch."
+        },
+        {
+          "aspect": "content_amount",
+          "sentiment": "positive",
+          "evidence": "Lots of stuff to do now so its quite fun."
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "212778858",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "121617264",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    }
+  ]
+}

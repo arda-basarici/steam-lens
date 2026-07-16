@@ -1,0 +1,110 @@
+{
+  "batch": 16,
+  "annotations": [
+    {
+      "id": "227640075",
+      "mentions": [
+        {
+          "aspect": "gameplay",
+          "sentiment": "positive",
+          "evidence": "good fun game"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "188109972",
+      "mentions": [
+        {
+          "aspect": "platform_access",
+          "sentiment": "negative",
+          "evidence": "cant play because servers are shut down"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "225035813",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226973228",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "57704398",
+      "mentions": [
+        {
+          "aspect": "gameplay",
+          "sentiment": "positive",
+          "evidence": "This game is fun"
+        },
+        {
+          "aspect": "player_choice",
+          "sentiment": "positive",
+          "evidence": "allows you to run your country the way you want to run it"
+        }
+      ],
+      "flags": [],
+      "note": "Borderline routing: 'run your country the way you want' could instead read as build_variety (approach/strategy variety) rather than player_choice (agency/consequences) -- no branching-narrative language, just open-ended sandbox control. Please confirm the pin."
+    },
+    {
+      "id": "225800830",
+      "mentions": [],
+      "flags": [],
+      "note": "\"Mommy Karlach\" could be a thin characters/positive signal (affection for a companion) rather than a pure meme aside; left unlabeled as a joke reference naming no stated trait, but flagging for a human call."
+    },
+    {
+      "id": "224630538",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "184037255",
+      "mentions": [
+        {
+          "aspect": "learning_curve",
+          "sentiment": "positive",
+          "evidence": "Super simple"
+        },
+        {
+          "aspect": "music",
+          "sentiment": "positive",
+          "evidence": "nice music"
+        },
+        {
+          "aspect": "relaxation",
+          "sentiment": "positive",
+          "evidence": "really relaxing game"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "190227427",
+      "mentions": [
+        {
+          "aspect": "platform_access",
+          "sentiment": "negative",
+          "evidence": "They deadass took the servers down. You can't even play MyCareer anymore."
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "158980890",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    }
+  ]
+}

@@ -1,0 +1,110 @@
+{
+  "batch": 15,
+  "annotations": [
+    {
+      "id": "182601441",
+      "mentions": [
+        {
+          "aspect": "bugs",
+          "sentiment": "negative",
+          "evidence": "full of ♥♥♥♥ bugs didn't finish the game because of it and prolly never will"
+        },
+        {
+          "aspect": "developer_conduct",
+          "sentiment": "negative",
+          "evidence": "devs know about the bugs but didn't want to fix them"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227795598",
+      "mentions": [
+        {
+          "aspect": "addictiveness",
+          "sentiment": "positive",
+          "evidence": "dangerously addictive. One round always becomes ten."
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226272436",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227629247",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "225685646",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227077744",
+      "mentions": [
+        {
+          "aspect": "physics",
+          "sentiment": "positive",
+          "evidence": "After 900 hours of driving, I must say it is good."
+        },
+        {
+          "aspect": "mods",
+          "sentiment": "positive",
+          "evidence": "Combined with mods, it is perfect."
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226168230",
+      "mentions": [
+        {
+          "aspect": "gameplay",
+          "sentiment": "mixed",
+          "evidence": "good but eventually boring"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227795447",
+      "mentions": [],
+      "flags": [],
+      "note": "'stupid green' is too cryptic to confidently attribute to a specific aspect (possibly a visual/UI color complaint) — left unlabeled pending human read."
+    },
+    {
+      "id": "198210809",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227610277",
+      "mentions": [
+        {
+          "aspect": "gameplay",
+          "sentiment": "positive",
+          "evidence": "very fun game"
+        },
+        {
+          "aspect": "multiplayer",
+          "sentiment": "positive",
+          "evidence": "if you pley it with that one funny homie of yours it mekes it 10 times better"
+        }
+      ],
+      "flags": [],
+      "note": null
+    }
+  ]
+}

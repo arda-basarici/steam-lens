@@ -1,0 +1,141 @@
+{
+  "batch": 20,
+  "annotations": [
+    {
+      "id": "226393586",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "218597276",
+      "mentions": [
+        {
+          "aspect": "atmosphere",
+          "sentiment": "positive",
+          "evidence": "offers a lot of suspense and combat"
+        },
+        {
+          "aspect": "combat",
+          "sentiment": "positive",
+          "evidence": "offers a lot of suspense and combat"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226340772",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "207727917",
+      "mentions": [
+        {
+          "aspect": "story",
+          "sentiment": "positive",
+          "evidence": "great twist"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227387529",
+      "mentions": [
+        {
+          "aspect": "emotional_impact",
+          "sentiment": "positive",
+          "evidence": "it stayed with me through all these years"
+        },
+        {
+          "aspect": "story",
+          "sentiment": "positive",
+          "evidence": "one of the greatest stories ever told in gaming"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "222127438",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "207914132",
+      "mentions": [
+        {
+          "aspect": "vreatice",
+          "sentiment": "positive",
+          "evidence": "very vreatice, very unique"
+        },
+        {
+          "aspect": "gameplay",
+          "sentiment": "positive",
+          "evidence": "very fun"
+        },
+        {
+          "aspect": "art_style",
+          "sentiment": "positive",
+          "evidence": "the art in the game is fire!"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "222430946",
+      "mentions": [
+        {
+          "aspect": "controls",
+          "sentiment": "negative",
+          "evidence": "Controls are a little clunky regardless of whether you use gamepad or mouse/keyboard"
+        },
+        {
+          "aspect": "gameplay",
+          "sentiment": "positive",
+          "evidence": "the game is a lot of fun."
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227779076",
+      "mentions": [
+        {
+          "aspect": "price_value",
+          "sentiment": "mixed",
+          "evidence": "it should get a price decrease at this point"
+        },
+        {
+          "aspect": "graphics",
+          "sentiment": "positive",
+          "evidence": "the graphics are awesome"
+        },
+        {
+          "aspect": "cutscenes",
+          "sentiment": "positive",
+          "evidence": "I absolutely love the cutscenes; I don't get the hate."
+        },
+        {
+          "aspect": "combat",
+          "sentiment": "positive",
+          "evidence": "While there is a lack of action, I do think the action, while short, is awesome in itself."
+        }
+      ],
+      "flags": [],
+      "note": "The combat mention folds 'lack of action ... but awesome' as one positive charge via the concessive-comparison rule; an alternate reading could score 'lack of action' as a separate content_amount negative."
+    },
+    {
+      "id": "225446911",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    }
+  ]
+}

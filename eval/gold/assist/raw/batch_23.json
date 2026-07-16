@@ -1,0 +1,215 @@
+{
+  "batch": 23,
+  "annotations": [
+    {
+      "id": "222607347",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "36486070",
+      "mentions": [
+        {
+          "aspect": "gameplay",
+          "sentiment": "positive",
+          "evidence": "it's very complex text based kingdom management simulation"
+        },
+        {
+          "aspect": "art_style",
+          "sentiment": "positive",
+          "evidence": "Don't let ASCII graphics scare you away because it has its' own kind of charm."
+        },
+        {
+          "aspect": "platform_access",
+          "sentiment": "negative",
+          "evidence": "The only thing I would like is Linux port..."
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227382482",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "169565216",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "220792840",
+      "mentions": [
+        {
+          "aspect": "gameplay",
+          "sentiment": "positive",
+          "evidence": "This game was fun"
+        },
+        {
+          "aspect": "progression",
+          "sentiment": "negative",
+          "evidence": "I found the research and quest aspects to be broken"
+        },
+        {
+          "aspect": "quest_design",
+          "sentiment": "negative",
+          "evidence": "I found the research and quest aspects to be broken"
+        },
+        {
+          "aspect": "bugs",
+          "sentiment": "mixed",
+          "evidence": "they are assigned permanently to the new kitchen or bar you built, great, but also assigned to every floor??? Ahhh!"
+        },
+        {
+          "aspect": "achievement hunting",
+          "sentiment": "neutral",
+          "evidence": "I think it is find for achievement hunting, look at my blue ribbon, wooo~!"
+        },
+        {
+          "aspect": "grind",
+          "sentiment": "negative",
+          "evidence": "it was a grind and not super fun to get there"
+        },
+        {
+          "aspect": "content_amount",
+          "sentiment": "negative",
+          "evidence": "there was little to do"
+        },
+        {
+          "aspect": "balance",
+          "sentiment": "negative",
+          "evidence": "I think they wanted a balanced game and it sort of isn't"
+        },
+        {
+          "aspect": "difficulty",
+          "sentiment": "positive",
+          "evidence": "it was easy to play"
+        },
+        {
+          "aspect": "attention to certain details",
+          "sentiment": "positive",
+          "evidence": "there was a lot of attention to certain details, which was so funny to me- like the people in the bathroom get pixelated. So respectful! I laughed."
+        },
+        {
+          "aspect": "art_style",
+          "sentiment": "positive",
+          "evidence": "This game is cute"
+        }
+      ],
+      "flags": [],
+      "note": "Borderline candidates: 'achievement hunting' (lukewarm 'find for X, look at my blue ribbon' framing) and 'attention to certain details' (a quirky Easter-egg-style detail, not a clear codebook home) -- flag if either should be dropped or folded elsewhere. Kept the building-snapping praise ('everything can snap into place') folded into the existing gameplay mention rather than minting a duplicate."
+    },
+    {
+      "id": "138730335",
+      "mentions": [
+        {
+          "aspect": "gameplay",
+          "sentiment": "positive",
+          "evidence": "Super fun game"
+        },
+        {
+          "aspect": "combat",
+          "sentiment": "positive",
+          "evidence": "The combat and squad building/RPG elements are quite fun, as is the overall gameplay."
+        },
+        {
+          "aspect": "build_variety",
+          "sentiment": "positive",
+          "evidence": "The combat and squad building/RPG elements are quite fun, as is the overall gameplay."
+        },
+        {
+          "aspect": "music",
+          "sentiment": "positive",
+          "evidence": "Music and sound are top notch and usually appropriate for the mood."
+        },
+        {
+          "aspect": "sound_design",
+          "sentiment": "positive",
+          "evidence": "Music and sound are top notch and usually appropriate for the mood."
+        },
+        {
+          "aspect": "characters",
+          "sentiment": "mixed",
+          "evidence": "Some of the characters in the game are quite wild"
+        },
+        {
+          "aspect": "quest_design",
+          "sentiment": "positive",
+          "evidence": "most quests and places you come across are pretty interesting"
+        },
+        {
+          "aspect": "world",
+          "sentiment": "positive",
+          "evidence": "most quests and places you come across are pretty interesting"
+        },
+        {
+          "aspect": "story",
+          "sentiment": "positive",
+          "evidence": "The story is good"
+        },
+        {
+          "aspect": "writing",
+          "sentiment": "negative",
+          "evidence": "the writing is very poor"
+        },
+        {
+          "aspect": "player_choice",
+          "sentiment": "negative",
+          "evidence": "results of some dialogue choices make no logical sense, and apparently there's never any way to change any outcome, as if once something happens, it's final and no one will ever think of a solution around it."
+        },
+        {
+          "aspect": "factions",
+          "sentiment": "negative",
+          "evidence": "Factions are almost entirely useless, as there's only a few and once you do a few quests with them, they're largely forgotten until the end game credits."
+        },
+        {
+          "aspect": "content_amount",
+          "sentiment": "negative",
+          "evidence": "Kinda wish there was more content and quests with existing factions/cities that would trigger as you progressed into the game, instead of things being left behind once done."
+        }
+      ],
+      "flags": [],
+      "note": "Several judgment calls: merged the 'wild characters' praise with the closing wish for more squadmate banter into one mixed `characters` mention rather than two; 'places you come across' routed to `world` (could arguably be `level_design`); 'Factions' kept as its own candidate rather than folded into `quest_design`/`content_amount` since factions-as-a-system has no clean pinned home. Flag any of these if they should route differently."
+    },
+    {
+      "id": "225290527",
+      "mentions": [
+        {
+          "aspect": "physics",
+          "sentiment": "positive",
+          "evidence": "i have lost all the braincells i previously owned by swinging a big hammer and sending my entire body into the enemy team and making it out with zero consequences because of a cat who can carry a solid 100kg of drunk german man"
+        }
+      ],
+      "flags": [],
+      "note": "No explicit evaluative adjective ('fun'/'cool'/etc.) -- labeled physics/positive on the strength of the anecdote's tone (absurd, forgiving physics played for delighted disbelief). Flag if implicit-tone anecdotes like this shouldn't count as a mention."
+    },
+    {
+      "id": "227136117",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227797096",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227352339",
+      "mentions": [
+        {
+          "aspect": "emotional_impact",
+          "sentiment": "positive",
+          "evidence": "very influential to me"
+        }
+      ],
+      "flags": [],
+      "note": null
+    }
+  ]
+}

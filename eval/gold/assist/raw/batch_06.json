@@ -1,0 +1,135 @@
+{
+  "batch": 6,
+  "annotations": [
+    {
+      "id": "225314640",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "215503491",
+      "mentions": [
+        {
+          "aspect": "updates",
+          "sentiment": "positive",
+          "evidence": "Battlefield 2042 works now"
+        },
+        {
+          "aspect": "combat",
+          "sentiment": "neutral",
+          "evidence": "Gunplay is fine"
+        },
+        {
+          "aspect": "content_amount",
+          "sentiment": "positive",
+          "evidence": "content is there"
+        },
+        {
+          "aspect": "build_variety",
+          "sentiment": "negative",
+          "evidence": "Specialists never really clicked for me."
+        },
+        {
+          "aspect": "multiplayer",
+          "sentiment": "negative",
+          "evidence": "Matches feel chaotic in a weird way, not the good Battlefield kind."
+        },
+        {
+          "aspect": "addictiveness",
+          "sentiment": "negative",
+          "evidence": "it never pulls me in like BF4 did."
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "153775007",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "223145777",
+      "mentions": [
+        {
+          "aspect": "updates",
+          "sentiment": "positive",
+          "evidence": "This game has come a long way and it is an enjoyable experience at this point."
+        },
+        {
+          "aspect": "performance",
+          "sentiment": "negative",
+          "evidence": "Now if only they could get rid of the loading screens."
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "219288815",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226726799",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "221722525",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226595422",
+      "mentions": [
+        {
+          "aspect": "gameplay",
+          "sentiment": "positive",
+          "evidence": "Vey fun and cute game!"
+        },
+        {
+          "aspect": "art_style",
+          "sentiment": "positive",
+          "evidence": "Vey fun and cute game!"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227699038",
+      "mentions": [
+        {
+          "aspect": "emotional_impact",
+          "sentiment": "positive",
+          "evidence": "i cried"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "226479986",
+      "mentions": [
+        {
+          "aspect": "difficulty",
+          "sentiment": "positive",
+          "evidence": "even when its already challenging in normal mode,expert makes it impeccably harder to an extent some people give up without trying."
+        },
+        {
+          "aspect": "grind",
+          "sentiment": "positive",
+          "evidence": "makes you put in your blood sweat and tears to grind and complete certain achievements/challenges."
+        }
+      ],
+      "flags": [],
+      "note": null
+    }
+  ]
+}

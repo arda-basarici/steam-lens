@@ -1,0 +1,116 @@
+{
+  "batch": 10,
+  "annotations": [
+    {
+      "id": "226667177",
+      "mentions": [
+        {
+          "aspect": "price_value",
+          "sentiment": "positive",
+          "evidence": "this game is worth every dollar"
+        },
+        {
+          "aspect": "updates",
+          "sentiment": "positive",
+          "evidence": "for 10 years they been tossing out free updates, and that is way more generous than they need to be."
+        },
+        {
+          "aspect": "developer_conduct",
+          "sentiment": "positive",
+          "evidence": "you guys already redeemed yourselves"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "122396808",
+      "mentions": [
+        {
+          "aspect": "gameplay",
+          "sentiment": "positive",
+          "evidence": "its fun"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "225418110",
+      "mentions": [
+        {
+          "aspect": "updates",
+          "sentiment": "negative",
+          "evidence": "it's a tragedy now after the recent update"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "224776042",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "222905702",
+      "mentions": [],
+      "flags": [],
+      "note": "Death-by-ceiling-fan anecdote plus bare '10/10' — narration with no explicit game property named; ruled zero mentions per the anecdote precedent, but a human may read the anecdote itself as an implicit stability/bugs charge."
+    },
+    {
+      "id": "225999681",
+      "mentions": [
+        {
+          "aspect": "world",
+          "sentiment": "positive",
+          "evidence": "Best unique open world!"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "170410838",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227738109",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "227281642",
+      "mentions": [
+        {
+          "aspect": "platform_access",
+          "sentiment": "negative",
+          "evidence": "No ultra wide support"
+        },
+        {
+          "aspect": "ui",
+          "sentiment": "negative",
+          "evidence": "has keyboard ui despite using controller"
+        }
+      ],
+      "flags": [],
+      "note": "Ultrawide-support complaint routed to platform_access (hardware/display support, alongside Deck/Linux) rather than a candidate label ('resolution' is a graphics alias but that pin is about fidelity, not aspect-ratio compatibility) — borderline, worth a ruling."
+    },
+    {
+      "id": "224997602",
+      "mentions": [
+        {
+          "aspect": "bugs",
+          "sentiment": "negative",
+          "evidence": "Tech keeps turning off, incense will not burn, firelight takes 10 minutes to light."
+        }
+      ],
+      "flags": [],
+      "note": null
+    }
+  ]
+}
