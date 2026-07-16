@@ -1,0 +1,25 @@
+{
+  "purpose": "dry-run slice for the gold-instructions acceptance test; ids are gold-excluded",
+  "drawn_at": "2026-07-16T11:43:32.025043+00:00",
+  "seed": 20260716,
+  "rule": "per game: one english review, 200-2000 chars, dev-slice ids excluded",
+  "corpus": "C:\\Users\\ardab\\Desktop\\projects\\steam-reviews\\data",
+  "instructions_version": "gold-instructions-v1",
+  "reviews": [
+    {
+      "id": "226339924",
+      "app_id": "553850",
+      "game": "Helldivers 2"
+    },
+    {
+      "id": "225522093",
+      "app_id": "632470",
+      "game": "Disco Elysium"
+    },
+    {
+      "id": "227200917",
+      "app_id": "227300",
+      "game": "Euro Truck Simulator 2"
+    }
+  ]
+}

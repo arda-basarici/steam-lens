@@ -1,12 +1,14 @@
 # Gold-set labeling instructions
 
-**Status: INTERVIEW-COMPLETE (all seven rulings settled 2026-07-16) — pending
-the dry-run acceptance test: Arda hand-labels 2–3 dev-slice reviews using only
-this document; friction found there is fixed before the real pass.**
+**Status: DRY-RUN ACCEPTED (2026-07-16) — twelve rulings settled: seven at the
+drafting interview, five more at the dry-run acceptance test (Arda hand-labeled
+three fresh reviews from this document alone; the unaided pass and its friction
+record live in `dry_run/SHEET.md`). Next: the seeded gold draw script, then
+assist pre-annotation.**
 
 | | |
 |---|---|
-| Instructions version | `gold-instructions-v1` (draft) |
+| Instructions version | `gold-instructions-v1` |
 | Ontology | `v1` — content hash `481d86add78b92e4fd108b389375954fd7285fa0b0985e7222aefc959ca01ebe` |
 | Drafted | 2026-07-16 |
 | Annotator of record | Arda (assist model pre-annotates; every label is Arda-reviewed) |
@@ -58,6 +60,13 @@ conflicting polarity in one review ("combat is great early, terrible late"),
 record one mention with sentiment `mixed` — both charges present is exactly
 that value's meaning.
 
+**Review updates fold the same way** (ruled 2026-07-16, dry run): an
+`UPD:`/`EDIT:` section is ordinary review text. An update that reverses the
+verdict on an aspect ("servers were broken; UPD: fixed, great now") gives
+that aspect both charges → `mixed`. The trajectory itself — which way the
+reviewer moved — is investigation-track material, never gold's; Steam's
+`timestamp_updated` field carries that signal structurally.
+
 ## 3. The decision procedure
 
 For each review, in order:
@@ -92,9 +101,10 @@ For each review, in order:
 5. **Quote evidence whenever a usable span exists** (ruled 2026-07-16 —
    stricter than the machine's contract, deliberately: the machine's evidence
    is optional because a mandatory quote pushes a model to fabricate one, and
-   that failure mode doesn't apply to a human). Copy-paste verbatim; omit only
-   when the mention is genuinely diffuse (e.g. sarcasm spread across the whole
-   review). Evidence is verification material, never an agreement target — the
+   that failure mode doesn't apply to a human). Copy-paste verbatim — never
+   retype (the dry run caught a retyped quote silently drifting to
+   "suprisingly"); omit only when the mention is genuinely diffuse (e.g.
+   sarcasm spread across the whole review). Evidence is verification material, never an agreement target — the
    machine omitting evidence where gold has one is not scored as a miss.
 
    **Evidence for `mixed` mentions** (ruled 2026-07-16): evidence is one
@@ -109,6 +119,34 @@ For each review, in order:
      mention, evidence for one side is honest.
    - **Never stitch** spans with "…" — the joined string isn't in the review,
      and gold must not contain what the eval counts as fabrication elsewhere.
+
+**Routing rulings from the dry run** (2026-07-16; the machine's TOML picks
+these up at the v2 wording batch — see FIXLOG):
+
+- **Memorability attributed to named aspects.** "I don't think I'll ever
+  forget its characters and atmosphere" → `characters` / positive +
+  `atmosphere` / positive — the named aspects win, with the memorability as
+  the polarity carrier. `emotional_impact` is for effect-talk that names no
+  subsystem ("this game will stay with me forever").
+- **Base-game-vs-DLC content scoping.** "The base game is plenty" evaluates
+  content volume → `content_amount` / positive, even when said in a DLC
+  discussion; the DLC-policy observation itself is a separate `dlc` mention.
+- **Reviewer-folded enumerations.** "The trucks handle well, there are
+  accidents, weather conditions and live radio stations that all add to the
+  immersion" — the **independently-evaluated test**: a contributor gets its
+  own mention only when it carries its own polarity claim. "The trucks handle
+  well" evaluates handling → its own mention (`physics`, per the codebook's
+  vehicle-handling routing). The bare enumerated contributors (accidents,
+  weather, radio) are evaluated only *through* the immersion claim — no
+  mentions of their own; they live inside the folded mention's evidence
+  (`atmosphere`).
+- **Ambiguous referents.** When a phrase supports two readings ("it gives a
+  really good rendering" — image quality, or a good rendition of Europe's
+  roads?), the surrounding context decides; genuinely undecidable → fold it
+  into the adjacent mention it most plausibly supports rather than minting a
+  separate mention. In the dry-run review the recreation-of-Europe context
+  reads "rendering" as rendition → it supports the `realism` mention, not a
+  separate `graphics`.
 
 ## 4. Sentiment vocabulary
 
@@ -134,6 +172,13 @@ drop it after 1000 hours" → positive. So sarcasm is never a mechanical
 flip-to-negative; read what the reviewer means. These are deliberately kept in
 gold — sarcasm is where classifier quality gaps concentrate, so gold must
 contain the cases that expose them.
+
+**Concessive comparisons are not charges** (ruled 2026-07-16, dry run):
+"while this isn't the total Microsoft Flight Simulator level recreation I
+would have liked, it … feels surprisingly realistic" carries one real charge
+— the positive. A tempered expectation ("not as much as I'd hoped, but…") is
+framing, not a negative evaluation; `mixed` requires both charges actually
+present (section 2's meaning), never a concession plus praise.
 
 ## 5. Negative space — what does NOT get a pin
 
@@ -647,6 +692,14 @@ And two crafted contrast cases:
    is verdict, not aspect.
 8. *"The photo mode is fantastic, I spent hours composing shots with it."*
    → candidate `photo mode` / positive. Genuine aspect, no pinned home.
+9. *"I can still say that this is one of the most creative, weird and unique
+   games I've ever played."* (dry-run slice, Disco Elysium — gold-excluded
+   like the dev slice, so it can teach here) → candidate `creative` /
+   positive. **A candidate can be a quality, not just a feature**: originality
+   is a genuinely evaluated property with no pinned home. Contrast the bare
+   verdict: "best game ever" names no property; "most creative I've played"
+   names one. (Added after the dry run, where the feature-only example left
+   this path feeling unlicensed.)
 
 ## 8. Process and provenance
 
@@ -663,6 +716,13 @@ biases as ground truth.
 
 **Dev-slice exclusion.** The six B4 pilot review ids
 (`probes/captures/classify_pilot/dev_slice.json`) never enter the gold set.
+
+**Dry-run exclusion.** The dry-run acceptance-test reviews
+(`eval/gold/dry_run/manifest.json`) likewise never enter the gold set — this
+document is acceptance-tested, and possibly revised, against them; same
+leakage logic as the dev slice. (Drawn fresh 2026-07-16: the dev slice
+couldn't serve as dry-run material once its six reviews became section 7's
+worked examples — answers printed in the doc.)
 
 **Non-English skip-and-redraw** (ruled 2026-07-16). The pipeline is
 English-only by recorded scope, so gold's population is English reviews —
@@ -695,6 +755,22 @@ one-at-a-time with Arda, and the ruling lands back in the section it belongs to:
    logged, with the mostly-English boundary** (applied in section 8).
 6. ~~Gold record storage~~ — **RULED 2026-07-16: self-contained, texts
    committed with provenance** (applied in section 8).
+8. ~~Memorability attributed to named aspects~~ — **RULED 2026-07-16 (dry
+   run): the named aspects win; `emotional_impact` only when no subsystem is
+   named** (applied in section 3; TOML wording rides the v2 batch).
+9. ~~Concessive comparisons~~ — **RULED 2026-07-16 (dry run): not a charge —
+   the praised side's polarity stands** (applied in section 4).
+10. ~~UPD/EDIT review updates~~ — **RULED 2026-07-16 (dry run): fold like
+    ordinary text — reversal → `mixed`** (applied in section 2). The
+    trajectory instinct (do updated reviews trend positive/negative/hold?)
+    parked as investigator-track material in the stream's IDEAS.md.
+11. ~~Reviewer-folded enumerations~~ — **RULED 2026-07-16 (dry run): the
+    independently-evaluated test — a contributor with its own polarity claim
+    gets its own mention; bare enumerated contributors stay inside the folded
+    mention as evidence** (applied in section 3).
+12. ~~Ambiguous referents~~ — **RULED 2026-07-16 (dry run): context decides;
+    genuinely undecidable → fold into the adjacent mention it most plausibly
+    supports, never mint a separate mention** (applied in section 3).
 
 ## 10. The slice — size and composition
 
