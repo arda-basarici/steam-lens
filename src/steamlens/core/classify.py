@@ -148,9 +148,9 @@ def build_classify_prompt(review_texts: Sequence[str], ontology: AspectOntology)
     )
     sections = (
         _TASK_FRAMING,
-        "Global rules:\n" + _render_global_rules(ontology.global_rules),
+        "Global rules:\n" + render_global_rules(ontology.global_rules),
         "The codebook — the pinned vocabulary, grouped by category:\n\n"
-        + _render_codebook(ontology),
+        + render_codebook(ontology),
         _OUTPUT_FORMAT,
         _WORKED_EXAMPLES,
         _DATA_CHANNEL_NOTE,
@@ -258,13 +258,25 @@ def parse_classify_response(
     return BatchParseResult(tuple(parsed), tuple(failures), tuple(repairs))
 
 
-def _render_global_rules(rules: Sequence[str]) -> str:
-    """The ontology's cross-cutting rules as a numbered list."""
+def render_global_rules(rules: Sequence[str]) -> str:
+    """The ontology's cross-cutting rules as a numbered list.
+
+    Public because the render is a shared annotation contract, not a prompt
+    detail: the classify prompt and the gold-set labeling instructions
+    (``eval/gold/INSTRUCTIONS.md``, spliced by ``scripts/render_gold_codebook.py``)
+    must show human and machine annotators the identical text.
+    """
     return "\n".join(f"{number}. {rule}" for number, rule in enumerate(rules, 1))
 
 
-def _render_codebook(ontology: AspectOntology) -> str:
-    """Every aspect's full codebook entry, grouped under category headings."""
+def render_codebook(ontology: AspectOntology) -> str:
+    """Every aspect's full codebook entry, grouped under category headings.
+
+    Same shared-contract rationale as ``render_global_rules``: this exact
+    render is what both annotators — the model in the classify prompt, the
+    human in the gold instructions — read, so agreement numbers compare two
+    readings of one text.
+    """
     by_category: dict[str, list[str]] = {}
     for aspect in ontology.aspects:
         by_category.setdefault(aspect.category, []).append(_render_aspect_entry(aspect))

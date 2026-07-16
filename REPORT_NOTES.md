@@ -7,6 +7,76 @@ decisions it feeds.
 
 ---
 
+## 2026-07-16 — The provider question inverts the roadmap: gold first, then the bake-off, then the buy
+
+*The provider-strategy discussion opening the C1 (corpus-labeling driver) arc of
+extraction+eval (M1); it resequenced the roadmap so the hand-labeled gold slice
+(D1-lite) now precedes both the provider choice and the first label buy. Feeds:
+the M1 report's methodology/eval section (provider choice as a measured decision,
+model-per-stage tiering) and likely an M1 post arc of its own.*
+
+The session was heading for the corpus-labeling driver when Arda stopped it with a
+sharper question: aren't we near the point where the LLM provider effectively
+fixes — where optimizations start accreting around whichever model we run — and is
+Gemini 2.5-flash actually the one to marry? The discussion's first job was locating
+where that hardening really lives, and the answer split cleanly in two. Not in the
+code: the provider seam was built for swappability — the per-stage routing table is
+config data, a provider is three protocol-typed callables, and the entire Gemini
+adapter is 152 lines (`src/steamlens/llm_client/`). The lock-in lives in **data
+gravity**: bought labels key to the model that produced them, calibration knowledge
+(the bare-verdict-filter measurement, the trailing-JSON quirk handling) is
+per-model, and every prompt refinement tunes to whichever model runs it. After the
+first paid corpus run, switching stops being a config edit and becomes
+relabel-plus-recalibrate.
+
+Two facts keep the door open long enough to choose deliberately. The gold set is
+hand-labeled, so the expensive evaluation infrastructure — gold plus the judge
+calibrated to it — is provider-neutral by construction and never binds to a vendor.
+And today's switching cost is only a ~$25 relabel [PRELIMINARY — estimated from
+B4's measured pilot numbers (7,295-token prompt prefix per batch call, ~100 tokens
+marginal per review; `probes/captures/classify_pilot/`) under a ~20-review batch
+assumption and from-memory pricing; firms up when the bake-off runs live]. Cheap —
+but the calibration and tuning knowledge compounds quietly, which is why the moment
+to question the provider was now.
+
+That reframing inverted the task order. The original roadmap labeled first (C1) and
+evaluated later (D1/D2); but a hand-labeled gold slice built *first* turns the
+provider choice from a vibe into a measurement — every candidate model runs the
+same slice for roughly $1–3 and is scored against gold on agreement, zero-aspect
+base rate, parse failures, refusals, and cost. The TODO's existing flash-lite pilot
+note (free 500 requests/day against its measured weaker bare-verdict filter, 31%
+vs 62% zero-share on identical reviews — the calibration entry in
+`ONTOLOGY_PRUNING.md`) turned out to be this idea in miniature; the session
+generalized it into a full provider bake-off, candidates to include the generous
+free tiers on the fast-inference hosts (Groq/Cerebras-class) and possibly the
+self-hosted 8B column from the design doc's tier table.
+
+Arda's second idea folded in naturally: tier the models per task — ultra-fast/cheap
+models for bulk labeling if they prove good enough, stronger models where they
+earn their cost. The design doc already anticipates exactly this (the LLM tier is
+decided per stage, not globally; the judge is always a stronger model than the one
+it grades; routing is per-stage data), so the idea landed as sharpening rather
+than change, and the sharpening is worth keeping: for batch labeling, latency is
+irrelevant — the fast hosts' real draw is their free tiers and cost — while
+latency starts mattering at deployment (M3), when a user is waiting on a report.
+The two-track rule adds the elegant closing note: the report writer never mints a
+number (aggregation is deterministic code), so a writer model's failure mode is
+style and faithfulness, not wrong statistics — and the planned fabricated-quote
+and numeric-grounding metrics check precisely that. The writer is a swappable
+luxury; the labeler is the correctness anchor, which is why the labeler gets the
+bake-off.
+
+One scope ruling from the same discussion belongs in the record: the full corpus
+(298,553 reviews) is deliberately *not* labeled. Certified numbers fold only the
+fixed survey stratum (the two-track rule), so labels outside it mint nothing —
+full-corpus labeling would buy roughly six times the spend for numbers the
+aggregate would refuse to certify. The label buy targets a fixed per-game survey
+slice, sized at the bake-off's end.
+
+Figure: the bake-off scoreboard, once it exists — candidates × (gold agreement,
+zero-share, parse failures, cost per 1k reviews) — is the natural table/chart for
+the M1 report's provider-choice section.
+
 ## 2026-07-15 — The pruning pass measures the whole corpus in one night, and the priors lose
 
 *The codebook pruning session for extraction+eval (M1), task B1's final tail —
