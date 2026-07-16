@@ -87,12 +87,100 @@ The document came out accepted: status flipped to dry-run-accepted, version
 de-drafted to `gold-instructions-v1`, and the acceptance record — Arda's unaided
 pass preserved untouched, with the post-discussion consensus labels and their
 diffs beside it — lives in `eval/gold/dry_run/round1/SHEET.md` (committed same day).
-Twelve rulings total now stand behind the instructions: seven from the drafting
-interview, five from the dry run.
+Twelve rulings stood behind the instructions at that close: seven from the
+drafting interview, five from the dry run. The acceptance held for roughly one
+exchange.
 
-Figure: the unaided-vs-consensus label diff as a small table — three reviews down
+**The continuation, same day: the test becomes a protocol, and the stopping rule
+turns out to be the wrong shape.** Arda asked whether one round was enough, and
+the honest answer turned the acceptance test into an iterated protocol: rounds
+2–4, each drawing three fresh seeded reviews from codebook regions earlier
+rounds left untested (round 2: Overwatch 2 / Hollow Knight / The Day Before;
+round 3: NBA 2K23 / Darkest Dungeon / No Man's Sky; round 4: Undertale / Path of
+Exile / Rust — seeds 20260717–19), under an explicit convergence rule: a round
+settling zero new rulings declares the document converged.
+
+Round 2's best finding was an accident. The Hollow Knight draw came out Spanish
+despite the corpus row claiming `language=english` — the Steam language field is
+reviewer-selected, and there is now corpus evidence that it lies. The
+non-English skip-and-redraw rule got exercised for real rather than
+hypothetically, and a design constraint fell out: the real gold draw must be a
+seeded **ordered** sample, because a skip needs a defined "next," and per-game
+random choice has none. The round's three rulings (ledger 13–15): trailer /
+marketing misrepresentation routes to `developer_conduct` — "broken promises"
+was already its alias, no new label needed — with the rider that a summary
+genre-verdict over a complaint list ("wasn't really a survival game") stays
+unlabeled; in-game dupe exploits are `bugs`, never monetization, cheating only
+when other players wield them; and absence routes to the owning pin ("no melee
+weapons" → `combat`), the candidate path serving systems with no pin ("a weird
+exfil system").
+
+Round 3 produced the arc's most consequential ruling, and Arda walked into it
+through his own honesty. He labeled Darkest Dungeon's "Visuals and audio 10/10"
+as `art_style` — correct about the game, whose hand-drawn 2D style is celebrated
+— then asked in his own friction note how a model could possibly distinguish
+that. It can't: `build_classify_prompt` receives review texts only, no game
+name, no app id. So the **evidence horizon** was ruled text-alone for both
+annotators — world knowledge may resolve vocabulary ("dupe" means duplication
+glitch) but never referents — and the generic visuals-praise corrected to
+`graphics`. His follow-up probe (couldn't the model deduce the game from its
+batch-mates?) hardened into a design stance worth quoting in the report: batch
+composition is an accident of the pipeline, not evidence — a label must be a
+function of (review text, codebook) alone, or the same review labels
+differently across runs and both reproducibility and the classify cache die.
+The round's other ruling: a single-player mode gated behind decommissionable
+servers is `platform_access` (the DRM/login-required family), `developer_conduct`
+joining only where conduct is separately charged ("but wow, this is egregiously
+scummy").
+
+Round 4 added two more, one of them Arda's routing prevailing over the
+assistant's recommendation — credit runs both directions in this arc: "the
+constant cycle of nerfs" charges the update *practice*, not the resulting build
+variety, and the assistant conceded on the document's own
+label-the-concrete-cause precedent. Generalized as **pattern vs. state**: a
+charge against the post-launch pattern → `updates`; a charge against the
+resulting state → the affected system's label. The other: **anecdotes are not a
+category**. The Rust review — a raider finds the reviewer destitute, rebuilds
+his base, gifts him 5k scrap, leaves "a cool little note" — mints zero
+mentions, because nothing in it evaluates a game property; an anecdote
+*carrying* an explicit evaluation labels normally, the story serving as
+evidence.
+
+Then the convergence story, which is the part the report should tell. The
+ruling rate ran **5 → 3 → 2 → 2** and stopped decaying — and reading the
+*kinds* explained why. Structural rules (sentiment vocabulary, evidence policy,
+the folds) never moved after round 1. What kept arriving was additive routing
+precedents, roughly two per round — and at three reviews per round against a
+~50-label boundary space, those are effectively inexhaustible. The zero-ruling
+criterion was wrong-shaped, not the document unstable. Ruled (Arda,
+2026-07-16): retire the criterion, declare the instructions **GOLD-READY**, and
+route residual precedents through the channel the real pass already owns —
+every assist-vs-annotator disagreement or flagged uncertainty triggers the same
+one-question mini-interview the rounds ran, new precedents append to the ledger
+dated, and structural rules are frozen: changing one forces an
+instructions-version bump and an explicit relabel decision, taken deliberately
+or not at all. The transferable lesson, stated for reuse: a stopping rule
+should measure the risk it guards against — here, relabeling-forcing changes —
+not the raw count of findings.
+
+One running gag earned a serious conclusion. Four rounds produced four
+*distinct* evidence-transfer defects — a retyped "suprisingly," an editor
+silently collapsing a double space, a stitch joining two spans with a rewritten
+question mark, a stitch across paragraphs — human span-transfer failed a new
+way every single round. The real pass pre-fills evidence spans via the assist
+model and Arda adjudicates; he never transcribes.
+
+Provenance: the full ledger is INSTRUCTIONS.md §9 (nineteen rulings); the four
+acceptance records — unaided passes preserved, consensus diffs beside them —
+are `eval/gold/dry_run/round<N>/SHEET.md`; draw seeds 20260716–20260719; the
+residual channel is INSTRUCTIONS §8. Committed by Arda 2026-07-16.
+
+Figure: the unaided-vs-consensus label diff as a small table — reviews down
 the side, mentions across, misses marked by kind (recall vs routing) — is the
-natural visual for "what a dry run buys" in the methodology section.
+natural visual for "what a dry run buys" in the methodology section. Its
+companion is the ruling-rate curve (5 → 3 → 2 → 2) annotated by kind,
+structural vs routing — the argument for retiring the convergence criterion,
+drawn.
 
 ## 2026-07-16 — The provider question inverts the roadmap: gold first, then the bake-off, then the buy
 
