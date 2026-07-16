@@ -194,6 +194,83 @@ these up at the v2 wording batch — see FIXLOG):
   against the resulting *state* ("too few viable builds now" → 
   `build_variety`; "after the patch it stutters constantly" →
   `performance`) → the affected system's label.
+- **External help vs. the game's own onboarding** (2026-07-17, real pass —
+  the first residual ruling; Arda's routing over the assist and the
+  recommendation). Tutorials, tips, guides, wikis "out there" — help made by
+  players outside the game — evaluate the community's helpfulness →
+  `community` ("helpful community" is in its aliases). `learning_curve`
+  keeps the game's own entry friction: in-game tutorials and onboarding, how
+  hard the game itself is to get into or understand. A learnability claim
+  resting entirely on external help ("possible even if you aren't the best
+  at games — so many tutorials and tips out there") routes to `community`;
+  `learning_curve` joins only when the game's own approachability is
+  separately evaluated.
+- **`characters` means the authored cast** (2026-07-17, real pass, Arda's
+  ruling). Named or central characters, companions, protagonists,
+  antagonists — the people the game authors *as people* (the pin's own
+  vocabulary: cast, development, companions, relationships). Generic
+  NPC-population talk is not `characters`: behavior quality → `ai_behavior`
+  ("NPCs walk into walls"); the world feeling inhabited → `world` ("NPCs
+  living their own lives"); an unspecified "the NPCs are good" naming no
+  property → the ambiguous-referent path (fold into an adjacent mention or
+  drop). Trigger case: "the talking people are good" in a 30-minute first
+  impression — dropped as undecidable once cast-reading was excluded.
+- **Wayfinding and lost-talk** (2026-07-17, real pass, Arda's routing table
+  — chosen over an inferred-entry-framing variant because every branch
+  requires an explicit trigger in the text). Top-down, first match wins:
+  - Named layout or spatial cause → `level_design`
+  - Named map, marker, waypoint, or HUD cause → `ui`
+  - Named objective, mission, or quest instruction cause → `quest_design`
+  - Explicit onboarding or early-learning framing ("at first," "when I
+    started," "the beginning was confusing," "hard to get into") →
+    `learning_curve`
+  - No branch fires → the ambiguous-referent path: fold into the adjacent
+    mention it most plausibly supports, or drop. Trigger case: "sometimes
+    you don't have a clue where to go" (30-minute review, no cause, no
+    entry framing — "sometimes" states recurrence, not onboarding) →
+    dropped.
+- **Discount advice is not a value charge** (2026-07-17, real pass, Arda's
+  ruling). Steam's frequent-sale culture makes "get it on a discount"
+  purchase-*timing* advice, not a worth indictment — the negative inference
+  is unsafe. Bare wait-for-sale advice → `price_value` / **neutral**
+  (value-domain talk with no polarity; section 4 forbids forcing or
+  dropping it). An explicit worth-charge decides polarity as usual: "not
+  worth full price" / "overpriced" → negative; "worth every penny" /
+  "a great purchase this sale" → positive; and surrounding context can
+  still supply the charge (the ordinary context rule). Trigger case: "Fun
+  game, should be acquired during discount" → `price_value` / neutral.
+- **`gameplay` is the mechanics, not the pastime** (2026-07-17, real pass,
+  Arda's ruling — supersedes worked example 4's original answer). `gameplay`
+  labels when the play *system* is the evaluated subject — core loop,
+  mechanics, moment-to-moment structure — signaled by a system-noun or a
+  named play activity: "the gameplay is fun," "the core loop gets stale,"
+  "managing the customers and stock levels was very enjoyable."
+  Enjoyment-of-playing with no system named is a bare verdict **whether or
+  not it is anchored to playing**: "fun game," "it was fun," "fun to play,"
+  "I enjoyed playing" → zero mentions (rule 2) — the verdict axis already
+  has a home in the thumbs, and an aspect number that counts unattributed
+  enjoyment restates the recommendation rate. "Fun" stays an ordinary
+  polarity carrier on any named property ("combat is fun" → `combat`).
+  Experiential adjectives with their own pins keep their homes ("relaxing
+  to play" → `relaxation`, "can't stop playing" → `addictiveness`): the
+  asymmetry is principled — relaxation names a specific mood property;
+  fun-enjoyment is the verdict itself. Related: `fun_factor` as a possible
+  v2 pin is parked in ONTOLOGY_PRUNING.md with today's evidence.
+- **Worth-talk routes by its frame** (2026-07-17, real pass, Arda's ruling —
+  clarifies the discount-advice ruling's "explicit worth-charge" leg).
+  `price_value` requires worth-talk that evaluates value-for-money in a
+  monetary or purchase frame: "not worth full price," "worth every penny,"
+  "worth getting," "$32 more than it should be." Two look-alikes stay out:
+  (1) bare "not worth it" in an effort/time/hassle context is the
+  reviewer's summary conclusion over their complaints — unlabeled, per the
+  summary-verdict rider of the marketing-fidelity ruling ("EA's stupid
+  decisions make it not worth it in the long run" caps an access rant the
+  way "wasn't really a survival game" capped its list); (2) money-rhetoric
+  capping another system's failure ("I'm literally unable to play… so It's
+  a waste of money," "Refunded") is consequence talk — the mention belongs
+  to the failing system, and worked example 7 already treats "Refunded"
+  this way. Test: does the claim weigh price against content, or restate a
+  complaint/conclusion in money words?
 - **The evidence horizon: text alone** (round 3, 2026-07-16). Label from the
   review text and nothing else — the machine's horizon is the human's
   horizon (`build_classify_prompt` receives texts only; no game name, no app
@@ -731,9 +808,14 @@ without leaking into it).
 2. `"farm"` → **zero mentions.** A word, not an evaluation.
 3. `"GAM IS GUD!"` → **zero mentions.** Bare verdict.
 4. `"I play this game pretty often, its extremely fun and relaxing to play
-   before bed :)"` → two mentions:
-   - `gameplay` / positive / evidence: "its extremely fun"
+   before bed :)"` → one mention:
    - `relaxation` / positive / evidence: "relaxing to play before bed"
+   ("Its extremely fun" is enjoyment-of-playing with no system named — a
+   bare verdict under the gameplay-is-the-mechanics ruling (section 3,
+   2026-07-17; this example originally carried a `gameplay` mention, and
+   the v1 machine still labels it that way until the v2 wording batch —
+   expected disagreement, not a defect. "Relaxing" keeps its mention:
+   it names a pinned experiential property.)
 5. `"great game and great story"` → one mention: `story` / positive /
    evidence: "great story". ("Great game" alone is a bare verdict — it adds no
    second mention.)
@@ -873,6 +955,63 @@ one-at-a-time with Arda, and the ruling lands back in the section it belongs to:
     game property → zero mentions, an anecdote carrying an explicit
     evaluation labels normally with the story as evidence** (applied in
     section 3).
+20. ~~External help resources (guides, wikis, tutorials "out there")~~ —
+    **RULED 2026-07-17 (real pass, the first residual ruling — Arda's
+    routing over the assist and the recommendation): community-made help
+    evaluates the community's helpfulness → `community`; `learning_curve`
+    keeps the game's own onboarding/entry friction** (applied in section 3;
+    machine-side wording rides the v2 batch). Draft-wide recheck at ruling
+    time found no other affected mention (10 learning_curve/community
+    drafts scanned, all correctly on their side of the boundary).
+21. ~~`characters` scope: cast vs. NPC population~~ — **RULED 2026-07-17
+    (real pass, Arda's ruling): `characters` is the authored cast (named/
+    central figures, companions); generic NPC-population talk routes to
+    `ai_behavior` (behavior), `world` (liveliness), or the ambiguous-
+    referent path** (applied in section 3; machine-side wording rides the
+    v2 batch). Draft-wide recheck at ruling time: 13 characters mentions
+    scanned, all cast-shaped except the trigger case (dropped).
+22. ~~Wayfinding complaints~~ — **RULED 2026-07-17 (real pass, Arda's
+    routing table): named cause → its system (layout → `level_design`,
+    map/markers → `ui`, objectives → `quest_design`); explicit onboarding
+    framing → `learning_curve`; top-down, first match wins; no trigger →
+    fold or drop** (applied in section 3; machine-side wording rides the
+    v2 batch). Draft-wide recheck at ruling time: one wayfinding-shaped
+    span in all drafts — the trigger case itself (dropped).
+23. ~~Discount advice~~ — **RULED 2026-07-17 (real pass, Arda's ruling):
+    bare wait-for-sale purchase-timing advice is not a negative value
+    charge → `price_value` / neutral; explicit worth-charges keep their
+    polarity; context can supply the charge** (applied in section 3;
+    machine-side wording rides the v2 batch). Draft-wide recheck at ruling
+    time: 15 price_value drafts, 5 sale-flavored — two bare-advice flips
+    to neutral (batches 01, 05), two qualified charges left to
+    adjudication (batches 03, 11), one already correct (batch 19).
+24. ~~Fun-talk and `gameplay`'s scope~~ — **RULED 2026-07-17 (real pass,
+    Arda's ruling, confirmed with costs named): `gameplay` requires the
+    play system as evaluated subject (system-noun or named activity);
+    enjoyment-of-playing with no system named is rule-2 negative space,
+    anchored or not — "fun to play" included; "fun" remains a polarity
+    carrier on named properties; pinned experiential adjectives keep their
+    homes** (applied in section 3; worked example 4 rewritten — the one
+    printed-answer change of the pass; machine-side wording rides the v2
+    batch, and until then fun-flavored reviews are a KNOWN high-volume
+    human-vs-machine gap that the bake-off report must name). Draft-wide
+    recheck at ruling time: 42 gameplay drafts — ~24 bare-fun deletions,
+    ~10 system-nouned keeps, ~6 judgment cases; the per-batch list is
+    `eval/gold/workbook/RECHECK-ruling24.md`. Alternatives considered:
+    fold-all-fun-into-gameplay (rejected: aggregate degenerates into the
+    recommendation rate), surface-anchor rule "fun to play → gameplay"
+    (rejected: the verb anchor attributes nothing — playing is the default
+    consumption mode), new `fun_factor` pin (deferred to v2:
+    ONTOLOGY_PRUNING.md holds the evidence and the reopen condition).
+25. ~~"Worth it" outside a price frame~~ — **RULED 2026-07-17 (real pass,
+    Arda's ruling): `price_value` needs a monetary/purchase frame weighing
+    price against content; effort-context "not worth it" is a summary
+    conclusion (unlabeled, the ruling-13 rider); money-rhetoric capping
+    another system's failure ("waste of money" after "unable to play,"
+    "Refunded") belongs to the failing system** (applied in section 3;
+    machine-side wording rides the v2 batch). Draft-wide recheck at ruling
+    time: all 15 price_value drafts monetary-framed — zero edits; the
+    ruling ratifies review 225044464's no-add.
 
 ## 10. The slice — size and composition
 

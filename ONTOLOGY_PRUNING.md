@@ -215,3 +215,26 @@ topic lists) are the candidates' report form if any.
   corpus with per-step rationale comments).
 - Free-tier quota: 20 requests/day = ~6 games/day; resume makes the daily rerun a
   stateless drip (`python probes/aspect_vocab_ext_probe.py`).
+
+---
+
+## Post-ratification reopen candidates (fire at a version bump, never an edit)
+
+### fun_factor — addition candidate for v2 (2026-07-17, from the gold pass)
+- **Origin:** ruling 24 of the gold instructions (fun-talk and `gameplay`'s
+  scope). Arda proposed a `fun_factor` pin for the industry-standard notion;
+  deferred to v2 because a mid-pass pin addition breaks the hash-pinned v1
+  contract on both sides (gold provenance + the classify prompt).
+- **Evidence at parking time:** 28 of 42 `gameplay` assist drafts on the gold
+  slice (250 reviews) were bare fun-talk — the single most common evaluative
+  pattern in the natural mix. Counter-evidence: the aspect-vocab probes found
+  fun/vague-verdict labels dominating the UNMAPPED mass corpus-wide — present
+  everywhere, clustering nowhere, which is the demotion criterion's textbook
+  fail (a near-uniform positive share restates the recommendation rate).
+- **The v2 trial it must pass:** the same per-game clustering bar every pin
+  faced, measured on anchored-vs-bare fun-talk separately — the ruling-24
+  boundary makes that split measurable for the first time (gold now encodes
+  it, and the candidate pool records bare-fun wording verbatim).
+- **Reopens if:** survey-scale candidates show fun-talk clustering on specific
+  games once bare verdicts are filtered, OR the M1 report's zero-share reading
+  suggests the verdict axis carries per-game structure the thumbs miss.
