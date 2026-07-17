@@ -1,0 +1,378 @@
+"""The C0 bake-off runner — one candidate, one N, the gold slice, captures out.
+
+Usage (one scored run per candidate; the N-probe is this same script at
+several N values on the two probe models):
+
+    uv run python probes/bakeoff_runner.py gemini-flash --n 20
+    uv run python probes/bakeoff_runner.py groq-llama-70b --n 50 --limit 10
+
+Captures land in ``probes/captures/bakeoff/<candidate>/n<N>/``:
+
+    raw.jsonl          one line per request — review ids, the raw provider body,
+                       reported model version, finish reason, the token split
+    predictions.jsonl  one line per answered review — resolved mentions or a
+                       failed marker, with the attempt that produced it
+    manifest.json      the protocol's provenance fields (DESIGN C0 entries)
+
+The run rides the full LlmClient: rpm pacing, bounded retries, the spend
+ledger, and a durable SQLite cache shared across runs (``bakeoff.sqlite3``
+next to the captures) — a crashed or re-invoked run re-reads bought responses
+for free. Failed rows get one re-batch pass at N=1 per the protocol's
+unrecoverable definition ("failed in its production-shape batch AND alone").
+
+The _CANDIDATES table below carries the scan's best-knowledge model ids,
+pacing, and structured-output params — verify each against its console when
+its key lands; edits here are config, and what actually ran is in the manifest.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from pathlib import Path
+
+_REPO = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_REPO / "src"))
+
+from steamlens.contracts import AspectMention, LlmRequest, LlmStage, SinkEvent  # noqa: E402
+from steamlens.core.classify import (  # noqa: E402
+    CLASSIFY_RESPONSE_SCHEMA,
+    PROMPT_VERSION,
+    build_classify_prompt,
+    parse_classify_response,
+)
+from steamlens.core.normalize import build_surface_index  # noqa: E402
+from steamlens.evals import GoldRecord, load_gold  # noqa: E402
+from steamlens.llm_client import (  # noqa: E402
+    GenerationIncompleteError,
+    LlmClient,
+    LlmClientConfig,
+    ModelSpec,
+    Route,
+    gemini_entry,
+    openai_compat_entry,
+)
+from steamlens.llm_client.openai_compat import (  # noqa: E402
+    DEEPSEEK_BASE_URL,
+    GROQ_BASE_URL,
+    MISTRAL_BASE_URL,
+    OLLAMA_BASE_URL,
+)
+from steamlens.ontology import load_ontology, load_ontology_version  # noqa: E402
+from steamlens.store import Store  # noqa: E402
+
+_GOLD_PATH = _REPO / "eval" / "gold" / "gold.jsonl"
+_CAPTURES = _REPO / "probes" / "captures" / "bakeoff"
+
+# Output sizing: gold density is ~1.4 mentions/review; a mention with its
+# evidence quote renders ~120 output tokens, so ceiling = base + 140/review
+# gives comfortable headroom without inviting runaway generations.
+_OUTPUT_BASE = 512
+_OUTPUT_PER_REVIEW = 140
+
+_GEMINI_PARAMS: dict[str, object] = {
+    "temperature": 0,
+    "responseMimeType": "application/json",
+    "responseSchema": CLASSIFY_RESPONSE_SCHEMA,
+    "thinkingConfig": {"thinkingBudget": 0},
+}
+_JSON_OBJECT: dict[str, object] = {"temperature": 0, "response_format": {"type": "json_object"}}
+
+
+@dataclass(frozen=True)
+class Candidate:
+    """One pool member's dial: identity, envelope, and structured-output mode."""
+
+    kind: str  # 'gemini' | 'compat'
+    model: str
+    key_env: str | None  # None = keyless (local Ollama)
+    structured_output: str  # the mode label the manifest records
+    rpm: int
+    rpd: int | None
+    output_cap: int
+    base_url: str | None = None
+    params: dict[str, object] = field(default_factory=dict)
+
+
+_CANDIDATES: dict[str, Candidate] = {
+    "gemini-flash": Candidate(
+        kind="gemini", model="gemini-2.5-flash", key_env="GEMINI_API_KEY",
+        structured_output="gemini-responseSchema", rpm=10, rpd=250, output_cap=65_536,
+        params=_GEMINI_PARAMS,
+    ),
+    "gemini-flash-lite": Candidate(
+        kind="gemini", model="gemini-2.5-flash-lite", key_env="GEMINI_API_KEY",
+        structured_output="gemini-responseSchema", rpm=15, rpd=1_000, output_cap=65_536,
+        params=_GEMINI_PARAMS,
+    ),
+    "groq-llama-70b": Candidate(
+        kind="compat", model="llama-3.3-70b-versatile", key_env="GROQ_API_KEY",
+        structured_output="json_object", rpm=30, rpd=1_000, output_cap=32_768,
+        base_url=GROQ_BASE_URL, params=_JSON_OBJECT,
+    ),
+    "groq-llama-8b": Candidate(
+        kind="compat", model="llama-3.1-8b-instant", key_env="GROQ_API_KEY",
+        structured_output="json_object", rpm=30, rpd=14_400, output_cap=8_192,
+        base_url=GROQ_BASE_URL, params=_JSON_OBJECT,
+    ),
+    "mistral-small": Candidate(
+        kind="compat", model="mistral-small-latest", key_env="MISTRAL_API_KEY",
+        structured_output="json_object", rpm=60, rpd=None, output_cap=8_192,
+        base_url=MISTRAL_BASE_URL, params=_JSON_OBJECT,
+    ),
+    "mistral-nemo": Candidate(
+        kind="compat", model="open-mistral-nemo", key_env="MISTRAL_API_KEY",
+        structured_output="json_object", rpm=60, rpd=None, output_cap=8_192,
+        base_url=MISTRAL_BASE_URL, params=_JSON_OBJECT,
+    ),
+    "deepseek": Candidate(
+        kind="compat", model="deepseek-chat", key_env="DEEPSEEK_API_KEY",
+        structured_output="json_object", rpm=60, rpd=None, output_cap=8_192,
+        base_url=DEEPSEEK_BASE_URL, params=_JSON_OBJECT,
+    ),
+    "ollama-8b": Candidate(
+        kind="compat", model="llama3.1:8b", key_env=None,
+        structured_output="json_object", rpm=600, rpd=None, output_cap=8_192,
+        base_url=OLLAMA_BASE_URL, params=_JSON_OBJECT,
+    ),
+}
+
+
+class ConsoleSink:
+    """Narrates client events to stdout — the probe's live pane."""
+
+    def emit(self, event: SinkEvent) -> None:
+        print(f"    · {event}")
+
+
+@dataclass
+class RunTotals:
+    """The run's accumulating counters — one place, printed and manifested."""
+
+    prompt_tokens: int = 0
+    output_tokens: int = 0
+    thinking_tokens: int = 0
+    salvaged: int = 0
+    repairs: int = 0
+    unattributable: int = 0
+
+
+def _api_key(candidate: Candidate) -> str:
+    if candidate.key_env is None:
+        return ""
+    key = os.environ.get(candidate.key_env)
+    if not key:
+        raise SystemExit(f"missing {candidate.key_env} in the environment — set it and rerun")
+    return key
+
+
+def _build_client(name: str, candidate: Candidate, n: int, store: Store) -> LlmClient:
+    entry = (
+        gemini_entry(_api_key(candidate))
+        if candidate.kind == "gemini"
+        else openai_compat_entry(_api_key(candidate), base_url=candidate.base_url or "")
+    )
+    config = LlmClientConfig(
+        routes={
+            LlmStage.CLASSIFY: Route(
+                provider=name,
+                model=candidate.model,
+                max_output_tokens=min(candidate.output_cap, _OUTPUT_BASE + _OUTPUT_PER_REVIEW * n),
+                params=dict(candidate.params),
+            )
+        },
+        models={
+            candidate.model: ModelSpec(
+                rpm=candidate.rpm, rpd=candidate.rpd,
+                # Free tiers carry honest zeros; a paid round two edits these.
+                input_usd_per_1m=0.0, output_usd_per_1m=0.0,
+            )
+        },
+        daily_reset_utc_hour=8 if candidate.kind == "gemini" else 0,
+    )
+    return LlmClient(
+        config, store.classify_cache, store.spend_ledger, ConsoleSink(), registry={name: entry}
+    )
+
+
+def _chunk(records: tuple[GoldRecord, ...], n: int) -> list[tuple[GoldRecord, ...]]:
+    return [records[i : i + n] for i in range(0, len(records), n)]
+
+
+def _mention_row(mention: AspectMention) -> dict[str, object]:
+    return {
+        "aspect": mention.aspect,
+        "slot": mention.slot.value,
+        "sentiment": mention.sentiment.value,
+        "evidence": mention.evidence,
+    }
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Run one bake-off candidate over the gold slice.")
+    parser.add_argument("candidate", choices=sorted(_CANDIDATES))
+    parser.add_argument("--n", type=int, required=True, help="batch size (reviews per request)")
+    parser.add_argument("--limit", type=int, default=None, help="first K reviews only (smoke)")
+    args = parser.parse_args()
+
+    candidate = _CANDIDATES[args.candidate]
+    records = load_gold(_GOLD_PATH)
+    if args.limit:
+        records = records[: args.limit]
+    ontology = load_ontology()
+    stamp = load_ontology_version()
+    if {r.ontology_content_hash for r in records} != {stamp.content_hash}:
+        raise SystemExit("gold's ontology pin does not match the packaged v1 artifact — refusing")
+    index = build_surface_index(ontology)
+
+    out_dir = _CAPTURES / args.candidate / f"n{args.n}"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    store = Store(_CAPTURES / "bakeoff.sqlite3")
+    client = _build_client(args.candidate, candidate, args.n, store)
+
+    started = datetime.now(UTC)
+    totals = RunTotals()
+    raw_rows: list[dict[str, object]] = []
+    predictions: dict[str, dict[str, object]] = {}
+    failed_first_pass: list[GoldRecord] = []
+    aborted: str | None = None
+
+    def run_batch(batch: tuple[GoldRecord, ...], attempt: str) -> None:
+        texts = [r.text for r in batch]
+        prompt = build_classify_prompt(texts, ontology)
+        try:
+            response = client.complete(LlmRequest(stage=LlmStage.CLASSIFY, prompt=prompt))
+            finish = response.finish_reason.value
+        except GenerationIncompleteError as exc:
+            response = exc.response  # spend already journaled; salvage what parsed
+            finish = f"incomplete:{exc.reason.value}"
+        totals.prompt_tokens += response.usage.prompt_tokens
+        totals.output_tokens += response.usage.output_tokens
+        totals.thinking_tokens += response.usage.thinking_tokens
+        raw_rows.append(
+            {
+                "attempt": attempt,
+                "review_ids": [r.review_id for r in batch],
+                "model_version": response.model_version,
+                "finish_reason": finish,
+                "usage": {
+                    "prompt": response.usage.prompt_tokens,
+                    "output": response.usage.output_tokens,
+                    "thinking": response.usage.thinking_tokens,
+                },
+                "raw": response.text,
+            }
+        )
+        result = parse_classify_response(response.text, texts, index)
+        had_failures = bool(result.failures)
+        totals.repairs += len(result.repairs)
+        for parsed in result.parsed:
+            record = batch[parsed.idx]
+            predictions[record.review_id] = {
+                "review_id": record.review_id,
+                "mentions": [_mention_row(m) for m in parsed.mentions],
+                "failed": False,
+                "attempt": attempt,
+            }
+            if had_failures:
+                totals.salvaged += 1
+        for failure in result.failures:
+            if failure.idx is None:
+                totals.unattributable += 1
+                continue
+            record = batch[failure.idx]
+            if attempt == "initial":
+                failed_first_pass.append(record)
+            else:
+                predictions[record.review_id] = {
+                    "review_id": record.review_id,
+                    "mentions": [],
+                    "failed": True,
+                    "attempt": attempt,
+                    "reason": failure.reason,
+                }
+
+    batches = _chunk(records, args.n)
+    try:
+        for i, batch in enumerate(batches, start=1):
+            print(f"batch {i}/{len(batches)} ({len(batch)} reviews)")
+            run_batch(batch, "initial")
+        if failed_first_pass:
+            print(f"retry pass: {len(failed_first_pass)} failed rows, alone at N=1")
+            for record in failed_first_pass:
+                run_batch((record,), "retry")
+    except KeyboardInterrupt:
+        aborted = "keyboard interrupt"
+    except Exception as exc:  # persist partial captures before dying loud
+        aborted = f"{type(exc).__name__}: {exc}"
+
+    unrecoverable = sum(1 for p in predictions.values() if p["failed"])
+    (out_dir / "raw.jsonl").write_text(
+        "\n".join(json.dumps(r, ensure_ascii=False) for r in raw_rows), encoding="utf-8"
+    )
+    (out_dir / "predictions.jsonl").write_text(
+        "\n".join(
+            json.dumps(predictions[r.review_id], ensure_ascii=False)
+            for r in records
+            if r.review_id in predictions
+        ),
+        encoding="utf-8",
+    )
+    manifest = {
+        "candidate": args.candidate,
+        "provider_kind": candidate.kind,
+        "model": candidate.model,
+        "model_versions": sorted({str(r["model_version"]) for r in raw_rows}),
+        "prompt_version": PROMPT_VERSION,
+        "ontology_version": stamp.version,
+        "ontology_content_hash": stamp.content_hash,
+        "structured_output": candidate.structured_output,
+        "n": args.n,
+        "limit": args.limit,
+        "gold_path": str(_GOLD_PATH.relative_to(_REPO)),
+        "started_at": started.isoformat(),
+        "finished_at": datetime.now(UTC).isoformat(),
+        "requests": len(raw_rows),
+        "tokens": {
+            "prompt": totals.prompt_tokens,
+            "output": totals.output_tokens,
+            "thinking": totals.thinking_tokens,
+        },
+        "cost_usd": store.spend_ledger.cost_since(started),
+        "reviews": {
+            "total": len(records),
+            "answered": len(predictions),
+            "salvaged_from_partial_batches": totals.salvaged,
+            "retried": len(failed_first_pass),
+            "unrecoverable": unrecoverable,
+            "unattributable_rows": totals.unattributable,
+            "evidence_repairs": totals.repairs,
+        },
+        "aborted": aborted,
+        "argv": sys.argv[1:],
+    }
+    (out_dir / "manifest.json").write_text(
+        json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+
+    print(f"\n{'ABORTED: ' + aborted if aborted else 'DONE'}")
+    print(
+        f"  answered {len(predictions)}/{len(records)}, unrecoverable {unrecoverable} "
+        f"({unrecoverable / len(records):.1%} vs the 2% gate), "
+        f"salvaged {totals.salvaged}, repairs {totals.repairs}"
+    )
+    print(
+        f"  tokens: prompt {totals.prompt_tokens:,} · output {totals.output_tokens:,} · "
+        f"thinking {totals.thinking_tokens:,} across {len(raw_rows)} requests"
+    )
+    print(f"  captures -> {out_dir.relative_to(_REPO)}")
+    if aborted:
+        raise SystemExit(1)
+
+
+if __name__ == "__main__":
+    main()
