@@ -1,0 +1,29 @@
+{
+  "batch": 26,
+  "annotations": [
+    {
+      "id": "224390133",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "218038026",
+      "mentions": [
+        {
+          "aspect": "servers_netcode",
+          "sentiment": "negative",
+          "evidence": "can't even enjoy this game without getting kicked for connectivity issues"
+        }
+      ],
+      "flags": [],
+      "note": null
+    },
+    {
+      "id": "222055170",
+      "mentions": [],
+      "flags": [],
+      "note": null
+    }
+  ]
+}

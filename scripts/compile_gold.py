@@ -8,11 +8,14 @@ against the immutable ``assist/raw/`` files to report progress and the
 assist-vs-final disagreement stats that INSTRUCTIONS section 8 wants measured.
 
 ``--mint`` additionally writes the final gold set — refused until every
-review is checked off, every violation cleared, and every SKIP resolved.
-Minting is deliberately not built yet (it lands with the skip-replacement
-flow once Arda's pass confirms which skips are real); check mode is complete
-and is also the render round-trip test: a freshly rendered workbook must
-parse back identical to raw (all accepted, zero violations).
+review is checked off, every violation cleared, and every skip's
+replacement (the top-up batch) is adjudicated. Minting writes three
+artifacts: ``eval/gold/gold.jsonl`` (self-contained records — text and
+full provenance per row, per the section-8 storage ruling),
+``eval/gold/gold_manifest.json`` (counts, the assist-disagreement profile
+including the disposition-vs-intrinsic sentiment-flip contrast feeding the
+v2 two-category decision, skip log), and the draw manifest's ``skips``
+list (cause + replacement per skip, closing the loop the draw opened).
 
 Per-review grammar (everything else in a block is a violation, printed loud):
 
@@ -161,14 +164,17 @@ def verify_reviews(
 
 def diff_against_raw(
     reviews: list[ReviewState], raw_annotations: dict[str, dict[str, object]]
-) -> dict[str, int]:
+) -> tuple[dict[str, int], list[dict[str, str]]]:
     """Assist-vs-current mention diff: accepted / modified / added / deleted.
 
     Exact (aspect, sentiment, evidence) matches count accepted; a same-aspect
-    survivor with edits counts modified; the rest are deletions/additions.
-    Coarse by design — the free difficulty estimate, not a certified metric.
+    survivor with edits counts modified — and when the edit flipped the
+    sentiment, the flip is recorded (aspect, from, to) for the
+    disposition-vs-intrinsic contrast. Coarse by design — the free
+    difficulty estimate, not a certified metric.
     """
     counts = {"accepted": 0, "modified": 0, "added": 0, "deleted": 0}
+    flips: list[dict[str, str]] = []
     for r in reviews:
         if r.skip:  # exclusion from gold, not a labeling disagreement
             continue
@@ -186,18 +192,164 @@ def diff_against_raw(
                 raw_mentions.remove(twin)
                 current.remove(m)
                 counts["modified"] += 1
+                if twin["sentiment"] != m["sentiment"]:
+                    flips.append(
+                        {
+                            "aspect": str(m["aspect"]),
+                            "from": str(twin["sentiment"]),
+                            "to": str(m["sentiment"]),
+                        }
+                    )
         counts["deleted"] += len(raw_mentions)
         counts["added"] += len(current)
-    return counts
+    return counts, flips
+
+
+_DISPOSITION_PINS = frozenset(
+    {"addictiveness", "relaxation", "emotional_impact", "difficulty", "learning_curve"}
+)
+
+
+def _mint(
+    reviews_by_id: dict[str, ReviewState],
+    texts_by_id: dict[str, str],
+    diff_totals: dict[str, int],
+    flips: list[dict[str, str]],
+) -> None:
+    """Write gold.jsonl + gold manifest and log skips into the draw manifest.
+
+    Every record is self-contained (text + full provenance per row — the
+    section-8 storage ruling: evals run in CI, which never sees the corpus).
+    """
+    from datetime import date
+
+    from steamlens.ontology import load_ontology
+
+    draw_manifest_path = _REPO / "eval" / "gold" / "draw" / "manifest.json"
+    draw_manifest = json.loads(draw_manifest_path.read_text(encoding="utf-8"))
+    draw_rows = {
+        json.loads(line)["id"]: json.loads(line)
+        for line in (_REPO / "eval" / "gold" / "draw" / "reviews.jsonl").open(encoding="utf-8")
+    }
+    assist_manifest = json.loads((_ASSIST_DIR / "manifest.json").read_text(encoding="utf-8"))
+    replacements: dict[str, str] = assist_manifest["top_up"]["replacements"]
+
+    unreviewed = [r.review_id for r in reviews_by_id.values() if not r.reviewed]
+    if unreviewed:
+        raise SystemExit(f"mint refused: {len(unreviewed)} unreviewed reviews: {unreviewed[:5]}")
+    for skip_id, repl_id in replacements.items():
+        repl = reviews_by_id.get(repl_id)
+        if repl is None or not repl.reviewed or repl.skip:
+            raise SystemExit(
+                f"mint refused: replacement {repl_id} for skip {skip_id} is missing, "
+                "unreviewed, or itself skipped"
+            )
+
+    constants = {
+        "instructions_version": draw_manifest["instructions_version"],
+        "ontology_version": draw_manifest["ontology_version"],
+        "ontology_content_hash": draw_manifest["ontology_content_hash"],
+        "annotator": "Arda",
+        "assist_model": assist_manifest["assist_model"],
+        "labeled_at": str(date.today()),
+    }
+
+    records = []
+    for r in reviews_by_id.values():
+        if r.skip:
+            continue
+        records.append(
+            {
+                "review_id": r.review_id,
+                "app_id": draw_rows[r.review_id]["app_id"],
+                "text": texts_by_id[r.review_id],
+                "mentions": r.mentions,
+                **constants,
+            }
+        )
+    records.sort(key=lambda x: (x["app_id"], x["review_id"]))
+
+    pinned = frozenset(a.label for a in load_ontology().aspects)
+    n_mentions = sum(len(x["mentions"]) for x in records)
+    n_zero = sum(1 for x in records if not x["mentions"])
+    candidates = sorted(
+        {m["aspect"] for x in records for m in x["mentions"] if m["aspect"] not in pinned}
+    )
+    sentiments: dict[str, int] = {}
+    class_mentions = {"disposition": 0, "intrinsic": 0}
+    for x in records:
+        for m in x["mentions"]:
+            sentiments[m["sentiment"]] = sentiments.get(m["sentiment"], 0) + 1
+            cls = "disposition" if m["aspect"] in _DISPOSITION_PINS else "intrinsic"
+            class_mentions[cls] += 1
+    flip_contrast = {
+        "disposition": [f for f in flips if f["aspect"] in _DISPOSITION_PINS],
+        "intrinsic": [f for f in flips if f["aspect"] not in _DISPOSITION_PINS],
+    }
+
+    gold_path = _REPO / "eval" / "gold" / "gold.jsonl"
+    with gold_path.open("w", encoding="utf-8", newline="\n") as f:
+        for x in records:
+            f.write(json.dumps(x, ensure_ascii=False) + "\n")
+
+    skip_log = [
+        {
+            "review_id": sid,
+            "cause": next(
+                r.skip for r in reviews_by_id.values() if r.review_id == sid
+            ),
+            "replacement_id": rid,
+        }
+        for sid, rid in replacements.items()
+    ]
+    manifest = {
+        "purpose": "the certified gold set: Arda-adjudicated labels over the draw's "
+        "primary slice with skip replacements from the ordered reserve",
+        "minted_at": constants["labeled_at"],
+        **{k: constants[k] for k in ("instructions_version", "ontology_version",
+                                     "ontology_content_hash", "annotator", "assist_model")},
+        "records": len(records),
+        "mentions": n_mentions,
+        "zero_mention": n_zero,
+        "zero_share": round(n_zero / len(records), 3),
+        "sentiments": sentiments,
+        "candidate_labels": candidates,
+        "skips": skip_log,
+        "assist_disagreement": {
+            **diff_totals,
+            "sentiment_flips": flips,
+            "flip_contrast": {
+                "note": "disposition pins per the dispositional-family report note "
+                "(2026-07-17); feeds the v2 two-category decision",
+                "disposition_flips": len(flip_contrast["disposition"]),
+                "disposition_mentions": class_mentions["disposition"],
+                "intrinsic_flips": len(flip_contrast["intrinsic"]),
+                "intrinsic_mentions": class_mentions["intrinsic"],
+            },
+        },
+    }
+    (_REPO / "eval" / "gold" / "gold_manifest.json").write_text(
+        json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8", newline="\n"
+    )
+    draw_manifest["skips"] = skip_log
+    draw_manifest_path.write_text(
+        json.dumps(draw_manifest, indent=2, ensure_ascii=False), encoding="utf-8", newline="\n"
+    )
+
+    d, i = manifest["assist_disagreement"]["flip_contrast"], None
+    print(f"\nMINTED: {len(records)} records -> {gold_path}")
+    print(
+        f"  {n_mentions} mentions, zero-share {manifest['zero_share']:.1%}, "
+        f"{len(candidates)} candidate labels, sentiments {sentiments}"
+    )
+    print(
+        f"  flip contrast: disposition {d['disposition_flips']}/{d['disposition_mentions']} "
+        f"vs intrinsic {d['intrinsic_flips']}/{d['intrinsic_mentions']}"
+    )
+    print(f"  skips logged to draw manifest: {[s['review_id'] for s in skip_log]}")
 
 
 def main() -> None:
-    if "--mint" in sys.argv:
-        raise SystemExit(
-            "--mint is not built yet: it lands with the skip-replacement flow "
-            "after the adjudication pass confirms which skips are real"
-        )
-
     sheets = sorted(_WORKBOOK_DIR.glob("batch_*.md"))
     if not sheets:
         raise SystemExit(f"no sheets in {_WORKBOOK_DIR} — render the workbook first")
@@ -205,6 +357,9 @@ def main() -> None:
     all_violations: list[str] = []
     totals = {"reviews": 0, "reviewed": 0, "mentions": 0, "skips": 0}
     diff_totals = {"accepted": 0, "modified": 0, "added": 0, "deleted": 0}
+    all_flips: list[dict[str, str]] = []
+    reviews_by_id: dict[str, ReviewState] = {}
+    texts_by_id: dict[str, str] = {}
     print(
         f"{'sheet':>8} {'reviewed':>9} {'mentions':>9} {'skip':>5} "
         f"{'accept':>7} {'modify':>7} {'add':>4} {'del':>4}"
@@ -222,9 +377,13 @@ def main() -> None:
         violations += verify_reviews(reviews, texts, sheet.name)
         if {r.review_id for r in reviews} != set(texts):
             violations.append(f"{sheet.name}: review coverage mismatch vs input batch")
-        diff = diff_against_raw(reviews, raw_annotations)
+        diff, flips = diff_against_raw(reviews, raw_annotations)
 
         all_violations += violations
+        all_flips += flips
+        for r in reviews:
+            reviews_by_id[r.review_id] = r
+        texts_by_id.update(texts)
         totals["reviews"] += len(reviews)
         totals["reviewed"] += sum(r.reviewed for r in reviews)
         totals["mentions"] += sum(len(r.mentions) for r in reviews)
@@ -250,6 +409,8 @@ def main() -> None:
             print(f"  !! {v}")
         raise SystemExit(1)
     print("all checks passed")
+    if "--mint" in sys.argv:
+        _mint(reviews_by_id, texts_by_id, diff_totals, all_flips)
 
 
 if __name__ == "__main__":

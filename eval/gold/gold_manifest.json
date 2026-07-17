@@ -1,0 +1,194 @@
+{
+  "purpose": "the certified gold set: Arda-adjudicated labels over the draw's primary slice with skip replacements from the ordered reserve",
+  "minted_at": "2026-07-17",
+  "instructions_version": "gold-instructions-v1",
+  "ontology_version": "v1",
+  "ontology_content_hash": "481d86add78b92e4fd108b389375954fd7285fa0b0985e7222aefc959ca01ebe",
+  "annotator": "Arda",
+  "assist_model": "claude-sonnet-5",
+  "records": 250,
+  "mentions": 351,
+  "zero_mention": 123,
+  "zero_share": 0.492,
+  "sentiments": {
+    "positive": 208,
+    "negative": 109,
+    "mixed": 21,
+    "neutral": 13
+  },
+  "candidate_labels": [
+    "achievements",
+    "cutscenes",
+    "endgame",
+    "factions",
+    "grind",
+    "originality",
+    "romance",
+    "specialists",
+    "stealth",
+    "unique",
+    "worn-out"
+  ],
+  "skips": [
+    {
+      "review_id": "224898510",
+      "cause": "empty_text",
+      "replacement_id": "224390133"
+    },
+    {
+      "review_id": "226252662",
+      "cause": "non_english",
+      "replacement_id": "218038026"
+    },
+    {
+      "review_id": "191831137",
+      "cause": "non_english",
+      "replacement_id": "222055170"
+    }
+  ],
+  "assist_disagreement": {
+    "accepted": 290,
+    "modified": 44,
+    "added": 17,
+    "deleted": 62,
+    "sentiment_flips": [
+      {
+        "aspect": "price_value",
+        "from": "negative",
+        "to": "neutral"
+      },
+      {
+        "aspect": "gameplay",
+        "from": "positive",
+        "to": "mixed"
+      },
+      {
+        "aspect": "price_value",
+        "from": "positive",
+        "to": "mixed"
+      },
+      {
+        "aspect": "gameplay",
+        "from": "mixed",
+        "to": "positive"
+      },
+      {
+        "aspect": "price_value",
+        "from": "negative",
+        "to": "neutral"
+      },
+      {
+        "aspect": "updates",
+        "from": "mixed",
+        "to": "positive"
+      },
+      {
+        "aspect": "learning_curve",
+        "from": "mixed",
+        "to": "neutral"
+      },
+      {
+        "aspect": "player_choice",
+        "from": "neutral",
+        "to": "positive"
+      },
+      {
+        "aspect": "content_amount",
+        "from": "mixed",
+        "to": "positive"
+      },
+      {
+        "aspect": "price_value",
+        "from": "mixed",
+        "to": "negative"
+      },
+      {
+        "aspect": "graphics",
+        "from": "negative",
+        "to": "mixed"
+      },
+      {
+        "aspect": "addictiveness",
+        "from": "positive",
+        "to": "negative"
+      },
+      {
+        "aspect": "updates",
+        "from": "neutral",
+        "to": "positive"
+      },
+      {
+        "aspect": "player_choice",
+        "from": "mixed",
+        "to": "positive"
+      },
+      {
+        "aspect": "pacing",
+        "from": "negative",
+        "to": "mixed"
+      },
+      {
+        "aspect": "performance",
+        "from": "negative",
+        "to": "mixed"
+      },
+      {
+        "aspect": "addictiveness",
+        "from": "positive",
+        "to": "negative"
+      },
+      {
+        "aspect": "addictiveness",
+        "from": "positive",
+        "to": "negative"
+      },
+      {
+        "aspect": "gameplay",
+        "from": "positive",
+        "to": "neutral"
+      },
+      {
+        "aspect": "characters",
+        "from": "mixed",
+        "to": "positive"
+      },
+      {
+        "aspect": "gameplay",
+        "from": "negative",
+        "to": "mixed"
+      },
+      {
+        "aspect": "game_length",
+        "from": "negative",
+        "to": "neutral"
+      },
+      {
+        "aspect": "writing",
+        "from": "positive",
+        "to": "mixed"
+      },
+      {
+        "aspect": "voice_acting",
+        "from": "mixed",
+        "to": "negative"
+      },
+      {
+        "aspect": "bugs",
+        "from": "negative",
+        "to": "positive"
+      },
+      {
+        "aspect": "learning_curve",
+        "from": "mixed",
+        "to": "neutral"
+      }
+    ],
+    "flip_contrast": {
+      "note": "disposition pins per the dispositional-family report note (2026-07-17); feeds the v2 two-category decision",
+      "disposition_flips": 5,
+      "disposition_mentions": 43,
+      "intrinsic_flips": 21,
+      "intrinsic_mentions": 308
+    }
+  }
+}

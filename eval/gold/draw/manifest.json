@@ -31,7 +31,23 @@
     "games": 50,
     "primary": 250
   },
-  "skips": [],
+  "skips": [
+    {
+      "review_id": "224898510",
+      "cause": "empty_text",
+      "replacement_id": "224390133"
+    },
+    {
+      "review_id": "226252662",
+      "cause": "non_english",
+      "replacement_id": "218038026"
+    },
+    {
+      "review_id": "191831137",
+      "cause": "non_english",
+      "replacement_id": "222055170"
+    }
+  ],
   "per_game": {
     "236850": {
       "game": "Europa Universalis IV",

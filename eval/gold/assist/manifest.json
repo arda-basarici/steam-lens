@@ -14,5 +14,15 @@
   },
   "instructions_version": "gold-instructions-v1",
   "ontology_version": "v1",
-  "ontology_content_hash": "481d86add78b92e4fd108b389375954fd7285fa0b0985e7222aefc959ca01ebe"
+  "ontology_content_hash": "481d86add78b92e4fd108b389375954fd7285fa0b0985e7222aefc959ca01ebe",
+  "top_up": {
+    "batch": 26,
+    "purpose": "reserve replacements for the three labeling-time skips (draw manifest skips list gains the mapping at mint)",
+    "replacements": {
+      "224898510": "224390133",
+      "226252662": "218038026",
+      "191831137": "222055170"
+    },
+    "assist_model": "claude-sonnet-5"
+  }
 }

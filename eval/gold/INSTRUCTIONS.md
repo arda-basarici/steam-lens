@@ -312,6 +312,71 @@ these up at the v2 wording batch — see FIXLOG):
   negative. This unifies routing the codebook already does piecemeal
   (balance's difficulty-spike alias, ai_behavior's dumb-enemies example);
   nothing previously decided changes.
+- **Verdict-ground inheritance** (2026-07-17, real pass, Arda's ruling —
+  co-drafted; fills the gap ruling 11 left open, contributors to an
+  *unlabelable* claim). A feature-statement inherits an adjacent bare
+  verdict's polarity when the two are directly joined in one evaluative
+  unit — same sentence, verdict following the feature — and the feature is
+  the *only* stated ground in that unit: "Has some moral choices to do,
+  well done game" → `player_choice` / positive, evidence spanning both
+  clauses (the verdict is the polarity source, so it belongs in the span).
+  Bounds: a feature mentioned apart from any verdict keeps section 4's
+  neutral ("…I love it. It has cloud saves." → candidate `cloud saves` /
+  neutral); a unit listing *multiple* features under one verdict grants no
+  inheritance — each feature stays a neutral feature-statement (and lists
+  folded under a *labeled* claim remain the folded-enumeration ruling's);
+  the inheritance never crosses a sentence boundary and never chains.
+  Claims elsewhere in the review don't block the unit-local inheritance.
+- **Depth is not amount** (2026-07-17, real pass, Arda's catch across
+  multiple reviews). `content_amount` owns *volume*: how much there is to
+  do, presence or absence of content ("so much content," "little to do,"
+  "can't play as sweden"). Shallowness and underdevelopment charges — "a
+  mile wide and an inch deep," "doesn't do any one thing better than any
+  other game," "didn't expand on the very basic setup" — evaluate the
+  *quality of the systems*, not their count → route to the affected
+  system's pin, or `gameplay` when the charge is against the systems
+  collectively (an enumeration of the systems in the same passage serves
+  as the anchor). This generalizes `content_amount`'s own do-not-label
+  line (quest quality → `quest_design`). A wide-but-shallow review splits
+  into two honest mentions — amount positive + systems-quality negative —
+  never one force-fit mixed.
+- **Source-affection vs. the game's rendition** (2026-07-17, real pass,
+  Arda's ruling with the rendition carve-out). Affection for a
+  source-material figure inside a why-I-bought / why-I-persist narrative —
+  "I really do like gollum and I wanted this game," "I love Batman so I
+  had to try it" — is reviewer motivation, not a game evaluation: no
+  mention (rule 1's aspect-not-mood). The game's own **rendition** of the
+  figure evaluated is a normal mention with whatever polarity it carries:
+  "I love how they portrayed Batman in this game" → `characters` /
+  positive; "Gollum looks like a bug-eyed cocomelon kid" → the named
+  property (`art_style` there). Test: is the object the figure as known
+  *outside* the game (motivation framing, "the books/movies," fondness
+  predating play) or *this game's version* of it ("portrayed," "their
+  take," "in this game")? The trigger review holds both poles at once:
+  source-affection for Gollum (unminted) beside a negative rendition
+  charge (minted) — polarity opposition across the two is normal, not a
+  contradiction. **Activity rider (same day, Arda's distinction):** genre-
+  and figure-NOUN affection ("I love shooters," "I love city builders,"
+  "I love Gollum") is motivation — no mention; affection for an ACTIVITY
+  anchored in this-game play testimony ("Ive spent so much tome playing
+  skylines i love all things city planning") evaluates the activity as
+  experienced here → route per the gameplay-is-the-mechanics ruling (core
+  activity → `gameplay`; a pinned system's activity → that pin: "played
+  this for hours, I love shooting things" → `combat`). The play-testimony
+  anchor is what licenses it — a bare "I love city planning" with no
+  this-game play anchoring stays motivation.
+- **Learning-arc narrations are the curve, not ambivalence** (2026-07-17,
+  real pass, minted at third occurrence). A rough-start-then-learned
+  trajectory *describes* the learning curve — a trajectory-shaped aspect's
+  own definition is never both-charges: "the first boss was pretty rough.
+  But after getting good a bit, it's pretty good," "some people might find
+  it difficult to remember all key bindings, but with time it becomes
+  easier" → `learning_curve` / neutral. A separately charged grievance or
+  praise overrides: "frustrating, sometimes a little ♥♥♥♥♥♥♥♥, but super
+  rewarding when you learn the mechanics" carries a real grievance →
+  mixed per section 4's letter. Scope: `learning_curve` narrations only —
+  hardness trajectories on `difficulty` ("almost impossible — if you are
+  patient… soon you can") stay under section 4's plain both-charges test.
 - **The evidence horizon: text alone** (round 3, 2026-07-16). Label from the
   review text and nothing else — the machine's horizon is the human's
   horizon (`build_classify_prompt` receives texts only; no game name, no app
@@ -1080,9 +1145,16 @@ one-at-a-time with Arda, and the ruling lands back in the section it belongs to:
     distinguished from bare advice (neutral), unconditional charges
     (their polarity), and concessive comparisons (one charge)** (applied
     in section 3; machine-side wording rides the v2 batch). Draft recheck
-    at ruling time: one edit (batch 03 positive → mixed); batch 11's
-    explicit form and batch 09's counterfactual already mixed; batch 19's
-    discounted-purchase report stays positive.
+    at ruling time: one edit (batch 03 positive → mixed); batch 09's
+    counterfactual already mixed; batch 19's discounted-purchase report
+    stays positive. **Refined at batch 11 adjudication (2026-07-17, Arda's
+    edit over this note's pre-judgment):** "if youre considdering buying,
+    buy it on this mega spring sale and dont bother paying 40 bucks" is
+    *permission-shaped* sale advice (the discount-advice ruling's timing
+    leg — no worth asserted) plus one explicit full-price rejection →
+    **negative**, not mixed; mixed requires the discount half to *assert
+    worth* ("still worth the price if on discount"), never merely permit
+    the purchase.
 28. ~~Candidate label extraction~~ — **RULED 2026-07-17 (real pass, Arda's
     ruling over the initial pushback): the candidate label is the
     reviewer's noun-core for the evaluated property; charge-carrying
@@ -1100,6 +1172,51 @@ one-at-a-time with Arda, and the ruling lands back in the section it belongs to:
     machine-side wording rides the v2 batch). Draft-wide recheck at
     ruling time: 12 difficulty/balance drafts, 10 conforming, 2 flagged
     to adjudication (batches 14, 23).
+30. ~~Feature-statements adjacent to bare verdicts~~ — **RULED 2026-07-17
+    (real pass, Arda's ruling, wording co-drafted through three rounds):
+    verdict-ground inheritance — single feature + directly-appositive
+    bare verdict in one evaluative unit → the feature inherits the
+    verdict's polarity; multi-feature units stay neutral each;
+    non-adjacent feature-statements keep section 4's neutral; never
+    chains** (applied in section 3; machine-side wording rides the v2
+    batch — the v1 machine will read these neutral, an expected
+    disagreement pattern). Discovery credit: following Arda's
+    scope-reading through ruling 11 strictly would have *deleted* the
+    mention (contributor to an unlabelable claim) — the ruling patches
+    that hole rather than bending the ladder-firewall.
+31. ~~Depth complaints inside content_amount~~ — **RULED 2026-07-17 (real
+    pass, Arda's catch): amount = volume/absence only; shallowness →
+    the affected system's pin, or `gameplay` for systems-collectively
+    with the passage's enumeration as anchor; wide-but-shallow splits
+    into two mentions, never a force-fit mixed** (applied in section 3;
+    machine-side wording rides the v2 batch). Draft-wide recheck at
+    ruling time: 14 content_amount drafts, 2 depth-flavored — the
+    trigger (batch 07, edited at ruling time) and one already-closed
+    line (batch 03 tavern review) queued for targeted recheck.
+32. ~~Source-material affection~~ — **RULED 2026-07-17 (real pass, Arda's
+    ruling, rendition carve-out his): figure-as-known-outside-the-game in
+    motivation framing → no mention; this game's rendition evaluated →
+    normal mention ("I love how they portrayed Batman in this game" →
+    `characters` / positive)** (applied in section 3; machine-side
+    wording rides the v2 batch — the assist minted the trigger's
+    source-affection as characters/positive, the exact error the ruling
+    teaches against). Recheck at ruling time: the 13 characters drafts
+    from the ruling-21 scan re-checked — all others are in-game
+    referents; only the trigger deletes. **Activity rider added same day
+    (batch 12, the Cities: Skylines-style review):** play-testimony-
+    anchored activity affection evaluates the activity (→ gameplay/its
+    pin); genre/figure-noun affection stays motivation — Arda's
+    distinction over the initial delete recommendation.
+33. ~~Learning-arc narrations~~ — **RULED 2026-07-17 (real pass, minted
+    at the third occurrence after being parked at the first):
+    grievance-free rough-then-learned trajectories → `learning_curve` /
+    neutral (the trajectory IS the curve); separately charged grievance
+    or praise → section 4's letter; scope learning_curve only, difficulty
+    trajectories unaffected** (applied in section 3; machine-side wording
+    rides the v2 batch). Recheck at minting: batch 07 already neutral
+    (the original adjudication), batch 22's grievance case correctly
+    mixed, batch 13's difficulty-cousin out of scope, batch 25 flipped at
+    minting — zero further edits.
 
 ## 10. The slice — size and composition
 

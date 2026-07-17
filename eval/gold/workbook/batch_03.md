@@ -93,8 +93,7 @@ The games start and mid game was very fun building up your tavern and managing t
 After around 7 hours of playing though the game pretty much just an afk simulator and after 100% this game I have no real interest in playing though a second time. In the end I ended up skipping the days to get though the very tedious quest system to progress though the tracker. Overall though its probably still worth the price if its on a discount. Took 15 hours to 100%.
 ```
 
-- gameplay / positive / "building up your tavern and managing the customers and stock levels was very enjoyable"
-- content_amount / negative / "just didn't expand on the very basic setup it had"
+- gameplay / mixed / "building up your tavern and managing the customers and stock levels was very enjoyable. Along with some other features that had potential (such as the adventurer table and brewery) but just didn't expand on the very basic setup it had."
 - pacing / negative / "the game pretty much just an afk simulator"
 - replayability / negative / "I have no real interest in playing though a second time"
 - quest_design / negative / "the very tedious quest system to progress though the tracker"
