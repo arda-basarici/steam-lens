@@ -39,6 +39,7 @@ _SENTIMENTS = {"positive", "negative", "mixed", "neutral"}
 _HEADER_RE = re.compile(r"^## \d+ · review (\S+)$")
 _CHECKBOX_RE = re.compile(r"^- \[( |x)\] reviewed$")
 _FENCE_OPEN_RE = re.compile(r"^(`{3,})text$")
+_SKIP_RE = re.compile(r"^SKIP: (non_english|empty_text)\.?$")
 
 
 @dataclass
@@ -48,7 +49,7 @@ class ReviewState:
     review_id: str
     reviewed: bool = False
     zero: bool = False
-    skip: bool = False
+    skip: str | None = None
     mentions: list[dict[str, str | None]] = field(default_factory=list)
 
 
@@ -111,8 +112,9 @@ def parse_sheet(path: Path) -> tuple[list[ReviewState], list[str]]:
         if line == "Zero mentions.":
             current.zero = True
             continue
-        if line == "SKIP: non_english":
-            current.skip = True
+        skip = _SKIP_RE.match(line)
+        if skip:
+            current.skip = skip.group(1)
             continue
         if line.startswith("- "):
             mention = _parse_mention_line(line)
@@ -138,7 +140,7 @@ def verify_reviews(
         if r.review_id not in texts:
             violations.append(f"{where}: unknown review id")
             continue
-        states = [bool(r.mentions), r.zero, r.skip]
+        states = [bool(r.mentions), r.zero, r.skip is not None]
         if sum(states) != 1:
             violations.append(
                 f"{where}: needs exactly one of mentions / 'Zero mentions.' / SKIP "
@@ -168,6 +170,8 @@ def diff_against_raw(
     """
     counts = {"accepted": 0, "modified": 0, "added": 0, "deleted": 0}
     for r in reviews:
+        if r.skip:  # exclusion from gold, not a labeling disagreement
+            continue
         raw = raw_annotations.get(r.review_id, {})
         raw_mentions = [dict(m) for m in raw.get("mentions", [])]  # type: ignore[union-attr]
         current = list(r.mentions)
@@ -224,12 +228,13 @@ def main() -> None:
         totals["reviews"] += len(reviews)
         totals["reviewed"] += sum(r.reviewed for r in reviews)
         totals["mentions"] += sum(len(r.mentions) for r in reviews)
-        totals["skips"] += sum(r.skip for r in reviews)
+        totals["skips"] += sum(1 for r in reviews if r.skip)
         for k in diff_totals:
             diff_totals[k] += diff[k]
         print(
             f"{n:>8} {sum(r.reviewed for r in reviews):>6}/{len(reviews):<2} "
-            f"{sum(len(r.mentions) for r in reviews):>9} {sum(r.skip for r in reviews):>5} "
+            f"{sum(len(r.mentions) for r in reviews):>9} "
+            f"{sum(1 for r in reviews if r.skip):>5} "
             f"{diff['accepted']:>7} {diff['modified']:>7} {diff['added']:>4} {diff['deleted']:>4}"
         )
 

@@ -7,6 +7,84 @@ decisions it feeds.
 
 ---
 
+## 2026-07-17 — The gold pass starts interrogating the ontology: two kinds of mixed, and the pins that are secretly dispositions
+
+*The gold adjudication pass (D1) of extraction+eval (M1), ~45 of 250 reviews in,
+nine residual rulings landed (`eval/gold/INSTRUCTIONS.md` §9, entries 20–29, all
+dated 2026-07-17). Feeds: the M1 report/post's ontology section and the v2
+roadmap; the parkings live in `ONTOLOGY_PRUNING.md`'s post-ratification section.*
+
+Labeling real reviews against the ratified ontology did something the design
+sessions couldn't: it made the ontology explain its own shape, twice, both times
+because Arda refused to accept an answer that was technically correct but felt
+wrong.
+
+The first refusal came at a Bannerlord review (batch 5) that praises field
+battles and criticizes siege control — one `combat` pin, both charges present,
+so the contract says `mixed`. Arda's objection: our aspects are umbrellas, and
+calling this mixed "feels off," because nobody in that review is ambivalent
+about anything. Pulling on that thread separated two generating processes the
+`mixed` value conflates: **true ambivalence** (one referent, both charges —
+"fun but repetitive") and **umbrella collision** (two sub-referents with clean,
+opposite polarities, collapsed by pin granularity — battles great, sieges
+clunky). Downstream, `combat: 30% mixed` cannot distinguish "players are torn
+about combat" from "players love battles and hate sieges," which are very
+different product insights. Worse, the strain is structurally invisible to the
+promotion path: a siege complaint has an honest pinned home, so it never enters
+the candidate pool — umbrella pressure leaves no candidate-stratum trace at
+all. What it does leave is a signature: **per-pin mixed-share**, especially
+within-review mixed, which is now parked as the v2 diagnostic instrument — a
+pin whose mixed-rate runs hot at survey scale is a split candidate (combat →
+field battles / sieges), and the split then has to earn its place by the same
+clustering bar every pin faced. The write-time policy deliberately stays
+mixed-plus-verbatim-spans: under collision that is the information-preserving
+record (the spans carry which sub-thing each charge hit, so read time can
+decompose), whereas forcing the dominant polarity deletes the minority charge
+irreversibly. When the granularity is wrong, record more structure, not less.
+
+The second refusal came at a one-line review ("Plot twist so hard I had to sit
+in silence after," batch 5): Arda challenged `emotional_impact` as structurally
+suspect — "it is always the result, always the effect of something; it is not a
+property of the game." The resolution that held: it records a **dispositional
+property** — like fragility in a glass that hasn't broken, the game's capacity
+to affect, evidenced by player reactions. "I cried twice" isn't recorded as the
+reviewer's state; it's evidence that this is a game that makes people cry. That
+lens exposed a family the ontology holds without saying so: intrinsic-design
+pins (combat, level_design, servers_netcode) versus experiential-disposition
+pins. Arda's own placement of the boundary is worth preserving: addictiveness
+and relaxation are pure dispositions, but difficulty and learning_curve are in
+his reading design-anchored (tuning numbers and onboarding structures exist in
+the game itself) — a spectrum rather than a binary, and his framing. The lens
+also deepened an existing ruling: memorable-X routing (effect attributed to a
+named aspect → that aspect wins) is really the disposition *localizing* — "the
+story moved me" claims the story is moving — while unattributed effect-talk
+falls back to `emotional_impact`, the whole-game disposition bucket. Which is
+exactly the fallback architecture the codebook already declares twice
+(`gameplay` for play-talk, `multiplayer` for online-talk); effect-talk had a
+fallback too, it just hadn't been named as one. Rule 1's boundary restates
+cleanly in the same vocabulary: a reaction that characterizes the game labels;
+autobiography where the game is a prop ("I was depressed and this helped")
+claims no generalizable disposition and doesn't.
+
+The v2 watchlist as it stands after today (all parked with evidence and reopen
+conditions in `ONTOLOGY_PRUNING.md`): **fun_factor** — addition candidate; must
+pass per-game clustering once the fun-talk ruling (§9 entry 24) makes
+anchored-vs-bare fun measurable for the first time. **achievements** — declined
+at v1, reconsideration queued on gold-pass candidate evidence (`achievements`,
+`achievement hunting`). **uniqueness/creativity** — addition candidate from the
+accumulating quality-candidate cluster (originality ×2, unique, and a
+typo-preserved "vreatice"). **The mixed-share instrument** — the umbrella-strain
+detector above. And Arda's open consideration [PRELIMINARY — his instinct, not
+a decision]: whether pure-disposition pins belong in the pinned set at all,
+against the counterpoint that v2 changes ride the clustering evidence bar, not
+ontological classification — a disposition that clusters where the number
+matters (relaxation on cozy games) mints exactly the number its buyers come
+for.
+
+Figure: the two-kinds-of-mixed diagram — one referent with both charges vs. two
+sub-referents with clean polarities under one umbrella pin — is a natural
+before/after for the ontology section.
+
 ## 2026-07-16 — The dry run catches its own answer key, and the fold that felt wrong turns out to be the other track's story
 
 *The gold-set (D1) acceptance-test arc of extraction+eval (M1): the labeling

@@ -238,3 +238,83 @@ topic lists) are the candidates' report form if any.
 - **Reopens if:** survey-scale candidates show fun-talk clustering on specific
   games once bare verdicts are filtered, OR the M1 report's zero-share reading
   suggests the verdict axis carries per-game structure the thumbs miss.
+
+### achievements — declined at v1, reconsideration queued for v2 (2026-07-17, from the gold pass)
+- **Origin:** Arda's instinct while adjudicating batch 03 (review 158781459) to
+  group achievement-flavored candidates under one label. Initially pushed back
+  on exact-wording grounds; superseded the same session by gold ruling 28
+  (candidate labels are the reviewer's noun-core for the property; charges stay
+  in sentiment/evidence) — the batch-03 candidate is now `achievements` /
+  negative, evidence carrying the missability charge.
+- **Evidence at parking time:** gold-pass candidates `achievements` (batch 03;
+  the charge is losable completion, a design complaint) and `achievement
+  hunting` (batch 23; the hunting activity is the property) — two distinct
+  evaluated flavors already, which cuts both ways: recurrence supports a pin,
+  flavor-spread argues the pin may need to be narrower than bare
+  `achievements`.
+- **The v2 trial:** the standard bar — do achievement-talk candidates cluster
+  per-game at survey scale (completionist-heavy titles are the likely spike),
+  and is there one coherent property to pin, or several thin ones?
+- **Reopens if:** the survey candidate pool clusters achievement-talk on
+  specific games, per the ordinary promotion path.
+
+### Umbrella-strain diagnostic — per-pin mixed-share (2026-07-17, from the gold pass)
+- **Origin:** Arda's observation at batch 05 (Bannerlord review: battles praised,
+  siege control criticized, one `combat` pin): `mixed` conflates true ambivalence
+  (one referent, both charges) with umbrella collision (two sub-referents, clean
+  opposite polarities, collapsed by pin granularity). The promotion path cannot
+  see this pressure — sub-topics with an honest pinned home never enter the
+  candidate pool — so umbrella strain is invisible except as mixed-rate.
+- **The instrument:** per-pin mixed-share at survey scale (within-review mixed
+  especially) flags split candidates (e.g. combat → field battles / sieges). A
+  split must then earn its place by the standard clustering bar — strain on games
+  where the number matters, not global thinness.
+- **Write-time policy meanwhile (unchanged, deliberate):** mixed + verbatim spans
+  is the information-preserving record under collision — the spans carry the
+  sub-referents, so read-time decomposition stays possible; a polarity forced to
+  the dominant side deletes the minority charge irreversibly.
+- **Reopens if:** C2's aggregates show pins with anomalous mixed-share, or D2's
+  disagreement analysis clusters on umbrella boundaries.
+
+### uniqueness / creativity — addition candidate for v2 (2026-07-17, from the gold pass)
+- **Origin:** Arda's v2 watchlist at the gold pass. Worked example 9 licensed
+  quality-candidates ("a candidate can be a quality, not just a feature"), and the
+  assist drafts promptly produced a cluster: `originality` (x2, batches 12/25),
+  `unique` (batch 13), `vreatice` (batch 19 — reviewer's typo for creative,
+  preserved per the exact-wording rule; read-side clustering groups it).
+- **The v2 trial:** the standard clustering bar — does originality-talk
+  concentrate on the games whose number would matter (the corpus's novelty
+  flagships: Disco Elysium, Outer Wilds-likes), or trickle everywhere like grind?
+- **Reopens if:** the survey candidate pool clusters creativity-talk per-game.
+
+### Pure-disposition pins — Arda's open v2 consideration (2026-07-17)
+- **The consideration:** the dispositional-family insight (see REPORT_NOTES
+  2026-07-17) splits pins into intrinsic-design vs experiential-disposition;
+  Arda counts addictiveness and relaxation as pure dispositions (difficulty and
+  learning_curve he reads as design-anchored) and floats whether pure
+  dispositions belong in the pinned set at v2.
+- **Counterpoint on record (Claude):** the demotion criterion is clustering
+  where the number matters, not ontological classification — `relaxation`
+  plausibly clusters hard on the corpus's cozy titles and would mint exactly
+  the number its buyers want ("is it actually relaxing?"). If a disposition pin
+  passes the evidence bar, its philosophical kind is not by itself a reason to
+  demote. The classification is explanatory, not criterial.
+- **Status:** consideration, not a decision; falls to the v2 review with C1's
+  survey-scale evidence in hand.
+
+- **Extension (2026-07-17, later same session — Arda's two-category proposal):**
+  instead of demoting disposition pins, restructure v2 into two label classes:
+  intrinsic pins (gameplay, story, bugs) keep pos/mixed/neg; impact pins (fun,
+  emotional_impact, relaxation, addictiveness) become ungraded
+  presence-statements — "this game is addictive" is a fact whose valence is
+  reader-relative (feature to one buyer, warning to another). Would also license
+  freer impact-label expansion (fun_factor as presence-count dodges part of the
+  restates-the-thumbs objection). Tradeoffs on record: polarity on disposition
+  pins carries real stance signal (relaxing vs stressful; "addictive and I hate
+  it"); presence-rate is already read-side derivable today with no contract
+  change; dropping sentiment for a class touches the AspectMention contract and
+  section-4 vocabulary — version-bump-plus territory. **Live instrument:** the
+  current gold pass measures it for free — if disposition pins show elevated
+  assist-vs-Arda sentiment disagreement (same aspect, different polarity) vs
+  intrinsic pins, the polarity judgment there is ill-posed, which is this
+  proposal's empirical case; D2 repeats the contrast for gold-vs-machine.

@@ -1,0 +1,6 @@
+# The gold labeling surface is verbatim-sensitive: evidence spans must match
+# review text byte-for-byte, and a markdown formatter rewriting emphasis
+# (*x* -> _x_) silently fabricates quotes (caught live 2026-07-17, batch 02).
+# The INSTRUCTIONS codebook section is generated — formatting drift there is
+# diff noise against its renderer.
+eval/gold/

@@ -271,6 +271,47 @@ these up at the v2 wording batch — see FIXLOG):
   to the failing system, and worked example 7 already treats "Refunded"
   this way. Test: does the claim weigh price against content, or restate a
   complaint/conclusion in money words?
+- **Price-conditional endorsements are `mixed`** (2026-07-17, real pass,
+  Arda's ruling). "Worth it *if* it's on a discount / at $X" asserts worth
+  inside the condition and withholds it outside — the restriction is a
+  stated position on full price, so both charges are present →
+  `price_value` / mixed ("probably still worth the price if its on a
+  discount" in a 5/10 review). The neighbors it must not blur into: bare
+  discount advice with no worth-language stays neutral (the discount-advice
+  ruling); an unconditional worth-charge keeps its polarity; a concessive
+  comparison to an external ideal stays one-charged (section 4) — a
+  concession frames, a price-conditional partitions. The explicit two-half
+  form ("buy on sale, don't bother paying 40 bucks") is mixed by the plain
+  both-charges test.
+- **Candidate labels name the property, not the charge** (2026-07-17, real
+  pass, Arda's ruling — closing a gap the exact-wording rule doesn't cover:
+  it fixes the words' *source*, not the span boundary). From the reviewer's
+  own words, the label is the noun-core naming the evaluated property;
+  modifiers that carry the evaluation stay in sentiment and evidence —
+  "crazy amount of miss-able achievements … suck" → candidate
+  `achievements` / negative (a label like `missable achievements` bakes the
+  charge in, the candidate-space version of a pin called `clunky_combat`).
+  Modifiers that *constitute* the property stay: "photo mode," "exfil
+  system," "achievement hunting" (the hunting is the evaluated activity).
+  Quality-candidates are untouched (worked example 9): `creative` has no
+  noun-core because the quality is the property. Test: if deleting the
+  modifier deletes the complaint, it's evaluation — out of the label.
+  Noun-core labels also cluster better at promotion review.
+- **Hardness routes by its stated source** (2026-07-17, real pass, Arda's
+  framing — the wayfinding table's shape applied to difficulty-talk).
+  Reviewers rarely evaluate the *amount* of challenge; they evaluate where
+  it comes from, and the stated source picks the label, polarity from the
+  charge: demands real strategy/tactics → `combat` or the named system
+  (often praise); enemy smarts → `ai_behavior`; number tuning — damage
+  sponges, "10x health," "your damage is just low," spikes → `balance`;
+  punishing authored spaces → `level_design`; entry hardness with
+  onboarding framing → `learning_curve` (its own rule). A bare
+  challenge-level claim with no stated source stays `difficulty`, sentiment
+  as charged — and hard-as-praise is real: "it's hard, that's the point" is
+  `difficulty` / positive, "I was never challenged" is `difficulty` /
+  negative. This unifies routing the codebook already does piecemeal
+  (balance's difficulty-spike alias, ai_behavior's dumb-enemies example);
+  nothing previously decided changes.
 - **The evidence horizon: text alone** (round 3, 2026-07-16). Label from the
   review text and nothing else — the machine's horizon is the human's
   horizon (`build_classify_prompt` receives texts only; no game name, no app
@@ -887,6 +928,16 @@ manifest. Boundary: a mostly-English review with stray non-English tokens or
 gamer-universal fragments ("gg ez") stays in — skip only when the evaluative
 content itself is unreadable.
 
+**Effectively-empty skip** (ruled 2026-07-17, real pass). A review whose
+text carries no visible characters — Unicode format characters or
+whitespace only — is skipped with cause `empty_text`, same mechanism as the
+non-English skip. This is not a new population decision: the draw's
+eligibility already excludes empty text ("with nothing to read there is
+nothing to label"); a U+200E-only review slipped that filter because plain
+`strip()` doesn't remove format characters. The near-empty stay in: a
+review with any visible content ("g", ".", "👍") is natural-mix noise and
+labels honestly (usually zero mentions).
+
 **Every gold record carries:** review id + app id, **the review text itself**
 (ruled 2026-07-16: gold is self-contained — evals must run in CI, which never
 sees the corpus; texts are public Steam posts, republished here with full
@@ -1012,6 +1063,43 @@ one-at-a-time with Arda, and the ruling lands back in the section it belongs to:
     machine-side wording rides the v2 batch). Draft-wide recheck at ruling
     time: all 15 price_value drafts monetary-framed — zero edits; the
     ruling ratifies review 225044464's no-add.
+26. ~~Effectively-empty reviews in the draw~~ — **RULED 2026-07-17 (real
+    pass, process ruling): visible-character emptiness (format chars /
+    whitespace only) → skip with cause `empty_text`, consuming the game's
+    next reserve like a non-English skip; near-empty visible content stays
+    in the natural mix** (applied in section 8). Trigger: a U+200E-only
+    review (batch 02); draw-wide scan found it to be the only one of 500
+    drawn rows. Root defect (non-Unicode-aware emptiness test in the draw
+    eligibility filter) parked in the stream FIXLOG for future draws and
+    steam_client ingestion.
+27. ~~Price-conditional endorsements~~ — **RULED 2026-07-17 (real pass,
+    Arda's sentiment call): "worth it if discounted" partitions the price
+    axis — both charges present → `price_value` / mixed; the hedge
+    ("probably") is NOT the mixed-maker — hedges alone weaken or
+    neutralize, only the conditional supplies the second charge;
+    distinguished from bare advice (neutral), unconditional charges
+    (their polarity), and concessive comparisons (one charge)** (applied
+    in section 3; machine-side wording rides the v2 batch). Draft recheck
+    at ruling time: one edit (batch 03 positive → mixed); batch 11's
+    explicit form and batch 09's counterfactual already mixed; batch 19's
+    discounted-purchase report stays positive.
+28. ~~Candidate label extraction~~ — **RULED 2026-07-17 (real pass, Arda's
+    ruling over the initial pushback): the candidate label is the
+    reviewer's noun-core for the evaluated property; charge-carrying
+    modifiers stay in sentiment/evidence ("missable achievements" →
+    `achievements` / negative); property-constituting modifiers and bare
+    quality-candidates stand** (applied in section 3; machine-side wording
+    rides the v2 batch). Draft-wide recheck at ruling time: one edit (the
+    trigger case); the other 14 candidate labels already conform.
+29. ~~Difficulty-talk routing~~ — **RULED 2026-07-17 (real pass, Arda's
+    framing): hardness with a stated source routes to the source's label
+    (strategy → `combat`/named system, enemy smarts → `ai_behavior`,
+    number tuning → `balance`, spaces → `level_design`, onboarding →
+    `learning_curve`); bare level claims stay `difficulty` with honest
+    polarity, hard-as-praise included** (applied in section 3;
+    machine-side wording rides the v2 batch). Draft-wide recheck at
+    ruling time: 12 difficulty/balance drafts, 10 conforming, 2 flagged
+    to adjudication (batches 14, 23).
 
 ## 10. The slice — size and composition
 
