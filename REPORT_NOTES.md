@@ -7,6 +7,95 @@ decisions it feeds.
 
 ---
 
+## 2026-07-17 — The bake-off protocol: the scan dissolved its own cost question, and the gold set retired its own proxy
+
+*The provider bake-off (C0) of extraction+eval (M1) — landscape scan + protocol
+design, the six-fork discussion recorded as DESIGN.md's operational-decisions
+entry of 2026-07-17. Feeds: the M1 report/post's methodology section (how the
+survey labeler was chosen by measurement), and possibly a standalone "choosing
+an LLM vendor by measurement" piece.*
+
+The bake-off was framed with "cost per 1k reviews" as one of its headline
+metrics — and the first real thing the protocol session did was measure that
+metric into irrelevance. A four-way landscape scan (Gemini, Mistral,
+Groq+Cerebras, DeepSeek+OpenAI, each verified live against official docs where
+possible, 2026-07-17), anchored on the classify pilot's measured prompt shape
+(~7.3k shared prompt tokens per batch call, ~100 marginal input tokens per
+review — the B4 pilot capture; output assumed ~100/review), put every realistic
+candidate under ~$20 for the *full* ~50k-review survey buy, before the 50%
+batch discounts that turn out to be near-universal. The cheapest row (Mistral
+Nemo) labels a thousand reviews for about a cent. So the provider choice
+stopped being an economics question and became a pure quality question —
+agreement against the gold set — with cost demoted to tiebreak. Free tiers
+cover the 250-review gold slice almost everywhere, so even the measurement
+round is roughly free. Two candidates fell out at the table: Cerebras (a hard
+5-requests-per-minute free ceiling, batch only as an enterprise product, and a
+headline speed that sells latency — a non-goal for a batch labeling job) and
+OpenAI (no free tier, nothing distinctive at its price). Arda ruled
+free-tiers-first for round one; paid tiers re-enter only as a throughput
+upgrade for a winner, or as tier escalation if nobody proves buyable. A small
+scan footnote worth keeping: an aggregator listed Mistral's free tier at "2
+requests per minute," and Arda suspected the unit itself — per second, not per
+minute. Mistral's own help page confirmed the API's limits are stated in
+requests per *second* (exact numbers hidden in the account console), which
+flips that tier from the pool's slowest to plausibly one of its fastest. The
+aggregator-sourced cells are flagged for spot-check before anything binds.
+
+The protocol's most report-worthy move is a metric being retired by the
+instrument that superseded it. Zero-share honesty — how often a labeler
+honestly says "this review mentions nothing" — was the bake-off's named metric
+because it was the *only* honesty proxy available when the cheap Gemini tier
+(flash-lite) was caught over-extracting during ontology calibration (31%
+zero-share vs flash's 62%, the calibration entry in `ONTOLOGY_PRUNING.md`) —
+measured, at the time, with no gold set in existence. With gold now defining
+the true base rate (49.2% of the 250 gold reviews carry zero pinned mentions),
+mention-level precision/recall prices the same dishonesty directionally:
+fabrication bleeds precision, timidity bleeds recall. So zero-share was demoted
+to a diagnostic — the readable summary of the story, no longer the score. The
+same subsumption argument settled the free-form candidate slot: slot
+discipline is auto-priced by the pairing (forcing a pinned label where gold
+ruled candidate is an automatic precision hit; cowardly routing of real
+aspects into the candidate slot is a recall hit), so candidates stay out of
+the score entirely — gold's n=11 couldn't support a metric anyway — with a
+candidate-emission-rate diagnostic (against gold's ~3%) watching the one
+loophole, dump-everything-into-candidates. The frozen metric set: pinned-slot
+mention-level precision/recall/F1 (always reported separately — the known
+failure mode is directional), flat sentiment accuracy on matched pairs only,
+and a single hard gate at 2% unrecoverable parse failures, with failed
+reviews scoring as empty predictions rather than being excluded — exclusion
+would flatter exactly the providers that fail most.
+
+The decision rule produced the session's one genuine negotiation. Claude
+proposed a fully pre-committed lexicographic ladder (rank on F1, error-bar
+ties escalate through sentiment accuracy → variance probe → cost) as a guard
+against post-hoc rationalization. Arda pushed back: he wants the full results
+table in front of him, then he rules. The resolution kept the part of
+pre-commitment that actually does the guarding — the metrics were frozen
+before any run exists, and the eventual ruling must land in DESIGN with its
+recorded why — while dropping the ranking machinery. The distinction that
+settled it: pre-registration protects hypothesis tests; a procurement-style
+choice over already-frozen metrics is honest as judgment, provided the
+rationale is recorded. Two pieces of information ride with the results table
+in place of rules: a reference line — the gold-assist model's own F1 against
+final gold, computable for free from the persisted assist drafts
+(`eval/gold/assist/`), banned from competing but calibrating what "good"
+looks like for the field — and a standing no-buy exit: the bake-off may
+conclude nobody is buyable, and the recorded outcome is then tier escalation,
+never buy-the-least-bad. One parity rule with teeth rounds out the protocol:
+the classify prompt runs verbatim for every candidate, no per-model tuning —
+tuned prompts would measure our tuning effort, not the models — while
+structured output is deliberately *non*-parity (each candidate's best native
+mechanism, recorded per row), because schema enforcement is part of the
+product being bought and flattening to the weakest mode would erase exactly
+what the parse-failure gate exists to measure.
+
+Runs will land in `probes/captures/bakeoff/<provider>/` with per-run
+manifests; headline numbers carry 95% bootstrap CIs resampled over reviews.
+
+Figure: the provider comparison table (cost per 1k reviews vs free-tier
+coverage vs schema support); later, the bake-off results table with CIs
+against the assist-model reference line.
+
 ## 2026-07-17 — The gold pass starts interrogating the ontology: two kinds of mixed, and the pins that are secretly dispositions
 
 *The gold adjudication pass (D1) of extraction+eval (M1), ~45 of 250 reviews in,

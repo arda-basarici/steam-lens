@@ -461,6 +461,62 @@ emission contract and the ops-story observability is structural from the first c
 rather than retrofitted. These are the first fields to freeze under *rules now, fields
 later*: their consumers all land at M1, and the field lists become authoritative in code.
 
+**C0 provider bake-off: the protocol** (2026-07-17, six-fork design discussion). The
+survey-slice labeler is chosen by measurement against the gold set, not by reputation.
+**Pool — free tiers first** (per the 2026-07-17 landscape scan, live-verified): Gemini
+2.5 Flash + Flash-Lite · Mistral Small 4 + Nemo · Groq Llama 3.3 70B + 3.1 8B ·
+DeepSeek v4-flash (trial tokens) · self-hosted 8B (Ollama). Cerebras dropped (hard
+5-RPM free ceiling, enterprise-only batch, and its speed sells latency — a ruled
+non-goal for batch labeling); OpenAI dropped for round one (no free tier). Paid tiers
+enter only if a winner needs throughput for the survey buy — a rate question, not a
+model-choice question; the scan found cost a non-discriminator at our scale (every
+realistic candidate labels the full survey slice for under ~$20 before batch
+discounts), so the deciding axes are quality axes. **Metrics, frozen before any run**:
+primary is mention-level precision/recall/F1 over pinned-slot mentions, paired by
+label-within-review against gold's 351 — precision and recall always reported
+separately because the known failure mode (flash-lite's over-extraction, the
+calibration entry in ONTOLOGY_PRUNING.md) is directional and F1 alone would blur it;
+sentiment scored as flat accuracy on matched pairs only (no adjacency credit — gold's
+`mixed` rulings were hard-won and 4 classes are too few for a distance to mean much),
+so polarity errors never double-punish detection errors. **One gate**: unrecoverable
+parse failures above 2% disqualify outright — a labeler that drops reviews at survey
+scale is missing-data bias no downstream metric repairs; below the gate a failed
+review scores as zero predictions (never excluded — exclusion flatters the providers
+that fail most). Salvage-parsed output counts as parsed, salvage rate reported.
+Zero-share is a **diagnostic, not a gate** (gold's base rate: 49.2%) — the pairing
+already prices fabrication as precision loss and misses as recall loss; zero-share
+stays in the report as the readable summary of that story. **Candidate-slot mentions
+stay out of the score** on both sides: n=11 in gold can't support a metric, and slot
+discipline is already priced in (forcing a pin where gold ruled candidate is an
+automatic precision hit; cowardly routing real aspects to candidates is a recall hit).
+The dumping loophole gets a named diagnostic — candidate-emission rate vs gold's ~3% —
+plus a qualitative overlap table against gold's 11, unscored. **Parity**: `classify-v1`
+verbatim for every candidate, no per-model tuning (tuned prompts would measure our
+effort, not the models); structured output deliberately non-parity — each candidate
+runs its best native mechanism (strict schema, JSON mode, Ollama schema), recorded per
+row, because that difference is part of the product being bought and flattening to the
+weakest mode would erase what the parse metric exists to measure; batch size and
+temperature held at the B4 pilot's values, context-forced deviations recorded, never
+silent. One scored run per candidate; a repeat run only as a decode-variance probe if
+leaders land within error bars. **Decision: frozen metrics, recorded judgment — no
+pre-committed ranking.** Arda rules from the full table after the runs (his call,
+2026-07-17); the guard against metric-shopping is that the metrics above are frozen
+now, and the ruling lands in this file with its why at the moment it's made. Two
+pieces of information ride with the table: a **reference line** — the gold-assist
+model's own F1 vs final gold, computed from the persisted assist drafts (it competes
+with nobody, it calibrates the field) — and a standing **no-buy exit**: the bake-off
+may conclude nobody is buyable, and the recorded outcome is then tier escalation
+(paid stronger models, round two), never buy-the-least-bad. **Lineage**:
+`claude-sonnet-5` is banned from the pool (gold assist, INSTRUCTIONS §8); Gemini 2.5
+Flash/Flash-Lite ran the *pruning probes* and shaped the vocabulary, not the gold
+labels — seen, weighed, eligible. **Provenance**: runs land under
+`probes/captures/bakeoff/<provider>/` — raw responses, parsed labels, and a manifest
+each (model ID string, provider, `classify-v1`, ontology pin `v1`, structured-output
+mode, batch size + deviations, date, token counts, actual cost); headline numbers
+carry 95% bootstrap CIs resampled over the 250 *reviews* (mentions within a review
+aren't independent); the comparison table is a generated artifact, regenerable from
+captures.
+
 ## Scope & non-goals
 
 - In: aspect reports with receipts, narrated live analysis, the event investigator, the
