@@ -517,6 +517,56 @@ carry 95% bootstrap CIs resampled over the 250 *reviews* (mentions within a revi
 aren't independent); the comparison table is a generated artifact, regenerable from
 captures.
 
+**C0 bake-off: the scorer/runner design + the batch-size amendment** (2026-07-18,
+five-fork design discussion). **The amendment — batch size moves from the parity
+column to the part-of-the-product column**, joining structured output: the protocol
+above froze "batch size held at the pilot's values," but the pilot only ever measured
+N≤5, and free-tier daily request quotas make low N production-hostile (the ~50k-review
+survey buy at N=5 is ~10,000 requests — weeks at a 250–500 RPD tier; N=50 cuts it to
+~1,000). Since the bake-off's N becomes C1's production default and certify-what-ships
+means measuring each candidate at its deployable shape, **each candidate runs at its
+own N = min(envelope max, dilution ceiling)** — envelope max computed from the
+provider's own caps (per-request/per-minute input tokens; the output ceiling usually
+binds first: at ~120 output tokens per review, an 8k-output model caps near N≈60
+regardless of context window), dilution ceiling established once by the reframed
+N-probe. N is recorded in every manifest and shown per candidate in the comparison
+table — a visible dimension of Arda's ruling, never a hidden confound. Honesty rider,
+recorded so the choice reads correctly later: the free-tier RPD constraint motivated
+maximizing N; if C1 ends up buying the winner's paid tier (where RPD stops binding),
+high N was an operational choice, not a quality-driven one. **The N-probe** (runs
+before any scored run): map the quality-vs-N curve at N ∈ {5, 10, 20, 50, envelope
+max} on two structurally different free candidates — Gemini 2.5 Flash and Groq Llama
+3.3 70B — scored against gold with the same scorer; the dilution ceiling is the
+largest N where both hold quality within error bars. Two probe models rather than one
+so the ceiling isn't quietly tuned to a single vendor's comfort; using gold to set an
+operational parameter before the scored runs is calibration, not metric-shopping — the
+parameter rule applies uniformly, and the probe is disclosed here rather than
+discovered later. **Scoring core is library code** in `src/steamlens/evals/` (the
+ARCHITECTURE-planned eval stratum: imports anything, nothing imports it) because the
+gold-pairing metrics outlive the bake-off — evals-in-CI (D3) certifies against the
+same gold set; the runner and the table generator stay `probes/` scripts (one-shot
+orchestration whose findings, not style, are the artifact). **Pairing is set
+intersection by label within review**: gold verified duplicate-free (250/250, no
+repeated label in any review) and classify's parse collapses repeats on the prediction
+side, so true positives are label matches, false positives unmatched predictions,
+false negatives unmatched gold, pinned-slot only; sentiment is flat accuracy over the
+matched pairs. **Both sides resolve pinned-vs-candidate through `core/normalize`'s
+surface index** — one resolution authority, so the scorer and the candidates can never
+disagree about what "pinned" means; gold's 11 candidate mentions fall out mechanically,
+and a gold label drifting from the pinned vocabulary surfaces as a loud mismatch
+instead of silently scoring as a candidate. **The runner rides the full `LlmClient`**
+(fresh one-stage client per candidate) rather than raw provider entries: rpm pacing,
+bounded retries, the spend ledger, and the durable cache give a crashed run free
+resume — exactly the machinery free tiers need. **The 2% gate's "unrecoverable"
+defined**: a failed row gets one re-batch pass at N=1; unrecoverable means it failed
+in its production-shape batch *and* alone — crisp semantics ("fails even in the
+easiest setting"), poison-review isolation so one pathological text can't drag batch
+neighbors into the gate, ~5 extra requests at the gate boundary. Salvage-parsed rows
+count as parsed with the salvage rate reported, per the protocol. **Bootstrap CIs**:
+10,000 resamples over the 250 reviews, percentile intervals, fixed seed in the
+manifest. Derived scores are never persisted per provider — the table regenerates from
+captures + gold, one source of truth.
+
 ## Scope & non-goals
 
 - In: aspect reports with receipts, narrated live analysis, the event investigator, the

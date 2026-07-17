@@ -60,7 +60,8 @@ def verify_batch(n: int, pinned: frozenset[str]) -> tuple[list[str], dict[str, o
     want_ids = [r["id"] for r in inputs]
     if got_ids != want_ids:
         violations.append(
-            f"batch {n:02d}: id coverage mismatch — missing {set(want_ids) - set(got_ids) or '{}'}, "
+            f"batch {n:02d}: id coverage mismatch — "
+            f"missing {set(want_ids) - set(got_ids) or '{}'}, "
             f"unexpected {set(got_ids) - set(want_ids) or '{}'}, "
             f"order_ok={sorted(got_ids) == sorted(want_ids)}"
         )

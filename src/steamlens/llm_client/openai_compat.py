@@ -34,6 +34,7 @@ from steamlens.llm_client.errors import (
     ProviderTransientError,
 )
 from steamlens.llm_client.registry import ProviderEntry, ProviderPayload
+from steamlens.llm_client.wire import as_dict, as_int, as_list, as_str
 
 # The known vendors' OpenAI-compatible roots — facts of the landscape, importable
 # by the composition root so base URLs are never retyped at wiring sites.
@@ -87,23 +88,6 @@ def build_payload(
     }
 
 
-def _as_dict(value: object) -> dict[str, object]:
-    """The value as a JSON object, or empty — the untrusted-shape narrowing step."""
-    return cast(dict[str, object], value) if isinstance(value, dict) else {}
-
-
-def _as_list(value: object) -> list[object]:
-    return cast(list[object], value) if isinstance(value, list) else []
-
-
-def _as_int(value: object) -> int:
-    return value if isinstance(value, int) else 0
-
-
-def _as_str(value: object) -> str:
-    return value if isinstance(value, str) else ""
-
-
 def parse_response(raw: str) -> LlmResponse:
     """Normalize one raw chat-completions body — pure, so cache hits re-parse identically.
 
@@ -124,24 +108,24 @@ def parse_response(raw: str) -> LlmResponse:
             f"openai-compat body is not a JSON object: {type(parsed).__name__}"
         )
     data = cast(dict[str, object], parsed)
-    usage_raw = _as_dict(data.get("usage"))
-    completion = _as_int(usage_raw.get("completion_tokens"))
-    details = _as_dict(usage_raw.get("completion_tokens_details"))
-    reasoning = _as_int(details.get("reasoning_tokens"))
+    usage_raw = as_dict(data.get("usage"))
+    completion = as_int(usage_raw.get("completion_tokens"))
+    details = as_dict(usage_raw.get("completion_tokens_details"))
+    reasoning = as_int(details.get("reasoning_tokens"))
     usage = TokenUsage(
-        prompt_tokens=_as_int(usage_raw.get("prompt_tokens")),
+        prompt_tokens=as_int(usage_raw.get("prompt_tokens")),
         output_tokens=completion - reasoning,
         thinking_tokens=reasoning,
     )
-    model_version = _as_str(data.get("model"))
-    choices = _as_list(data.get("choices"))
+    model_version = as_str(data.get("model"))
+    choices = as_list(data.get("choices"))
     if not choices:
         return LlmResponse(
             text="", model_version=model_version, finish_reason=FinishReason.REFUSAL, usage=usage
         )
-    choice = _as_dict(choices[0])
-    text = _as_str(_as_dict(choice.get("message")).get("content"))
-    finish = _FINISH_REASONS.get(_as_str(choice.get("finish_reason")), FinishReason.OTHER)
+    choice = as_dict(choices[0])
+    text = as_str(as_dict(choice.get("message")).get("content"))
+    finish = _FINISH_REASONS.get(as_str(choice.get("finish_reason")), FinishReason.OTHER)
     return LlmResponse(text=text, model_version=model_version, finish_reason=finish, usage=usage)
 
 

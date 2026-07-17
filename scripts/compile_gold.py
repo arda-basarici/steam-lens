@@ -336,7 +336,7 @@ def _mint(
         json.dumps(draw_manifest, indent=2, ensure_ascii=False), encoding="utf-8", newline="\n"
     )
 
-    d, i = manifest["assist_disagreement"]["flip_contrast"], None
+    d = manifest["assist_disagreement"]["flip_contrast"]
     print(f"\nMINTED: {len(records)} records -> {gold_path}")
     print(
         f"  {n_mentions} mentions, zero-share {manifest['zero_share']:.1%}, "

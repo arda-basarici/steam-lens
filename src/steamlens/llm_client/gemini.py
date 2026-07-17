@@ -28,6 +28,7 @@ from steamlens.llm_client.errors import (
     ProviderTransientError,
 )
 from steamlens.llm_client.registry import ProviderEntry, ProviderPayload
+from steamlens.llm_client.wire import as_dict, as_int, as_list, as_str
 
 _API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 _TRANSIENT_STATUSES = frozenset({429, 500, 502, 503, 504})
@@ -70,23 +71,6 @@ def build_payload(
     }
 
 
-def _as_dict(value: object) -> dict[str, object]:
-    """The value as a JSON object, or empty — the untrusted-shape narrowing step."""
-    return cast(dict[str, object], value) if isinstance(value, dict) else {}
-
-
-def _as_list(value: object) -> list[object]:
-    return cast(list[object], value) if isinstance(value, list) else []
-
-
-def _as_int(value: object) -> int:
-    return value if isinstance(value, int) else 0
-
-
-def _as_str(value: object) -> str:
-    return value if isinstance(value, str) else ""
-
-
 def parse_response(raw: str) -> LlmResponse:
     """Normalize one raw generateContent body — pure, so cache hits re-parse identically.
 
@@ -104,22 +88,22 @@ def parse_response(raw: str) -> LlmResponse:
             f"gemini body is not a JSON object: {type(parsed).__name__}"
         )
     data = cast(dict[str, object], parsed)
-    usage_meta = _as_dict(data.get("usageMetadata"))
+    usage_meta = as_dict(data.get("usageMetadata"))
     usage = TokenUsage(
-        prompt_tokens=_as_int(usage_meta.get("promptTokenCount")),
-        output_tokens=_as_int(usage_meta.get("candidatesTokenCount")),
-        thinking_tokens=_as_int(usage_meta.get("thoughtsTokenCount")),
+        prompt_tokens=as_int(usage_meta.get("promptTokenCount")),
+        output_tokens=as_int(usage_meta.get("candidatesTokenCount")),
+        thinking_tokens=as_int(usage_meta.get("thoughtsTokenCount")),
     )
-    model_version = _as_str(data.get("modelVersion"))
-    candidates = _as_list(data.get("candidates"))
+    model_version = as_str(data.get("modelVersion"))
+    candidates = as_list(data.get("candidates"))
     if not candidates:
         return LlmResponse(
             text="", model_version=model_version, finish_reason=FinishReason.REFUSAL, usage=usage
         )
-    candidate = _as_dict(candidates[0])
-    parts = _as_list(_as_dict(candidate.get("content")).get("parts"))
-    text = "".join(_as_str(_as_dict(p).get("text")) for p in parts)
-    finish = _FINISH_REASONS.get(_as_str(candidate.get("finishReason")), FinishReason.OTHER)
+    candidate = as_dict(candidates[0])
+    parts = as_list(as_dict(candidate.get("content")).get("parts"))
+    text = "".join(as_str(as_dict(p).get("text")) for p in parts)
+    finish = _FINISH_REASONS.get(as_str(candidate.get("finishReason")), FinishReason.OTHER)
     return LlmResponse(text=text, model_version=model_version, finish_reason=finish, usage=usage)
 
 

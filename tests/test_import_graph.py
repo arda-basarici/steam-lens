@@ -70,8 +70,8 @@ def test_dependency_law() -> None:
             continue
         for imported in _intra_package_imports(path):
             dst_sub = _subpackage(imported)
-            if dst_sub is None:
-                continue
+            if dst_sub is None or dst_sub == src_sub:
+                continue  # same-package imports are inside the boundary, always legal
             if dst_sub in _IMPORT_FORBIDDEN:
                 violations.append(f"{'.'.join(parts)} imports forbidden '{dst_sub}'")
             elif _LAYER_RANK[src_sub] < _LAYER_RANK[dst_sub]:
