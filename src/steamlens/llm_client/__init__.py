@@ -21,6 +21,7 @@ from steamlens.llm_client.errors import (
 )
 from steamlens.llm_client.gemini import gemini_entry
 from steamlens.llm_client.memory import InMemoryClassifyCache, InMemorySpendLedger
+from steamlens.llm_client.openai_compat import openai_compat_entry
 from steamlens.llm_client.registry import (
     PROVIDERS,
     BuildPayload,
@@ -48,6 +49,7 @@ __all__ = [
     "register_provider",
     # adapters
     "gemini_entry",
+    "openai_compat_entry",
     # errors
     "LlmError",
     "LlmConfigError",
