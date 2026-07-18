@@ -28,3 +28,6 @@ __pycache__/
 # --- OS noise ---
 Thumbs.db
 .DS_Store
+
+# bake-off resume cache — raw bodies live in each run's raw.jsonl capture
+probes/captures/bakeoff/bakeoff.sqlite3

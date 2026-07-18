@@ -61,6 +61,7 @@ from steamlens.llm_client.openai_compat import (  # noqa: E402
     GROQ_BASE_URL,
     MISTRAL_BASE_URL,
     OLLAMA_BASE_URL,
+    OPENROUTER_BASE_URL,
 )
 from steamlens.ontology import load_ontology, load_ontology_version  # noqa: E402
 from steamlens.store import Store  # noqa: E402
@@ -99,40 +100,110 @@ class Candidate:
 
 
 _CANDIDATES: dict[str, Candidate] = {
+    # Gemini rpm/rpd are Arda's console-verified free-tier numbers (2026-07-18):
+    # the 20-RPD models force N>=13 for a full 250-review run by quota alone.
     "gemini-flash": Candidate(
         kind="gemini", model="gemini-2.5-flash", key_env="GEMINI_API_KEY",
-        structured_output="gemini-responseSchema", rpm=10, rpd=250, output_cap=65_536,
+        structured_output="gemini-responseSchema", rpm=5, rpd=20, output_cap=65_536,
         params=_GEMINI_PARAMS,
     ),
     "gemini-flash-lite": Candidate(
         kind="gemini", model="gemini-2.5-flash-lite", key_env="GEMINI_API_KEY",
-        structured_output="gemini-responseSchema", rpm=15, rpd=1_000, output_cap=65_536,
+        structured_output="gemini-responseSchema", rpm=10, rpd=20, output_cap=65_536,
         params=_GEMINI_PARAMS,
     ),
+    "gemini-3-flash": Candidate(
+        kind="gemini", model="gemini-3-flash-preview", key_env="GEMINI_API_KEY",
+        structured_output="gemini-responseSchema", rpm=5, rpd=20, output_cap=65_536,
+        params=_GEMINI_PARAMS,
+    ),
+    "gemini-3.1-flash-lite": Candidate(
+        kind="gemini", model="gemini-3.1-flash-lite", key_env="GEMINI_API_KEY",
+        structured_output="gemini-responseSchema", rpm=15, rpd=500, output_cap=65_536,
+        params=_GEMINI_PARAMS,
+    ),
+    "gemini-3.5-flash": Candidate(
+        kind="gemini", model="gemini-3.5-flash", key_env="GEMINI_API_KEY",
+        structured_output="gemini-responseSchema", rpm=5, rpd=20, output_cap=65_536,
+        params=_GEMINI_PARAMS,
+    ),
+    # Groq 70b: 12K TPM (header-verified 2026-07-18) vs our ~9-11k-token batches
+    # -> one request/minute is the honest pace; RPD 1000 doesn't bind.
     "groq-llama-70b": Candidate(
         kind="compat", model="llama-3.3-70b-versatile", key_env="GROQ_API_KEY",
-        structured_output="json_object", rpm=30, rpd=1_000, output_cap=32_768,
+        structured_output="json_object", rpm=1, rpd=1_000, output_cap=32_768,
         base_url=GROQ_BASE_URL, params=_JSON_OBJECT,
     ),
+    # ENVELOPE-DEAD on the free tier (2026-07-18): 6K TPM < the ~7.6k-token
+    # prompt — a single classify-v1 request is unservable at any batch size
+    # (HTTP 413 at the smoke). Kept for the record; exits the pool by envelope.
     "groq-llama-8b": Candidate(
         kind="compat", model="llama-3.1-8b-instant", key_env="GROQ_API_KEY",
-        structured_output="json_object", rpm=30, rpd=14_400, output_cap=8_192,
+        structured_output="json_object", rpm=1, rpd=14_400, output_cap=8_192,
         base_url=GROQ_BASE_URL, params=_JSON_OBJECT,
     ),
+    # Mistral throttles by RPS + TPM, no daily cap (console-verified 2026-07-18).
+    # small-2603's 50K TPM binds harder than its 0.83 RPS at our ~10k-token
+    # batches — rpm 5 encodes that; the dated ids are pinned because the API
+    # echoes back the alias, which is too vague for a scored manifest.
     "mistral-small": Candidate(
-        kind="compat", model="mistral-small-latest", key_env="MISTRAL_API_KEY",
-        structured_output="json_object", rpm=60, rpd=None, output_cap=8_192,
+        kind="compat", model="mistral-small-2603", key_env="MISTRAL_API_KEY",
+        structured_output="json_object", rpm=5, rpd=None, output_cap=8_192,
         base_url=MISTRAL_BASE_URL, params=_JSON_OBJECT,
     ),
     "mistral-nemo": Candidate(
-        kind="compat", model="open-mistral-nemo", key_env="MISTRAL_API_KEY",
-        structured_output="json_object", rpm=60, rpd=None, output_cap=8_192,
+        kind="compat", model="open-mistral-nemo-2407", key_env="MISTRAL_API_KEY",
+        structured_output="json_object", rpm=30, rpd=None, output_cap=8_192,
+        base_url=MISTRAL_BASE_URL, params=_JSON_OBJECT,
+    ),
+    # Pool amendment 2026-07-18 (Arda): Mistral's free tier has no daily cap, so
+    # its stronger tiers are survey-viable at zero cost — worth measuring.
+    "mistral-medium": Candidate(
+        kind="compat", model="mistral-medium-2508", key_env="MISTRAL_API_KEY",
+        structured_output="json_object", rpm=20, rpd=None, output_cap=8_192,
+        base_url=MISTRAL_BASE_URL, params=_JSON_OBJECT,
+    ),
+    "mistral-large": Candidate(
+        kind="compat", model="mistral-large-2512", key_env="MISTRAL_API_KEY",
+        structured_output="json_object", rpm=4, rpd=None, output_cap=8_192,
+        base_url=MISTRAL_BASE_URL, params=_JSON_OBJECT,
+    ),
+    "ministral-14b": Candidate(
+        kind="compat", model="ministral-14b-2512", key_env="MISTRAL_API_KEY",
+        structured_output="json_object", rpm=30, rpd=None, output_cap=8_192,
         base_url=MISTRAL_BASE_URL, params=_JSON_OBJECT,
     ),
     "deepseek": Candidate(
         kind="compat", model="deepseek-chat", key_env="DEEPSEEK_API_KEY",
         structured_output="json_object", rpm=60, rpd=None, output_cap=8_192,
         base_url=DEEPSEEK_BASE_URL, params=_JSON_OBJECT,
+    ),
+    # Via the OpenRouter aggregator (free tier: ~20 rpm, 50 free-model req/day
+    # account-wide; upstream routing varies per request — provenance rides in
+    # the response's provider field, captured in raw.jsonl).
+    "nemotron-ultra": Candidate(
+        kind="compat", model="nvidia/nemotron-3-ultra-550b-a55b:free",
+        key_env="OPENROUTER_API_KEY", structured_output="prompt-json",
+        rpm=15, rpd=50, output_cap=16_384,
+        base_url=OPENROUTER_BASE_URL,
+        # reasoning disabled: at the first smoke the model spent the entire
+        # generation ceiling on reasoning and emitted zero content. No
+        # response_format: json_object forces an OBJECT root on this route and
+        # our contract is an array (second smoke) — prompt-disciplined JSON is
+        # this candidate's best native mechanism, recorded as such.
+        params={"temperature": 0, "reasoning": {"enabled": False}},
+    ),
+    # Also via OpenRouter (the 50 free req/day pool is ACCOUNT-wide — shared
+    # with nemotron, budget runs jointly). 262K route context: no truncation
+    # wall; reasoning-capable, disabled for parity with the task; the :free
+    # route lists structured_outputs but not response_format — prompt-json
+    # per the object-root lesson.
+    "hunyuan-3": Candidate(
+        kind="compat", model="tencent/hy3:free",
+        key_env="OPENROUTER_API_KEY", structured_output="prompt-json",
+        rpm=15, rpd=50, output_cap=32_768,
+        base_url=OPENROUTER_BASE_URL,
+        params={"temperature": 0, "reasoning": {"enabled": False}},
     ),
     "ollama-8b": Candidate(
         kind="compat", model="llama3.1:8b", key_env=None,
@@ -238,10 +309,11 @@ def main() -> None:
     totals = RunTotals()
     raw_rows: list[dict[str, object]] = []
     predictions: dict[str, dict[str, object]] = {}
-    failed_first_pass: list[GoldRecord] = []
+    failed_initial: list[GoldRecord] = []
+    still_failed: list[GoldRecord] = []
     aborted: str | None = None
 
-    def run_batch(batch: tuple[GoldRecord, ...], attempt: str) -> None:
+    def run_batch(batch: tuple[GoldRecord, ...], attempt: str) -> list[GoldRecord]:
         texts = [r.text for r in batch]
         prompt = build_classify_prompt(texts, ontology)
         try:
@@ -264,7 +336,11 @@ def main() -> None:
                     "output": response.usage.output_tokens,
                     "thinking": response.usage.thinking_tokens,
                 },
-                "raw": response.text,
+                # The extracted completion text, honestly named: the provider's
+                # full wire body lives in the shared cache DB (bakeoff.sqlite3),
+                # keyed by payload hash — exposing it at the seam is a parked
+                # contract question (FIXLOG 2026-07-18).
+                "text": response.text,
             }
         )
         result = parse_classify_response(response.text, texts, index)
@@ -280,14 +356,16 @@ def main() -> None:
             }
             if had_failures:
                 totals.salvaged += 1
+        failed: list[GoldRecord] = []
         for failure in result.failures:
-            if failure.idx is None:
+            # None = no usable idx; out-of-range = the model answered an idx we
+            # never sent (seen live: Nemo emitting idx 73 in a 50-review batch).
+            if failure.idx is None or not 0 <= failure.idx < len(batch):
                 totals.unattributable += 1
                 continue
             record = batch[failure.idx]
-            if attempt == "initial":
-                failed_first_pass.append(record)
-            else:
+            failed.append(record)
+            if attempt == "retry":  # the final stage: failed even alone
                 predictions[record.review_id] = {
                     "review_id": record.review_id,
                     "mentions": [],
@@ -295,15 +373,25 @@ def main() -> None:
                     "attempt": attempt,
                     "reason": failure.reason,
                 }
+        return failed
 
     batches = _chunk(records, args.n)
     try:
         for i, batch in enumerate(batches, start=1):
             print(f"batch {i}/{len(batches)} ({len(batch)} reviews)")
-            run_batch(batch, "initial")
-        if failed_first_pass:
-            print(f"retry pass: {len(failed_first_pass)} failed rows, alone at N=1")
-            for record in failed_first_pass:
+            failed_initial += run_batch(batch, "initial")
+        if failed_initial:
+            # Wholesale batch failures make straight-to-N=1 isolation quota-
+            # catastrophic (nemotron burned a full daily budget on it,
+            # 2026-07-18): re-batch the failures at production N first, then
+            # isolate only the survivors — the gate's "failed in its batch AND
+            # alone" semantics is preserved.
+            print(f"re-batch pass: {len(failed_initial)} failed rows at N={args.n}")
+            for chunk in _chunk(tuple(failed_initial), args.n):
+                still_failed += run_batch(chunk, "rebatch")
+        if still_failed:
+            print(f"isolation pass: {len(still_failed)} rows alone at N=1")
+            for record in still_failed:
                 run_batch((record,), "retry")
     except KeyboardInterrupt:
         aborted = "keyboard interrupt"
@@ -331,6 +419,7 @@ def main() -> None:
         "ontology_version": stamp.version,
         "ontology_content_hash": stamp.content_hash,
         "structured_output": candidate.structured_output,
+        "params": candidate.params,
         "n": args.n,
         "limit": args.limit,
         "gold_path": str(_GOLD_PATH.relative_to(_REPO)),
@@ -347,7 +436,8 @@ def main() -> None:
             "total": len(records),
             "answered": len(predictions),
             "salvaged_from_partial_batches": totals.salvaged,
-            "retried": len(failed_first_pass),
+            "failed_initial": len(failed_initial),
+            "isolation_retries": len(still_failed),
             "unrecoverable": unrecoverable,
             "unattributable_rows": totals.unattributable,
             "evidence_repairs": totals.repairs,

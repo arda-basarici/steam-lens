@@ -127,6 +127,15 @@ def test_parse_reads_text_version_and_subtracts_the_reasoning_split() -> None:
     ) == (10, 5, 25)
 
 
+def test_parse_reads_reasoning_exceeding_completion_as_already_disjoint() -> None:
+    """OpenRouter's convention: reasoning is NOT a completion subset — seen
+    live exceeding it. That signature switches to the disjoint read instead of
+    minting negative output tokens."""
+    response = parse_response(_wire("hello", completion_tokens=1212, reasoning=1292))
+    assert response.usage.output_tokens == 1212
+    assert response.usage.thinking_tokens == 1292
+
+
 def test_parse_defaults_an_absent_details_block_to_an_explicit_zero() -> None:
     """Non-reasoning vendors omit completion_tokens_details entirely — the split
     still records an explicit 0 and completion passes through as pure output."""

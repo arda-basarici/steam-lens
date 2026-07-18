@@ -1,0 +1,46 @@
+{
+  "candidate": "hunyuan-3",
+  "provider_kind": "compat",
+  "model": "tencent/hy3:free",
+  "model_versions": [
+    "tencent/hy3:free"
+  ],
+  "prompt_version": "classify-v1",
+  "ontology_version": "v1",
+  "ontology_content_hash": "481d86add78b92e4fd108b389375954fd7285fa0b0985e7222aefc959ca01ebe",
+  "structured_output": "prompt-json",
+  "params": {
+    "temperature": 0,
+    "reasoning": {
+      "enabled": false
+    }
+  },
+  "n": 20,
+  "limit": null,
+  "gold_path": "eval\\gold\\gold.jsonl",
+  "started_at": "2026-07-18T00:28:32.750434+00:00",
+  "finished_at": "2026-07-18T00:34:23.966179+00:00",
+  "requests": 34,
+  "tokens": {
+    "prompt": 248316,
+    "output": 26026,
+    "thinking": 0
+  },
+  "cost_usd": 0.0,
+  "reviews": {
+    "total": 250,
+    "answered": 250,
+    "salvaged_from_partial_batches": 0,
+    "failed_initial": 20,
+    "isolation_retries": 20,
+    "unrecoverable": 0,
+    "unattributable_rows": 0,
+    "evidence_repairs": 9
+  },
+  "aborted": null,
+  "argv": [
+    "hunyuan-3",
+    "--n",
+    "20"
+  ]
+}

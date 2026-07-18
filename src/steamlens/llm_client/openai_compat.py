@@ -42,6 +42,7 @@ GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 MISTRAL_BASE_URL = "https://api.mistral.ai/v1"
 DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1"
 OLLAMA_BASE_URL = "http://localhost:11434/v1"
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 _TRANSIENT_STATUSES = frozenset({429, 500, 502, 503, 504})
 
@@ -112,9 +113,15 @@ def parse_response(raw: str) -> LlmResponse:
     completion = as_int(usage_raw.get("completion_tokens"))
     details = as_dict(usage_raw.get("completion_tokens_details"))
     reasoning = as_int(details.get("reasoning_tokens"))
+    # Two conventions exist on this wire: OpenAI/DeepSeek report reasoning as a
+    # SUBSET of completion (subtract to recover the disjoint split); OpenRouter
+    # has been seen reporting reasoning EXCEEDING completion (already disjoint —
+    # subtracting went negative live, 2026-07-18). Reasoning > completion is the
+    # disjoint signature; the ambiguous remainder stays on the subset read.
+    output = completion if reasoning > completion else completion - reasoning
     usage = TokenUsage(
         prompt_tokens=as_int(usage_raw.get("prompt_tokens")),
-        output_tokens=completion - reasoning,
+        output_tokens=output,
         thinking_tokens=reasoning,
     )
     model_version = as_str(data.get("model"))

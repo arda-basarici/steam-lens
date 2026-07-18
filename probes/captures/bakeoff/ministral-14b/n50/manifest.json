@@ -1,0 +1,45 @@
+{
+  "candidate": "ministral-14b",
+  "provider_kind": "compat",
+  "model": "ministral-14b-2512",
+  "model_versions": [
+    "ministral-14b-2512"
+  ],
+  "prompt_version": "classify-v1",
+  "ontology_version": "v1",
+  "ontology_content_hash": "481d86add78b92e4fd108b389375954fd7285fa0b0985e7222aefc959ca01ebe",
+  "structured_output": "json_object",
+  "params": {
+    "temperature": 0,
+    "response_format": {
+      "type": "json_object"
+    }
+  },
+  "n": 50,
+  "limit": null,
+  "gold_path": "eval\\gold\\gold.jsonl",
+  "started_at": "2026-07-17T23:19:21.316282+00:00",
+  "finished_at": "2026-07-17T23:23:20.740457+00:00",
+  "requests": 5,
+  "tokens": {
+    "prompt": 50399,
+    "output": 17515,
+    "thinking": 0
+  },
+  "cost_usd": 0.0,
+  "reviews": {
+    "total": 250,
+    "answered": 250,
+    "salvaged_from_partial_batches": 0,
+    "retried": 0,
+    "unrecoverable": 0,
+    "unattributable_rows": 0,
+    "evidence_repairs": 52
+  },
+  "aborted": null,
+  "argv": [
+    "ministral-14b",
+    "--n",
+    "50"
+  ]
+}

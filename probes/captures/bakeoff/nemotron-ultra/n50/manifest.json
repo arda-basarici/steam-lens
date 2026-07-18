@@ -1,0 +1,46 @@
+{
+  "candidate": "nemotron-ultra",
+  "provider_kind": "compat",
+  "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "model_versions": [
+    "",
+    "nvidia/nemotron-3-ultra-550b-a55b:free"
+  ],
+  "prompt_version": "classify-v1",
+  "ontology_version": "v1",
+  "ontology_content_hash": "481d86add78b92e4fd108b389375954fd7285fa0b0985e7222aefc959ca01ebe",
+  "structured_output": "prompt-json",
+  "params": {
+    "temperature": 0,
+    "reasoning": {
+      "enabled": false
+    }
+  },
+  "n": 50,
+  "limit": null,
+  "gold_path": "eval\\gold\\gold.jsonl",
+  "started_at": "2026-07-18T00:03:36.472756+00:00",
+  "finished_at": "2026-07-18T00:08:25.563206+00:00",
+  "requests": 40,
+  "tokens": {
+    "prompt": 281678,
+    "output": 19709,
+    "thinking": 0
+  },
+  "cost_usd": 0.0,
+  "reviews": {
+    "total": 250,
+    "answered": 185,
+    "salvaged_from_partial_batches": 0,
+    "retried": 100,
+    "unrecoverable": 0,
+    "unattributable_rows": 0,
+    "evidence_repairs": 36
+  },
+  "aborted": "AtCapacityError: model 'nvidia/nemotron-3-ultra-550b-a55b:free' daily quota exhausted: 50 journaled + 0 in flight of 50 per day",
+  "argv": [
+    "nemotron-ultra",
+    "--n",
+    "50"
+  ]
+}

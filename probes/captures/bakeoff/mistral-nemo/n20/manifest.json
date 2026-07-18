@@ -1,0 +1,45 @@
+{
+  "candidate": "mistral-nemo",
+  "provider_kind": "compat",
+  "model": "open-mistral-nemo-2407",
+  "model_versions": [
+    "open-mistral-nemo-2407"
+  ],
+  "prompt_version": "classify-v1",
+  "ontology_version": "v1",
+  "ontology_content_hash": "481d86add78b92e4fd108b389375954fd7285fa0b0985e7222aefc959ca01ebe",
+  "structured_output": "json_object",
+  "params": {
+    "temperature": 0,
+    "response_format": {
+      "type": "json_object"
+    }
+  },
+  "n": 20,
+  "limit": null,
+  "gold_path": "eval\\gold\\gold.jsonl",
+  "started_at": "2026-07-17T22:55:33.630220+00:00",
+  "finished_at": "2026-07-17T23:01:51.207191+00:00",
+  "requests": 33,
+  "tokens": {
+    "prompt": 242398,
+    "output": 19974,
+    "thinking": 0
+  },
+  "cost_usd": 0.0,
+  "reviews": {
+    "total": 250,
+    "answered": 250,
+    "salvaged_from_partial_batches": 0,
+    "retried": 20,
+    "unrecoverable": 0,
+    "unattributable_rows": 0,
+    "evidence_repairs": 35
+  },
+  "aborted": null,
+  "argv": [
+    "mistral-nemo",
+    "--n",
+    "20"
+  ]
+}

@@ -7,6 +7,138 @@ decisions it feeds.
 
 ---
 
+## 2026-07-18 — Batch size defected from parity to product, and the gold assist set the field's ceiling for free
+
+*The provider bake-off (C0) of extraction+eval (M1) — the scorer/runner build
+session, one day after the protocol froze. The amendment is DESIGN.md's "C0
+bake-off: the scorer/runner design + the batch-size amendment" entry
+(2026-07-18). Feeds: the M1 report/post's methodology section (the bake-off
+story), and the eventual C0 ruling record.*
+
+The protocol was one day old when one of its frozen clauses failed contact
+with reality — and the failure is more instructive than the clause. "Batch
+size held at the B4 pilot's values" was written as a parity rule: every
+candidate labels reviews in same-sized batches, so the comparison stays clean.
+But the pilot had only ever measured N≤5, and when the build session proposed
+N=5 as "the measured value," Arda pushed back on production grounds: free
+tiers cap daily *requests*, so at five reviews per request the ~50k-review
+survey buy is ~10,000 requests — weeks of grinding against a 250–500
+requests/day quota — while N=50 cuts it to ~1,000. The challenge escalated
+across three exchanges (probe N experimentally → probe high Ns, 20/50 → why
+pick one N at all?) and the endpoint reframed the rule entirely: batch size
+moved from the parity column to the part-of-the-product column, joining
+structured output. Each candidate now runs at its own N = min(envelope max,
+dilution ceiling) — envelope max computed from the provider's own token caps
+(the output ceiling binds long before context windows do: at ~120 output
+tokens per review, an 8k-output model tops out near N≈60), dilution ceiling
+established by an N-probe that no longer picks a winner but maps the
+quality-vs-N curve, on two structurally different free models (Gemini 2.5
+Flash and Groq Llama 3.3 70B — two, so the ceiling isn't quietly tuned to one
+vendor's comfort). The amendment carries an honesty rider in DESIGN: the
+free-tier request quota is what motivated maximizing N, so if the survey buy
+ends up on a paid tier — where request quotas stop binding — the record shows
+high N was an operational choice, not a quality-driven one. The transferable
+lesson: a parity rule is only as good as the range it was measured over, and
+"held constant" quietly becomes "held at an untested value" when the constant
+came from a pilot that never probed the production regime.
+
+The session's second story cost nothing and calibrated everything. The
+protocol had already promised a reference line — the gold-assist model scored
+against the final gold it helped draft — and the new scorer made it real
+within minutes of existing: claude-sonnet-5's assist drafts against Arda's
+adjudicated gold land at precision 0.857 [0.815–0.894], recall 0.970
+[0.950–0.987], F1 0.910 [0.880–0.934], sentiment accuracy 0.920 [0.889–0.951]
+(the persisted drafts in `eval/gold/assist/raw` scored by
+`probes/bakeoff_table.py`, 95% bootstrap CIs from 10,000 resamples over the
+250 gold reviews, seed 20260718; table at `probes/captures/bakeoff/TABLE.md`).
+The asymmetry is the readable part: recall 0.97 means Arda added almost
+nothing the assist had missed, while precision 0.857 means he corrected away
+roughly one in seven of its claims — adjudication was mostly deletion and
+repair, not discovery. That number pair is now the field's ceiling: a
+free-tier candidate approaching F1 0.9 is performing at the level of the
+frontier model that drafted the gold itself. The diagnostics cohere with the
+story (assist zero-share 44.8% against gold's 49.2% base rate; candidate
+emission 4.8% against gold's 5.1%; 7 of gold's 11 candidate labels
+independently emitted), which is quiet evidence the scorer's definitions are
+measuring what they claim to.
+
+One definition got sharpened by its own test. The gold mint's headline said
+"11 candidates," and the scorer's real-artifact round-trip test — which
+re-resolves every gold label through the same normalization index the
+candidates will face — failed with 18. Not drift: the mint counted 11
+*distinct labels* (the `candidate_labels` list in
+`eval/gold/gold_manifest.json`) across 18 mention *instances*. The
+consequence is small but real: the protocol's candidate-emission reference
+("gold's ~3%") is actually 18/351 ≈ 5.1% of mentions, and the comparison
+table now says so. A test that failed by disagreeing with a summary statistic,
+and was wrong *because the statistic's units were ambiguous*, is exactly what
+the round-trip test exists to catch — the cheap version of a measurement
+dispute happening before any money moved.
+
+[PRELIMINARY — one request, five reviews] The first live smoke
+(gemini-2.5-flash, N=5, `probes/captures/bakeoff/gemini-flash/n5/`) previewed
+the bake-off's expected dynamics in miniature: solid overlap with gold on the
+obvious aspects, two gold labels missed, a handful over-extracted, and — most
+telling — both of the review's hard-won `mixed` sentiment rulings flattened
+to `negative`, precisely the directional failure the frozen metrics keep
+precision and recall separate to expose. Three of five reviews needed an
+evidence-quote repair (the verbatim check nulled a sloppy quote while keeping
+its mention), flagged as a per-candidate watch item for the scored runs.
+
+The session closed by measuring where the input tokens actually go, and the
+answer reframes the whole cost conversation: the fixed classify prompt is
+~7.2k tokens, and 88.2% of it is the codebook — the 51-aspect contract
+rendered full-fidelity (measured on section-character shares over the real v1
+ontology artifact; token shares are approximate but the dominance is robust,
+and the derivation is a rerunnable one-liner over `core/classify`'s render
+functions). Chained with the batch arithmetic, at N=20 roughly 78 of every
+100 input tokens are codebook; even at N=50 it's ~63%. The reviews — the
+data — are a rounding error next to the contract for reading them: we ship a
+6,300-token rulebook with every 50 reviews. The day's provider geography had
+already demonstrated the consequence live, before the number existed: Groq's
+free tier suffocated because its token walls are codebook-sized (a single
+request couldn't fit the rulebook for the 8B and both gpt-oss models —
+rejected before generating a token), while the same measurement explains why
+prefix caching is disproportionately valuable here — the prompt was built
+stable-prefix/variable-suffix from day one, and a provider that discounts
+cached prefixes (DeepSeek's 98%-off cache-hit input pricing, from the
+landscape scan) prices the codebook mass at nearly zero on every request
+after the first.
+
+Arda's directive, verbatim in spirit: we need to find a way to reduce the
+codebook problem. The pre-registered compact rendering (decision surface
+only — definition + label_when + do_not_label_when — pre-registered in
+DESIGN's classify-prompt entry as both cost fallback and first prompt
+experiment) now has its price tag: it competes against an 88%-of-prompt
+payload, an estimated ~60% token reduction if quality holds (estimate
+contingent on the compact rendering's actual rendered size), and "does a
+leaner rule set beat a muddier context" stays a measurable question for the
+judge phase (D2), not an arguable one. Two unexplored directions in the same
+family, parked: aspect-subset routing (send only the categories plausibly
+present in a batch), and distilling the eventual survey labels into an
+embedding-based student classifier — discussed this session and scoped as a
+deployment-latency play (M3), explicitly not a bake-off candidate, because
+embeddings do similarity and the codebook's hard cases are rule-following.
+
+By day's end the table held 18 full-slice captures across 9 models and 4
+providers. A late entrant proved the pool-widening worth it: Tencent's
+Hunyuan 3 (a free OpenRouter route) landed fourth at F1 0.759 (N=20) with
+the field's most faithful candidate-emission rate — 5.0% against gold's
+5.1%, where every other candidate either dumps or dries up. And the tokens
+in/out column added to the comparison table turned out to double as a
+fragility signal: recovery retries visibly inflate a candidate's bill —
+Hunyuan's N=20 run cost 248k prompt tokens against Gemini 3 Flash's 106k for
+the same 250 reviews, the difference being ~21 extra codebook-carrying
+requests its parse failures needed (`probes/captures/bakeoff/TABLE.md`,
+regenerated with the token column).
+
+Figure: the quality-vs-N curve from the N-probe (once run) — the empirical
+justification the batch-size amendment is betting on; the final comparison
+table with the assist reference line drawn as a horizontal band the
+candidates are read against; and an input-token composition bar (codebook vs
+rules vs format vs reviews, per batch size) — the single image that makes
+the codebook problem legible.
+
 ## 2026-07-17 — The bake-off protocol: the scan dissolved its own cost question, and the gold set retired its own proxy
 
 *The provider bake-off (C0) of extraction+eval (M1) — landscape scan + protocol

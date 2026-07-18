@@ -1,0 +1,88 @@
+{
+  "candidate": "gemini-3.1-flash-lite",
+  "provider_kind": "gemini",
+  "model": "gemini-3.1-flash-lite",
+  "model_versions": [
+    "gemini-3.1-flash-lite"
+  ],
+  "prompt_version": "classify-v1",
+  "ontology_version": "v1",
+  "ontology_content_hash": "481d86add78b92e4fd108b389375954fd7285fa0b0985e7222aefc959ca01ebe",
+  "structured_output": "gemini-responseSchema",
+  "params": {
+    "temperature": 0,
+    "responseMimeType": "application/json",
+    "responseSchema": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "idx": {
+            "type": "integer"
+          },
+          "aspects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "aspect": {
+                  "type": "string"
+                },
+                "sentiment": {
+                  "type": "string",
+                  "enum": [
+                    "positive",
+                    "negative",
+                    "mixed",
+                    "neutral"
+                  ]
+                },
+                "evidence": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "aspect",
+                "sentiment"
+              ]
+            }
+          }
+        },
+        "required": [
+          "idx",
+          "aspects"
+        ]
+      }
+    },
+    "thinkingConfig": {
+      "thinkingBudget": 0
+    }
+  },
+  "n": 5,
+  "limit": null,
+  "gold_path": "eval\\gold\\gold.jsonl",
+  "started_at": "2026-07-17T22:32:40.514305+00:00",
+  "finished_at": "2026-07-17T22:37:23.574263+00:00",
+  "requests": 55,
+  "tokens": {
+    "prompt": 396502,
+    "output": 21653,
+    "thinking": 0
+  },
+  "cost_usd": 0.0,
+  "reviews": {
+    "total": 250,
+    "answered": 250,
+    "salvaged_from_partial_batches": 0,
+    "retried": 5,
+    "unrecoverable": 1,
+    "unattributable_rows": 0,
+    "evidence_repairs": 0
+  },
+  "aborted": null,
+  "argv": [
+    "gemini-3.1-flash-lite",
+    "--n",
+    "5"
+  ]
+}

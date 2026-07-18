@@ -141,8 +141,8 @@ def _render(runs: list[ScoredRun], gold_candidates: set[str], meta: str) -> str:
         meta,
         "",
         "| run | model | N | structured output | precision [95% CI] | recall [95% CI] "
-        "| F1 [95% CI] | sentiment acc [95% CI] | parse fail | flags |",
-        "|---|---|---|---|---|---|---|---|---|---|",
+        "| F1 [95% CI] | sentiment acc [95% CI] | parse fail | tokens in/out | flags |",
+        "|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for run in sorted(runs, key=lambda r: r.scores.f1, reverse=True):
         flags: list[str] = []
@@ -158,15 +158,16 @@ def _render(runs: list[ScoredRun], gold_candidates: set[str], meta: str) -> str:
             f"| {_fmt(run.scores.recall, run.cis['recall'])} "
             f"| {_fmt(run.scores.f1, run.cis['f1'])} "
             f"| {_fmt(run.scores.sentiment_accuracy, run.cis['sentiment'])} "
-            f"| {run.scores.parse_failure_rate:.1%} | {', '.join(flags) or '—'} |"
+            f"| {run.scores.parse_failure_rate:.1%} | {run.tokens} "
+            f"| {', '.join(flags) or '—'} |"
         )
     lines += [
         "",
         "## Diagnostics (unscored, per the protocol)",
         "",
         "| run | zero-share (gold 49.2%) | candidate emission (gold 5.1% of mentions) "
-        "| candidate overlap with gold's 11 | tokens | cost USD |",
-        "|---|---|---|---|---|---|",
+        "| candidate overlap with gold's 11 | cost USD |",
+        "|---|---|---|---|---|",
     ]
     for run in sorted(runs, key=lambda r: r.scores.f1, reverse=True):
         emitted = sorted({c for t in run.tallies for c in t.pred_candidates})
@@ -175,7 +176,7 @@ def _render(runs: list[ScoredRun], gold_candidates: set[str], meta: str) -> str:
         lines.append(
             f"| {run.label} | {run.scores.zero_share_pred:.1%} "
             f"| {run.scores.candidate_emission_rate:.1%} | {overlap_note} "
-            f"| {run.tokens} | {run.cost_usd:.4f} |"
+            f"| {run.cost_usd:.4f} |"
         )
     lines += [
         "",
