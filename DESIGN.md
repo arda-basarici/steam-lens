@@ -768,6 +768,20 @@ policy — the bake-off's three-pass shape**: initial batches → failed idxs re
 at production N → survivors isolated at N=1 → still-failing reviews marked durably via
 `record_failure` (excluded from future selection under this versions triple).
 `LlmUnavailableError` and `AtCapacityError` abort the run loud; both are resume-clean.
+Amended 2026-07-20 on live census evidence (DeepSeek's content filter 400'd one
+request over a single review's Tiananmen line, and the pre-fix abort would have
+re-formed the same batch every relaunch — a permanent wall): a
+`ProviderPermanentError` now fails the batch's rows into that same sweep, so the
+innocent co-batched reviews label on isolation and only the trigger review takes a
+durable mark carrying the provider's refusal verbatim — the pool honestly records
+"the annotator refused this text" (an instrument-limitation footnote the milestone
+post should carry: a Chinese-hosted annotator imposes its content policy on the
+census). Guard: a >20-refused-batches circuit breaker still aborts — a systemic 4xx
+(revoked key, broken payload) must surface as an abort, never as thousands of quiet
+marks. Same incident's second lesson: an aborting run now cancels its queued batches
+(the executor's context manager otherwise *waits* for the queue, which kept buying
+~11 minutes of responses behind the dying run — recoverable money since the cache
+serves them to the next tranche, but abort must mean stop by construction).
 **Fork 6, artifact homes**: the pool lives at `data/steamlens.sqlite3` (`data/`
 gitignored; the bought census joins the Drive backup with a hash manifest, post-census
 TODO), and each run also writes `data/runs/<run_id>/manifest.json` bakeoff-style —

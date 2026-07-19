@@ -55,6 +55,7 @@ from steamlens.contracts import (
 from steamlens.core.classify import (
     PROMPT_VERSION,
     BatchParseResult,
+    IdxFailure,
     build_classify_prompt,
     parse_classify_response,
 )
@@ -67,6 +68,7 @@ from steamlens.llm_client import (
     LlmUnavailableError,
     ModelSpec,
     ProviderEntry,
+    ProviderPermanentError,
     Route,
     openai_compat_entry,
 )
@@ -94,6 +96,12 @@ _OUTPUT_CAP: Final = 8_192
 _RPM: Final = 600
 _INPUT_USD_PER_1M: Final = 0.14
 _OUTPUT_USD_PER_1M: Final = 0.28
+# The refusal circuit breaker: per-batch provider refusals feed the failure
+# sweep (a content-filter rejection is a property of one batch's text), but a
+# systemic 4xx — a revoked key, a broken payload — must abort loud, never
+# become thousands of silent failure marks. Census evidence: refusals ran
+# ~1 per 10K requests (the Tiananmen-line review, 2026-07-20).
+_REFUSED_BATCH_LIMIT: Final = 20
 
 _EPOCH: Final = datetime.fromtimestamp(0, tz=UTC)
 
@@ -137,6 +145,7 @@ class RunTotals:
     rebatched: int = 0
     isolated: int = 0
     failed_durable: int = 0
+    refused_batches: int = 0
     prompt_tokens: int = 0
     output_tokens: int = 0
     thinking_tokens: int = 0
@@ -145,13 +154,20 @@ class RunTotals:
 
 @dataclass(frozen=True, slots=True)
 class BatchOutcome:
-    """One dispatched batch's full account, carried from worker to writer."""
+    """One dispatched batch's full account, carried from worker to writer.
+
+    ``refusal`` is set when the provider rejected the whole request (a content
+    filter, typically) — the parse then carries every idx as failed with the
+    refusal as reason, no tokens were reported, and ``model_version`` is the
+    empty string (nothing served the call, so the drift watch skips it).
+    """
 
     batch: tuple[Review, ...]
     parse: BatchParseResult
     model_version: str
     finish: str
     usage: TokenUsage
+    refusal: str | None = None
 
 
 class TeeSink:
@@ -296,8 +312,14 @@ def classify_batch(
 
     A truncated-or-refused generation is salvaged, not lost: its spend is
     already journaled and cached, so the partial text is parsed and the finish
-    reason rides the outcome. Provider trouble outliving the client's retries
-    and budget refusals propagate — those end the run, not the batch.
+    reason rides the outcome. A ``ProviderPermanentError`` — the provider
+    rejecting the request itself (DeepSeek's content filter, live-observed
+    2026-07-20) — becomes an all-rows-failed outcome so the ordinary sweep
+    isolates the offending review to its durable mark instead of the whole
+    run dying on one batch forever (composition is deterministic — an abort
+    here would re-form the same batch every relaunch). Provider trouble
+    outliving the client's retries and budget refusals still propagate —
+    those end the run, not the batch.
     """
     texts = [review.text for review in batch]
     prompt = build_classify_prompt(texts, ontology)
@@ -307,6 +329,20 @@ def classify_batch(
     except GenerationIncompleteError as exc:
         response = exc.response
         finish = f"incomplete:{exc.reason.value}"
+    except ProviderPermanentError as exc:
+        reason = f"provider refused the request: {exc}"
+        return BatchOutcome(
+            batch=batch,
+            parse=BatchParseResult(
+                parsed=(),
+                failures=tuple(IdxFailure(idx, reason) for idx in range(len(batch))),
+                repairs=(),
+            ),
+            model_version="",
+            finish="refused",
+            usage=TokenUsage(prompt_tokens=0, output_tokens=0, thinking_tokens=0),
+            refusal=str(exc),
+        )
     return BatchOutcome(
         batch=batch,
         parse=parse_classify_response(response.text, texts, surface_index),
@@ -353,11 +389,27 @@ def _write_outcome(
 
     Returns the batch members owed another attempt. On the final (``isolate``)
     attempt nothing is returned — a review failing alone gets its durable
-    failure mark instead, closing its selection under these versions.
+    failure mark instead, closing its selection under these versions. A
+    provider-refused outcome skips the drift watch (nothing served the call)
+    and counts toward the refusal circuit breaker.
     """
-    drift.check(outcome.model_version)
+    if outcome.refusal is not None:
+        totals.refused_batches += 1
+        _narrate(
+            sink, StageKind.WARN,
+            f"provider refused a batch ({attempt}, {len(outcome.batch)} reviews): "
+            f"{outcome.refusal}",
+        )
+        if totals.refused_batches > _REFUSED_BATCH_LIMIT:
+            raise RunAbort(
+                f"{totals.refused_batches} provider-refused batches exceeds the "
+                f"{_REFUSED_BATCH_LIMIT}-batch circuit breaker — a content filter hits "
+                f"single texts, not this many; suspect a systemic request problem"
+            )
+    else:
+        drift.check(outcome.model_version)
+        totals.model_versions_seen.add(outcome.model_version)
     totals.batches += 1
-    totals.model_versions_seen.add(outcome.model_version)
     totals.prompt_tokens += outcome.usage.prompt_tokens
     totals.output_tokens += outcome.usage.output_tokens
     totals.thinking_tokens += outcome.usage.thinking_tokens
@@ -436,13 +488,23 @@ def _run_pass(
     pending: set[Future[BatchOutcome]] = {
         pool.submit(worker, batch) for batch in batches[start_at:]
     }
-    while pending:
-        completed, pending = wait(pending, return_when=FIRST_COMPLETED)
-        for future in completed:
-            failed.extend(consume(future.result(), attempt))
-            done += 1
-            if done % 10 == 0 or done == total:
-                _narrate(sink, StageKind.PROGRESS, f"{attempt}: batch {done}/{total} consumed")
+    try:
+        while pending:
+            completed, pending = wait(pending, return_when=FIRST_COMPLETED)
+            for future in completed:
+                failed.extend(consume(future.result(), attempt))
+                done += 1
+                if done % 10 == 0 or done == total:
+                    _narrate(
+                        sink, StageKind.PROGRESS, f"{attempt}: batch {done}/{total} consumed"
+                    )
+    except BaseException:
+        # Abort means stop: queued batches must not keep dispatching (and
+        # spending) behind a dying run. In-flight requests finish and cache
+        # harmlessly; cancellation only stops what never started.
+        for future in pending:
+            future.cancel()
+        raise
     return failed
 
 
@@ -581,6 +643,7 @@ def execute_run(cfg: RunConfig, entry: ProviderEntry, started: datetime | None =
                 "rebatched": totals.rebatched,
                 "isolated": totals.isolated,
                 "failed_durable": totals.failed_durable,
+                "refused_batches": totals.refused_batches,
             },
             "requests": totals.batches,
             "tokens": {

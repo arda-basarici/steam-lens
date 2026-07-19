@@ -59,7 +59,14 @@ class Store:
         self._conn = sqlite3.connect(db_path, check_same_thread=False, autocommit=True)
         self._conn.execute("PRAGMA journal_mode = WAL")
         self._conn.execute("PRAGMA foreign_keys = ON")
-        self._conn.execute("PRAGMA busy_timeout = 5000")
+        # 60s, sized to bursts, not to writes: a write takes milliseconds, but
+        # SQLite's busy-wait is unfair polling, and the C1 cache-banking flood
+        # (~300 envelope txns/s against the client connection's writes) starved
+        # a waiter past the old 5s on sheer arrival density (2026-07-20, census
+        # tranche 3). Capacity has order-of-magnitude slack — the queue always
+        # drains; if a lock ever recurs at 60s, the escalation is batching
+        # envelope writes per outcome, not more patience.
+        self._conn.execute("PRAGMA busy_timeout = 60000")
         apply_migrations(self._conn)
         self.classify_cache = SqliteClassifyCache(self._conn)
         self.spend_ledger = SqliteSpendLedger(self._conn)

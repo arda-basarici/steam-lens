@@ -24,7 +24,7 @@ from steamlens.contracts import (
     TokenUsage,
 )
 from steamlens.core.classify import PROMPT_VERSION
-from steamlens.llm_client import ProviderEntry, ProviderPayload
+from steamlens.llm_client import ProviderEntry, ProviderPayload, ProviderPermanentError
 from steamlens.ontology import load_ontology_version
 from steamlens.store import Store
 from steamlens.studies.label_corpus import MODEL_ID, RunConfig, execute_run
@@ -73,6 +73,8 @@ class FakeProvider:
         with self._lock:
             call_index = len(self.prompts)
             self.prompts.append(str(payload["prompt"]))
+        if "REFUSE" in str(payload["prompt"]):
+            raise ProviderPermanentError("HTTP 400: Content Exists Risk")
         version = (
             self._versions[call_index] if call_index < len(self._versions) else MODEL_ID
         )
@@ -241,6 +243,66 @@ def test_model_version_drift_aborts_loud(tmp_path: Path) -> None:
     assert "drift" in manifest["aborted"]
     with Store(tmp_path / "pool.sqlite3") as store:  # first batch's envelopes persist
         assert store.labels.get("000", _versions()) is not None
+
+
+def test_provider_refusal_isolates_the_offending_review(tmp_path: Path) -> None:
+    """A content-filter 400 walks the sweep: hostages labeled, offender marked.
+
+    The live case (2026-07-20): DeepSeek refused a whole 10-review request over
+    one review's text, and the pre-fix driver aborted the run — permanently,
+    since deterministic batching re-forms the same batch every relaunch. Now
+    the refusal fails the batch's rows into the ordinary sweep: the innocent
+    reviews label on isolation, only the trigger review gets the durable mark,
+    with the provider's refusal recorded as its reason.
+    """
+    texts = ["fine game one", "REFUSE tripwire text", "fine game two", "fine game three"]
+    _corpus(tmp_path, texts)
+    provider = FakeProvider()
+    exit_code = execute_run(_config(tmp_path, supply=4, n=4, max_workers=1), provider.entry())
+    assert exit_code == 0
+
+    with Store(tmp_path / "pool.sqlite3") as store:
+        assert store.labels.get("001", _versions()) is None  # the offender: marked, not labeled
+        for innocent in ("000", "002", "003"):
+            assert store.labels.get(innocent, _versions()) is not None
+        assert store.reviews.unlabeled_under(_versions()) == ()
+    manifest = json.loads(
+        next((tmp_path / "runs").glob("*/manifest.json")).read_text(encoding="utf-8")
+    )
+    assert manifest["aborted"] is None
+    assert manifest["reviews"]["failed_durable"] == 1
+    assert manifest["reviews"]["labeled"] == 3
+    assert manifest["reviews"]["refused_batches"] == 3  # initial, rebatch, isolate
+
+
+def test_refusal_circuit_breaker_aborts_on_systemic_failure(tmp_path: Path) -> None:
+    """Mass refusals mean a broken request, not toxic text — the run aborts loud."""
+    _corpus(tmp_path, [f"REFUSE everything {i}" for i in range(25)])
+    provider = FakeProvider()
+    exit_code = execute_run(
+        _config(tmp_path, supply=25, n=1, max_workers=1), provider.entry()
+    )
+    assert exit_code == 1
+    manifest = json.loads(
+        next((tmp_path / "runs").glob("*/manifest.json")).read_text(encoding="utf-8")
+    )
+    assert "circuit breaker" in str(manifest["aborted"])
+
+
+def test_abort_cancels_the_queued_batches(tmp_path: Path) -> None:
+    """After an abort, queued batches never dispatch — abort means stop.
+
+    Pre-fix, the pool's context manager *waited* for the queue, which kept
+    buying responses for 11 minutes behind tranche 2's abort. Scripted here
+    via drift: the second response reports a different model version, the run
+    aborts, and the provider must have seen only the few requests already in
+    motion — not the 30 queued behind them.
+    """
+    _corpus(tmp_path, [f"review number {i}" for i in range(30)])
+    provider = FakeProvider(version_for=[MODEL_ID, "deepseek-v4-flash-0921"])
+    cfg = _config(tmp_path, supply=30, n=1, max_workers=1)
+    assert execute_run(cfg, provider.entry()) == 1
+    assert len(provider.prompts) <= 6  # in-motion slack only; 30 without the fix
 
 
 def test_supply_mismatch_refuses_before_any_dispatch(tmp_path: Path) -> None:
