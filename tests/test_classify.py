@@ -24,12 +24,14 @@ from steamlens.contracts import (
 )
 from steamlens.core.classify import (
     CLASSIFY_RESPONSE_SCHEMA,
+    COMPACT_PROMPT_VERSION,
     PROMPT_VERSION,
     BatchParseResult,
     EvidenceRepair,
     IdxFailure,
     ParsedReview,
     build_classify_prompt,
+    build_classify_prompt_compact,
     parse_classify_response,
 )
 from steamlens.core.normalize import build_surface_index
@@ -142,6 +144,35 @@ def test_prompt_content_pinned_to_version() -> None:
         "classify-v1",
         "66f09e4dd8ac769db23c9023d1ab58d1e71a2e9814b3e39af645a3f34b6e33e0",
     ), "prompt content changed: bump PROMPT_VERSION and re-pin this hash"
+
+
+def test_compact_prompt_renders_decision_surface_only() -> None:
+    """The compact render keeps the shared template and the three boundary fields,
+    and drops aliases and examples — the pre-registered decision-surface contract."""
+    prompt = build_classify_prompt_compact(["Great fighting!"], _FIXTURE)
+    for expected in (
+        "## play",
+        "### combat",
+        "Definition: combat definition.",
+        "Label when: When combat is evaluated.",
+        "Do not label when: When another label owns it.",
+        "1. Aspect, not mood.",
+        "Worked examples:",
+    ):
+        assert expected in prompt, f"compact prompt is missing: {expected}"
+    assert "Also known as:" not in prompt
+    assert '- "A combat sentence." -> `combat`' not in prompt
+    assert prompt.rstrip().endswith("</reviews>")
+
+
+def test_compact_prompt_content_pinned_to_version() -> None:
+    """Same pin discipline as the full prompt, under the compact version string."""
+    render = build_classify_prompt_compact(["pin"], _FIXTURE)
+    content_hash = hashlib.sha256(render.encode("utf-8")).hexdigest()
+    assert (COMPACT_PROMPT_VERSION, content_hash) == (
+        "classify-v1-compact",
+        "56e834a562fe7c45187c82990a89e16acdc8054eb086498d78bea12acd33b831",
+    ), "compact prompt content changed: bump COMPACT_PROMPT_VERSION and re-pin this hash"
 
 
 # --- the parse ---

@@ -655,6 +655,67 @@ couldn't show (drift, systematic per-game failure) surface through D2/D3, and ti
 escalation per the protocol's no-buy clause is the recorded fallback, never
 quiet tolerance.
 
+**C1 slice ruling: census of the usable pool** (Arda's ruling, 2026-07-19; full
+narrative in the stream SESSION_LOG same date). The survey labels **every
+English-nonempty corpus review — 135,260 across the 49 usable games** (measured by
+`probes/survey_supply_counts.py`; ~45% of the 298K headline once English-first and
+Unicode-honest emptiness shrink the denominator; per-game min 195 / median ~2,100 /
+max 6,869). This deliberately reopens and supersedes the 2026-07-16 "full corpus is
+never labeled" ruling on its collapsed premises: the labelable pool is 135K, not 298K,
+and the cost base is v4-flash's true ~$3–6, not Gemini's ~$25 — census costs 2.9× the
+1,000/game alternative. What the census buys: no shortfall policy (small games are
+censuses under any scheme), zero sampling error against the corpus for every displayed
+number, and the sampling study (M2) is never capped by today's choice. **No
+pre-filtering beyond usable** (ruled same day): "no aspects" is the certified
+classifier's own verdict and a measured quantity (gold zero-share 49.2%), a usefulness
+heuristic would be an unvalidated second classifier standing in front of the certified
+one ("runs bad" is 8 characters of real signal), and exact-duplicate texts already
+cost once through the content-keyed label cache. **Instrument lesson recorded**:
+100-review/game probes cannot resolve mention rates under ~1% — the floor-clearance
+projection (`probes/floor_clearance_projection.py`) returns identical results at every
+candidate size — so tail pins (matchmaking, cheating, physics, servers_netcode at
+0.27–0.43% corpus-pooled) are only visible at n≈1,200–1,900, where the census lives
+anyway. Slice-size math in the stream WHITEBOARD (2026-07-19).
+
+**C0.5 certification: the v2 wording batch, ruled** (Arda's ruling, 2026-07-19: **the
+v2 full-fidelity codebook labels the survey, N=10 stands** — the sanctioned reopen
+under the C0 ruling's condition #1). **Why it ran**: the gold ledger's routing rulings
+(2026-07-16/17) postdate classify-v1's frozen wording (2026-07-13), so the labeler had
+never seen the semantics gold grades it against, and the survey pool is the durable
+asset C2, D2, and M2 all fold — it gets bought at aligned semantics. **The
+distillation** (one shot, by design — wording was never iterated against gold F1):
+triage interview over the 33-ruling ledger settled what rides (routing/semantic
+rulings 1–3, 8–16, 18–25, 27–33, the two FIXLOG wording riders, and machine-side
+demotion guards for camera/accessibility that v1 only carried for grind/localization)
+vs what stays gold-process-only (4–6, 17, 26); the ride-list landed in
+`src/steamlens/ontology/v2.toml` — same 51 pins, aliases byte-identical (the
+normalize surface index is unchanged), global rules 8 → 13, every real-pass example
+freshly constructed so no gold span reaches the machine's contract. The compact
+render became a first-class prompt variant (`classify-v1-compact`, own content pin) —
+template code, selected per run. **The arms** (gold slice, N=10, paired bootstrap
+10,000 resamples, seed 20260718, all runs 250/250 with zero parse failures): v2 vs the
+frozen v1 baseline — precision **+0.066 [+0.039, +0.098]** (real), recall −0.030
+[−0.062, +0.000] (borderline), F1 +0.020 [−0.003, +0.045], sentiment +0.015; v2-compact
+vs baseline — precision +0.073 (real) but recall **−0.057 [−0.097, −0.020] confirmed
+worse**; compact vs full — indistinguishable on all four metrics. The mention-economy
+diagnostic explains the shape: baseline over-mints (386 mentions vs gold's 351,
+zero-share 48.0% vs 49.2%), v2 lands on gold's economy (339 / 52.4%), compact folds
+too hard (329 / 54.0%) — the ruling batch is precision-lifting deletion, working as
+designed. **The honest sentence**: v2's F1 is not-worse-and-leaning-better, its
+precision gain is confirmed; "confirmed better F1" is not claimed. **Compact rejected
+for dispatch, kept for D2**: its token cut measured 26% (9,940 → 7,330 prompt
+tokens/request — the pre-registered ~60% was estimated against the leaner v1
+codebook), worth ~$0.10 across the whole census under prefix caching — immaterial next
+to a confirmed recall loss and broken human/machine contract parity. **The N re-check
+on the winner** (n5/n10/n20, C0's ladder shape): F1 .786 / **.796** / .752 — n10 beats
+n20 two-sided (+0.043 [+0.020, +0.071]), n5 is indistinguishable and dearer per
+request; the peak-at-10 shape reproduces under new wording. **Dispatch config for C1**:
+v4-flash · N=10 · `classify-v1` template · **ontology `v2`** (selected by explicit
+path; the packaged default stays v1 because gold's identity pin is v1 — flipping the
+default is a deliberate later step that must rework the runner's gold-pin check, not a
+side effect). Captures: `probes/captures/bakeoff/deepseek-v4-flash-v2*/`; cost of the
+whole certification ≈ $0.15.
+
 ## Scope & non-goals
 
 - In: aspect reports with receipts, narrated live analysis, the event investigator, the

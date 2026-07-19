@@ -11,7 +11,12 @@ version fails CI instead of quietly invalidating the "same version, same answer"
 promise. The codebook renders **full-fidelity** — every field of every aspect,
 grouped by category — so the machine annotator reads the same instructions the
 human annotator reads at gold labeling (the design call: an agreement number is
-only clean when both annotators worked from one contract).
+only clean when both annotators worked from one contract). The pre-registered
+**compact** variant (DESIGN's classify-prompt entry) renders the decision
+surface only — definition + label when + do not label when, no aliases, no
+examples — under its own ``COMPACT_PROMPT_VERSION`` and its own content pin;
+it exists to measure whether a leaner rule set beats a muddier context, and
+graduates to the dispatch prompt only through a certification experiment.
 
 Review text is attacker-controlled by definition, so it crosses into the prompt
 only inside a delimited data channel — a JSON array between ``<reviews>`` tags,
@@ -42,6 +47,7 @@ from steamlens.contracts import AspectDef, AspectMention, AspectOntology, Sentim
 from steamlens.core.normalize import normalize_label
 
 PROMPT_VERSION: Final = "classify-v1"
+COMPACT_PROMPT_VERSION: Final = "classify-v1-compact"
 
 _SENTIMENT_VALUES: Final = tuple(s.value for s in Sentiment)
 
@@ -143,6 +149,25 @@ def build_classify_prompt(review_texts: Sequence[str], ontology: AspectOntology)
     Raises ``ValueError`` on an empty batch — the driver composes batches of at
     least one review, so an empty one is a caller bug, not a request.
     """
+    return _assemble_prompt(review_texts, ontology, render_codebook(ontology))
+
+
+def build_classify_prompt_compact(review_texts: Sequence[str], ontology: AspectOntology) -> str:
+    """Render the compact-codebook classify prompt for one batch of review texts.
+
+    Identical template to ``build_classify_prompt`` — framing, global rules,
+    output format, worked examples, data channel — with the codebook rendered
+    decision-surface-only (``render_codebook_compact``). A caller using this
+    builder records ``COMPACT_PROMPT_VERSION``, never ``PROMPT_VERSION``: the
+    two renders are distinct annotation contracts and must never share a cache
+    key or a label-pool pin. Same empty-batch ``ValueError`` as the full build.
+    """
+    return _assemble_prompt(review_texts, ontology, render_codebook_compact(ontology))
+
+
+def _assemble_prompt(
+    review_texts: Sequence[str], ontology: AspectOntology, codebook: str
+) -> str:
     if not review_texts:
         raise ValueError("classify batch is empty — a batch carries at least one review")
     payload = json.dumps(
@@ -152,8 +177,7 @@ def build_classify_prompt(review_texts: Sequence[str], ontology: AspectOntology)
     sections = (
         _TASK_FRAMING,
         "Global rules:\n" + render_global_rules(ontology.global_rules),
-        "The codebook — the pinned vocabulary, grouped by category:\n\n"
-        + render_codebook(ontology),
+        "The codebook — the pinned vocabulary, grouped by category:\n\n" + codebook,
         _OUTPUT_FORMAT,
         _WORKED_EXAMPLES,
         _DATA_CHANNEL_NOTE,
@@ -324,6 +348,23 @@ def render_codebook(ontology: AspectOntology) -> str:
     )
 
 
+def render_codebook_compact(ontology: AspectOntology) -> str:
+    """Every aspect's decision surface only, grouped under category headings.
+
+    The pre-registered compact contract: definition + label when + do not
+    label when — the fields that decide a boundary — with aliases and examples
+    dropped. Public for the same shared-contract reason as ``render_codebook``:
+    if this variant ever labels a survey, the humans certifying against it must
+    read this exact text.
+    """
+    by_category: dict[str, list[str]] = {}
+    for aspect in ontology.aspects:
+        by_category.setdefault(aspect.category, []).append(_render_aspect_entry_compact(aspect))
+    return "\n\n".join(
+        "\n\n".join([f"## {category}", *entries]) for category, entries in by_category.items()
+    )
+
+
 def _render_aspect_entry(aspect: AspectDef) -> str:
     """One aspect's entry — all decision-surface fields, optional ones omitted when empty."""
     lines = [f"### {aspect.label}", f"Definition: {aspect.definition}"]
@@ -335,6 +376,18 @@ def _render_aspect_entry(aspect: AspectDef) -> str:
         lines.append("Examples:")
         lines.extend(f"- {example}" for example in aspect.examples)
     return "\n".join(lines)
+
+
+def _render_aspect_entry_compact(aspect: AspectDef) -> str:
+    """One aspect's compact entry — the three boundary-deciding fields, nothing else."""
+    return "\n".join(
+        [
+            f"### {aspect.label}",
+            f"Definition: {aspect.definition}",
+            f"Label when: {aspect.label_when}",
+            f"Do not label when: {aspect.do_not_label_when}",
+        ]
+    )
 
 
 class _RowError(Exception):

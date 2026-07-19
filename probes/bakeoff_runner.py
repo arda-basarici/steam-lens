@@ -6,6 +6,15 @@ several N values on the two probe models):
     uv run python probes/bakeoff_runner.py gemini-flash --n 20
     uv run python probes/bakeoff_runner.py groq-llama-70b --n 50 --limit 10
 
+C0.5 certification arms (prompt/ontology variants on one candidate — gold
+itself stays pinned to the packaged v1 artifact; the run-side wording is the
+experiment): ``--ontology`` swaps the codebook artifact, ``--compact`` renders
+the decision-surface-only prompt variant, ``--tag`` keeps the arm's captures
+in their own directory so ``bakeoff_table.py --compare`` can address them:
+
+    uv run python probes/bakeoff_runner.py deepseek-v4-flash --n 10 \\
+        --ontology src/steamlens/ontology/v2.toml --tag v2
+
 Captures land in ``probes/captures/bakeoff/<candidate>/n<N>/``:
 
     raw.jsonl          one line per request — review ids, the raw provider body,
@@ -41,8 +50,10 @@ sys.path.insert(0, str(_REPO / "src"))
 from steamlens.contracts import AspectMention, LlmRequest, LlmStage, SinkEvent  # noqa: E402
 from steamlens.core.classify import (  # noqa: E402
     CLASSIFY_RESPONSE_SCHEMA,
+    COMPACT_PROMPT_VERSION,
     PROMPT_VERSION,
     build_classify_prompt,
+    build_classify_prompt_compact,
     parse_classify_response,
 )
 from steamlens.core.normalize import build_surface_index  # noqa: E402
@@ -330,19 +341,39 @@ def main() -> None:
     parser.add_argument("candidate", choices=sorted(_CANDIDATES))
     parser.add_argument("--n", type=int, required=True, help="batch size (reviews per request)")
     parser.add_argument("--limit", type=int, default=None, help="first K reviews only (smoke)")
+    parser.add_argument(
+        "--ontology", type=Path, default=None,
+        help="ontology artifact override (default: the packaged v1) — a C0.5 arm",
+    )
+    parser.add_argument(
+        "--compact", action="store_true",
+        help="render the decision-surface-only prompt variant (COMPACT_PROMPT_VERSION)",
+    )
+    parser.add_argument(
+        "--tag", default=None,
+        help="capture-directory suffix for an arm (e.g. 'v2' -> <candidate>-v2/n<N>)",
+    )
     args = parser.parse_args()
 
     candidate = _CANDIDATES[args.candidate]
     records = load_gold(_GOLD_PATH)
     if args.limit:
         records = records[: args.limit]
-    ontology = load_ontology()
-    stamp = load_ontology_version()
-    if {r.ontology_content_hash for r in records} != {stamp.content_hash}:
+    # Gold's pin is checked against the PACKAGED v1 artifact always — that is
+    # gold's identity. An --ontology override changes what the RUN reads, and
+    # that mismatch is the C0.5 experiment, recorded in the manifest, never a
+    # silent substitution.
+    gold_pin = load_ontology_version()
+    if {r.ontology_content_hash for r in records} != {gold_pin.content_hash}:
         raise SystemExit("gold's ontology pin does not match the packaged v1 artifact — refusing")
+    ontology = load_ontology(args.ontology)
+    stamp = load_ontology_version(args.ontology)
     index = build_surface_index(ontology)
+    build_prompt = build_classify_prompt_compact if args.compact else build_classify_prompt
+    prompt_version = COMPACT_PROMPT_VERSION if args.compact else PROMPT_VERSION
+    label = args.candidate + (f"-{args.tag}" if args.tag else "")
 
-    out_dir = _CAPTURES / args.candidate / f"n{args.n}"
+    out_dir = _CAPTURES / label / f"n{args.n}"
     out_dir.mkdir(parents=True, exist_ok=True)
     store = Store(_CAPTURES / "bakeoff.sqlite3")
     client = _build_client(args.candidate, candidate, args.n, store)
@@ -357,7 +388,7 @@ def main() -> None:
 
     def run_batch(batch: tuple[GoldRecord, ...], attempt: str) -> list[GoldRecord]:
         texts = [r.text for r in batch]
-        prompt = build_classify_prompt(texts, ontology)
+        prompt = build_prompt(texts, ontology)
         try:
             response = client.complete(LlmRequest(stage=LlmStage.CLASSIFY, prompt=prompt))
             finish = response.finish_reason.value
@@ -453,13 +484,16 @@ def main() -> None:
         encoding="utf-8",
     )
     manifest = {
-        "candidate": args.candidate,
+        "candidate": label,
+        "base_candidate": args.candidate,
         "provider_kind": candidate.kind,
         "model": candidate.model,
         "model_versions": sorted({str(r["model_version"]) for r in raw_rows}),
-        "prompt_version": PROMPT_VERSION,
+        "prompt_version": prompt_version,
         "ontology_version": stamp.version,
         "ontology_content_hash": stamp.content_hash,
+        "ontology_override": str(args.ontology) if args.ontology else None,
+        "gold_ontology_pin": gold_pin.content_hash,
         "structured_output": candidate.structured_output,
         "params": candidate.params,
         "n": args.n,

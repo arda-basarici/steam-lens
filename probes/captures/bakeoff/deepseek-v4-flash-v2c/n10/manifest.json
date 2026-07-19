@@ -1,0 +1,57 @@
+{
+  "candidate": "deepseek-v4-flash-v2c",
+  "base_candidate": "deepseek-v4-flash",
+  "provider_kind": "compat",
+  "model": "deepseek-v4-flash",
+  "model_versions": [
+    "deepseek-v4-flash"
+  ],
+  "prompt_version": "classify-v1-compact",
+  "ontology_version": "v2",
+  "ontology_content_hash": "363a0ce52f390af3c55d20a0a7fbe114f625ae33be08926b4812dc9149c58e07",
+  "ontology_override": "src\\steamlens\\ontology\\v2.toml",
+  "gold_ontology_pin": "481d86add78b92e4fd108b389375954fd7285fa0b0985e7222aefc959ca01ebe",
+  "structured_output": "json_object",
+  "params": {
+    "temperature": 0,
+    "response_format": {
+      "type": "json_object"
+    },
+    "thinking": {
+      "type": "disabled"
+    }
+  },
+  "n": 10,
+  "limit": null,
+  "gold_path": "eval\\gold\\gold.jsonl",
+  "started_at": "2026-07-19T14:32:25.077803+00:00",
+  "finished_at": "2026-07-19T14:34:07.087329+00:00",
+  "requests": 25,
+  "tokens": {
+    "prompt": 183260,
+    "output": 14369,
+    "thinking": 0
+  },
+  "cost_usd": 0.029679720000000003,
+  "reviews": {
+    "total": 250,
+    "answered": 250,
+    "salvaged_from_partial_batches": 0,
+    "failed_initial": 0,
+    "isolation_retries": 0,
+    "unrecoverable": 0,
+    "unattributable_rows": 0,
+    "evidence_repairs": 9
+  },
+  "aborted": null,
+  "argv": [
+    "deepseek-v4-flash",
+    "--n",
+    "10",
+    "--ontology",
+    "src/steamlens/ontology/v2.toml",
+    "--compact",
+    "--tag",
+    "v2c"
+  ]
+}

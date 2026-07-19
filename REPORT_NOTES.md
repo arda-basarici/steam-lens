@@ -7,6 +7,79 @@ decisions it feeds.
 
 ---
 
+## 2026-07-19 — The labeler had never read the rulebook it was graded by: buying the alignment back cost fifteen cents, and the "free" token cut turned out to charge recall
+
+*The pre-C1 certification experiment (C0.5) — extraction+eval (M1), the sanctioned
+reopen under the C0 ruling's first condition (any prompt change re-certifies quality
+and N). Feeds: the M1 report/post's methodology section (the certify-before-buy
+pattern, annotator-contract alignment) and the cost story.*
+
+The experiment existed because of a timeline fact easy to miss: the machine's
+codebook wording was frozen into `classify-v1` on 2026-07-13, but the gold set's
+routing rulings — thirty-three of them, settled one at a time with Arda across the
+dry runs and the real labeling pass — landed on the 16th and 17th. Every one of
+those rulings changed what gold considers correct, and the labeler had seen none of
+them. That misalignment is systematic, not noise, and the survey label pool is the
+durable asset every downstream consumer folds (the aggregates, the judge
+calibration, the sampling study) — so before the census buy, the semantics had to be
+bought back into alignment.
+
+The distillation ran under two disciplines worth reporting. First, one shot: the
+ruling ledger was distilled into the ontology's machine-side wording
+(`src/steamlens/ontology/v2.toml` — same 51 pins, aliases untouched, global rules
+8 → 13) exactly once, with no peeking at scores between drafts — iterating wording
+against gold F1 would turn certification into training-on-test. Second,
+paraphrase-never-quote: gold review text must never enter the machine's contract,
+because a codebook that quotes its own exam hands every later-evaluated model the
+answers. A consistency sweep before the runs caught three of the new examples
+paraphrased too close to the real-pass reviews that triggered their rulings; all
+three were replaced with structurally different constructed cases. The triage
+itself was an interview — Arda ruled cluster by cluster on which rulings ride into
+machine wording (the dry-run routing cluster, the sentiment cluster, the
+mention-minting cluster all ride; process rulings stay gold-side), and the sweep
+surfaced one genuine gap nobody had ruled on: two of the four demoted aspects
+(camera, accessibility) had no machine-side "candidate, never the nearest pin"
+guard, while grind and localization did.
+
+Three arms ran on the gold slice at N=10 — the frozen `classify-v1` captures as the
+free baseline, the v2 wording full-fidelity, and v2 plus the pre-registered
+compact rendering (decision surface only: definition + label-when + do-not-label-when,
+no aliases, no examples). Paired bootstrap throughout (10,000 resamples, seed
+20260718, `probes/bakeoff_table.py --compare`; captures in
+`probes/captures/bakeoff/deepseek-v4-flash-v2*/`). The v2 wording did exactly what a
+batch of mostly-deletion rulings should: precision +0.066 [+0.039, +0.098] —
+confirmed — with recall dipping a borderline −0.030 [−0.062, +0.000], F1 +0.020
+[−0.003, +0.045]. The explanatory key is the mention-economy diagnostic: the v1
+baseline over-mints against gold (386 predicted mentions vs gold's 351; zero-aspect
+share 48.0% vs gold's 49.2%), v2 lands almost exactly on gold's economy (339
+mentions, 52.4%), and compact folds slightly too hard (329, 54.0%). The ruling
+batch is precision-lifting deletion, working as designed.
+
+The compact arm is the story's turnaround. It had been pre-registered as the cost
+fallback — a ~60% token cut if quality held. Measured, the cut was 26% (9,940 →
+7,330 prompt tokens per request; the 60% estimate predated the v2 wording's own
+growth), and DeepSeek's prefix cache — which bills the fixed codebook at ~98% off
+from the second batch on — collapses the census-scale difference to roughly ten
+cents. What that dime buys is a confirmed recall loss: compact vs baseline recall
+−0.057 [−0.097, −0.020], the only confirmed-worse cell in the whole experiment.
+Dropping the examples costs real mentions and saves almost nothing at these prices.
+Arda ruled compact out for dispatch; it stays in the codebase as a first-class
+versioned prompt variant (`classify-v1-compact`, its own content-hash pin) for the
+prompt experiment the eval-judge milestone (D2) pre-registered.
+
+The N re-check on the winner reproduced the bake-off's shape under entirely new
+wording: F1 .786 / .796 / .752 across n5/n10/n20, with n10 beating n20 two-sided
+(+0.043 [+0.020, +0.071]). The dispatch config for the census is now fully frozen:
+DeepSeek v4-flash, N=10, the `classify-v1` template, ontology v2. The honest
+sentence, same shape the C0 ruling insisted on: confirmed better precision, no
+evidence of harm, F1 leaning positive — not "confirmed better F1." The entire
+certification — three full gold-slice runs plus the ladder — cost about fifteen
+cents.
+
+Figure: the three-arm movement against gold's mention economy — baseline → v2 →
+v2-compact as points on precision/recall axes (or mention-count bars against gold's
+351) — regenerates from the captures and `probes/bakeoff_table.py`.
+
 ## 2026-07-19 — The sizing question wasn't answered, it was deleted: half the corpus was never labelable, so the survey became a census
 
 *The survey-slice-size ruling between the provider bake-off's close (C0) and the
