@@ -716,6 +716,73 @@ default is a deliberate later step that must rework the runner's gold-pin check,
 side effect). Captures: `probes/captures/bakeoff/deepseek-v4-flash-v2*/`; cost of the
 whole certification ≈ $0.15.
 
+**C1 `studies/` labeling driver: the census dispatch design** (settled 2026-07-19,
+seven-fork design discussion; dispatch config itself frozen at the C0.5 ruling —
+v4-flash · N=10 · `classify-v1` · ontology v2 by explicit path). **Shape**: a thin
+`studies/` entry shell (per the module map) plus a local-corpus reader — raw frozen
+JSONL → `Review` records with the usable filter as a pure, tested predicate; the
+driver composes reader → `ReviewStore` ingest → selection → batch → `core/classify`
+prompt/parse → `LlmClient` → `LabelPool`, narrating through the sink. Resume needs no
+checkpoint ledger by construction: `unlabeled_under` *is* the checkpoint (envelopes +
+failure marks anti-joined), batch composition is deterministic over the remaining set,
+and the content-keyed cache makes a re-formed batch whose response was already bought
+free — crash anywhere, relaunch, pay only for what never completed. **Fork 1, store
+concurrency — two `Store` instances over the one file**: the client's cache/ledger
+bind to connection #1 (touched from worker threads under the client's lock), all
+label-pool writes go through connection #2 from the main thread only. Rationale: a
+transaction is connection-scoped, so on the shared single connection a worker's
+mid-`complete` cache write could land inside the main thread's open envelope
+`BEGIN…COMMIT` and be erased by its rollback — silently re-buying a bought response.
+Two connections make the interleave impossible structurally; WAL + the existing 5s
+busy timeout (the store docstring's "safety net for an unexpected second connection")
+get promoted to designed-for, docstring updated. Worker topology: the pool runs
+call+parse only; the main thread consumes completed futures, writes envelopes/failure
+marks, and owns the narration — the fail-loud duplicate-envelope discipline stays
+single-threaded. **Fork 2, ingest scope — usable pool only**: English + Unicode-honest
+nonempty + CS2 (app 730, named constant) excluded at the reader, so the `reviews`
+table, the ruled census, and the selection query are the same set and
+`unlabeled_under` means "remaining work" unmodified. After ingest the driver asserts
+the total equals the ruled **135,260** and fails loud before any money moves — the
+slice ruling becomes a runtime check. The ingest narration states the drop arithmetic
+(total on disk / non-English / empty / ingested), and the raw files stay the
+re-ingestable source of truth for any future non-English question. The no-usefulness-
+prefiltering ruling is untouched: low-content English reviews are bought, and their
+empty-mentions envelopes are the measured zero-share. **Fork 3, the label key's
+`model_version` — the requested id** (`deepseek-v4-flash`), never the response's
+self-reported version: keys are contracts, observations are evidence. The reported
+string journals per call in the spend ledger (already the `SpendRecord` shape) and the
+run manifest records the set seen; a mid-run change from the first-seen value **aborts
+loud** rather than warn-and-continue — a silent provider model roll is exactly the
+event that would split the pool's "one annotator" claim, and resume makes the abort
+cheap. Caveat on record: if DeepSeek merely echoes the alias, the drift watch watches
+a mirror — the per-call ledger is then the only real trace, which is why it is
+per-call. **Fork 4, throughput dials — run config, not design**: `max_workers`
+defaults to 1 (sequential resting state), the census dispatches explicitly at 10;
+client rpm for v4-flash set to 600 so pacing demotes to a runaway backstop under the
+worker bound (DeepSeek's envelope is concurrency-only, 2,500 concurrent for flash —
+console-verified 2026-07-19); the first batch runs solo before the pool opens so the
+provider's prefix cache seeds once instead of ~10 concurrent cold misses — pennies,
+but the pilot's cost-per-review extrapolation then measures steady-state behavior.
+These dials never enter the cache/envelope key — retunable per dispatch. **Failure
+policy — the bake-off's three-pass shape**: initial batches → failed idxs re-batched
+at production N → survivors isolated at N=1 → still-failing reviews marked durably via
+`record_failure` (excluded from future selection under this versions triple).
+`LlmUnavailableError` and `AtCapacityError` abort the run loud; both are resume-clean.
+**Fork 6, artifact homes**: the pool lives at `data/steamlens.sqlite3` (`data/`
+gitignored; the bought census joins the Drive backup with a hash manifest, post-census
+TODO), and each run also writes `data/runs/<run_id>/manifest.json` bakeoff-style —
+resolved config, versions triple + ontology content hash, counts, token totals,
+ledger cost, reported-version set, timestamps, aborted-or-clean. The `runs` table is
+the database's memory; the file is the human's citable one. **Fork 7, budget caps
+under the real balance** (~$9.80 DeepSeek credit at ruling time): pilot `--budget-usd
+1`, census `--budget-usd 8` — 2× the ruled $3–6 estimate's midpoint but deliberately
+*below* the balance so our clean `AtCapacityError` always fires before the provider's
+insufficient-balance error; the cap is per-invocation (the client counts from its own
+construction), so the driver narrates the ledger's lifetime total at startup — every
+relaunch shows cumulative census spend next to the fresh cap. Pilot gate before the
+census: a `--limit` slice (~300 reviews) certifies cost-per-review and throughput;
+census projection above ~$6 pauses for a top-up-or-reconsider ruling.
+
 ## Scope & non-goals
 
 - In: aspect reports with receipts, narrated live analysis, the event investigator, the
