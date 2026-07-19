@@ -10,9 +10,14 @@ instead of once per surface, and "which connection has WAL set" stays a
 single fact.
 
 The store adds no locking of its own: the client already serializes every
-cache and ledger touch under its one lock, and the labeling driver is
-sequential by config default. WAL plus the busy timeout is the safety net for
-an unexpected second connection, not the concurrency design.
+cache and ledger touch under its one lock, and transactions never share a
+connection across threads by design — the labeling driver opens TWO ``Store``
+instances over the one file (the client's cache/ledger on one connection from
+worker threads, all label-pool writes on the other from its main thread),
+because a transaction is connection-scoped and a shared connection would let a
+worker's cache write land inside an open envelope transaction. WAL plus the
+busy timeout is what coordinates the two writers (C1 driver design, DESIGN
+2026-07-19); they remain the safety net for any genuinely unexpected third.
 """
 
 from __future__ import annotations
