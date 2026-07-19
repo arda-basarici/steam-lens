@@ -69,11 +69,15 @@ from steamlens.store import Store  # noqa: E402
 _GOLD_PATH = _REPO / "eval" / "gold" / "gold.jsonl"
 _CAPTURES = _REPO / "probes" / "captures" / "bakeoff"
 
-# Output sizing: gold density is ~1.4 mentions/review; a mention with its
-# evidence quote renders ~120 output tokens, so ceiling = base + 140/review
-# gives comfortable headroom without inviting runaway generations.
-_OUTPUT_BASE = 512
-_OUTPUT_PER_REVIEW = 140
+# Output sizing, raised 2026-07-19 from measured demand (the day-one 512+140
+# formula truncated dense batches at five providers, cut exactly at the cap):
+# a single dense review generated up to 1,359 tokens on the N=1 isolation
+# path (and one retry was truncated at the old 652 cap), so the base alone
+# must hold one worst-case review; dense full batches demanded >165
+# tokens/review (batch p90 132). The per-candidate output_cap min() below
+# stays as the runaway guard.
+_OUTPUT_BASE = 2_048
+_OUTPUT_PER_REVIEW = 200
 
 _GEMINI_PARAMS: dict[str, object] = {
     "temperature": 0,

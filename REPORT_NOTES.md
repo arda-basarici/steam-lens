@@ -7,7 +7,79 @@ decisions it feeds.
 
 ---
 
-## 2026-07-18 — Batch size defected from parity to product, and the gold assist set the field's ceiling for free
+## 2026-07-19 — The eyeball read failed its own significance test, and the ruling came out more honest for it
+
+*The provider bake-off's (C0) closing session — extraction+eval (M1). The decision
+record is DESIGN.md's three C0 entries dated 2026-07-19 (envelope amendments · the
+paired read + N-freeze · the ruling); this is the story. Feeds: the M1 report/post's
+methodology section (the bake-off story, the measurement-honesty thread), and the
+cost story wherever the report talks money.*
+
+The bake-off closed today on DeepSeek v4-flash at ten reviews per request, and the
+most reportable thing about the closure is that the winning argument had to survive a
+correction first. Arda came in leaning DeepSeek — "deepseek looks behind gemini
+models, but when we consider error bands, they overlap heavily" — and the lean was
+right, but the reasoning under it turned out to be wrong in an instructive way. The
+comparison table's confidence intervals (3 Flash n20 F1 .801 [.756–.840] vs v4-flash
+n20 .767 [.717–.812], `probes/captures/bakeoff/TABLE.md`) do overlap heavily. But
+every run in that table scores the *same* 250 gold reviews, and separate intervals on
+shared data overstate the uncertainty of a gap — review difficulty is shared, not
+independent. A paired bootstrap (each resample draws one set of review indices and
+scores both runs on it — `paired_bootstrap_ci` in the evals core, exposed as
+`--compare` in `probes/bakeoff_table.py`, 10,000 resamples, seed 20260718) reversed
+the eyeball read at matched batch size: the Gemini 3 Flash gap is real, F1 +0.034
+[+0.002, +0.067], driven by recall. The same test then closed the loop in DeepSeek's
+favor: against v4-flash at its *best* batch size, the gap collapses to
+indistinguishable (+0.025 [−0.004, +0.055]). So the ruling's honest sentence — the
+one recorded in DESIGN — is not "they're the same": 3 Flash is measurably better at
+matched N, the gap vanishes at the frozen N, and it costs ~12× more. The transferable
+lesson is cheap to state and easy to forget: on a shared benchmark, "the error bars
+overlap" is not a significance test, and the paired version can flip the call in
+either direction — here it did both in one afternoon.
+
+The batch-size freeze got the full-curve treatment because DeepSeek is the one
+candidate with no quota wall to ration measurements. The four-point ladder
+(`probes/captures/bakeoff/deepseek-v4-flash/{n5,n10,n20,n50}/`, every run 250/250
+with zero parse failures) came out .746 / .776 / .767 / .762 — a peak at n10 with
+two-sided paired evidence: n10 beats n5 on F1 (+0.029 [+0.009, +0.052]; below the
+peak, precision decays — the same over-extraction pattern flash-lite's ladder showed
+at n5) and beats n50 on recall (+0.042 [+0.013, +0.073] — the depth-dilution
+direction every ladder showed). What makes N=10 a pure quality call is that the other
+two axes washed out. Cost: the true, cache-adjusted numbers (computed from the
+provider bodies persisted in `probes/captures/bakeoff/bakeoff.sqlite3` — DeepSeek's
+usage reports the cache hit/miss split) put a 250-review measurement at $0.0072 at
+n10 (91.3% cache-hit; the ~6.5k-token codebook re-sent per request bills at ~98% off,
+so the repeats are nearly free and n10 is *cheaper* than n20 despite 3.7× the prompt
+tokens), survey extrapolation ≈ $1.4 at any N on the ladder. Time: sequential wall
+time spreads 3.9–6.2 hours across the ladder at survey scale, but DeepSeek's envelope
+is concurrency-only (2,500 concurrent requests, no rate or daily caps), so any
+concurrency in the C1 driver collapses the difference. This also closed the honesty
+rider from yesterday's batch-size amendment on the best possible terms: the free-tier
+request quotas that had motivated maximizing N don't bind a paid concurrency-only
+winner, and the freeze went to the measured quality peak, not the operational ceiling.
+
+The closure itself was a set of deliberate exits rather than finished rows, and the
+report should own that. The two remaining free-tier completions (Gemini 2.5 Flash
+n50, nemotron's last 3 reviews) were skipped by decision — both rows belong to
+non-contenders that could only decorate the table below the leader, and the
+output-ceiling raise (another of the day's fixes: the day-one formula truncated dense
+batches at five providers, cut exactly at the cap; the new one derives from measured
+worst-case demand) had invalidated their cheap cache-warm reruns anyway. Ollama
+closed unwired as a value exit: the serverless argument (a labeler living on a local
+GPU can't serve the eventual live path) had always limited local to the one-time
+survey batch, and a $1.4 survey floor collapsed the remaining pitch to "save a dollar
+against 8B-quantized quality risk plus a wiring session." And a
+Gemini-free-until-quota-then-DeepSeek fallback hybrid — Arda's own floated idea — was
+rejected on measurement integrity: free quotas would have labeled under 1% of the
+pool while making every per-game aggregate a mix of two error profiles, and the judge
+(D2) calibrates against one labeler. The savings ceiling was the ~$1.4 it competed
+with. Provider fallback re-enters at deployment (M3) as an availability question,
+where it belongs.
+
+Figure: the v4-flash dilution curve (F1 vs N with CIs, peak at n10) beside the
+paired-gap chart (matched-N vs best-vs-best, CI bars against zero) — the two panels
+tell the whole ruling; data regenerates from `probes/bakeoff_table.py` and
+`--compare`.
 
 *The provider bake-off (C0) of extraction+eval (M1) — the scorer/runner build
 session, one day after the protocol froze. The amendment is DESIGN.md's "C0

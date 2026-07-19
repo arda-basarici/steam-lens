@@ -3,7 +3,8 @@
 The import law's top stratum: ``evals`` may import anything, nothing imports
 ``evals`` — certification consumes the system, never the reverse. Current
 surface: the validated gold loader (``load_gold``) and the pure scoring core
-(``tally_review`` → ``score`` → ``bootstrap_ci``), per DESIGN's C0 bake-off
+(``tally_review`` → ``score`` → ``bootstrap_ci`` / ``paired_bootstrap_ci``,
+the latter for run-vs-run gaps on the shared gold slice), per DESIGN's C0 bake-off
 protocol + scorer-design entries (2026-07-17/18). The bake-off runner and the
 comparison-table generator live in ``probes/`` — one-shot orchestration stays
 out of the library.
@@ -15,6 +16,7 @@ from steamlens.evals.scoring import (
     ConfidenceInterval,
     ReviewTally,
     bootstrap_ci,
+    paired_bootstrap_ci,
     score,
     tally_review,
 )
@@ -31,4 +33,5 @@ __all__ = [
     "tally_review",
     "score",
     "bootstrap_ci",
+    "paired_bootstrap_ci",
 ]

@@ -202,6 +202,45 @@ def bootstrap_ci(
     )
 
 
+def paired_bootstrap_ci(
+    tallies_a: Sequence[ReviewTally],
+    tallies_b: Sequence[ReviewTally],
+    statistic: Callable[[Sequence[ReviewTally]], float],
+    *,
+    n_resamples: int = 10_000,
+    seed: int,
+) -> ConfidenceInterval:
+    """The 95% bootstrap interval of ``statistic(a) − statistic(b)``, paired.
+
+    Every bake-off run scores the *same* gold reviews, so comparing two runs
+    through their separate intervals overstates the uncertainty of the gap —
+    review difficulty is shared, not independent. Here each resample draws one
+    set of review indices and applies it to *both* runs, so the interval is on
+    the difference itself. A gap whose interval excludes zero is real at the
+    95% level; the two runs must therefore cover the same reviews in the same
+    order, and mismatched lengths raise rather than silently pair wrong.
+    """
+    if not tallies_a:
+        raise ValueError("cannot bootstrap an empty tally sequence")
+    if len(tallies_a) != len(tallies_b):
+        raise ValueError(
+            f"paired runs must cover the same reviews: {len(tallies_a)} vs {len(tallies_b)}"
+        )
+    rng = random.Random(seed)
+    n = len(tallies_a)
+    values: list[float] = []
+    for _ in range(n_resamples):
+        idx = [rng.randrange(n) for _ in range(n)]
+        values.append(
+            statistic([tallies_a[i] for i in idx]) - statistic([tallies_b[i] for i in idx])
+        )
+    values.sort()
+    return ConfidenceInterval(
+        low=values[round(0.025 * (n_resamples - 1))],
+        high=values[round(0.975 * (n_resamples - 1))],
+    )
+
+
 def _ratio(numerator: float, denominator: float) -> float:
     """The quotient, or 0.0 on an empty denominator — exposed via the n_* fields."""
     return numerator / denominator if denominator else 0.0

@@ -1,6 +1,6 @@
 # C0 bake-off — the comparison table
 
-Generated 2026-07-19T11:32:03+00:00 · gold: 250 reviews / 333 pinned mentions (351 incl. 18 candidate) · bootstrap: 10,000 resamples over reviews, seed 20260718 · regenerate: `uv run python probes/bakeoff_table.py --seed 20260718`
+Generated 2026-07-19T12:36:47+00:00 · gold: 250 reviews / 333 pinned mentions (351 incl. 18 candidate) · bootstrap: 10,000 resamples over reviews, seed 20260718 · regenerate: `uv run python probes/bakeoff_table.py --seed 20260718`
 
 | run | model | N | structured output | precision [95% CI] | recall [95% CI] | F1 [95% CI] | sentiment acc [95% CI] | parse fail | tokens in/out | flags |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -9,12 +9,15 @@ Generated 2026-07-19T11:32:03+00:00 · gold: 250 reviews / 333 pinned mentions (
 | gemini-3.5-flash/n50 | gemini-3.5-flash | 50 | gemini-responseSchema | 0.833 [0.785–0.875] | 0.763 [0.706–0.813] | 0.796 [0.750–0.837] | 0.902 [0.866–0.939] | 0.0% | 50,802p/17,583o | — |
 | gemini-3-flash/n50 | gemini-3-flash-preview | 50 | gemini-responseSchema | 0.786 [0.730–0.836] | 0.793 [0.736–0.844] | 0.789 [0.741–0.832] | 0.886 [0.850–0.924] | 0.0% | 50,802p/11,722o | — |
 | gemini-3.5-flash/n20 | gemini-3.5-flash | 20 | gemini-responseSchema | 0.761 [0.640–0.851] | 0.793 [0.735–0.845] | 0.776 [0.698–0.837] | 0.909 [0.871–0.944] | 0.0% | 113,443p/17,906o | — |
+| deepseek-v4-flash/n10 | deepseek-v4-flash | 10 | json_object | 0.736 [0.681–0.786] | 0.820 [0.772–0.866] | 0.776 [0.728–0.819] | 0.894 [0.861–0.928] | 0.0% | 183,935p/16,033o | — |
 | gemini-flash/n20 | gemini-2.5-flash | 20 | gemini-responseSchema | 0.747 [0.688–0.798] | 0.805 [0.751–0.854] | 0.775 [0.725–0.818] | 0.907 [0.873–0.943] | 0.0% | 255,302p/28,984o | — |
 | gemini-3.1-flash-lite/n10 | gemini-3.1-flash-lite | 10 | gemini-responseSchema | 0.746 [0.687–0.799] | 0.796 [0.741–0.845] | 0.770 [0.719–0.816] | 0.887 [0.852–0.924] | 0.0% | 258,724p/21,586o | — |
 | deepseek-v4-flash/n20 | deepseek-v4-flash | 20 | json_object | 0.732 [0.674–0.785] | 0.805 [0.751–0.855] | 0.767 [0.717–0.812] | 0.884 [0.847–0.924] | 0.0% | 248,719p/22,305o | — |
 | gemini-3.1-flash-lite/n20 | gemini-3.1-flash-lite | 20 | gemini-responseSchema | 0.769 [0.707–0.825] | 0.760 [0.703–0.811] | 0.764 [0.710–0.812] | 0.893 [0.857–0.930] | 0.0% | 105,898p/15,298o | — |
+| deepseek-v4-flash/n50 | deepseek-v4-flash | 50 | json_object | 0.746 [0.689–0.797] | 0.778 [0.723–0.827] | 0.762 [0.713–0.805] | 0.900 [0.860–0.941] | 0.0% | 49,535p/14,082o | — |
 | hunyuan-3/n20 | tencent/hy3:free | 20 | prompt-json | 0.695 [0.637–0.749] | 0.835 [0.782–0.880] | 0.759 [0.707–0.804] | 0.878 [0.831–0.919] | 0.0% | 248,316p/26,026o | — |
 | gemini-3.1-flash-lite/n50 | gemini-3.1-flash-lite | 50 | gemini-responseSchema | 0.770 [0.706–0.828] | 0.745 [0.687–0.797] | 0.757 [0.702–0.807] | 0.911 [0.878–0.948] | 0.0% | 50,802p/11,088o | — |
+| deepseek-v4-flash/n5 | deepseek-v4-flash | 5 | json_object | 0.707 [0.643–0.766] | 0.790 [0.736–0.842] | 0.746 [0.691–0.797] | 0.897 [0.864–0.933] | 0.0% | 351,935p/16,496o | — |
 | hunyuan-3/n50 | tencent/hy3:free | 50 | prompt-json | 0.682 [0.619–0.742] | 0.817 [0.759–0.868] | 0.743 [0.688–0.793] | 0.879 [0.837–0.922] | 0.0% | 49,625p/17,136o | — |
 | gemini-3.1-flash-lite/n5 | gemini-3.1-flash-lite | 5 | gemini-responseSchema | 0.740 [0.689–0.786] | 0.727 [0.599–0.820] | 0.733 [0.655–0.792] | 0.901 [0.859–0.940] | 0.4% | 396,502p/21,653o | — |
 | mistral-large/n20 | mistral-large-2512 | 20 | json_object | 0.707 [0.640–0.769] | 0.760 [0.705–0.810] | 0.732 [0.677–0.782] | 0.889 [0.851–0.929] | 0.0% | 104,557p/18,611o | — |
@@ -44,12 +47,15 @@ Generated 2026-07-19T11:32:03+00:00 · gold: 250 reviews / 333 pinned mentions (
 | gemini-3.5-flash/n50 | 50.0% | 4.7% | 4/11 (cutscenes, grind, romance, stealth) | 0.0000 |
 | gemini-3-flash/n50 | 46.8% | 5.1% | 5/11 (grind, originality, romance, specialists, stealth) | 0.0000 |
 | gemini-3.5-flash/n20 | 48.0% | 6.0% | 7/11 (achievements, cutscenes, factions, grind, originality, romance, specialists) | 0.0000 |
+| deepseek-v4-flash/n10 | 48.0% | 3.9% | 7/11 (achievements, cutscenes, factions, grind, originality, romance, stealth) | 0.0302 |
 | gemini-flash/n20 | 45.6% | 12.7% | 6/11 (achievements, cutscenes, factions, grind, originality, stealth) | 0.0000 |
 | gemini-3.1-flash-lite/n10 | 44.0% | 4.1% | 4/11 (grind, originality, romance, specialists) | 0.0000 |
 | deepseek-v4-flash/n20 | 46.4% | 2.4% | 5/11 (achievements, grind, originality, romance, specialists) | 0.0389 |
 | gemini-3.1-flash-lite/n20 | 46.0% | 2.4% | 2/11 (grind, romance) | 0.0000 |
+| deepseek-v4-flash/n50 | 48.8% | 1.1% | 3/11 (cutscenes, grind, romance) | 0.0109 |
 | hunyuan-3/n20 | 44.4% | 5.0% | 4/11 (factions, grind, originality, romance) | 0.0000 |
 | gemini-3.1-flash-lite/n50 | 46.4% | 0.6% | 1/11 (romance) | 0.0000 |
+| deepseek-v4-flash/n5 | 48.8% | 3.6% | 6/11 (achievements, cutscenes, factions, grind, romance, stealth) | 0.0539 |
 | hunyuan-3/n50 | 42.8% | 2.0% | 1/11 (romance) | 0.0000 |
 | gemini-3.1-flash-lite/n5 | 45.6% | 5.5% | 4/11 (cutscenes, grind, romance, specialists) | 0.0000 |
 | mistral-large/n20 | 46.0% | 2.7% | 4/11 (achievements, grind, romance, stealth) | 0.0000 |

@@ -6,9 +6,9 @@ the living source of truth for decisions from the vision phase onward**; `VISION
 the fixed vision-phase snapshot (2026-07-07) and is not updated as the design moves.
 How it's built → ARCHITECTURE; the pitch → README.
 
-*Snapshot of the design as of the system-flow settlement · last updated 2026-07-09 ·
-system flow settled via the second design panel (4 blind proposals × 4 adversarial
-critics); the module map lives in ARCHITECTURE.md.*
+*System flow settled 2026-07-09 via the second design panel (4 blind proposals × 4
+adversarial critics); the module map lives in ARCHITECTURE.md. Operational decisions
+below are dated per entry.*
 
 ## Objective
 
@@ -567,6 +567,94 @@ count as parsed with the salvage rate reported, per the protocol. **Bootstrap CI
 manifest. Derived scores are never persisted per provider — the table regenerates from
 captures + gold, one source of truth.
 
+**C0 bake-off: the run campaign's envelope amendments** (2026-07-18/19, accumulated
+during the runs; each lesson also lives as a comment on its candidate in
+`probes/bakeoff_runner.py`). **Pool growth**: Gemini 3-flash-preview / 3.1-flash-lite /
+3.5-flash (newer free tiers, console-verified quotas); Mistral Medium / Large /
+Ministral-14B (Arda's amendment — Mistral's free tier has no daily cap, so its stronger
+tiers are survey-viable at zero cost); nemotron-3-ultra and hunyuan-3 via OpenRouter
+(50 free requests/day *account-wide*, shared across both); DeepSeek v4-flash + v4-pro —
+**the pool's first paid tier**, with real prices in the ledger (flash $0.14/M in miss /
+$0.0028/M cache-hit / $0.28/M out; ids pinned because `deepseek-chat` deprecates
+2026-07-24 — five days' notice, the model-churn precedent named below). **Probe-model
+substitution**: the N-probe's planned second curve (Groq 70B) can't ladder — its
+envelope kills large batches — so the two dilution curves ran on gemini-3.1-flash-lite
+and mistral-small. **Envelope exits, recorded**: Groq 8B is envelope-dead (6K TPM < the
+~7.6k-token prompt — one request unservable at any N); Groq 70B is an **envelope exit
+by ruling** (2026-07-19: 100K TPD ≈ 2 days per 250-review measurement, ~22.5M tokens
+for the survey — infeasible for dispatch at any quality; its wire lessons stand: Groq
+counts prompt + the `max_tokens` *reservation* against its 12K per-request TPM window,
+and `json_object` forces an object root on this route too). **Retry three-staging**
+(after nemotron burned a full daily quota on straight-to-N=1 isolation): initial batch →
+re-batch failures at production N → isolate only survivors at N=1; the 2% gate's
+"failed in its batch AND alone" semantics is preserved at a fraction of the requests.
+**Decode tolerance ruled into core** (`core/classify`, not the probe — the bake-off
+must measure the same pipeline C1 will run): strict `json.loads` first, then the first
+fenced block that decodes, then the outermost `[...]` slice; object roots still fail
+the array contract deliberately — shape indiscipline is signal, and it caught v4-pro.
+**The output ceiling raised from measured demand** (2026-07-19): the day-one
+512+140/review formula truncated dense batches at five providers (cut exactly at the
+cap) and even one N=1 retry (a single dense review legitimately generates up to ~1,360
+tokens); now 2048+200/review — base holds one worst-case review, per-review clears the
+measured >165-token dense zone, the per-candidate `output_cap` min() stays as the
+runaway guard. **v4-pro: DQ'd on root-shape instability** (16.8% unrecoverable under
+`json_object`: object roots on 2/13 batches, bare `{"idx": 0, ...}` at N=1) — parsed-row
+precision .662 vs flash's .732 at 3× the price made a prompt-json rechase not worth
+buying; the row stands as measured. **Ollama: closed unwired, a value exit** — the
+serverless argument (a labeler living on the local GPU can't serve the M3/M4 live path)
+always limited local to the one-time survey batch, and DeepSeek's ~$1.4 true survey
+cost collapsed the remaining pitch to "save a dollar against 8B-Q4 quality risk plus a
+wiring session." **Two completions skipped by decision** (the Groq-exit precedent —
+a recorded decision, not a gap): 2.5 Flash n50 (its RPD went to the n20 DQ-clearing
+finish) and nemotron's last 3 reviews (row stands 247/250 PARTIAL) — both non-contenders
+whose rows couldn't move the ruling, and the ceiling raise invalidated their cheap
+cache-warm reruns.
+
+**C0 bake-off: the paired read + the v4-flash N-freeze** (2026-07-19). **Paired
+bootstrap added to the evals core** (`paired_bootstrap_ci`; `--compare` in the table
+script): every run scores the *same* 250 gold reviews, so run-vs-run gaps are paired —
+each resample draws one set of review indices and scores both runs on it. The
+separate-interval read overstates the gap's uncertainty, and the correction cut both
+ways on the same day: 3 Flash vs v4-flash at matched n20 — individual CIs overlap
+heavily, paired gap **real** (F1 +0.034 [+0.002, +0.067], recall-driven); 3 Flash n20
+vs v4-flash at its best N — **indistinguishable** (+0.025 [−0.004, +0.055]). Eyeballing
+overlapping intervals would have called the first one wrong. **The v4-flash ladder**
+(n5/10/20/50, all four 250/250 with zero parse failures): F1 .746 / **.776** / .767 /
+.762 — the curve peaks at n10 with two-sided paired evidence (beats n5: F1 +0.029
+[+0.009, +0.052], the n5 precision decay is the flash-lite pattern repeating; beats
+n50 on recall: +0.042 [+0.013, +0.073], the depth-dilution direction every ladder
+showed). **N frozen at 10 — quality's call alone**: true (cache-adjusted) cost is
+N-independent in practice (the ~88%-fixed prompt makes codebook repeats nearly free at
+the ~98%-off hit price; measured $0.006–$0.011 per 250 reviews across the ladder,
+survey ≈ $1.1–1.6 at any N), and wall time washes out because DeepSeek's envelope is
+concurrency-only (2,500 concurrent — the C1 driver gets bounded concurrency as config,
+per the seam's existing design). This closes the batch-size amendment's honesty rider:
+the free-tier RPD pressure that motivated maximizing N doesn't bind a paid
+concurrency-only winner, and the freeze went to the measured quality peak, not the
+operational ceiling.
+
+**C0 ruling: DeepSeek v4-flash at N=10 labels the survey** (Arda's ruling, 2026-07-19,
+from the regenerated table + paired comparisons; config: v4-flash · N=10 ·
+`classify-v1` · ontology `v1`). **The honest sentence**: 3 Flash is measurably better
+at matched N (+0.034 F1, paired CI excludes zero), the gap closes to indistinguishable
+against v4-flash's frozen N, and it costs ~12× more (~$25 paid-Gemini survey vs ~$1.4
+true) — v4-flash wins on cost-effectiveness with zero parse failures across its ladder,
+a stable `json_object` mode, and no quota envelope. Not claimed: "as good as the
+leader." The no-buy exit was live and not taken — top-cluster quality at survey cost
+below lunch money is a clear buy. **Single-labeler discipline**: the free-Gemini-with-
+DeepSeek-fallback hybrid was considered and rejected — savings bounded by the ~$1.4 it
+competes with, free quotas would label under 1% of the pool, and a mixed-labeler pool
+breaks measurement integrity (two error profiles inside every aggregate, and D2's
+judge calibrates against one labeler). Provider fallback re-enters legitimately at
+M3's design as an availability question, not a survey question. **Reopen conditions**:
+(1) the pre-registered compact-codebook experiment (D2) changes the prompt, which
+invalidates the dilution curve by construction — it re-certifies quality *and* N on
+the gold slice; (2) DeepSeek repricing or model deprecation — the `deepseek-chat`
+five-day retirement is the named precedent; (3) survey-scale anomalies the gold slice
+couldn't show (drift, systematic per-game failure) surface through D2/D3, and tier
+escalation per the protocol's no-buy clause is the recorded fallback, never
+quiet tolerance.
+
 ## Scope & non-goals
 
 - In: aspect reports with receipts, narrated live analysis, the event investigator, the
@@ -588,6 +676,10 @@ captures + gold, one source of truth.
 - **LLM tier** — extraction+eval (M1) exit, from the measured cost/quality table, now
   with three columns:
   free API tier, cheap paid API, and **self-hosted open-weight** (added 2026-07-08).
+  **The survey-labeling stage is decided as of 2026-07-19** — cheap paid API (DeepSeek
+  v4-flash at N=10, the C0 ruling above), with the self-hosted column closed unwired
+  for this stage (the Ollama value exit); the remaining stages (judge, phrasing, the
+  investigator) still decide at their own design points per the per-stage rule.
   Decided **per stage, not globally** (refined 2026-07-08): the seam routes each stage
   independently, and the gap between small and frontier models is stage-dependent —
   near-zero for phrasing, modest-and-measurable for classification (sarcasm is where it

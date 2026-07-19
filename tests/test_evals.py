@@ -23,6 +23,7 @@ from steamlens.core.normalize import build_surface_index
 from steamlens.evals import (
     bootstrap_ci,
     load_gold,
+    paired_bootstrap_ci,
     score,
     tally_review,
 )
@@ -278,6 +279,58 @@ def test_bootstrap_collapses_on_identical_reviews() -> None:
 def test_bootstrap_rejects_an_empty_tally_sequence() -> None:
     with pytest.raises(ValueError, match="empty"):
         bootstrap_ci([], lambda t: 0.0, n_resamples=10, seed=1)
+
+
+# --- paired_bootstrap_ci ---------------------------------------------------------
+
+
+def test_paired_bootstrap_identical_runs_gap_is_zero() -> None:
+    """A run compared against itself: the gap interval is exactly [0, 0]."""
+    tallies = tuple(
+        tally_review(gold=[("combat", _POS)], predicted=[("combat", _POS)], index=_INDEX)
+        for _ in range(4)
+    )
+    interval = paired_bootstrap_ci(
+        tallies, tallies, lambda t: score(t).f1, n_resamples=50, seed=3
+    )
+    assert interval.low == interval.high == 0.0
+
+
+def test_paired_bootstrap_detects_a_uniform_gap() -> None:
+    """A perfect run vs an all-miss run: every resample shows the same +1 F1 gap."""
+    perfect = tuple(
+        tally_review(gold=[("combat", _POS)], predicted=[("combat", _POS)], index=_INDEX)
+        for _ in range(5)
+    )
+    misses = tuple(
+        tally_review(gold=[("combat", _POS)], predicted=[], index=_INDEX) for _ in range(5)
+    )
+    interval = paired_bootstrap_ci(
+        perfect, misses, lambda t: score(t).f1, n_resamples=50, seed=3
+    )
+    assert interval.low == interval.high == 1.0
+
+
+def test_paired_bootstrap_is_deterministic_under_its_seed() -> None:
+    a = tuple(
+        tally_review(gold=[("combat", _POS)], predicted=[("combat", _POS)], index=_INDEX)
+        for _ in range(3)
+    )
+    b = (
+        tally_review(gold=[("combat", _POS)], predicted=[], index=_INDEX),
+        tally_review(gold=[("performance", _NEG)], predicted=[("performance", _NEG)], index=_INDEX),
+        tally_review(gold=[], predicted=[], index=_INDEX),
+    )
+    first = paired_bootstrap_ci(a, b, lambda t: score(t).f1, n_resamples=200, seed=7)
+    again = paired_bootstrap_ci(a, b, lambda t: score(t).f1, n_resamples=200, seed=7)
+    assert first == again
+
+
+def test_paired_bootstrap_rejects_mismatched_lengths() -> None:
+    """Different review counts can't be the same slice — pairing would be silent lies."""
+    tallies = (tally_review(gold=[("combat", _POS)], predicted=[], index=_INDEX),)
+    with pytest.raises(ValueError, match="same reviews"):
+        paired_bootstrap_ci(tallies, tallies * 2, lambda t: score(t).f1, n_resamples=10, seed=1)
 
 
 # --- the real artifacts, round-tripped -------------------------------------------

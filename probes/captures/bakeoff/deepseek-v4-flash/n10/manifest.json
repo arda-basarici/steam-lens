@@ -18,18 +18,18 @@
       "type": "disabled"
     }
   },
-  "n": 5,
+  "n": 10,
   "limit": null,
   "gold_path": "eval\\gold\\gold.jsonl",
-  "started_at": "2026-07-19T12:32:59.400515+00:00",
-  "finished_at": "2026-07-19T12:35:21.236518+00:00",
-  "requests": 50,
+  "started_at": "2026-07-19T12:18:52.404098+00:00",
+  "finished_at": "2026-07-19T12:20:44.322394+00:00",
+  "requests": 25,
   "tokens": {
-    "prompt": 351935,
-    "output": 16496,
+    "prompt": 183935,
+    "output": 16033,
     "thinking": 0
   },
-  "cost_usd": 0.053889780000000005,
+  "cost_usd": 0.030240140000000002,
   "reviews": {
     "total": 250,
     "answered": 250,
@@ -38,12 +38,12 @@
     "isolation_retries": 0,
     "unrecoverable": 0,
     "unattributable_rows": 0,
-    "evidence_repairs": 8
+    "evidence_repairs": 9
   },
   "aborted": null,
   "argv": [
     "deepseek-v4-flash",
     "--n",
-    "5"
+    "10"
   ]
 }

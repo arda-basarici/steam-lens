@@ -2,6 +2,11 @@
 
 Usage:
     uv run python probes/bakeoff_table.py [--seed 20260718] [--resamples 10000]
+    uv run python probes/bakeoff_table.py --compare gemini-3-flash/n20 deepseek-v4-flash/n20
+
+``--compare`` prints the paired-bootstrap gap between two captures (same gold
+reviews resampled jointly — the honest CI for "A beats B") instead of
+regenerating the table.
 
 Reads every ``probes/captures/bakeoff/<candidate>/n<N>/`` capture (manifest +
 predictions) except ``--limit`` smokes — those are wiring checks, skipped with
@@ -22,6 +27,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -38,6 +44,7 @@ from steamlens.evals import (  # noqa: E402
     ReviewTally,
     bootstrap_ci,
     load_gold,
+    paired_bootstrap_ci,
     score,
     tally_review,
 )
@@ -190,14 +197,75 @@ def _render(runs: list[ScoredRun], gold_candidates: set[str], meta: str) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _capture_tallies(
+    label: str, gold_records: tuple[GoldRecord, ...], index: dict[str, str]
+) -> tuple[ReviewTally, ...]:
+    """Tallies for one ``candidate/nN`` capture label, or die with the fix."""
+    capture_dir = _CAPTURES / Path(label)
+    if not (capture_dir / "predictions.jsonl").exists():
+        raise SystemExit(f"no capture at {label!r} — expected <candidate>/n<N> with predictions")
+    return _tallies_for(_load_capture_predictions(capture_dir), gold_records, index)
+
+
+def _print_comparison(
+    label_a: str,
+    label_b: str,
+    gold_records: tuple[GoldRecord, ...],
+    index: dict[str, str],
+    *,
+    seed: int,
+    resamples: int,
+) -> None:
+    """The paired read of two runs: per-metric gap with its CI, on shared reviews.
+
+    Both runs score the same gold slice, so the honest uncertainty of "A beats
+    B" is the paired one — each resample draws one set of reviews and scores
+    both runs on it (``paired_bootstrap_ci``). Printed, never persisted: like
+    every derived score, regenerable from captures + gold + seed.
+    """
+    tallies_a = _capture_tallies(label_a, gold_records, index)
+    tallies_b = _capture_tallies(label_b, gold_records, index)
+    metrics: dict[str, Callable[[Sequence[ReviewTally]], float]] = {
+        "precision": lambda t: score(t).precision,
+        "recall": lambda t: score(t).recall,
+        "f1": lambda t: score(t).f1,
+        "sentiment": lambda t: score(t).sentiment_accuracy,
+    }
+    print(f"paired comparison: {label_a} vs {label_b}")
+    print(f"  ({resamples:,} paired resamples over the shared gold reviews, seed {seed})")
+    print(f"| metric | {label_a} | {label_b} | Δ (A−B) [95% CI] | read |")
+    print("|---|---|---|---|---|")
+    for name, fn in metrics.items():
+        a, b = fn(tallies_a), fn(tallies_b)
+        ci = paired_bootstrap_ci(tallies_a, tallies_b, fn, n_resamples=resamples, seed=seed)
+        read = "A > B" if ci.low > 0 else "B > A" if ci.high < 0 else "indistinguishable"
+        print(
+            f"| {name} | {a:.3f} | {b:.3f} "
+            f"| {a - b:+.3f} [{ci.low:+.3f}–{ci.high:+.3f}] | {read} |"
+        )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Regenerate the bake-off comparison table.")
     parser.add_argument("--seed", type=int, default=20260718)
     parser.add_argument("--resamples", type=int, default=10_000)
+    parser.add_argument(
+        "--compare",
+        nargs=2,
+        metavar=("RUN_A", "RUN_B"),
+        help="paired bootstrap of RUN_A minus RUN_B (labels like gemini-3-flash/n20); "
+        "prints the gap table instead of regenerating TABLE.md",
+    )
     args = parser.parse_args()
 
     gold_records = load_gold(_GOLD_PATH)
     index = dict(build_surface_index(load_ontology()))
+    if args.compare:
+        _print_comparison(
+            args.compare[0], args.compare[1], gold_records, index,
+            seed=args.seed, resamples=args.resamples,
+        )
+        return
     gold_candidates = {
         c
         for t in _tallies_for({}, gold_records, index)
