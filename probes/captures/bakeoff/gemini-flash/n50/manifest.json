@@ -59,8 +59,8 @@
   "n": 50,
   "limit": null,
   "gold_path": "eval\\gold\\gold.jsonl",
-  "started_at": "2026-07-17T22:36:11.691874+00:00",
-  "finished_at": "2026-07-17T22:36:11.693706+00:00",
+  "started_at": "2026-07-19T10:51:57.315112+00:00",
+  "finished_at": "2026-07-19T10:52:13.755966+00:00",
   "requests": 0,
   "tokens": {
     "prompt": 0,
@@ -72,12 +72,13 @@
     "total": 250,
     "answered": 0,
     "salvaged_from_partial_batches": 0,
-    "retried": 0,
+    "failed_initial": 0,
+    "isolation_retries": 0,
     "unrecoverable": 0,
     "unattributable_rows": 0,
     "evidence_repairs": 0
   },
-  "aborted": "AtCapacityError: model 'gemini-2.5-flash' daily quota exhausted: 20 journaled + 0 in flight of 20 per day",
+  "aborted": "LlmUnavailableError: provider transient trouble outlived 4 attempts: gemini HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a",
   "argv": [
     "gemini-flash",
     "--n",

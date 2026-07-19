@@ -256,6 +256,28 @@ def test_unparseable_response_fails_every_idx() -> None:
         assert [failure.idx for failure in result.failures] == [0, 1]
 
 
+def test_fence_wrapped_response_decodes() -> None:
+    """A prompt-json candidate narrating around a fenced array (Groq 70B live,
+    2026-07-19) decodes to the same result as the bare payload."""
+    inner = _respond([{"idx": 0, "aspects": [{"aspect": "combat", "sentiment": "positive"}]}])
+    wrapped = f"Here is the output in the requested format:\n\n```\n{inner}\n```\n"
+    result = parse_classify_response(wrapped, ["a"], _INDEX)
+    assert result.parsed == (
+        ParsedReview(0, (_mention("combat", AspectSlot.PINNED, Sentiment.POSITIVE, None),)),
+    )
+    assert result.failures == ()
+
+
+def test_prose_wrapped_array_without_fence_decodes() -> None:
+    """Prose around a bare array still yields the outermost [...] slice; a
+    prose-wrapped object root parses no rows (its reviews land in failures)."""
+    inner = _respond([{"idx": 0, "aspects": []}])
+    result = parse_classify_response(f"Sure! {inner} Hope this helps.", ["a"], _INDEX)
+    assert result.parsed == (ParsedReview(0, ()),)
+    object_root = 'Sure! {"reviews": []} Hope this helps.'
+    assert parse_classify_response(object_root, ["a"], _INDEX).parsed == ()
+
+
 def test_repeated_aspect_collapses_conflicts_to_mixed() -> None:
     """One review counts once per aspect: same sentiment folds, conflict becomes MIXED."""
     response = _respond(

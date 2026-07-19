@@ -97,6 +97,12 @@ class Candidate:
     output_cap: int
     base_url: str | None = None
     params: dict[str, object] = field(default_factory=dict)
+    # Ledger prices; free tiers carry honest zeros. For providers with prefix
+    # caching, the input price is the CACHE-MISS ceiling — the ledger then
+    # over-reports rather than flatters; true cost reads from the captured
+    # usage's cache-hit/miss split.
+    input_usd_per_1m: float = 0.0
+    output_usd_per_1m: float = 0.0
 
 
 _CANDIDATES: dict[str, Candidate] = {
@@ -127,12 +133,19 @@ _CANDIDATES: dict[str, Candidate] = {
         structured_output="gemini-responseSchema", rpm=5, rpd=20, output_cap=65_536,
         params=_GEMINI_PARAMS,
     ),
-    # Groq 70b: 12K TPM (header-verified 2026-07-18) vs our ~9-11k-token batches
-    # -> one request/minute is the honest pace; RPD 1000 doesn't bind.
+    # ENVELOPE EXIT (Arda's ruling 2026-07-19): 100K TPD vs ~113k tokens per
+    # full 250-review run means 2 days per MEASUREMENT and ~22.5M tokens
+    # (~225 days) for the ~50k-review survey — infeasible for dispatch at any
+    # quality. Scored 160/250 PARTIAL, deliberately left incomplete. Lessons
+    # kept for the record: Groq counts prompt + the max_tokens RESERVATION
+    # against its 12K TPM per request (HTTP 413 at 12,072 requested) — hence
+    # the 2,500 cap; json_object forces an object root on this route too
+    # (batches wrapped the array in {"reviews": ...}) -> prompt-json, per the
+    # OpenRouter lesson.
     "groq-llama-70b": Candidate(
         kind="compat", model="llama-3.3-70b-versatile", key_env="GROQ_API_KEY",
-        structured_output="json_object", rpm=1, rpd=1_000, output_cap=32_768,
-        base_url=GROQ_BASE_URL, params=_JSON_OBJECT,
+        structured_output="prompt-json", rpm=1, rpd=1_000, output_cap=2_500,
+        base_url=GROQ_BASE_URL, params={"temperature": 0},
     ),
     # ENVELOPE-DEAD on the free tier (2026-07-18): 6K TPM < the ~7.6k-token
     # prompt — a single classify-v1 request is unservable at any batch size
@@ -173,10 +186,35 @@ _CANDIDATES: dict[str, Candidate] = {
         structured_output="json_object", rpm=30, rpd=None, output_cap=8_192,
         base_url=MISTRAL_BASE_URL, params=_JSON_OBJECT,
     ),
-    "deepseek": Candidate(
-        kind="compat", model="deepseek-chat", key_env="DEEPSEEK_API_KEY",
-        structured_output="json_object", rpm=60, rpd=None, output_cap=8_192,
-        base_url=DEEPSEEK_BASE_URL, params=_JSON_OBJECT,
+    # PAID — the pool's first (the ids replace deepseek-chat/-reasoner,
+    # deprecated 2026-07-24; docs read 2026-07-19). Envelope: concurrency-only
+    # (2500 concurrent for flash, no RPM/TPM/TPD), so rpm here is politeness.
+    # Thinking DEFAULTS ON for v4 — disabled explicitly for pool parity.
+    # Prices are the cache-miss ceiling; the automatic prefix cache bills
+    # hits at ~98% off (usage carries prompt_cache_hit/miss_tokens), and our
+    # ~88%-fixed prompt should hit from batch 2 on — true cost reads from
+    # the captures, roughly a cent per full flash run.
+    "deepseek-v4-flash": Candidate(
+        kind="compat", model="deepseek-v4-flash", key_env="DEEPSEEK_API_KEY",
+        structured_output="json_object", rpm=120, rpd=None, output_cap=8_192,
+        base_url=DEEPSEEK_BASE_URL,
+        params={
+            "temperature": 0,
+            "response_format": {"type": "json_object"},
+            "thinking": {"type": "disabled"},
+        },
+        input_usd_per_1m=0.14, output_usd_per_1m=0.28,
+    ),
+    "deepseek-v4-pro": Candidate(
+        kind="compat", model="deepseek-v4-pro", key_env="DEEPSEEK_API_KEY",
+        structured_output="json_object", rpm=120, rpd=None, output_cap=8_192,
+        base_url=DEEPSEEK_BASE_URL,
+        params={
+            "temperature": 0,
+            "response_format": {"type": "json_object"},
+            "thinking": {"type": "disabled"},
+        },
+        input_usd_per_1m=0.435, output_usd_per_1m=0.87,
     ),
     # Via the OpenRouter aggregator (free tier: ~20 rpm, 50 free-model req/day
     # account-wide; upstream routing varies per request — provenance rides in
@@ -259,8 +297,8 @@ def _build_client(name: str, candidate: Candidate, n: int, store: Store) -> LlmC
         models={
             candidate.model: ModelSpec(
                 rpm=candidate.rpm, rpd=candidate.rpd,
-                # Free tiers carry honest zeros; a paid round two edits these.
-                input_usd_per_1m=0.0, output_usd_per_1m=0.0,
+                input_usd_per_1m=candidate.input_usd_per_1m,
+                output_usd_per_1m=candidate.output_usd_per_1m,
             )
         },
         daily_reset_utc_hour=8 if candidate.kind == "gemini" else 0,

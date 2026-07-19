@@ -61,25 +61,26 @@
   "n": 20,
   "limit": null,
   "gold_path": "eval\\gold\\gold.jsonl",
-  "started_at": "2026-07-17T22:32:31.890545+00:00",
-  "finished_at": "2026-07-17T22:36:11.199189+00:00",
-  "requests": 19,
+  "started_at": "2026-07-19T10:49:18.352658+00:00",
+  "finished_at": "2026-07-19T10:51:56.753277+00:00",
+  "requests": 34,
   "tokens": {
-    "prompt": 148054,
-    "output": 23600,
+    "prompt": 255302,
+    "output": 28984,
     "thinking": 0
   },
   "cost_usd": 0.0,
   "reviews": {
     "total": 250,
-    "answered": 236,
+    "answered": 250,
     "salvaged_from_partial_batches": 0,
-    "retried": 20,
+    "failed_initial": 20,
+    "isolation_retries": 20,
     "unrecoverable": 0,
     "unattributable_rows": 0,
-    "evidence_repairs": 5
+    "evidence_repairs": 6
   },
-  "aborted": "AtCapacityError: model 'gemini-2.5-flash' daily quota exhausted: 20 journaled + 0 in flight of 20 per day",
+  "aborted": null,
   "argv": [
     "gemini-flash",
     "--n",

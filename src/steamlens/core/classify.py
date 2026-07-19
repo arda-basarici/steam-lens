@@ -24,13 +24,16 @@ mentions (labels resolved to their slot through ``core.normalize`` — the model
 emits label strings only and never self-declares pinned-vs-candidate), each
 malformed row becomes a typed ``IdxFailure`` the driver re-batches, and a
 fabricated evidence quote is repaired to ``None`` and counted rather than
-killing its mention. See DESIGN's two ``core/classify`` operational-decisions
-entries for the full reasoning.
+killing its mention. The decode step tolerates prose- and fence-wrapped
+payloads (prompt-json candidates narrate around their answer); the semantic
+contract — a JSON *array* of per-idx rows — is unchanged. See DESIGN's two
+``core/classify`` operational-decisions entries for the full reasoning.
 """
 
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Final, cast
@@ -215,6 +218,38 @@ class BatchParseResult:
     repairs: tuple[EvidenceRepair, ...]
 
 
+_FENCED_BLOCK = re.compile(r"```[A-Za-z]*\s*\n(.*?)```", re.DOTALL)
+
+
+def _decode_response(response_text: str) -> object:
+    """The reply's JSON payload, tolerating prose- and fence-wrapped output.
+
+    Strict decode first — schema-constrained and wire-disciplined models emit
+    bare JSON and never reach the fallbacks. A prompt-json candidate may
+    narrate around its answer (Groq 70B wraps the array in a preamble plus a
+    code fence); the payload is then the first fenced block that decodes, or
+    failing that the outermost ``[...]`` slice. This tolerance is *syntactic*
+    only — an object root still reaches the caller and fails its array check,
+    because a model ignoring the response shape is signal, not noise. Raises
+    the strict attempt's ``JSONDecodeError`` when nothing decodes.
+    """
+    try:
+        return json.loads(response_text)
+    except json.JSONDecodeError:
+        for block in _FENCED_BLOCK.findall(response_text):
+            try:
+                return json.loads(block)
+            except json.JSONDecodeError:
+                continue
+        start, end = response_text.find("["), response_text.rfind("]")
+        if 0 <= start < end:
+            try:
+                return json.loads(response_text[start : end + 1])
+            except json.JSONDecodeError:
+                pass
+        raise
+
+
 def parse_classify_response(
     response_text: str,
     review_texts: Sequence[str],
@@ -229,6 +264,10 @@ def parse_classify_response(
     free-form candidate, so slot assignment is deterministic code, never the
     model's claim.
 
+    The decode tolerates prose- and fence-wrapped JSON (see
+    ``_decode_response``) — semantic validation below is unchanged by where
+    the payload sat in the reply.
+
     Row rules: a bad *label* or *sentiment* fails its idx (the label is the
     payload); a bad *evidence* quote only repairs to ``None`` and is counted
     (the quote is decoration). Repeated mentions of one aspect within a review
@@ -238,7 +277,7 @@ def parse_classify_response(
     """
     expected = range(len(review_texts))
     try:
-        data: object = json.loads(response_text)
+        data: object = _decode_response(response_text)
     except json.JSONDecodeError as error:
         return _all_failed(expected, f"response is not valid JSON: {error}")
     if not isinstance(data, list):

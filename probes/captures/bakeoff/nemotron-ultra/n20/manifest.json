@@ -2,7 +2,10 @@
   "candidate": "nemotron-ultra",
   "provider_kind": "compat",
   "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
-  "model_versions": [],
+  "model_versions": [
+    "",
+    "nvidia/nemotron-3-ultra-550b-a55b:free"
+  ],
   "prompt_version": "classify-v1",
   "ontology_version": "v1",
   "ontology_content_hash": "481d86add78b92e4fd108b389375954fd7285fa0b0985e7222aefc959ca01ebe",
@@ -16,23 +19,24 @@
   "n": 20,
   "limit": null,
   "gold_path": "eval\\gold\\gold.jsonl",
-  "started_at": "2026-07-18T00:08:26.108065+00:00",
-  "finished_at": "2026-07-18T00:08:26.109860+00:00",
-  "requests": 0,
+  "started_at": "2026-07-19T10:49:23.879182+00:00",
+  "finished_at": "2026-07-19T10:58:42.714173+00:00",
+  "requests": 52,
   "tokens": {
-    "prompt": 0,
-    "output": 0,
+    "prompt": 369983,
+    "output": 27808,
     "thinking": 0
   },
   "cost_usd": 0.0,
   "reviews": {
     "total": 250,
-    "answered": 0,
+    "answered": 247,
     "salvaged_from_partial_batches": 0,
-    "retried": 0,
-    "unrecoverable": 0,
+    "failed_initial": 40,
+    "isolation_retries": 40,
+    "unrecoverable": 1,
     "unattributable_rows": 0,
-    "evidence_repairs": 0
+    "evidence_repairs": 40
   },
   "aborted": "AtCapacityError: model 'nvidia/nemotron-3-ultra-550b-a55b:free' daily quota exhausted: 50 journaled + 0 in flight of 50 per day",
   "argv": [

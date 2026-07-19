@@ -4,7 +4,8 @@ Usage:
     uv run python probes/bakeoff_table.py [--seed 20260718] [--resamples 10000]
 
 Reads every ``probes/captures/bakeoff/<candidate>/n<N>/`` capture (manifest +
-predictions), scores it against gold with the ``evals`` core, adds the
+predictions) except ``--limit`` smokes — those are wiring checks, skipped with
+a printed note — scores each against gold with the ``evals`` core, adds the
 gold-assist reference line from ``eval/gold/assist/raw`` (it competes with
 nobody — it calibrates the field), and writes ``TABLE.md`` next to the
 captures with full provenance in its header. Derived scores are deliberately
@@ -207,6 +208,15 @@ def main() -> None:
     for manifest_path in sorted(_CAPTURES.glob("*/n*/manifest.json")):
         capture_dir = manifest_path.parent
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if manifest.get("limit") is not None:
+            # A --limit run is a wiring smoke, not a scored run: scoring its
+            # handful of reviews against the full gold slice manufactures a
+            # ~98%-fail noise row. Skipped visibly, never silently.
+            print(
+                f"skipped {manifest['candidate']}/n{manifest['n']} "
+                f"(smoke capture: --limit {manifest['limit']})"
+            )
+            continue
         predictions = _load_capture_predictions(capture_dir)
         tallies = _tallies_for(predictions, gold_records, index)
         scores, cis = _score_run(tallies, seed=args.seed, resamples=args.resamples)
@@ -222,7 +232,7 @@ def main() -> None:
                 tallies=tallies,
                 tokens=f"{tokens.get('prompt', 0):,}p/{tokens.get('output', 0):,}o",
                 cost_usd=float(manifest.get("cost_usd", 0.0)),
-                partial=bool(manifest.get("aborted")) or manifest.get("limit") is not None,
+                partial=bool(manifest.get("aborted")),
                 reference=False,
             )
         )

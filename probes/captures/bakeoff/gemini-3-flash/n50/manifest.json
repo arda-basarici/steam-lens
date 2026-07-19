@@ -61,25 +61,26 @@
   "n": 50,
   "limit": null,
   "gold_path": "eval\\gold\\gold.jsonl",
-  "started_at": "2026-07-17T22:35:55.290493+00:00",
-  "finished_at": "2026-07-17T22:36:24.341691+00:00",
-  "requests": 2,
+  "started_at": "2026-07-19T10:49:19.815582+00:00",
+  "finished_at": "2026-07-19T10:49:55.891420+00:00",
+  "requests": 5,
   "tokens": {
-    "prompt": 20821,
-    "output": 4873,
+    "prompt": 50802,
+    "output": 11722,
     "thinking": 0
   },
   "cost_usd": 0.0,
   "reviews": {
     "total": 250,
-    "answered": 100,
+    "answered": 250,
     "salvaged_from_partial_batches": 0,
-    "retried": 0,
+    "failed_initial": 0,
+    "isolation_retries": 0,
     "unrecoverable": 0,
     "unattributable_rows": 0,
-    "evidence_repairs": 1
+    "evidence_repairs": 3
   },
-  "aborted": "LlmUnavailableError: provider transient trouble outlived 4 attempts: gemini HTTP 429: {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a",
+  "aborted": null,
   "argv": [
     "gemini-3-flash",
     "--n",

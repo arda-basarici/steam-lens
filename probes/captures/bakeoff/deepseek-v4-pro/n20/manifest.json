@@ -1,0 +1,49 @@
+{
+  "candidate": "deepseek-v4-pro",
+  "provider_kind": "compat",
+  "model": "deepseek-v4-pro",
+  "model_versions": [
+    "deepseek-v4-pro"
+  ],
+  "prompt_version": "classify-v1",
+  "ontology_version": "v1",
+  "ontology_content_hash": "481d86add78b92e4fd108b389375954fd7285fa0b0985e7222aefc959ca01ebe",
+  "structured_output": "json_object",
+  "params": {
+    "temperature": 0,
+    "response_format": {
+      "type": "json_object"
+    },
+    "thinking": {
+      "type": "disabled"
+    }
+  },
+  "n": 20,
+  "limit": null,
+  "gold_path": "eval\\gold\\gold.jsonl",
+  "started_at": "2026-07-19T11:25:07.982908+00:00",
+  "finished_at": "2026-07-19T11:30:40.370589+00:00",
+  "requests": 76,
+  "tokens": {
+    "prompt": 535115,
+    "output": 32644,
+    "thinking": 0
+  },
+  "cost_usd": 0.242606025,
+  "reviews": {
+    "total": 250,
+    "answered": 250,
+    "salvaged_from_partial_batches": 0,
+    "failed_initial": 60,
+    "isolation_retries": 60,
+    "unrecoverable": 42,
+    "unattributable_rows": 0,
+    "evidence_repairs": 2
+  },
+  "aborted": null,
+  "argv": [
+    "deepseek-v4-pro",
+    "--n",
+    "20"
+  ]
+}
