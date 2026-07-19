@@ -7,6 +7,62 @@ decisions it feeds.
 
 ---
 
+## 2026-07-19 — The sizing question wasn't answered, it was deleted: half the corpus was never labelable, so the survey became a census
+
+*The survey-slice-size ruling between the provider bake-off's close (C0) and the
+corpus-labeling buy (C1) — extraction+eval (M1). Feeds: the M1 report/post's
+methodology section (how the survey was sized, sampling-vs-census framing) and the
+cost story.*
+
+The question on the table was how many reviews per game the label buy should cover.
+The standing recommendation — ~1,000 per game, undecided — had been drafted when
+labeling looked like a ~$25 decision under paid-Gemini economics, and it carried one
+named gate: check the per-game minimums in the corpus before locking the number. The
+check ran today (`probes/survey_supply_counts.py`) and came back with something much
+bigger than a minimum: the labelable pool is not the corpus. Of the 298,553-review
+headline, only 135,260 — about 45% — survive the pipeline's own entry conditions,
+the English-first filter plus the Unicode-honest emptiness test from the gold draw's
+lesson. Per-game supply runs from 195 (Shadow of the Tomb Raider) through a median
+around 2,100 to 6,869 (VVVVVV).
+
+That number collapsed both premises of a ruling that had felt settled for three
+days. "The full corpus is never labeled" (the 2026-07-16 provider-strategy session)
+had been reasoned as roughly six times the spend for numbers the aggregate would
+refuse to certify — but the six-times figure assumed the 298K denominator, and the
+spend assumed Gemini prices. With the real denominator at 135K and DeepSeek
+v4-flash's true cache-adjusted cost (the C0 captures' measured splits,
+`probes/captures/bakeoff/bakeoff.sqlite3`), labeling *everything usable* prices at
+roughly $3–6 — only 2.9× the 1,000-per-game sample it was meant to avoid. Arda's
+ruling: census the usable pool. The satisfying part, for the report, is that the
+sizing question never got an answer — it got deleted, and it took two sub-problems
+with it: no shortfall policy needed for small games (every game is simply taken
+whole), and no cap on the sampling study (M2), which re-folds these stored labels
+under simulated draws and now has complete freedom to simulate any policy at any
+size, forever, for zero additional spend.
+
+A companion ruling landed the same day, from Arda's natural next question — don't we
+filter the useless reviews before paying for them? No, deliberately: an empty aspect
+list is the certified classifier's own verdict and a measured product quantity (the
+gold set's zero-aspect share is 49.2%), while any usefulness heuristic is an
+unvalidated second classifier standing in front of the one the bake-off spent a week
+certifying — "runs bad" is eight characters and a genuine performance mention. The
+economics don't even argue: the codebook prompt dominates cost and bills at ~98% off
+via DeepSeek's cache, and the store's content-keyed label cache already makes the
+verbatim copy-pasted meme reviews cost once across the whole corpus.
+
+One instrument lesson rode along: the floor-clearance projection built to rank the
+candidate sizes (`probes/floor_clearance_projection.py`, rates from the B1 pruning
+captures) returned *identical* results at every candidate — not because size doesn't
+matter, but because 100-review-per-game probes cannot resolve mention rates under
+~1%, so every aspect the probe could see already cleared the evidence floor at the
+smallest candidate. The instrument saturated exactly where the decision lived; the
+census made its verdict moot, but the lesson stands for any future
+probe-sized-to-question mismatch.
+
+Figure: the supply-vs-headline story — per-game bars of raw corpus vs
+English-nonempty supply (regenerates from `probes/survey_supply_counts.py`), with
+the cost-per-candidate table (500/1k/2k/3k/census) as the companion panel.
+
 ## 2026-07-19 — The eyeball read failed its own significance test, and the ruling came out more honest for it
 
 *The provider bake-off's (C0) closing session — extraction+eval (M1). The decision
@@ -611,6 +667,10 @@ style and faithfulness, not wrong statistics — and the planned fabricated-quot
 and numeric-grounding metrics check precisely that. The writer is a swappable
 luxury; the labeler is the correctness anchor, which is why the labeler gets the
 bake-off.
+
+> ⚠ SUPERSEDED (this scope ruling only) by the 2026-07-19 census entry — both
+> premises collapsed: the labelable pool measured 135K not 298K, and v4-flash's
+> true cost priced the census at ~$3–6, not ~6× a $25 buy.
 
 One scope ruling from the same discussion belongs in the record: the full corpus
 (298,553 reviews) is deliberately *not* labeled. Certified numbers fold only the
