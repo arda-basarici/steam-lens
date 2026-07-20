@@ -8,6 +8,7 @@ seams serve the web runtime unchanged. Design record: DESIGN.md's C1 labeling
 driver entry (2026-07-19).
 """
 
+from steamlens.studies.aggregate_corpus import census_manifest_id, mint_census_aggregates
 from steamlens.studies.local_corpus import (
     EXCLUDED_APP_IDS,
     GameReadResult,
@@ -20,8 +21,10 @@ from steamlens.studies.local_corpus import (
 __all__ = [
     "EXCLUDED_APP_IDS",
     "GameReadResult",
+    "census_manifest_id",
     "corpus_review_files",
     "has_content",
+    "mint_census_aggregates",
     "read_reviews_file",
     "review_from_raw",
 ]

@@ -13,6 +13,7 @@ its vocabulary membership on the way out.
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Iterator
 from typing import Any
 
 from steamlens.contracts import (
@@ -182,3 +183,57 @@ class LabelPool:
                 f"failure mark rejected for review {review_id!r} under {versions!r} — "
                 f"duplicate under its version key, or its review/run is not recorded: {exc}"
             ) from exc
+
+    def iter_survey_mentions(
+        self, versions: ClassifierVersions
+    ) -> Iterator[tuple[str, str, AspectSlot, Sentiment]]:
+        """Stream survey mentions as ``(review_id, aspect, slot, sentiment)`` for the fold.
+
+        The aggregate fold's mention input, kept lean on purpose: only the four
+        fields the count needs — no evidence span, and no join to ``reviews`` (the
+        caller attaches ``app_id`` from the skinny map). Origin and the versions
+        triple are filtered here, so a number can only ever be folded from labels
+        that belong in it: investigation-track and off-version mentions never
+        cross this boundary. Enums re-validate on the way out, same as ``get``.
+        """
+        cursor = self._conn.execute(
+            "SELECT c.review_id, m.aspect, m.slot, m.sentiment"
+            " FROM mentions m JOIN classifications c ON c.id = m.classification_id"
+            " WHERE c.origin = ? AND c.model_version = ? AND c.prompt_version = ?"
+            " AND c.ontology_version = ?",
+            (
+                Origin.SURVEY,
+                versions.model_version,
+                versions.prompt_version,
+                versions.ontology_version,
+            ),
+        )
+        for row in cursor:
+            yield (
+                str(row[0]),
+                str(row[1]),
+                parse_enum(AspectSlot, str(row[2]), context="mentions.slot"),
+                parse_enum(Sentiment, str(row[3]), context="mentions.sentiment"),
+            )
+
+    def iter_survey_envelope_review_ids(self, versions: ClassifierVersions) -> Iterator[str]:
+        """Stream each survey, version-matched envelope's review id — empties included.
+
+        The denominator source: one row per classified survey review under
+        ``versions`` whether or not it yielded a mention — the ~46% empty
+        envelopes are exactly what keeps a game's ``sample_size`` from being the
+        inflated "reviews that said something" instead of "reviews we looked at."
+        """
+        cursor = self._conn.execute(
+            "SELECT review_id FROM classifications"
+            " WHERE origin = ? AND model_version = ?"
+            " AND prompt_version = ? AND ontology_version = ?",
+            (
+                Origin.SURVEY,
+                versions.model_version,
+                versions.prompt_version,
+                versions.ontology_version,
+            ),
+        )
+        for row in cursor:
+            yield str(row[0])
