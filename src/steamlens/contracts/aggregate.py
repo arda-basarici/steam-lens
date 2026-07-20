@@ -35,18 +35,26 @@ class SentimentCounts:
 
 @dataclass(frozen=True, slots=True)
 class AspectAggregate:
-    """One aspect's rolled-up number over one survey sample.
+    """One aspect's rolled-up number for one game over one survey sample.
 
-    ``aspect`` and ``slot`` identify what was counted; ``reviews_with_aspect`` is
-    the distinct reviews that mentioned it; ``counts`` is the per-sentiment
-    breakdown; ``sample_size`` is the denominator — the reviews in the sample this
-    was folded over. ``versions`` pins the label versions that were folded (only
-    matching-version, survey-origin labels enter), and ``manifest_id`` ties the
-    number back to the exact sample it came from. That manifest linkage stays
-    loose until the sample source lands in a later milestone; the field is defined
-    now so the shape is stable.
+    ``app_id``, ``aspect`` and ``slot`` identify what was counted — which game,
+    which aspect, and whether it is pinned vocabulary or a free-form candidate. The
+    per-game grain is deliberate: it is the grain every consumer reads at (a
+    single-game report; a cross-game leaderboard is its transpose), a global fold
+    would blend incomparable games irreversibly, and only per-game stays honest
+    about thinly-reviewed titles. The game rides as a first-class field rather than
+    hiding inside ``manifest_id`` so a ranking query never has to decode an id to
+    learn which game a number names. ``reviews_with_aspect`` is the distinct reviews
+    in that game that mentioned it; ``counts`` is the per-sentiment breakdown;
+    ``sample_size`` is the denominator — that game's reviews in the sample this was
+    folded over, empty-mentions envelopes included. ``versions`` pins the label
+    versions that were folded (only matching-version, survey-origin labels enter),
+    and ``manifest_id`` ties the number back to the exact sample it came from. That
+    manifest linkage stays loose until the sample source lands in a later milestone;
+    the field is defined now so the shape is stable.
     """
 
+    app_id: int
     aspect: str
     slot: AspectSlot
     reviews_with_aspect: int
