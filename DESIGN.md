@@ -797,6 +797,79 @@ relaunch shows cumulative census spend next to the fresh cap. Pilot gate before 
 census: a `--limit` slice (~300 reviews) certifies cost-per-review and throughput;
 census projection above ~$6 pauses for a top-up-or-reconsider ruling.
 
+**C2 `core/aggregate`: the number mint** (settled 2026-07-20, design discussion over
+five decisions; folds the census the C1 driver bought). **Shape**: a pure fold —
+survey-origin, version-pinned envelopes → `AspectAggregate` records — with persistence
+and the `aggregates` table pushed to the shell and deferred to their first consumer. The
+contract already fixes what a number *is* (`AspectAggregate`: raw counts only, the
+evidence floor deliberately a compose-time presentation rule, never baked into the
+stored tally); C2 is the first thing that fills it. **Decision 1, the grain — fold per
+game, `app_id` promoted onto the record.** A number is minted per `(app_id, aspect,
+slot)`, not once globally per aspect. Rationale: every consumer — a single-game report, a
+cross-game "best combat" leaderboard, the eventual product screen — lives at the per-game
+grain; a global fold blends incomparable populations (combat across an RPG, a farming
+sim, a city-builder is an average nobody wants) and, being lossy, can never be re-split
+into games, whereas per-game rows always roll back up to a global view. Per-game is also
+the only grain that stays honest about thin games: a small title's few mentions show *as*
+thin (wide error bars, greyed by the floor) instead of dissolving into a large pile. The
+cross-game leaderboard is then a *transpose* of the same table (fix an aspect, read down
+the games), needing no separate artifact. **Contract amendment**: `app_id: int` joins
+`AspectAggregate`. A2 froze the record before any consumer existed to reveal the grain;
+C2 is that consumer. Hiding the game inside `manifest_id` was rejected — it fails the
+"references carry their meaning, no decoder required" rule: every ranking query would
+decode the manifest to learn which game a number names. The game is part of the number's
+identity, so it is a first-class field. **Decision 2, candidates fold exactly like pinned
+— no fuzzy merge, singletons kept.** Candidates group by their exact stored
+(already-normalized) string, in the same table, `slot` carrying the pinned/candidate
+distinction. Two things are deliberately *not* done: (a) no machine merge of
+near-duplicates (`grind`/`grinding` stay distinct) — `core/normalize` (B2) already ran at
+label-buy time and by design only casefolds/collapses whitespace, never stems, because a
+false merge silently corrupts two aspects at once while a false miss lands recoverably in
+the candidate stratum for human-gated alias promotion; re-introducing fuzzy merging in C2
+would relitigate that at a layer further from review. (b) No floor at mint — singleton
+candidates mint as faithful (thin) rows, because the contract keeps the number a raw
+tally and the floor a display rule; keeping singletons means C2 has exactly one job
+(count everything, honestly) and *every* policy question (report floor, promotion
+threshold) lives downstream in one place. Consolidation for readability is deferred to
+the consumer: pinned aspects are already de-fragmented (aliases fold at label time), and
+residual candidate fragmentation is smoothed at consumption — an LLM composer naturally
+writes "excessive grinding" once (a *story*-track cosmetic merge, permitted; never a
+number merge), and a published *number* freezes its fold via offline alias promotion (a
+new ontology version + a cheap deterministic re-normalize over stored candidate strings —
+no LLM re-buy). C2 itself folds whatever version it is pinned to and stays the dumb
+faithful counter. **Decision 3, the denominator — per-game survey envelope count, empties
+included.** `sample_size` is that game's total survey envelopes under the pin, counting
+the ~46% empty-mentions envelopes; dropping them would inflate every share.
+`reviews_with_aspect` is the distinct reviews in the game mentioning the aspect (≤
+`sample_size`, and it differs from the mention total when one review mentions an aspect
+twice). This is exactly why the empty envelope is a first-class contract state (classify's
+envelope-over-flat-list call): the honest denominator is a stored quantity, not a guess.
+**Decision 4, provenance — the version pin and the manifest.** Only `survey`-origin,
+version-matching labels fold (contract-mandated; investigation-track labels never touch a
+number). The pin is **v2 by explicit path** — the C1 remainder: the packaged ontology
+default stays v1 (gold's identity pin), so every pool consumer, C2 included, pins v2
+explicitly. `manifest_id` names the fold — the version triple, the game set, when — tying
+each number back to the census sample it came from; the contract's deliberately loose
+manifest linkage (awaiting the M2 sampling machinery) is filled now with the census run's
+identity. **Decision 5, persistence — pure fold by default, snapshot on publish, table
+deferred.** C2's core is a pure function (`classifications → aggregates`,
+data-in/assert-out testable); it stores nothing. Recompute-on-demand is the default
+because the fold is cheap *and* fully reproducible (keep-vs-regenerate: regenerate the
+cheap middle). Persistence is an effect at the shell, taken deliberately only when a
+number is *published*: a snapshot step writes the fold into the `aggregates` table
+stamped with full provenance, giving a frozen, citable artifact — a snapshot store, not a
+live cache, so staleness is a non-issue (a persisted row is explicitly the record of run
+X). The `aggregates` table (B5-deferred to this consumer) is deferred *again* to its real
+first need — a published post (F1) — since D2 judges *labels* against gold and reads the
+pool, not the aggregate table. **Build note — never fold through the fat `reviews`
+join.** Measured on the census (135,259 envelopes / 170,532 mentions): the counting fold
+is ~150 ms, but joining the 169 MB `reviews` table merely to read each review's `app_id`
+drags text pages off disk and costs ~800 ms; prebuilding a skinny `review_id→app_id` map
+(110 ms, two columns) and folding against it lands the whole per-game pass at ~230 ms.
+Get `app_id` via the skinny map (or, only if ever needed, an append-only
+`app_id`-on-`classifications` migration); the ~1.5 s naive path is a fat-table smell, not
+an inherent cost.
+
 ## Scope & non-goals
 
 - In: aspect reports with receipts, narrated live analysis, the event investigator, the
