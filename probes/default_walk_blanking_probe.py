@@ -24,7 +24,7 @@ Run: python probes/default_walk_blanking_probe.py
 
 import json
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import requests
@@ -36,7 +36,7 @@ SLEEP_S = 1.2
 
 
 def ts(v) -> str:
-    return datetime.fromtimestamp(int(v), tz=timezone.utc).strftime("%Y-%m-%d")
+    return datetime.fromtimestamp(int(v), tz=UTC).strftime("%Y-%m-%d")
 
 
 def marked_window() -> tuple[int, int]:
@@ -140,7 +140,7 @@ def main() -> None:
 
     out = CAPTURES / f"defaultwalk_summary_{APPID}.json"
     out.write_text(json.dumps({
-        "probe_date": datetime.now(tz=timezone.utc).strftime("%Y-%m-%d"),
+        "probe_date": datetime.now(tz=UTC).strftime("%Y-%m-%d"),
         "appid": APPID,
         "window": {"start": ws, "end": we},
         "windowed_default_query_summary": default_summary,

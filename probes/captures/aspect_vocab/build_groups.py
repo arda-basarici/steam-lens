@@ -1,4 +1,6 @@
-import json, collections, sys
+import collections
+import json
+import sys
 
 SRC = "extractions.jsonl"
 OUT = "label_groups.json"
@@ -149,13 +151,20 @@ if extra:
     print("EXTRA UNKNOWN LABELS:", extra, file=sys.stderr)
 
 if total_mentions != sum(counts.values()):
-    print(f"MENTION COUNT MISMATCH: groups sum={total_mentions}, source sum={sum(counts.values())}", file=sys.stderr)
+    print(
+        f"MENTION COUNT MISMATCH: groups sum={total_mentions}, source sum={sum(counts.values())}",
+        file=sys.stderr,
+    )
 
 # recompute mentions per group from counts (sanity, should match already)
 for g in groups:
     recomputed = sum(counts[m] for m in g["members"])
     if recomputed != g["mentions"]:
-        print(f"GROUP MENTION MISMATCH for {g['canonical']}: stated {g['mentions']} vs recomputed {recomputed}", file=sys.stderr)
+        print(
+            f"GROUP MENTION MISMATCH for {g['canonical']}: "
+            f"stated {g['mentions']} vs recomputed {recomputed}",
+            file=sys.stderr,
+        )
         g["mentions"] = recomputed
 
 ok = (not dups) and (not missing) and (not extra) and (total_mentions == sum(counts.values()))
@@ -172,7 +181,8 @@ output = {
         "grouped_by": "claude-sonnet subagent",
         "date": "2026-07-09",
         "status": "pending human review",
-        "source": f"extractions.jsonl ({len(ALL_LABELS)} distinct labels expected; use actual count)",
+        "source": f"extractions.jsonl ({len(ALL_LABELS)} distinct labels "
+        "expected; use actual count)",
     },
     "groups": groups,
 }

@@ -14,7 +14,7 @@ Run: python probes/histogram_probe.py
 
 import json
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import requests
@@ -68,7 +68,7 @@ def total_reviews(appid: int) -> int:
 
 def ts(v) -> str:
     try:
-        return datetime.fromtimestamp(int(v), tz=timezone.utc).strftime("%Y-%m-%d")
+        return datetime.fromtimestamp(int(v), tz=UTC).strftime("%Y-%m-%d")
     except (TypeError, ValueError, OSError):
         return repr(v)
 
@@ -90,7 +90,7 @@ def describe_histogram(label: str, appid: int, note: str) -> None:
             print(f"  {section}: MISSING or empty -> {buckets!r}")
             continue
         dates = [b.get("date") for b in buckets]
-        gaps = {int(b) - int(a) for a, b in zip(dates, dates[1:])}
+        gaps = {int(b) - int(a) for a, b in zip(dates, dates[1:], strict=False)}
         gap_days = sorted(g / 86400 for g in gaps)
         print(f"  {section}: {len(buckets)} buckets, "
               f"{ts(dates[0])} .. {ts(dates[-1])}, "

@@ -6,8 +6,8 @@ tier 2 = variants validated by hand during the 2026-07-15 pruning session.
 Known traps are excluded explicitly. Everything unmapped stays candidate/vague —
 counts are floors by construction.
 """
-import json
 import collections
+import json
 import tomllib
 from pathlib import Path
 
@@ -36,7 +36,8 @@ EXTRAS = {
                "turn-based combat", "tactical combat", "combat mechanics", "3d combat", "sniping"],
     "controls": ["steering wheel support", "steering turning ratio", "movement mechanics",
                  "movement targeting", "attack targeting"],
-    "difficulty": ["game difficulty", "mastery difficulty", "combat difficulty", "death consequences"],
+    "difficulty": ["game difficulty", "mastery difficulty", "combat difficulty",
+                   "death consequences"],
     "learning_curve": ["tutorial", "new player experience", "beginner friendliness",
                        "ease of entry", "learnability", "gameplay understanding",
                        "game complexity", "explanations for new things", "novice network"],
@@ -76,14 +77,16 @@ EXTRAS = {
     "graphics": ["game visuals", "texture quality", "texture pop-in", "visual fidelity"],
     "art_style": ["art style", "cyberpunk style", "design and style", "game style"],
     "animation": ["character animations", "facial animations", "tool animations",
-                  "smudge animation", "new animations", "animations and models", "character models"],
+                  "smudge animation", "new animations", "animations and models",
+                  "character models"],
     "music": ["ost", "custom music", "music listening"],
     "sound_design": ["sound design", "sound", "sound effects", "ambient sound", "sound direction",
                      "music and sounds", "sound and music", "dying sounds", "weapon sounds",
                      "random sounds", "speech recognition", "spirit box voice recognition"],
     "atmosphere": ["immersion", "scare factor", "spookiness", "suspense", "jumpscares",
                    "world immersion", "city immersiveness"],
-    "world": ["open world", "world building", "map size", "night city detail", "night city believability",
+    "world": ["open world", "world building", "map size", "night city detail",
+              "night city believability",
               "night city life", "city detail", "city completeness", "city emptiness",
               "world emptiness", "europe setting", "environment depth", "npc life"],
     "realism": ["historical accuracy", "policy realism", "space realism", "combat realism",
@@ -164,7 +167,8 @@ EXTRAS = {
                   "player reporting", "free company system", "social influence"],
     "cheating": ["anti-cheat measures", "bot crisis", "spinbotter"],
     "multiplayer": ["playing with friends", "co-op experience", "multiplayer experience",
-                    "multiplayer functionality", "multiplayer interaction", "multiplayer with friends",
+                    "multiplayer functionality", "multiplayer interaction",
+                    "multiplayer with friends",
                     "social experience", "social aspect", "social connection", "solo play",
                     "single player", "single-player", "single player experience",
                     "single-player experience", "playing solo", "playing with randoms",
@@ -192,7 +196,7 @@ TRAPS = {
 UGC = {"level editor", "user levels", "level creation"}  # VVVVVV user-generated content
 
 def load(path):
-    return [json.loads(l) for l in open(path, encoding="utf-8")]
+    return [json.loads(line) for line in open(path, encoding="utf-8")]
 
 def load_all_records():
     records = load(PROBES / "captures/aspect_vocab_lite/extractions.jsonl")
@@ -226,17 +230,15 @@ n_games = len({r["game"] for r in records})
 print(f"{len(records)} reviews | {n_games} games | {total_mentions} mentions | "
       f"{mapped_mentions} mapped to pins ({mapped_mentions/total_mentions:.0%}), "
       f"rest = candidates + vague\n")
-print(f"| # | Aspect | Mentions | Games |")
-print(f"|---|---|---|---|")
-i = 0
+print("| # | Aspect | Mentions | Games |")
+print("|---|---|---|---|")
 current_cat = None
-for label in order:
+for i, label in enumerate(order, start=1):
     if category_of[label] != current_cat:
         current_cat = category_of[label]
         print(f"| | **{current_cat}** | | |")
-    i += 1
     print(f"| {i} | {label} | {counts[label]} | {len(games_of[label])} |")
 
 print("\ntop 25 unmapped (candidate-space + vague):")
-for l, n in candidate_counts.most_common(25):
-    print(f"  {n:3d}  {l}")
+for cand, n in candidate_counts.most_common(25):
+    print(f"  {n:3d}  {cand}")

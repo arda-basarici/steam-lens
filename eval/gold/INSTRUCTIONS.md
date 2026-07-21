@@ -972,6 +972,17 @@ would invalidate prior labels and therefore forces an explicit
 instructions-version bump and a full relabel decision, taken deliberately
 or not at all.
 
+**No gold text in machine-visible wording** (standing rule, surfaced
+2026-07-17). A ruling born from a gold review must never carry that review's
+verbatim text into anything the machine sees — the ontology TOML, the classify
+prompt, or a D2 judge prompt. Such rulings enter as abstract statements or
+synthetic examples; a too-close paraphrase counts and gets replaced (a v2
+wording batch swapped three). The hazard is leakage: gold is the yardstick, so a
+quote from it seeding the classifier's or judge's instructions lets a model
+pattern-match the answer instead of earning it. Dry-run review quotes are safe
+by construction (gold-excluded). Live for every future wording batch and every
+judge-prompt edit.
+
 **Dev-slice exclusion.** The six B4 pilot review ids
 (`probes/captures/classify_pilot/dev_slice.json`) never enter the gold set.
 

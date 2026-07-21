@@ -16,7 +16,7 @@ Run: python probes/offtopic_probe.py
 
 import json
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import requests
@@ -27,8 +27,8 @@ APPID = 49520  # Borderlands 2
 # Fallback window (Epic-exclusivity bomb, April 2019) if the histogram carries no
 # past_events; when it does, the review fetches use the marked window itself so the
 # with/without comparison actually straddles flagged reviews.
-FALLBACK_START = int(datetime(2019, 4, 1, tzinfo=timezone.utc).timestamp())
-FALLBACK_END = int(datetime(2019, 4, 30, tzinfo=timezone.utc).timestamp())
+FALLBACK_START = int(datetime(2019, 4, 1, tzinfo=UTC).timestamp())
+FALLBACK_END = int(datetime(2019, 4, 30, tzinfo=UTC).timestamp())
 
 
 def fetch_json(name: str, url: str, params: dict) -> dict:
@@ -42,7 +42,7 @@ def fetch_json(name: str, url: str, params: dict) -> dict:
 
 def ts(v) -> str:
     try:
-        return datetime.fromtimestamp(int(v), tz=timezone.utc).strftime("%Y-%m-%d")
+        return datetime.fromtimestamp(int(v), tz=UTC).strftime("%Y-%m-%d")
     except (TypeError, ValueError, OSError):
         return repr(v)
 

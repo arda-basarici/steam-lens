@@ -9,7 +9,6 @@ summary lines for candidate per-game slice sizes.
 """
 
 import json
-import sys
 import unicodedata
 from pathlib import Path
 
@@ -25,10 +24,9 @@ def is_nonempty(text: str) -> bool:
 
 
 def main() -> None:
-    names = {
-        str(g["app_id"]): g["name"]
-        for g in json.load(open(CORPUS / "game_list.json", encoding="utf-8"))["games"]
-    }
+    with open(CORPUS / "game_list.json", encoding="utf-8") as f:
+        game_list = json.load(f)["games"]
+    names = {str(g["app_id"]): g["name"] for g in game_list}
 
     rows = []
     for path in sorted((CORPUS / "raw" / "reviews").glob("*_reviews.jsonl")):

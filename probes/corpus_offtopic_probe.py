@@ -26,7 +26,7 @@ Run: python probes/corpus_offtopic_probe.py
 import json
 import time
 from bisect import bisect_left, bisect_right
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import requests
@@ -37,7 +37,7 @@ SLEEP_S = 1.5
 
 
 def ts(v) -> str:
-    return datetime.fromtimestamp(int(v), tz=timezone.utc).strftime("%Y-%m-%d")
+    return datetime.fromtimestamp(int(v), tz=UTC).strftime("%Y-%m-%d")
 
 
 def load_corpus_timestamps(app_id: str) -> list[int]:
@@ -159,7 +159,7 @@ def main() -> None:
 
     out = CAPTURES / "corpus_offtopic_summary.json"
     out.write_text(json.dumps({
-        "probe_date": datetime.now(tz=timezone.utc).strftime("%Y-%m-%d"),
+        "probe_date": datetime.now(tz=UTC).strftime("%Y-%m-%d"),
         "corpus_source": "steam-reviews (frozen sibling repo), "
                          "full fetch of 2026-06-12, per its fetch_manifest.json",
         "corpus_reviews_counted": total_reviews,

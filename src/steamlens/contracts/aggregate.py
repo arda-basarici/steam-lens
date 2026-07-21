@@ -24,7 +24,10 @@ class SentimentCounts:
     named record rather than four loose fields on the aggregate so the breakdown
     reads as one quantity and stays hashable (all-``int``, deeply immutable). The
     total mentions is the sum; ``reviews_with_aspect`` on the aggregate is the
-    distinct-review count, which differs when a review mentions an aspect twice.
+    distinct-review count. The two would diverge only if a review mentioned an
+    aspect twice — which classify's ``_collapse_repeats`` prevents, so in stored
+    data today they coincide; the field stays distinct for correctness if a
+    non-collapsing label path is ever added.
     """
 
     positive: int

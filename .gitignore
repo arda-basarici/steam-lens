@@ -7,7 +7,8 @@
 # --- working files (disposable by design) ---
 WHITEBOARD.md
 
-# --- data & runtime artifacts (regenerable; provenance documented in-repo) ---
+# --- data & runtime artifacts (mostly regenerable; but data/steamlens.sqlite3 is
+#     the BOUGHT label census — Drive-backed + hash-manifested, never re-derivable) ---
 data/
 logs/
 *.sqlite
@@ -29,5 +30,6 @@ __pycache__/
 Thumbs.db
 .DS_Store
 
-# bake-off resume cache — raw bodies live in each run's raw.jsonl capture
+# bake-off response archive — the durable raw provider bodies (content-keyed);
+# re-read on resume so a re-invoked run never re-buys
 probes/captures/bakeoff/bakeoff.sqlite3

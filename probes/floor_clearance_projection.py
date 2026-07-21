@@ -12,9 +12,9 @@ time), the probe instrument differs from classify-v1, and unmapped labels stay
 candidates -- so projected clearance is a noisy floor, not a promise.
 """
 
+import collections
 import runpy
 import statistics
-import collections
 from pathlib import Path
 
 PROBES = Path("C:/Users/ardab/Desktop/projects/steam-lens/probes")
@@ -94,12 +94,14 @@ def main() -> None:
 
     print("\nPer-game detail at 1000 vs census (pins clearing floor):")
     print(f"{'game':<34}{'supply':>7}{'@1000':>7}{'@census':>9}")
+    def cleared_at(g: str, n: int) -> int:
+        return sum(
+            1 for pin in pet["order"] if mentions[(g, pin)] / probed[g] * n >= FLOOR
+        )
+
     for g in sorted(games, key=lambda g: SUPPLY[g]):
-        def cleared_at(n: int) -> int:
-            return sum(1 for pin in pet["order"]
-                       if mentions[(g, pin)] / probed[g] * n >= FLOOR)
         print(f"{g[:32]:<34}{SUPPLY[g]:>7}"
-              f"{cleared_at(min(1000, SUPPLY[g])):>7}{cleared_at(SUPPLY[g]):>9}")
+              f"{cleared_at(g, min(1000, SUPPLY[g])):>7}{cleared_at(g, SUPPLY[g]):>9}")
 
 
 if __name__ == "__main__":

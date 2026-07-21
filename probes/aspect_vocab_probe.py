@@ -31,7 +31,7 @@ import os
 import random
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import requests
@@ -267,7 +267,7 @@ def run_full(api_key: str, rng: random.Random) -> None:
                     f.write(line + "\n")
         done_counts = {a: n for a, n in done_counts.items() if a in complete}
     throttle = Throttle(MIN_SECONDS_BETWEEN_REQUESTS)
-    started = datetime.now(timezone.utc).isoformat()
+    started = datetime.now(UTC).isoformat()
     record_count, request_count = 0, 0
     tokens = {"prompt": 0, "output": 0}
 
@@ -305,7 +305,10 @@ def run_full(api_key: str, rng: random.Random) -> None:
                     f.write(json.dumps(rec, ensure_ascii=False) + "\n")
                     record_count += 1
             game_aspects += sum(len(extractions[i]) for i in range(len(batch)))
-            narrate(f"{game_name}: batch {b_num}/{len(batches)} ok ({game_aspects} aspect mentions so far)")
+            narrate(
+                f"{game_name}: batch {b_num}/{len(batches)} ok "
+                f"({game_aspects} aspect mentions so far)"
+            )
 
     meta = {
         "probe": "aspect_vocab_probe",
@@ -321,7 +324,7 @@ def run_full(api_key: str, rng: random.Random) -> None:
         "requests": request_count,
         "tokens": tokens,
         "started_utc": started,
-        "finished_utc": datetime.now(timezone.utc).isoformat(),
+        "finished_utc": datetime.now(UTC).isoformat(),
     }
     (CAPTURE_DIR / "run_meta.json").write_text(
         json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"

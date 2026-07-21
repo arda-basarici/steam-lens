@@ -23,7 +23,7 @@ Probe-grade: sequential, no retries — a transient failure is itself data here.
 import json
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
 
@@ -33,8 +33,8 @@ APPID = 440  # Team Fortress 2 — the local baseline's old_large profile
 MARKED_APPID = 49520  # Borderlands 2 — carries the first Valve-marked off-topic window
 # Plain-window walk target: one arbitrary full TF2 month (TF2's histogram carries no
 # past_events), far enough back that its contents no longer change under us.
-WINDOW_START = int(datetime(2023, 6, 1, tzinfo=timezone.utc).timestamp())
-WINDOW_END = int(datetime(2023, 6, 30, 23, 59, 59, tzinfo=timezone.utc).timestamp())
+WINDOW_START = int(datetime(2023, 6, 1, tzinfo=UTC).timestamp())
+WINDOW_END = int(datetime(2023, 6, 30, 23, 59, 59, tzinfo=UTC).timestamp())
 WINDOWED_PAGES = 2
 PORT = 7860
 DEFAULT_PAGES = 5

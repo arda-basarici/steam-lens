@@ -67,7 +67,7 @@ def main() -> None:
     print("\nper-game: mentions | distinct | top-15 coverage | top 8 labels")
     game_counts = {g: mention_counts(rs) for g, rs in by_game.items()}
     for game, counts in game_counts.items():
-        top8 = ", ".join(f"{l}({n})" for l, n in counts.most_common(8))
+        top8 = ", ".join(f"{label}({n})" for label, n in counts.most_common(8))
         print(f"  {game}: {sum(counts.values())} | {len(counts)} | "
               f"{coverage_at(counts, 15):.0%}\n      {top8}")
 
@@ -75,16 +75,17 @@ def main() -> None:
     for counts in game_counts.values():
         for label in counts:
             n_games_per_label[label] += 1
-    shared = [l for l, n in n_games_per_label.items() if n >= 3]
-    shared_mentions = sum(overall[l] for l in shared)
-    single = [l for l, n in n_games_per_label.items() if n == 1]
-    single_mentions = sum(overall[l] for l in single)
+    shared = [label for label, n in n_games_per_label.items() if n >= 3]
+    shared_mentions = sum(overall[label] for label in shared)
+    single = [label for label, n in n_games_per_label.items() if n == 1]
+    single_mentions = sum(overall[label] for label in single)
     print(f"\ncross-game: {len(shared)} labels appear in >=3 of 5 games "
           f"({shared_mentions/total_mentions:.0%} of mentions); "
-          f"{len(single)} labels in exactly 1 game ({single_mentions/total_mentions:.0%} of mentions)")
+          f"{len(single)} labels in exactly 1 game "
+          f"({single_mentions/total_mentions:.0%} of mentions)")
     print(f"  shared labels: {', '.join(sorted(shared))}")
 
-    once = [l for l, n in overall.items() if n == 1]
+    once = [label for label, n in overall.items() if n == 1]
     print(f"\ntail: {len(once)} labels mentioned exactly once "
           f"({len(once)/len(overall):.0%} of vocabulary). sample of 25:")
     print("  " + ", ".join(random.Random(0).sample(once, min(25, len(once)))))
@@ -138,19 +139,19 @@ def print_grouped_shape(records: list[dict], by_game: dict[str, list[dict]]) -> 
         print(f"  top {k:>3}: {cum:>5.1%}")
 
     print("\ntop 20 groups overall: "
-          + ", ".join(f"{l}({n})" for l, n in overall.most_common(20)))
+          + ", ".join(f"{label}({n})" for label, n in overall.most_common(20)))
 
     game_counts = {g: grouped_counts(rs)[0] for g, rs in by_game.items()}
     n_games = collections.Counter()
     for counts in game_counts.values():
         for label in counts:
             n_games[label] += 1
-    shared = [l for l, n in n_games.items() if n >= 3]
-    single = [l for l, n in n_games.items() if n == 1]
+    shared = [label for label, n in n_games.items() if n >= 3]
+    single = [label for label, n in n_games.items() if n == 1]
     print(f"\ncross-game (grouped): {len(shared)} groups in >=3 of 5 games "
-          f"({sum(overall[l] for l in shared)/total:.0%} of mentions); "
+          f"({sum(overall[label] for label in shared)/total:.0%} of mentions); "
           f"{len(single)} groups in exactly 1 game "
-          f"({sum(overall[l] for l in single)/total:.0%} of mentions)")
+          f"({sum(overall[label] for label in single)/total:.0%} of mentions)")
 
 
 if __name__ == "__main__":

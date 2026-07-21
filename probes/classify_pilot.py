@@ -25,7 +25,7 @@ import json
 import os
 import random
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from steamlens.contracts import LlmRequest, LlmStage, MetricEvent, SinkEvent
@@ -116,7 +116,8 @@ def show_batch_result(texts: list[str], reviews: list[dict[str, str]], raw: str)
     record: dict = {"parsed": [], "failures": [], "repairs": []}
     for idx, review in enumerate(reviews):
         preview = review["text"][:240].replace("\n", " ")
-        print(f'\n  [{idx}] ({review["game"]}) "{preview}{"..." if len(review["text"]) > 240 else ""}"')
+        tail = "..." if len(review["text"]) > 240 else ""
+        print(f'\n  [{idx}] ({review["game"]}) "{preview}{tail}"')
         if idx in parsed_by_idx:
             mentions = parsed_by_idx[idx].mentions
             if not mentions:
@@ -143,7 +144,10 @@ def show_batch_result(texts: list[str], reviews: list[dict[str, str]], raw: str)
         print(f"      !! idx {failure.idx} FAILED: {failure.reason}")
         record["failures"].append({"idx": failure.idx, "reason": failure.reason})
     for repair in result.repairs:
-        print(f'      ~~ evidence repaired on idx {repair.idx} ({repair.aspect}): "{repair.discarded_evidence}"')
+        print(
+            f'      ~~ evidence repaired on idx {repair.idx} '
+            f'({repair.aspect}): "{repair.discarded_evidence}"'
+        )
         record["repairs"].append(
             {"idx": repair.idx, "aspect": repair.aspect, "discarded": repair.discarded_evidence}
         )
@@ -177,7 +181,10 @@ def main() -> None:
     if not args.live:
         prompt = build_classify_prompt([r["text"] for r in batches[-1]], ontology)
         print(f"DRY RUN - nothing sent. Prompt {PROMPT_VERSION}, ontology {ontology.version}.")
-        print(f"Batches planned: {[len(b) for b in batches]} -> {len(batches)} requests, model {MODEL}.")
+        print(
+            f"Batches planned: {[len(b) for b in batches]} -> "
+            f"{len(batches)} requests, model {MODEL}."
+        )
         print(f"Largest prompt: {len(prompt):,} chars (~{len(prompt) // 4:,} tokens).\n")
         print("--- full prompt of the largest batch follows ---\n")
         print(prompt)
@@ -197,7 +204,7 @@ def main() -> None:
         registry={"gemini": gemini_entry(api_key)},
     )
     run: dict = {
-        "started_at": datetime.now(timezone.utc).isoformat(),
+        "started_at": datetime.now(UTC).isoformat(),
         "prompt_version": PROMPT_VERSION,
         "ontology_version": ontology.version,
         "model": MODEL,
@@ -238,7 +245,7 @@ def main() -> None:
             }
         )
 
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     out = CAPTURE_DIR / f"run_{stamp}.json"
     out.write_text(json.dumps(run, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"\ncapture written: {out}")
