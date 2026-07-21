@@ -27,8 +27,10 @@ from steamlens.store.errors import SchemaVersionError
 # through the enum constructors, and a CHECK would turn every enum addition into
 # a migration. Structural constraints (NOT NULL, FK, UNIQUE) are the schema's job.
 _STEP_1: tuple[str, ...] = (
-    # The bought-responses cache: raw provider bodies keyed by the client's
-    # content hash of (request payload + model). Values replace on re-put.
+    # The response archive (durable provenance, not a disposable cache): raw
+    # provider bodies keyed by the client's content hash of (request payload +
+    # model). Table name kept as classify_cache for continuity with the bought
+    # census DB; the code-level type is ResponseArchive. Values replace on re-put.
     """
     CREATE TABLE classify_cache (
         key          TEXT PRIMARY KEY,

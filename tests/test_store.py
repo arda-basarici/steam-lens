@@ -22,13 +22,13 @@ from steamlens.contracts import (
     AspectMention,
     AspectSlot,
     ClassifierVersions,
-    ClassifyCache,
     FinishReason,
     LlmRequest,
     LlmResponse,
     LlmStage,
     Origin,
     Provenance,
+    ResponseArchive,
     Review,
     ReviewClassification,
     Sentiment,
@@ -38,7 +38,7 @@ from steamlens.contracts import (
     TokenUsage,
 )
 from steamlens.llm_client import (
-    InMemoryClassifyCache,
+    InMemoryResponseArchive,
     InMemorySpendLedger,
     LlmClient,
     LlmClientConfig,
@@ -74,12 +74,12 @@ def _record(
 
 
 @pytest.fixture(params=["in_memory", "sqlite"])
-def cache(request: pytest.FixtureRequest, tmp_path: Path) -> Iterator[ClassifyCache]:
+def cache(request: pytest.FixtureRequest, tmp_path: Path) -> Iterator[ResponseArchive]:
     if request.param == "in_memory":
-        yield InMemoryClassifyCache()
+        yield InMemoryResponseArchive()
     else:
         with Store(tmp_path / "steamlens.sqlite3") as store:
-            yield store.classify_cache
+            yield store.responses
 
 
 @pytest.fixture(params=["in_memory", "sqlite"])
@@ -91,17 +91,17 @@ def ledger(request: pytest.FixtureRequest, tmp_path: Path) -> Iterator[SpendLedg
             yield store.spend_ledger
 
 
-class TestClassifyCacheContract:
+class TestResponseArchiveContract:
     """The protocol's whole behavior: miss is None, hits round-trip, put replaces."""
 
-    def test_miss_returns_none(self, cache: ClassifyCache) -> None:
+    def test_miss_returns_none(self, cache: ResponseArchive) -> None:
         assert cache.get("absent") is None
 
-    def test_put_get_round_trip(self, cache: ClassifyCache) -> None:
+    def test_put_get_round_trip(self, cache: ResponseArchive) -> None:
         cache.put("key", '{"raw": "body"}')
         assert cache.get("key") == '{"raw": "body"}'
 
-    def test_put_replaces_previous_value(self, cache: ClassifyCache) -> None:
+    def test_put_replaces_previous_value(self, cache: ResponseArchive) -> None:
         cache.put("key", "first")
         cache.put("key", "second")
         assert cache.get("key") == "second"
@@ -155,10 +155,10 @@ class TestStoreDurability:
     def test_cache_and_ledger_survive_reopen(self, tmp_path: Path) -> None:
         path = tmp_path / "steamlens.sqlite3"
         with Store(path) as store:
-            store.classify_cache.put("key", "bought")
+            store.responses.put("key", "bought")
             store.spend_ledger.append(_record())
         with Store(path) as store:
-            assert store.classify_cache.get("key") == "bought"
+            assert store.responses.get("key") == "bought"
             assert store.spend_ledger.request_count_since("model-a", _EPOCH) == 1
 
     def test_wal_journal_is_active_on_the_file(self, tmp_path: Path) -> None:
@@ -257,7 +257,7 @@ def test_bought_response_survives_a_restart(tmp_path: Path) -> None:
     with Store(path) as store:
         client = LlmClient(
             _client_config(),
-            store.classify_cache,
+            store.responses,
             store.spend_ledger,
             _NullSink(),
             registry={"scripted": first.entry()},
@@ -269,7 +269,7 @@ def test_bought_response_survives_a_restart(tmp_path: Path) -> None:
     with Store(path) as store:
         client = LlmClient(
             _client_config(),
-            store.classify_cache,
+            store.responses,
             store.spend_ledger,
             _NullSink(),
             registry={"scripted": second.entry()},

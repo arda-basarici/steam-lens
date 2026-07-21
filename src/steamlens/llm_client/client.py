@@ -3,15 +3,15 @@
 Responsibility map, placed once: adapters *normalize* (finish reason, the usage
 split), this client *enforces and accounts* above them, provider-independent.
 ``complete`` is the whole public surface — a stage-keyed request in, a
-normalized response out, with the cache consulted first, the budget reserved
+normalized response out, with the archive consulted first, the budget reserved
 worst-case before dispatch and settled to actual after, the daily quota derived
 by ledger query, dispatch paced per model, transients retried with bounded
-jittered backoff, and every paid call journaled and cached before any guard is
+jittered backoff, and every paid call journaled and archived before any guard is
 allowed to raise.
 
 Threading: ``complete`` is safe to call from many threads. All mutable state —
 the budget reservation, the in-flight quota counts, the pacing slots, and every
-cache/ledger touch — lives behind one lock, so the bound cache and ledger
+archive/ledger touch — lives behind one lock, so the bound archive and ledger
 implementations may stay dumb. The worker pool itself belongs to the *caller*
 (``max_workers`` is caller config, defaulting to sequential); this client only
 promises to stay correct underneath one.
@@ -28,12 +28,12 @@ from datetime import UTC, datetime, timedelta
 from threading import Lock
 
 from steamlens.contracts import (
-    ClassifyCache,
     FinishReason,
     LlmRequest,
     LlmResponse,
     LlmStage,
     MetricEvent,
+    ResponseArchive,
     Sink,
     SpendLedger,
     SpendRecord,
@@ -63,7 +63,7 @@ def _utc_now() -> datetime:
     return datetime.now(UTC)
 
 
-def _cache_key(model: str, payload: Mapping[str, object]) -> str:
+def _archive_key(model: str, payload: Mapping[str, object]) -> str:
     """Content hash of (request payload + model) — the bought-response identity.
 
     Sorted-key JSON makes the hash independent of dict insertion order; the
@@ -112,7 +112,7 @@ class LlmClient:
     def __init__(
         self,
         config: LlmClientConfig,
-        cache: ClassifyCache,
+        archive: ResponseArchive,
         ledger: SpendLedger,
         sink: Sink,
         *,
@@ -129,7 +129,7 @@ class LlmClient:
                     f"registered: {sorted(resolved)}"
                 )
         self._config = config
-        self._cache = cache
+        self._archive = archive
         self._ledger = ledger
         self._sink = sink
         self._registry = dict(resolved)
@@ -165,12 +165,12 @@ class LlmClient:
             max_output_tokens=route.max_output_tokens,
             params=route.params,
         )
-        key = _cache_key(route.model, payload)
+        key = _archive_key(route.model, payload)
         with self._lock:
-            cached = self._cache.get(key)
-        if cached is not None:
+            archived = self._archive.get(key)
+        if archived is not None:
             self._emit_metric(request.stage, "cache_hit", 1.0, "count")
-            return self._guard_finish(entry.parse(cached))
+            return self._guard_finish(entry.parse(archived))
 
         estimate = _worst_case_cost(request.prompt, route, spec)
         pace_wait = self._reserve(request.stage, route.model, spec, estimate)
@@ -200,7 +200,7 @@ class LlmClient:
             self._reserved_usd -= estimate
             self._inflight[route.model] -= 1
             self._ledger.append(record)
-            self._cache.put(key, raw)
+            self._archive.put(key, raw)
         self._emit_metric(request.stage, "prompt_tokens", response.usage.prompt_tokens, "tokens")
         self._emit_metric(request.stage, "output_tokens", response.usage.output_tokens, "tokens")
         self._emit_metric(

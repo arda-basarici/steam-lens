@@ -67,7 +67,7 @@ milestone by milestone). Four strata, imports strictly downward:
                          validation, per-window provenance, past_events capture, always unfiltered
         llm_client     — the one door to models: per-stage routing table, concurrency as config,
                          atomic budget counter + spend ledger, judge-route refusals,
-                         content-keyed classify cache
+                         content-keyed response archive
         store          — SQLite (WAL): reviews, manifests + membership, the label pool,
                          events + investigation rounds, report cache, spend ledger, eval runs
         pipeline/      — stage compositions + the survey/investigation/report runners + the

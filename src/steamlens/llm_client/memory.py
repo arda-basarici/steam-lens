@@ -1,12 +1,12 @@
-"""In-memory bindings of the persistence protocols — B3's own cache and ledger.
+"""In-memory bindings of the persistence protocols — B3's own response archive and ledger.
 
 These are the implementations the client's commits run on; the durable SQLite
 pair lands with the store and binds in the same constructor slots. Deliberately
-not thread-safe on their own: the client serializes every cache and ledger
+not thread-safe on their own: the client serializes every archive and ledger
 touch under its one lock, so implementations stay dumb — a discipline the
 SQLite pair inherits. Lifetime is the process; a run that must never re-pay
-bought labels across restarts needs the durable pair (the first corpus-labeling
-run does).
+bought responses across restarts needs the durable pair (the first
+corpus-labeling run does).
 """
 
 from __future__ import annotations
@@ -16,14 +16,14 @@ from datetime import datetime
 from steamlens.contracts import SpendRecord
 
 
-class InMemoryClassifyCache:
-    """Dict-backed ``ClassifyCache`` — satisfies the protocol structurally."""
+class InMemoryResponseArchive:
+    """Dict-backed ``ResponseArchive`` — satisfies the protocol structurally."""
 
     def __init__(self) -> None:
         self._entries: dict[str, str] = {}
 
     def get(self, key: str) -> str | None:
-        """The cached raw response body under ``key``, or None on a miss."""
+        """The archived raw response body under ``key``, or None on a miss."""
         return self._entries.get(key)
 
     def put(self, key: str, raw_response: str) -> None:

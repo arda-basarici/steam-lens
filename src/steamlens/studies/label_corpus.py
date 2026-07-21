@@ -259,7 +259,7 @@ def build_client(
     )
     return LlmClient(
         config,
-        client_store.classify_cache,
+        client_store.responses,
         client_store.spend_ledger,
         sink,
         registry={_PROVIDER: entry},

@@ -20,7 +20,7 @@ from steamlens.llm_client.errors import (
     ProviderTransientError,
 )
 from steamlens.llm_client.gemini import gemini_entry
-from steamlens.llm_client.memory import InMemoryClassifyCache, InMemorySpendLedger
+from steamlens.llm_client.memory import InMemoryResponseArchive, InMemorySpendLedger
 from steamlens.llm_client.openai_compat import openai_compat_entry
 from steamlens.llm_client.registry import (
     PROVIDERS,
@@ -59,6 +59,6 @@ __all__ = [
     "ProviderPermanentError",
     "GenerationIncompleteError",
     # in-memory bindings
-    "InMemoryClassifyCache",
+    "InMemoryResponseArchive",
     "InMemorySpendLedger",
 ]

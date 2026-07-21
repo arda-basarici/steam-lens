@@ -23,9 +23,9 @@ from steamlens.contracts.enums import (
     StageKind,
 )
 from steamlens.contracts.llm import (
-    ClassifyCache,
     LlmRequest,
     LlmResponse,
+    ResponseArchive,
     SpendLedger,
     SpendRecord,
     TokenUsage,
@@ -68,6 +68,6 @@ __all__ = [
     "LlmResponse",
     "TokenUsage",
     "SpendRecord",
-    "ClassifyCache",
+    "ResponseArchive",
     "SpendLedger",
 ]

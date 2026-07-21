@@ -263,7 +263,7 @@ coloring spreads to every caller while the throughput ceiling is the provider qu
 async serve via standard thread offloading), its one stateful bundle (budget, pacer,
 ledger appends) is lock-guarded and hammer-tested from commit one, and the worker pool
 lives in the *caller* with `max_workers` as config defaulting to 1 — the paid-tier flip
-is a route edit plus a number, zero code. Persistence: `ClassifyCache` and
+is a route edit plus a number, zero code. Persistence: `ResponseArchive` and
 `SpendLedger` are protocols in contracts (the `Sink` precedent — defined at the base,
 implemented in shells, bound at composition); B3's own commits run on in-memory
 implementations, the SQLite pair lands with the store (two small tables added to B5's
@@ -357,7 +357,7 @@ batch-halving, corrective prompting if ever) reopen on pilot numbers, not guesse
 
 **`store`: scope and schema lifecycle** (settled 2026-07-14, six-fork design
 discussion, forks 1–2). B5 lands only the tables with a landed or next-task consumer:
-the durable `ClassifyCache` + `SpendLedger` pair (binding into the client's existing
+the durable `ResponseArchive` + `SpendLedger` pair (binding into the client's existing
 constructor slots), `reviews`, and the label pool. The `aggregates` and `eval_runs`
 tables named in the module map are deferred to their consumers (C2, D2) per *rules now,
 fields later* — a table's first consumer forces its real design, and pre-building
@@ -383,10 +383,10 @@ coexist under their own key, which is what makes the pool accretive).
 **`store`: shape, schema, validation, tests** (same discussion, forks 3–6). One
 `Store` class owns the file — connection, pragmas (WAL, foreign keys, busy timeout),
 the migration runner — and the surfaces are small tenant classes handed that
-connection, exposed as attributes (`classify_cache`, `spend_ledger`, `reviews`,
-`labels`); composition wires `store.classify_cache` straight into the client's slot,
+connection, exposed as attributes (`responses`, `spend_ledger`, `reviews`,
+`labels`); composition wires `store.responses` straight into the client's slot,
 so the client never learns SQLite exists. The store adds **no locking of its own**: the
-client already serializes every cache/ledger touch under its one lock (the discipline
+client already serializes every archive/ledger touch under its one lock (the discipline
 the in-memory pair documents and the SQLite pair inherits); WAL + busy-timeout is the
 safety net, not the concurrency design. The label pool is **normalized, never a JSON
 blob** — the load-bearing queries (C2's origin ∩ version fold, the two-track wall's
@@ -869,6 +869,33 @@ drags text pages off disk and costs ~800 ms; prebuilding a skinny `review_id→a
 Get `app_id` via the skinny map (or, only if ever needed, an append-only
 `app_id`-on-`classifications` migration); the ~1.5 s naive path is a fat-table smell, not
 an inherent cost.
+
+**`llm_client` / `store`: the response archive — raw provenance, not a cache** (settled
+2026-07-21, the pre-D2 debt pass). The store of bought provider responses is renamed
+`ResponseArchive` (was `ClassifyCache`) because it is a durable, content-addressed record
+of *unreproducible* raw provider output, not a disposable performance cache — an LLM reply
+can't be regenerated, and the archive is its only durable copy (same DB file as the labels,
+Drive-backed via the census manifest), so "clear it to reclaim space" must read as the data
+loss it is. Re-pay-avoidance (the `get` before dispatch that lets a run resume without
+re-buying) is a *free consequence* of a permanent content-addressed store, not a second
+design goal — so the archive constraint (never evict) names it, not the convenience. The
+rename also drops the "Classify" scope lie: every stage's calls land here, the D2 judge's
+included. Two alternatives rejected: **splitting** it into a real (disposable) cache plus an
+archive — identical bytes under an identical key, so the disposability is purely theoretical,
+structure with no operational teeth; and **adding a `raw` field to `LlmResponse`** so
+responses carry their wire body — it serves the wrong raw (the census responses are long
+gone; their raw exists *only* in the archive) while bolting a multi-KB blob onto every
+response for a value already stored once. **The seam stays text-only**: raw is a *forensic*
+affordance (human disagreement investigation — reading the model's discarded reasoning
+trace), never an input to a D2 metric (classification agreement, fabricated-quote, and
+numeric-grounding all read the *review text*, not the wire body), so it must be *retrievable*,
+not indexed on every record. Retrieval is by reconstructing the content-hash key on demand
+(review text + pinned prompt/ontology versions + route params + model → `sha256`), sound
+because the version-pinning discipline makes the recompute exact; no key is stored on the
+envelope and no helper is built until D2's forensic tooling defines the ergonomics it wants.
+The physical `classify_cache` table keeps its name — an internal string no contract reader
+sees, and renaming it would mean an `ALTER TABLE` migration on the bought 135K-row census DB
+for zero readability gain. Closes the 2026-07-18 raw-seam FIXLOG.
 
 ## Scope & non-goals
 

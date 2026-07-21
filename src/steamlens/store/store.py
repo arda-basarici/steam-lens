@@ -2,7 +2,7 @@
 
 ``Store`` opens the file exactly once, brings it to the current schema, and
 hands its connection to small tenant surfaces exposed as attributes: the
-durable ``classify_cache``/``spend_ledger`` pair binds into the LLM client's
+durable ``responses``/``spend_ledger`` pair binds into the LLM client's
 constructor slots (the client never learns SQLite exists), ``reviews`` holds
 the corpus snapshot and the driver's selection query, ``labels`` is the label
 pool. One owner, dumb tenants: pragmas and migrations run once per open
@@ -12,10 +12,11 @@ single fact.
 The store adds no locking of its own: the client already serializes every
 cache and ledger touch under its one lock, and transactions never share a
 connection across threads by design — the labeling driver opens TWO ``Store``
-instances over the one file (the client's cache/ledger on one connection from
-worker threads, all label-pool writes on the other from its main thread),
-because a transaction is connection-scoped and a shared connection would let a
-worker's cache write land inside an open envelope transaction. WAL plus the
+instances over the one file (the client's response-archive/ledger on one
+connection from worker threads, all label-pool writes on the other from its
+main thread), because a transaction is connection-scoped and a shared
+connection would let a worker's archive write land inside an open envelope
+transaction. WAL plus the
 busy timeout is what coordinates the two writers (C1 driver design, DESIGN
 2026-07-19); they remain the safety net for any genuinely unexpected third.
 """
@@ -26,7 +27,7 @@ import sqlite3
 from pathlib import Path
 from types import TracebackType
 
-from steamlens.store.cache import SqliteClassifyCache
+from steamlens.store.archive import SqliteResponseArchive
 from steamlens.store.labels import LabelPool
 from steamlens.store.ledger import SqliteSpendLedger
 from steamlens.store.reviews import ReviewStore
@@ -44,10 +45,10 @@ class Store:
     degrades to a memory journal there).
 
     >>> store = Store(":memory:")
-    >>> store.classify_cache.get("missing") is None
+    >>> store.responses.get("missing") is None
     True
-    >>> store.classify_cache.put("k", '{"answer": 42}')
-    >>> store.classify_cache.get("k")
+    >>> store.responses.put("k", '{"answer": 42}')
+    >>> store.responses.get("k")
     '{"answer": 42}'
     >>> store.close()
     """
@@ -68,7 +69,7 @@ class Store:
         # envelope writes per outcome, not more patience.
         self._conn.execute("PRAGMA busy_timeout = 60000")
         apply_migrations(self._conn)
-        self.classify_cache = SqliteClassifyCache(self._conn)
+        self.responses = SqliteResponseArchive(self._conn)
         self.spend_ledger = SqliteSpendLedger(self._conn)
         self.reviews = ReviewStore(self._conn)
         self.labels = LabelPool(self._conn)

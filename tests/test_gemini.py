@@ -23,7 +23,7 @@ from steamlens.contracts import (
     SinkEvent,
 )
 from steamlens.llm_client import (
-    InMemoryClassifyCache,
+    InMemoryResponseArchive,
     InMemorySpendLedger,
     LlmClient,
     LlmClientConfig,
@@ -225,7 +225,7 @@ def test_the_door_serves_a_classify_call_through_the_gemini_entry() -> None:
     ledger = InMemorySpendLedger()
     client = LlmClient(
         config,
-        InMemoryClassifyCache(),
+        InMemoryResponseArchive(),
         ledger,
         NullSink(),
         registry={"gemini": gemini_entry(_KEY, transport=httpx.MockTransport(handler))},

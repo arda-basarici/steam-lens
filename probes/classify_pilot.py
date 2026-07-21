@@ -38,7 +38,7 @@ from steamlens.core.classify import (
 from steamlens.core.normalize import build_surface_index
 from steamlens.llm_client import (
     GenerationIncompleteError,
-    InMemoryClassifyCache,
+    InMemoryResponseArchive,
     InMemorySpendLedger,
     LlmClient,
     LlmClientConfig,
@@ -191,7 +191,7 @@ def main() -> None:
     CAPTURE_DIR.mkdir(parents=True, exist_ok=True)
     client = LlmClient(
         CONFIG,
-        InMemoryClassifyCache(),
+        InMemoryResponseArchive(),
         InMemorySpendLedger(),
         ConsoleSink(),
         registry={"gemini": gemini_entry(api_key)},

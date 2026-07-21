@@ -30,7 +30,7 @@ from steamlens.contracts import (
 from steamlens.llm_client import (
     AtCapacityError,
     GenerationIncompleteError,
-    InMemoryClassifyCache,
+    InMemoryResponseArchive,
     InMemorySpendLedger,
     LlmClient,
     LlmClientConfig,
@@ -137,7 +137,7 @@ def _client(
     provider: FakeProvider,
     config: LlmClientConfig,
     *,
-    cache: InMemoryClassifyCache | None = None,
+    cache: InMemoryResponseArchive | None = None,
     record_sleeps: list[float] | None = None,
 ) -> tuple[LlmClient, InMemorySpendLedger, CollectingSink]:
     """A client on the fake registry, no-op sleep (or a recording one), seeded RNG."""
@@ -151,7 +151,7 @@ def _client(
 
     client = LlmClient(
         config,
-        cache if cache is not None else InMemoryClassifyCache(),
+        cache if cache is not None else InMemoryResponseArchive(),
         ledger,
         sink,
         registry={"fake": provider.entry()},
@@ -173,7 +173,7 @@ def test_unknown_provider_fails_at_construction() -> None:
     with pytest.raises(LlmConfigError, match="unknown provider"):
         LlmClient(
             _config(),
-            InMemoryClassifyCache(),
+            InMemoryResponseArchive(),
             InMemorySpendLedger(),
             CollectingSink(),
             registry={},
@@ -231,7 +231,7 @@ def test_cache_hit_skips_send_and_ledger() -> None:
 
 def test_cache_does_not_leak_across_models() -> None:
     """The model rides inside the cache key: same prompt, different model, fresh buy."""
-    shared_cache = InMemoryClassifyCache()
+    shared_cache = InMemoryResponseArchive()
     provider = FakeProvider()
     client_a, _, _ = _client(provider, _config(model="fake-model"), cache=shared_cache)
     client_b, _, _ = _client(provider, _config(model="fake-model-2"), cache=shared_cache)

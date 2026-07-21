@@ -17,14 +17,15 @@ in their own directory so ``bakeoff_table.py --compare`` can address them:
 
 Captures land in ``probes/captures/bakeoff/<candidate>/n<N>/``:
 
-    raw.jsonl          one line per request — review ids, the raw provider body,
+    raw.jsonl          one line per request — review ids, the extracted completion
+                       text (not the wire body — that lives in the response archive),
                        reported model version, finish reason, the token split
     predictions.jsonl  one line per answered review — resolved mentions or a
                        failed marker, with the attempt that produced it
     manifest.json      the protocol's provenance fields (DESIGN C0 entries)
 
 The run rides the full LlmClient: rpm pacing, bounded retries, the spend
-ledger, and a durable SQLite cache shared across runs (``bakeoff.sqlite3``
+ledger, and a durable response archive shared across runs (``bakeoff.sqlite3``
 next to the captures) — a crashed or re-invoked run re-reads bought responses
 for free. Failed rows get one re-batch pass at N=1 per the protocol's
 unrecoverable definition ("failed in its production-shape batch AND alone").
@@ -319,7 +320,7 @@ def _build_client(name: str, candidate: Candidate, n: int, store: Store) -> LlmC
         daily_reset_utc_hour=8 if candidate.kind == "gemini" else 0,
     )
     return LlmClient(
-        config, store.classify_cache, store.spend_ledger, ConsoleSink(), registry={name: entry}
+        config, store.responses, store.spend_ledger, ConsoleSink(), registry={name: entry}
     )
 
 

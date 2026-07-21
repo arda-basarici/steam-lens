@@ -1,10 +1,11 @@
-"""The durable ``ClassifyCache`` binding — bought responses that survive restarts.
+"""The durable ``ResponseArchive`` binding — bought responses that survive restarts.
 
 Same contract as the in-memory binding, one difference in kind: lifetime is
-the file, not the process, which is what "bought labels never re-paid" means
-across runs. Deliberately not thread-safe on its own — the client serializes
-every cache touch under its one lock (the discipline the in-memory pair
-documents), so this stays a dumb table.
+the file, not the process, which is what "bought responses never re-paid" means
+across runs — and, more importantly, what makes this the durable provenance
+record of unreproducible provider output. Deliberately not thread-safe on its
+own — the client serializes every archive touch under its one lock (the
+discipline the in-memory pair documents), so this stays a dumb table.
 """
 
 from __future__ import annotations
@@ -12,18 +13,20 @@ from __future__ import annotations
 import sqlite3
 
 
-class SqliteClassifyCache:
-    """Table-backed ``ClassifyCache`` — satisfies the protocol structurally.
+class SqliteResponseArchive:
+    """Table-backed ``ResponseArchive`` — satisfies the protocol structurally.
 
     Constructed by ``Store`` with the store's connection; never opens or owns
-    one itself.
+    one itself. The physical table is named ``classify_cache`` for schema
+    continuity with the bought census DB; the code-level concept is the
+    response archive.
     """
 
     def __init__(self, conn: sqlite3.Connection) -> None:
         self._conn = conn
 
     def get(self, key: str) -> str | None:
-        """The cached raw response body under ``key``, or None on a miss."""
+        """The archived raw response body under ``key``, or None on a miss."""
         row = self._conn.execute(
             "SELECT raw_response FROM classify_cache WHERE key = ?", (key,)
         ).fetchone()

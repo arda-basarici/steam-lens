@@ -6,7 +6,7 @@ everything guards, ledger, and provenance consume. The accounting fields are
 required here rather than reconstructed later because downstream can only record
 what crosses the seam — a lesson the aspect-vocab probe paid for when unreported
 thinking tokens put real cost at roughly eight times the sticker-price estimate.
-The two protocols (``ClassifyCache``, ``SpendLedger``) follow the ``Sink``
+The two protocols (``ResponseArchive``, ``SpendLedger``) follow the ``Sink``
 precedent: defined at the contract layer, implemented in shells (in-memory
 first, the durable SQLite pair with the store), bound at composition — the
 client's logic never knows which implementation it holds.
@@ -91,19 +91,23 @@ class SpendRecord:
     cost: float
 
 
-class ClassifyCache(Protocol):
-    """The bought-responses store — raw model output keyed by content, never re-paid.
+class ResponseArchive(Protocol):
+    """The durable record of raw provider responses — content-addressed, never evicted.
 
     Keys are content hashes of the (request payload + model) pair, computed by
-    the client; values are raw provider response bodies. Storing the *raw*
-    response is deliberate: pre-normalization phrasing stays available, and
-    normalization stays re-runnable over bought labels without a second
-    purchase. Concrete implementations live in shells and bind at composition,
-    per the ``Sink`` precedent.
+    the client; values are the *raw* provider response bodies. This is not a
+    disposable cache: an LLM reply is unreproducible, and the archive is its
+    only durable copy, so it is kept permanently (never pruned) as the system's
+    provenance record. Re-pay-avoidance — a ``get`` hit lets a run resume
+    without re-buying — is a free consequence of a permanent content-addressed
+    store, not a second purpose. Keeping the raw body rather than the extracted
+    text also keeps normalization re-runnable over bought labels without a
+    second purchase. Concrete implementations live in shells and bind at
+    composition, per the ``Sink`` precedent.
     """
 
     def get(self, key: str) -> str | None:
-        """The cached raw response body under ``key``, or None on a miss."""
+        """The archived raw response body under ``key``, or None on a miss."""
         ...
 
     def put(self, key: str, raw_response: str) -> None:
