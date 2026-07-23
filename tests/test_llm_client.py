@@ -17,6 +17,7 @@ from datetime import UTC, datetime
 
 import pytest
 
+import steamlens.llm_client.client as client_module
 from steamlens.contracts import (
     FinishReason,
     LlmRequest,
@@ -276,7 +277,9 @@ def test_transient_exhaustion_surfaces_unavailable_and_releases_the_reservation(
     sized for one call (a leaked reservation would refuse it at capacity)."""
     est = (1 * 1.0 + 1000 * 2.0) / 1_000_000  # 1-token prompt, 1000-token ceiling
     # exactly _MAX_ATTEMPTS failures: the first call exhausts, then the fake heals
-    provider = FakeProvider(transient_failures=4)
+    provider = FakeProvider(
+        transient_failures=client_module._MAX_ATTEMPTS  # pyright: ignore[reportPrivateUsage]
+    )
     client, ledger, _ = _client(provider, _config(budget=est * 1.5))
     with pytest.raises(LlmUnavailableError):
         client.complete(_request("hi"))  # 2 chars -> 1 estimated token

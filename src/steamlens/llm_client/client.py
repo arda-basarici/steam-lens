@@ -51,8 +51,14 @@ from steamlens.llm_client.errors import (
 )
 from steamlens.llm_client.registry import PROVIDERS, ProviderEntry
 
-_MAX_ATTEMPTS = 4
-_BACKOFF_BASE_S = 1.0
+# Six attempts at base 2s: ~30s expected / ~60s worst-case patience per request
+# under full jitter — matching the Gemini SDK's own retry ceiling (≤60s max
+# delay, per the troubleshooting docs). Widened from 4/1s during the 2026-07-23
+# capacity event, where load-shed 503s arrived faster than full jitter's
+# near-zero draws and a single request could exhaust its attempts inside a
+# second, aborting a run mid-window.
+_MAX_ATTEMPTS = 6
+_BACKOFF_BASE_S = 2.0
 _BACKOFF_CAP_S = 30.0
 # Pessimistic English tokenization for the worst-case reserve — real prompts run
 # nearer 4 chars/token, so estimating at 3 over-reserves, never under.
