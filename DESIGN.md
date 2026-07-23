@@ -897,6 +897,63 @@ The physical `classify_cache` table keeps its name — an internal string no con
 sees, and renaming it would mean an `ALTER TABLE` migration on the bought 135K-row census DB
 for zero readability gain. Closes the 2026-07-18 raw-seam FIXLOG.
 
+**The codebook-overfit disclosure + the fresh holdout** (Arda's ruling at the D2
+scoping, 2026-07-21; recorded at the D2a session). Gold was blind-labeled before any
+model output — the safe direction — but the v2 codebook's distillation was tuned *on*
+gold's 250 reviews: the 33-ruling ledger it rode in on is gold-process output. Every
+v2-on-gold number (C0.5's arms, the D2a certification) is therefore
+**development-grade** — the instrument was refined against the same set it is scored
+on, and the numbers may flatter v2 relative to unseen text. Ruling: a fresh human
+holdout, ~100–150 reviews (random + stratified: rare aspects, zero-label, multi-aspect,
+several games), labeled by Arda under **frozen** v2 inside M1. Hard cases feed v3
+notes, never back-edits to v2 — a back-edit would re-tune the codebook on its test set
+and restart the contamination clock. Until the holdout lands, every published
+v2-on-gold number carries the development-grade disclosure.
+
+**Gold INSTRUCTIONS §8 extended to the eval chain: no gold-entangled model as an
+instrument** (ruled at the D2 scoping, 2026-07-21). §8 banned the gold-assist model
+(claude-sonnet-5) from the bake-off candidate pool; the same lineage logic covers every
+instrument whose calibration rides on gold — the D2 judge first. TABLE.md's gold-assist
+reference row (F1 0.910) is *self-agreement* — the model drafted what gold was
+adjudicated from — so a Claude-family judge calibrated against that gold would inherit
+self-agreement as apparent validity. First judge candidate: **Gemini flash** — a
+different family from the DeepSeek labeler too (a labeler-family judge would import
+self-preference bias into the agreement metrics), and the adapter already exists.
+
+**D2a certification core: the eval-run journal + the census-vs-gold read** (settled
+2026-07-23). **The certified object is the pool, not the configuration**: C0.5
+certified model + prompt + codebook on lab-composed batches; D2a scores the bought
+envelopes themselves — the labels every displayed number folds — against gold through
+the same frozen scorer. **Schema, step 2** (the consumer B5 deferred to): `eval_runs`
+holds the regenerability set — run stamp into the shared `runs` journal, the scored
+pool's versions triple, ontology content hash, gold path + file sha256, scored/gold
+review counts, seed, resamples, scorer identity (`census-vs-gold/1`, bumped if pairing
+semantics ever change) — and `eval_metrics` holds name-keyed child rows (value +
+optional CI bounds, present-or-absent together). Child rows over metric columns
+because the metric family grows (D2b's fabricated-quote, D2c's per-category judge
+agreement — variable-length, unfit for fixed columns): a new metric is new rows, never
+a migration on minted runs; same parent/child shape as classifications→mentions. The
+shell is `evals/certify` (`certify_pool` → journal row, written once, round-trip
+verified) — *not* `studies/`: the import law says nothing imports `evals`, so
+certification consumes the system, never the reverse. **Scope rule**: gold predates
+the census usable-pool ruling and holds 5 CS2 (app 730) reviews the census never
+labeled; certification scores the 245-review intersection — an excluded game's reviews
+are skipped, never counted as failures (that would fabricate a penalty for reviews the
+model never saw) — and the narrowing is stored on the run row (`n_scored_reviews`),
+not buried in prose. Gold itself stays untouched: it serves judge calibration and the
+holdout comparison, where CS2 is fine. **The first read** (245 shared reviews, paired
+bootstrap 10,000 resamples, seed 20260718): census envelopes F1 **0.766
+[0.713–0.811]** vs the C0.5 v2 arm's 0.799, paired Δ **−0.033 [−0.061, −0.007]** —
+real at the 95% level on precision (−0.030), recall (−0.036), and F1; sentiment
+indistinguishable; diagnostics healthy (zero-share 51.0% vs gold 49.8%, candidate
+emission 3.6%, zero parse failures). Same model, prompt, codebook, and gold — the
+suspects are batch composition (the C0.5 arm batched gold reviews together; the census
+batched them among arbitrary corpus neighbors — the pre-registered D2d contamination
+experiment, now with an effect size to chase) and provider-side drift (weaker: the
+runs sit ~1 day apart). **The honest headline**: M1 certifies the production labels at
+0.766; the 0.796 is the same configuration under lab batch conditions. Evidence
+regenerates via `probes/census_vs_gold_gap.py`.
+
 ## Scope & non-goals
 
 - In: aspect reports with receipts, narrated live analysis, the event investigator, the

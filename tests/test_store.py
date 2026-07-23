@@ -22,6 +22,8 @@ from steamlens.contracts import (
     AspectMention,
     AspectSlot,
     ClassifierVersions,
+    EvalMetric,
+    EvalRun,
     FinishReason,
     LlmRequest,
     LlmResponse,
@@ -48,7 +50,7 @@ from steamlens.llm_client import (
     Route,
 )
 from steamlens.store import SchemaVersionError, Store, StoreDataError, StoreError
-from steamlens.store.schema import SCHEMA_VERSION
+from steamlens.store.schema import MIGRATION_STEPS, SCHEMA_VERSION
 
 _NOON = datetime(2026, 7, 14, 12, 0, tzinfo=UTC)
 _EPOCH = datetime(2000, 1, 1, tzinfo=UTC)  # a `since` before every test's spend
@@ -460,3 +462,95 @@ class TestReadBoundary:
         self._mangle(path, "UPDATE reviews SET created_at = '2026-07-14T12:00:00'")
         with Store(path) as store, pytest.raises(StoreDataError, match="naive"):
             store.reviews.get("r1")
+
+
+def _eval_run(
+    run_id: str = "certify-1",
+    *,
+    metrics: tuple[EvalMetric, ...] = (
+        EvalMetric(metric="f1", value=0.766, ci_low=0.713, ci_high=0.811),
+        EvalMetric(metric="zero_share_pred", value=0.51),
+    ),
+) -> EvalRun:
+    return EvalRun(
+        run=_provenance(run_id),
+        versions=_versions(),
+        ontology_content_hash="onto-hash",
+        gold_path="eval/gold/gold.jsonl",
+        gold_sha256="gold-hash",
+        n_gold_reviews=250,
+        n_scored_reviews=245,
+        seed=7,
+        n_resamples=100,
+        scorer="census-vs-gold/1",
+        metrics=metrics,
+    )
+
+
+class TestEvalRunLog:
+    """The certification journal: minted once, whole, and re-proved on the way out."""
+
+    def test_round_trip_preserves_the_record(self, store: Store) -> None:
+        recorded = _eval_run()
+        store.eval_runs.record(recorded)
+        assert store.eval_runs.get("certify-1") == recorded
+
+    def test_get_missing_returns_none(self, store: Store) -> None:
+        assert store.eval_runs.get("absent") is None
+
+    def test_duplicate_run_id_fails_loud(self, store: Store) -> None:
+        store.eval_runs.record(_eval_run())
+        with pytest.raises(StoreError, match="certify-1"):
+            store.eval_runs.record(_eval_run())
+
+    def test_duplicate_metric_name_fails_loud_and_writes_nothing(self, store: Store) -> None:
+        doubled = (
+            EvalMetric(metric="f1", value=0.7),
+            EvalMetric(metric="f1", value=0.8),
+        )
+        with pytest.raises(StoreError, match="certify-1"):
+            store.eval_runs.record(_eval_run(metrics=doubled))
+        assert store.eval_runs.get("certify-1") is None  # the whole run rolled back
+
+    def test_half_interval_is_a_scorer_bug_stopped_at_the_door(self, store: Store) -> None:
+        half = (EvalMetric(metric="f1", value=0.7, ci_low=0.6, ci_high=None),)
+        with pytest.raises(ValueError, match="half an interval"):
+            store.eval_runs.record(_eval_run(metrics=half))
+        assert store.eval_runs.get("certify-1") is None
+
+    def test_stored_half_interval_fails_loud_on_read(self, tmp_path: Path) -> None:
+        path = tmp_path / "steamlens.sqlite3"
+        with Store(path) as store:
+            store.eval_runs.record(_eval_run())
+        conn = sqlite3.connect(path)
+        try:
+            conn.execute("UPDATE eval_metrics SET ci_high = NULL WHERE metric = 'f1'")
+            conn.commit()
+        finally:
+            conn.close()
+        with Store(path) as store, pytest.raises(StoreDataError, match="half-interval"):
+            store.eval_runs.get("certify-1")
+
+    def test_v1_file_upgrades_in_place_to_current(self, tmp_path: Path) -> None:
+        """The census DB's shape: a step-1 file gains the step-2 tables on open.
+
+        Built by hand at version 1 — exactly what the bought file looks like —
+        then opened by current code: the migration runner must apply only the
+        missing step, leave step-1 data alone, and land the file at the
+        current stamp with a working eval-run journal.
+        """
+        path = tmp_path / "steamlens.sqlite3"
+        conn = sqlite3.connect(path)
+        for statement in MIGRATION_STEPS[0]:
+            conn.execute(statement)
+        conn.execute("PRAGMA user_version = 1")
+        conn.commit()
+        conn.close()
+        with Store(path) as store:
+            store.eval_runs.record(_eval_run())
+            assert store.eval_runs.get("certify-1") is not None
+        conn = sqlite3.connect(path)
+        try:
+            assert conn.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION
+        finally:
+            conn.close()

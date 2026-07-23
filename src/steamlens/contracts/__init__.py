@@ -22,6 +22,7 @@ from steamlens.contracts.enums import (
     Sentiment,
     StageKind,
 )
+from steamlens.contracts.evaluation import EvalMetric, EvalRun
 from steamlens.contracts.llm import (
     LlmRequest,
     LlmResponse,
@@ -58,6 +59,9 @@ __all__ = [
     # aggregate
     "AspectAggregate",
     "SentimentCounts",
+    # evaluation
+    "EvalRun",
+    "EvalMetric",
     # telemetry
     "Sink",
     "StageEvent",

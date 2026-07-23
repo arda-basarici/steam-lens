@@ -119,7 +119,46 @@ _STEP_1: tuple[str, ...] = (
     """,
 )
 
-MIGRATION_STEPS: tuple[tuple[str, ...], ...] = (_STEP_1,)
+# Step 2 — the eval-run journal (D2a, the first consumer B5 deferred the schema
+# to). One row per certification run keyed into the shared `runs` journal; the
+# metric values live in name-keyed child rows so the harness's growing metric
+# family (fabricated-quote, per-category judge agreement) lands as new rows,
+# never as a migration on already-minted runs.
+_STEP_2: tuple[str, ...] = (
+    """
+    CREATE TABLE eval_runs (
+        run_id                TEXT    PRIMARY KEY REFERENCES runs (run_id),
+        model_version         TEXT    NOT NULL,
+        prompt_version        TEXT    NOT NULL,
+        ontology_version      TEXT    NOT NULL,
+        ontology_content_hash TEXT    NOT NULL,
+        gold_path             TEXT    NOT NULL,
+        gold_sha256           TEXT    NOT NULL,
+        n_gold_reviews        INTEGER NOT NULL,
+        n_scored_reviews      INTEGER NOT NULL,
+        seed                  INTEGER NOT NULL,
+        n_resamples           INTEGER NOT NULL,
+        scorer                TEXT    NOT NULL
+    ) WITHOUT ROWID
+    """,
+    # ci_low/ci_high are NULL together for point-only diagnostics ("not
+    # bootstrapped", never "zero-width interval") — the read boundary enforces
+    # the pairing; SQLite's job is just the per-run metric-name uniqueness.
+    """
+    CREATE TABLE eval_metrics (
+        id      INTEGER PRIMARY KEY,
+        run_id  TEXT NOT NULL REFERENCES eval_runs (run_id),
+        metric  TEXT NOT NULL,
+        value   REAL NOT NULL,
+        ci_low  REAL,
+        ci_high REAL,
+        UNIQUE (run_id, metric)
+    )
+    """,
+    "CREATE INDEX idx_eval_metrics_metric ON eval_metrics (metric)",
+)
+
+MIGRATION_STEPS: tuple[tuple[str, ...], ...] = (_STEP_1, _STEP_2)
 
 SCHEMA_VERSION = len(MIGRATION_STEPS)
 

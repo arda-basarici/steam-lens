@@ -7,7 +7,72 @@ decisions it feeds.
 
 ---
 
-## 2026-07-19 — The labeler had never read the rulebook it was graded by: buying the alignment back cost fifteen cents, and the "free" token cut turned out to charge recall
+## 2026-07-23 — The judge was demoted before it was hired: certification turned out to be already paid for, the "best model in the table" was grading its own homework, and the codebook had studied for the exam
+
+*The D2 scoping discussion (judge + metrics) — extraction+eval (M1), the design-before-
+code pass over the eval harness's last unbuilt half. Feeds: the M1 post's
+evaluation-methodology section (the trust chain, what an LLM judge is actually for) and
+its honest-limitations section (the codebook-overfit disclosure and the holdout).*
+
+Before any judge design started, Arda stopped the room with the first-principles
+question: do we even need one? The answer reframed the whole phase. The headline
+certification — how well does the production labeler agree with human gold — turned out
+to be already paid for: the census buy labeled every usable review, which includes the
+gold set's 250, so scoring the bought labels against gold with the existing bake-off
+scorer (per-review tallies, bootstrap CIs) costs zero dollars and zero new
+infrastructure. The judge's real job is *reach*, not certification: gold at ~5 reviews
+per game can say nothing about whether the labeler fails systematically on a
+particular game or rare aspect, and a calibrated judge sampling a few thousand census
+reviews is the only affordable instrument for that question. That demotion also made
+the judge safely cuttable — the plan's stated fallback is that if the judge calibrates
+poorly against gold, M1 certifies on the mechanical layers and *reports the judge's
+poor agreement as a finding*, which is a better story than a blocked milestone.
+
+The tempting shortcut, argued properly before it died: judge for free via
+subscription-quota Claude agents. The bake-off table fed the temptation — its top row
+is claude-sonnet-5 at F1 0.910 against the chosen labeler's 0.776 (TABLE.md,
+`probes/captures/bakeoff/`), which reads like the best model was already in hand at
+zero marginal cost. Three cuts killed it. The 0.910 is self-agreement, not skill:
+sonnet-5 drafted the assist labels gold was adjudicated from, which is why the table
+itself flags the row "REFERENCE — competes with nobody." A headless agent's
+configuration is unpinnable — no temperature control, and the harness's own system
+prompt drifts with every CLI release, so the calibration number could never be
+regenerated from a manifest. And the economics invert once the harness overhead is
+counted: ~15–25K tokens of scaffolding per call turns a ~4M-token flash-tier job into
+~40–55M premium-tier tokens of weekly quota, against $1–3 of API spend [planned
+estimate, not yet a measured buy]. The durable principle extracted from the wreckage:
+the gold-assist ban (gold INSTRUCTIONS §8) extends from the labeler pool to the entire
+eval chain — no gold-entangled model may serve as an instrument whose calibration
+rides on that same gold. First judge candidate is therefore Gemini flash: a different
+family from the DeepSeek labeler, adapter already in the codebase.
+
+The sharpest catch was Arda's, imported from a parallel discussion he ran in another
+chat and triaged here against the repo. Gold was protected in one direction — labeled
+blind, before any model output, so gold could not drift toward the model. But the v2
+codebook was tuned *on* gold's 250 reviews: the thirty-three rulings that became its
+wording came from exactly those cases. So the model was tuned toward the test set,
+and every v2-on-gold number is development-grade — mildly optimistic by construction.
+The remedy, ruled the same session: a fresh human holdout of ~100–150 reviews
+(random plus stratified slices), labeled under *frozen* v2 inside M1, with hard cases
+recorded for a future v3 but never back-edited — otherwise the holdout becomes
+development data too. The triage of the outside chat's five-stage plan is its own
+small lesson in checking advice against ground truth: two stages were already-landed
+work (the labeler-selection record in DESIGN's C0 closure entries; the v2-on-gold
+benchmark in C0.5's paired arm), and its Sonnet-as-verifier stages contradicted its
+own circularity caveat two paragraphs earlier. What survived the triage: the holdout,
+the observation that a verifier-shaped judge is recall-blind (it can never see the
+label that was never emitted) and anchoring-prone (seeing the prediction biases
+toward accepting it), and start-small sampling (1–2K before committing to 10K).
+
+The whole D2 plan is settled but unbuilt as of this entry [PRELIMINARY — all
+forward-looking numbers (judge cost ~$1–3, sample sizes 1–2K, holdout ~100–150) are
+plans, not measurements; the D2c design session still owes the judge's task shape and
+calibration protocol].
+
+Figure: the measurement-reach table — three instruments side by side (mechanical
+checks: all ~170K mentions at $0 · gold agreement: 250 reviews at $0 · calibrated
+judge: ~2K-review sample at ~$2) — makes the "certification was already paid for"
+point in one glance.
 
 *The pre-C1 certification experiment (C0.5) — extraction+eval (M1), the sanctioned
 reopen under the C0 ruling's first condition (any prompt change re-certifies quality

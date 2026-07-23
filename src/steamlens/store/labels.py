@@ -184,6 +184,24 @@ class LabelPool:
                 f"duplicate under its version key, or its review/run is not recorded: {exc}"
             ) from exc
 
+    def get_failure(self, review_id: str, versions: ClassifierVersions) -> str | None:
+        """The durable failure mark's reason for ``review_id`` under ``versions``, or None.
+
+        The read that lets a consumer tell "classified as unclassifiable" from
+        "never attempted": a certification must score the former as a failure
+        and treat the latter as the loud error it is (a review inside the
+        pool's scope with neither an envelope nor a mark means the selection
+        or the scope reasoning is broken).
+        """
+        row = self._conn.execute(
+            "SELECT reason FROM classification_failures"
+            " WHERE review_id = ? AND model_version = ? AND prompt_version = ?"
+            " AND ontology_version = ?",
+            (review_id, versions.model_version, versions.prompt_version,
+             versions.ontology_version),
+        ).fetchone()
+        return None if row is None else str(row[0])
+
     def iter_survey_mentions(
         self, versions: ClassifierVersions
     ) -> Iterator[tuple[str, str, AspectSlot, Sentiment]]:

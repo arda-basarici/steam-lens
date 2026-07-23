@@ -5,9 +5,9 @@ hands its connection to small tenant surfaces exposed as attributes: the
 durable ``responses``/``spend_ledger`` pair binds into the LLM client's
 constructor slots (the client never learns SQLite exists), ``reviews`` holds
 the corpus snapshot and the driver's selection query, ``labels`` is the label
-pool. One owner, dumb tenants: pragmas and migrations run once per open
-instead of once per surface, and "which connection has WAL set" stays a
-single fact.
+pool, ``eval_runs`` is the certification journal. One owner, dumb tenants:
+pragmas and migrations run once per open instead of once per surface, and
+"which connection has WAL set" stays a single fact.
 
 The store adds no locking of its own: the client already serializes every
 cache and ledger touch under its one lock, and transactions never share a
@@ -28,6 +28,7 @@ from pathlib import Path
 from types import TracebackType
 
 from steamlens.store.archive import SqliteResponseArchive
+from steamlens.store.eval_runs import EvalRunLog
 from steamlens.store.labels import LabelPool
 from steamlens.store.ledger import SqliteSpendLedger
 from steamlens.store.reviews import ReviewStore
@@ -73,6 +74,7 @@ class Store:
         self.spend_ledger = SqliteSpendLedger(self._conn)
         self.reviews = ReviewStore(self._conn)
         self.labels = LabelPool(self._conn)
+        self.eval_runs = EvalRunLog(self._conn)
 
     def close(self) -> None:
         """Close the underlying connection; the instance is unusable afterwards."""
