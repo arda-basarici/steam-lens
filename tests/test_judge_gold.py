@@ -20,7 +20,7 @@ from pathlib import Path
 
 import pytest
 
-import steamlens.evals.judge_gold as judge_gold
+import steamlens.evals.judge_dispatch as judge_dispatch
 from steamlens.contracts import (
     ClassifierVersions,
     FinishReason,
@@ -46,7 +46,7 @@ _REVIEWS_BLOCK = re.compile(r"<reviews>\n(.*)\n</reviews>", re.DOTALL)
 @pytest.fixture(autouse=True)
 def unthrottled_client(monkeypatch: pytest.MonkeyPatch) -> None:
     """The live RPM backstop is real pacing — pointless seconds in a fake-provider rig."""
-    monkeypatch.setattr(judge_gold, "_RPM", 100_000)
+    monkeypatch.setattr(judge_dispatch, "_RPM", 100_000)
 
 
 class FakeGemini:

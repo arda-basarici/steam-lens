@@ -239,6 +239,57 @@ class TestCertifyPool:
         assert eval_run.n_scored_reviews == 4  # the CS2 review scores, not skipped
         assert eval_run.scorer == JUDGE_SCORER
 
+    def test_slice_rows_read_the_reference_side(self, tmp_path: Path) -> None:
+        """Zero/multi/candidate slices: denominators always journal, stats where n > 0.
+
+        One gold review per slice: r-multi carries two pinned mentions and
+        production finds one (slice F1 2/3); r-zero is gold-empty and
+        production stays quiet (agreement 1.0); r-cand carries a free-wording
+        candidate beside a pinned hit (slice F1 1.0 — candidates stay
+        unscored, membership only).
+        """
+        gold = _write_gold(tmp_path, [
+            _gold_line("r-multi", "10", [
+                {"aspect": "gameplay", "sentiment": "positive"},
+                {"aspect": "performance", "sentiment": "negative"},
+            ]),
+            _gold_line("r-zero", "10", []),
+            _gold_line("r-cand", "10", [
+                {"aspect": "gameplay", "sentiment": "positive"},
+                {"aspect": "flurbo economy", "sentiment": "negative"},
+            ]),
+        ])
+        store = _pool_store(
+            {
+                "r-multi": (_mention("gameplay", Sentiment.POSITIVE),),
+                "r-zero": (),
+                "r-cand": (_mention("gameplay", Sentiment.POSITIVE),),
+            },
+            {"r-multi": 10, "r-zero": 10, "r-cand": 10},
+        )
+        try:
+            eval_run = certify_pool(
+                store,
+                gold_path=gold,
+                ontology_path=None,
+                model_version=_VERSIONS.model_version,
+                prompt_version=_VERSIONS.prompt_version,
+                seed=7,
+                n_resamples=200,
+                started=_NOON,
+            )
+        finally:
+            store.close()
+        named = {m.metric: m for m in eval_run.metrics}
+        assert named["n_zero_mention"].value == 1.0
+        assert named["zero_mention_agreement"].value == 1.0
+        assert named["n_multi_mention"].value == 1.0
+        assert named["f1_multi_mention"].value == pytest.approx(2 / 3)
+        assert named["n_candidate_emitting"].value == 1.0
+        assert named["f1_candidate_emitting"].value == 1.0
+        for stat in ("zero_mention_agreement", "f1_multi_mention", "f1_candidate_emitting"):
+            assert named[stat].ci_low is not None  # bootstrapped within the slice
+
     def test_certification_survives_the_journal_round_trip(self, tmp_path: Path) -> None:
         gold_path = _write_gold(tmp_path, _GOLD_LINES)
         store = _pool_store(_ENVELOPES, _APPS)

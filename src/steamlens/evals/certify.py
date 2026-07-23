@@ -36,7 +36,7 @@ from steamlens.contracts import (
 from steamlens.core.classify import PROMPT_VERSION
 from steamlens.core.normalize import build_surface_index
 from steamlens.evals.gold import GoldRecord, load_gold
-from steamlens.evals.judge_gold import JUDGE_MODEL_ID
+from steamlens.evals.judge_dispatch import JUDGE_MODEL_ID
 from steamlens.evals.scoring import ReviewTally, bootstrap_ci, score, tally_review
 from steamlens.ontology import load_ontology, load_ontology_version
 from steamlens.store.store import Store
@@ -115,12 +115,14 @@ def pool_tallies(
 def certification_metrics(
     tallies: Sequence[ReviewTally], *, seed: int, n_resamples: int
 ) -> tuple[EvalMetric, ...]:
-    """The certification's metric rows: four bootstrapped, three point diagnostics.
+    """The certification's metric rows: the headline four, diagnostics, and slices.
 
     The headline four (precision, recall, F1, sentiment accuracy) carry 95%
     bootstrap intervals; the diagnostics (zero-share, candidate emission,
     parse-failure rate) are point values — they contextualize, they are not
-    certified claims, and an interval would dress them as one.
+    certified claims, and an interval would dress them as one. The item-type
+    slices (the D2c calibration protocol's remainder) land as extra name-keyed
+    rows via ``slice_metrics`` — new rows, never a schema or scorer change.
     """
     metrics: list[EvalMetric] = []
     for name, statistic in _BOOTSTRAPPED.items():
@@ -130,7 +132,58 @@ def certification_metrics(
         )
     for name, statistic in _DIAGNOSTICS.items():
         metrics.append(EvalMetric(metric=name, value=statistic(tallies)))
+    metrics.extend(slice_metrics(tallies, seed=seed, n_resamples=n_resamples))
     return tuple(metrics)
+
+
+def _pinned_quiet_share(tallies: Sequence[ReviewTally]) -> float:
+    """The share of reviews where the annotator predicted no pinned aspect at all."""
+    return sum(t.fp == 0 and t.tp == 0 for t in tallies) / len(tallies)
+
+
+_SLICE_ROWS: Final[
+    tuple[tuple[str, Callable[[ReviewTally], bool], str,
+                Callable[[Sequence[ReviewTally]], float]], ...]
+] = (
+    ("zero_mention", lambda t: t.gold_zero,
+     "zero_mention_agreement", _pinned_quiet_share),
+    ("multi_mention", lambda t: t.tp + t.fn >= 2,
+     "f1_multi_mention", lambda t: score(t).f1),
+    ("candidate_emitting", lambda t: bool(t.gold_candidates),
+     "f1_candidate_emitting", lambda t: score(t).f1),
+)
+"""Each slice: (slice name, membership by tally, stat row name, statistic).
+
+Membership reads the *reference* side (gold in a certification, the judge in
+the agreement read) — the slices describe item types of the measuring stick,
+per the calibration protocol. The zero-mention slice's statistic is
+quiet-agreement (the annotator also found no pinned aspect — F1 is undefined
+where the reference is empty); the mention-carrying slices reuse F1.
+"""
+
+
+def slice_metrics(
+    tallies: Sequence[ReviewTally], *, seed: int, n_resamples: int
+) -> tuple[EvalMetric, ...]:
+    """The per-item-type rows: each slice's n, and its statistic where n > 0.
+
+    Every slice journals its ``n_<slice>`` denominator even at zero — a
+    missing statistic row must be readable as "slice was empty", never
+    "slice wasn't computed". Statistics bootstrap within the slice under the
+    run's seed.
+    """
+    rows: list[EvalMetric] = []
+    for slice_name, member, stat_name, statistic in _SLICE_ROWS:
+        members = [t for t in tallies if member(t)]
+        rows.append(EvalMetric(metric=f"n_{slice_name}", value=float(len(members))))
+        if members:
+            ci = bootstrap_ci(members, statistic, n_resamples=n_resamples, seed=seed)
+            rows.append(
+                EvalMetric(
+                    metric=stat_name, value=statistic(members), ci_low=ci.low, ci_high=ci.high
+                )
+            )
+    return tuple(rows)
 
 
 def certify_pool(
@@ -203,8 +256,12 @@ def certify_pool(
     )
 
 
-def _render(eval_run: EvalRun) -> str:
-    """The run as a human-readable block — what the console shows and cites."""
+def render_eval_run(eval_run: EvalRun) -> str:
+    """The run as a human-readable block — what the console shows and cites.
+
+    Public because every journal-minting front door (certify's, the agreement
+    read's) renders the same record the same way.
+    """
     lines = [
         f"eval run {eval_run.run.run_id} · scorer {eval_run.scorer} · "
         f"code {eval_run.run.code_version}",
@@ -267,7 +324,7 @@ def main() -> None:
             excluded_app_ids=() if args.judge else EXCLUDED_APP_IDS,
             scorer=JUDGE_SCORER if args.judge else SCORER,
         )
-        print(_render(eval_run))
+        print(render_eval_run(eval_run))
         if args.dry_run:
             print("dry run — nothing journaled")
             return

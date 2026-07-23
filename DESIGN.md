@@ -1146,6 +1146,59 @@ version 2 with a gold-named minted row — the real DB's exact shape. Sample-dra
 provenance, when the agreement run lands, rides the run's `config_hash` like every
 other run dial; the existing `seed` column stays the bootstrap's.
 
+**The census-sample stage: frame, size, dispatch path — and the machinery built to
+them** (ruled + built 2026-07-23; the three dials Arda's from a costed proposal).
+**The frame is reviews, not mentions**: the judge's unit of work is a review and the
+scorer's tallies are per-review, so the sample draws from the census's 135,259 survey
+envelopes under the production triple — the misattribution draw's seeded systematic
+method (sorted by `(app_id, review_id)`, every k-th from a seeded start: implicit
+proportional-by-game stratification, self-weighting) on this new frame; a mention
+frame would overweight multi-mention reviews with no clean review-level
+interpretation. Zero-mention reviews stay in — "both instruments say no aspects" is
+agreement worth measuring. **n = 1,000** (~$5 sync at calibration's measured
+$1.21/250): roughly halves gold's F1 interval (±~0.03 by √n extrapolation — indicative,
+not promised) and gives the per-aspect table its first usable head-of-distribution n;
+±0.02 wasn't worth doubling the spend. **Dispatch stays sync**; the Batch API's 50%
+(~$2.50 saved) doesn't pay for its job-submit/poll/download build at this scale
+(break-even ~10K+ reviews), and the preview-id retirement mitigation — run soon after
+calibration — pushes the same way. No reserves: a judge refusal is a disclosed drop
+from the scoring intersection, never a replacement. The minted sample
+(`probes/mint_census_sample.py` → `eval/agreement/`, seed 20260723) drew frame-exact
+135,259, all 49 games, drawn zero-envelope share 0.522 (~1.4σ from the census's
+~0.50). **The sample pins text by hash, not by copy**: each drawn record carries the
+stored text's sha256; the dispatch refuses a store whose text no longer hashes to its
+pin — gold's handshake problem solved exactly, since the store is the single text
+source. **The dispatch engine extracted to `evals/judge_dispatch`**: everything
+instrument-defining (model + measured generation config, the single-review/temp-0
+riders, both refusal shapes, durable-mark-on-first-attempt, the refusal breaker) now
+lives once, shared by two thin shells — `judge_gold` (calibration: gold as id list,
+CS2 backfill, strip-equality handshake) and `judge_sample` (the sample as id list, the
+sha256 handshake, no backfill) — so the two runs cannot drift apart; behavior proven
+unchanged by the existing calibration rig. **The agreement scorer**
+(`evals/agreement`, scorer `judge-vs-production/1`): the judge's envelopes take
+`tally_review`'s reference role — safe because the parse layer already collapses
+repeated aspects per review (verified: zero duplicate pinned labels in either
+annotator's stored envelopes) — with direction fixed in code: precision = share of
+production's mentions the judge corroborates, recall = share of the judge's mentions
+production found. Accounting per the refusal ruling: judge-unread drops (disclosed via
+`n_reference_reviews` = the drawn sample vs `n_scored_reviews` = the mutual
+intersection); a production failure mark scores as a parse failure, same as
+certification; a partially-dispatched sample dies loud. **The pool-labels digest
+settled**: `reference_sha256` = sha256 over canonical JSON of the judge's scored
+envelopes — per review (sorted), every mention as `[aspect, slot, sentiment]` sorted;
+no evidence spans (unscored decoration), no run stamps (the pin is on the labels, so
+an identical re-dispatch verifies identical). **Item-type slices land in
+`certification_metrics`** for every journaled run, as new name-keyed rows (no scorer
+bump — pairing semantics unchanged): membership reads the *reference* side (gold in a
+certification, the judge in the agreement read) per the calibration protocol's item
+types; each slice always journals its `n_<slice>` (an absent statistic row must mean
+"empty slice", never "not computed"); zero-mention's statistic is quiet-agreement (F1
+is undefined where the reference is empty), the mention-carrying slices reuse F1,
+all bootstrapped within-slice. Remaining to execute, in order: the judge dispatch
+(`judge_sample`, ~$6, pilot `--limit` first) → the agreement read (`agreement`) →
+re-run `certify --judge` at zero cost to journal a calibration run carrying the new
+slice rows.
+
 ## Scope & non-goals
 
 - In: aspect reports with receipts, narrated live analysis, the event investigator, the
