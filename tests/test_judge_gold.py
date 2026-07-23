@@ -305,6 +305,15 @@ def test_text_mismatch_refuses_before_any_dispatch(tmp_path: Path) -> None:
     assert "never read" in str(_manifest(tmp_path)["aborted"])
 
 
+def test_edge_whitespace_difference_is_not_a_mismatch(tmp_path: Path) -> None:
+    """The gold draw stripped edges; a raw corpus row still passes the handshake."""
+    _corpus(tmp_path, {440: [("001", "  the same wording \r\n")]})
+    _gold(tmp_path, [("001", "440", "the same wording")])
+    provider = FakeGemini()
+    assert execute_judge_run(_config(tmp_path), provider.entry()) == 0
+    assert len(provider.prompts) == 1
+
+
 def test_gold_id_missing_from_corpus_refuses_before_any_dispatch(tmp_path: Path) -> None:
     """A gold id its corpus file cannot supply aborts the backfill loudly."""
     _corpus(tmp_path, {440: [("001", "present review")]})

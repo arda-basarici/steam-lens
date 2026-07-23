@@ -244,21 +244,27 @@ def backfill_gold_reviews(
 def assert_gold_text_matches_pool(
     gold_records: Sequence[GoldRecord], store: Store
 ) -> None:
-    """Every gold record's text must equal its stored review's text, verbatim.
+    """Every gold record's text must equal its stored review's text, modulo edges.
 
     The judge prompts from gold's text while its envelope lands on the pool's
-    review row — if the two diverged, the envelope would claim a review the
-    judge never read. Raises ``RunAbort`` naming every mismatched id.
+    review row — if the two diverged in content, the envelope would claim a
+    review the judge never read. Equality is checked after ``strip()`` on
+    both sides: the gold draw stripped edge whitespace at minting
+    (``draw_gold_set.py``), the corpus rows are raw, and the pilot's verbatim
+    check confirmed 14/250 differ by exactly that and none differ further
+    (2026-07-23). Edge whitespace carries no annotation content; anything
+    beyond it still aborts. Raises ``RunAbort`` naming every mismatched id.
     """
     mismatched: list[str] = []
     for record in gold_records:
         stored = store.reviews.get(record.review_id)
-        if stored is None or stored.text != record.text:
+        if stored is None or stored.text.strip() != record.text.strip():
             mismatched.append(record.review_id)
     if mismatched:
         raise RunAbort(
-            f"{len(mismatched)} gold reviews disagree with the stored review text: "
-            f"{mismatched} — the envelope would claim text the judge never read"
+            f"{len(mismatched)} gold reviews disagree with the stored review text "
+            f"beyond edge whitespace: {mismatched} — the envelope would claim text "
+            f"the judge never read"
         )
 
 
@@ -467,6 +473,7 @@ def execute_judge_run(
                 )
             assert_gold_text_matches_pool(gold_records, driver_store)
             pending = pending_records(gold_records, driver_store, versions)
+            already_settled = len(gold_records) - len(pending)
             if cfg.limit is not None:
                 pending = pending[: cfg.limit]
             selected = len(pending)
@@ -474,7 +481,8 @@ def execute_judge_run(
                 sink, StageKind.PROGRESS,
                 f"selection: {selected} to judge under {versions.model_version}/"
                 f"{versions.prompt_version}/{versions.ontology_version} "
-                f"({len(gold_records) - len(pending)} of {len(gold_records)} already settled)",
+                f"({already_settled} of {len(gold_records)} already settled"
+                + (f", limit {cfg.limit})" if cfg.limit is not None else ")"),
             )
             if pending:
                 driver_store.labels.record_run(run)

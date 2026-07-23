@@ -1102,8 +1102,12 @@ twice-vetted; more than a handful means a systemic request problem). **Placement
 `evals/judge_gold.py` — the driver consumes the gold artifact, and the import law
 (nothing imports `evals`) forces the arrow, same reasoning as the certify shell. A
 **text handshake** guards instrument identity: every gold record's text must equal
-the stored review's text verbatim or the run refuses to dispatch — an envelope must
-never claim text the judge never read. The scoring-side generalizations (a
+the stored review's text — an envelope must never claim text the judge never read.
+Equality is after ``strip()`` on both sides, a pilot-day softening (2026-07-23): the
+verbatim check aborted the first dispatch on 14/250 rows, all traced to the gold
+draw's edge-whitespace strip at minting (``draw_gold_set.py``) against raw corpus
+rows, with zero divergence beyond edges verified across all 250; content divergence
+still aborts. The scoring-side generalizations (a
 `judge-vs-gold/1` scorer identity, the no-exclusion scope) land with the scoring
 step, not the dispatcher.
 
