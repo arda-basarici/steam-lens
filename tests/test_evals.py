@@ -201,6 +201,20 @@ def test_tally_rejects_a_failed_review_carrying_predictions() -> None:
         tally_review(gold=[], predicted=[("combat", _POS)], index=_INDEX, parse_failed=True)
 
 
+def test_tally_carries_aspect_identity_consistent_with_its_counts() -> None:
+    """The aspect tuples name exactly the labels behind tp/fp/fn — collapsed
+    phrasings once, candidates out — so per-aspect slicing never re-pairs."""
+    tally = tally_review(
+        gold=[("combat", _POS), ("voice acting", _NEG)],
+        predicted=[("combat", _NEG), ("Combat", _POS), ("performance", _NEG), ("crafting", _POS)],
+        index=_INDEX,
+    )
+    assert tally.matched_aspects == ("combat",)
+    assert tally.pred_only_aspects == ("performance",)
+    assert tally.gold_only_aspects == ("voice_acting",)
+    assert (tally.tp, tally.fp, tally.fn) == (1, 1, 1)
+
+
 # --- score -----------------------------------------------------------------------
 
 

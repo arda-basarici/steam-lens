@@ -32,13 +32,15 @@ import argparse
 import hashlib
 import json
 import uuid
-from collections.abc import Mapping
+from collections import Counter
+from collections.abc import Callable, Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Final
 
 from steamlens.contracts import (
     ClassifierVersions,
+    EvalMetric,
     EvalRun,
     Provenance,
     ReferenceKind,
@@ -49,7 +51,7 @@ from steamlens.core.normalize import build_surface_index
 from steamlens.evals.certify import certification_metrics, render_eval_run
 from steamlens.evals.judge_dispatch import JUDGE_MODEL_ID
 from steamlens.evals.judge_sample import SampledReview, load_sample
-from steamlens.evals.scoring import ReviewTally, tally_review
+from steamlens.evals.scoring import ReviewTally, bootstrap_ci, tally_review
 from steamlens.ontology import load_ontology, load_ontology_version
 from steamlens.store.store import Store
 from steamlens.studies.label_corpus import MODEL_ID, code_version
@@ -59,6 +61,72 @@ AGREEMENT_SCORER: Final = "judge-vs-production/1"
 judge's labels in the reference role, no scope exclusion (the sample was
 drawn from the census, so every review is in scope by construction), and
 judge-unread reviews dropped from the intersection with the drop disclosed."""
+
+PER_ASPECT_FLOOR: Final = 30
+"""Judge-side n below which an aspect gets no journal row — an F1 over a
+handful of mentions is noise wearing a metric's name. 30 keeps the census
+sample's top ~20 aspects (judge_n ≥ 31 in the 2026-07-23 deep read, then a
+gap) and matches the usual small-sample rule of thumb."""
+
+
+def per_aspect_metrics(
+    tallies: Sequence[ReviewTally],
+    *,
+    seed: int,
+    n_resamples: int,
+    floor: int = PER_ASPECT_FLOOR,
+) -> tuple[EvalMetric, ...]:
+    """Per-aspect agreement rows for every aspect the judge saw at least ``floor`` times.
+
+    The rows land under the ``EvalMetric`` contract's per-category naming:
+    ``judge_agreement/<aspect>`` (per-aspect F1 with a 95% bootstrap interval)
+    preceded by ``judge_agreement_n/<aspect>`` (the judge-side denominator,
+    tp+fn — journaled so the F1 is never read without its n). The interval
+    bootstraps within the aspect's member reviews (any tally naming the
+    aspect on either side), the item-type slices' precedent; non-members
+    contribute nothing to the counts, so membership changes no point value.
+    Rows are ordered by judge-side n descending (name breaks ties) to render
+    as the deep-read probe's table does.
+    """
+    judge_n: Counter[str] = Counter()
+    for tally in tallies:
+        judge_n.update(tally.matched_aspects)
+        judge_n.update(tally.gold_only_aspects)
+    rows: list[EvalMetric] = []
+    for aspect, n in sorted(judge_n.items(), key=lambda kv: (-kv[1], kv[0])):
+        if n < floor:
+            continue
+        members = [
+            t for t in tallies
+            if aspect in t.matched_aspects
+            or aspect in t.gold_only_aspects
+            or aspect in t.pred_only_aspects
+        ]
+        statistic = _aspect_f1(aspect)
+        ci = bootstrap_ci(members, statistic, n_resamples=n_resamples, seed=seed)
+        rows.append(EvalMetric(metric=f"judge_agreement_n/{aspect}", value=float(n)))
+        rows.append(
+            EvalMetric(
+                metric=f"judge_agreement/{aspect}",
+                value=statistic(members),
+                ci_low=ci.low,
+                ci_high=ci.high,
+            )
+        )
+    return tuple(rows)
+
+
+def _aspect_f1(aspect: str) -> Callable[[Sequence[ReviewTally]], float]:
+    """The one-aspect F1 statistic, closed over the aspect for the bootstrap."""
+
+    def statistic(tallies: Sequence[ReviewTally]) -> float:
+        tp = sum(aspect in t.matched_aspects for t in tallies)
+        fp = sum(aspect in t.pred_only_aspects for t in tallies)
+        fn = sum(aspect in t.gold_only_aspects for t in tallies)
+        denominator = 2 * tp + fp + fn
+        return 2 * tp / denominator if denominator else 0.0
+
+    return statistic
 
 
 def agreement_tallies(
@@ -180,6 +248,7 @@ def agreement_pool(
     index = build_surface_index(load_ontology(ontology_path))
     tallies, dropped, reference = agreement_tallies(store, sample, index, production, judge)
     metrics = certification_metrics(tallies, seed=seed, n_resamples=n_resamples)
+    metrics += per_aspect_metrics(tallies, seed=seed, n_resamples=n_resamples)
     reference_id = (
         f"{judge.model_version}/{judge.prompt_version}/{judge.ontology_version}"
         f" @ {sample_path.as_posix()}"
@@ -194,6 +263,7 @@ def agreement_pool(
         "sample_path": sample_path.as_posix(),
         "sample_sha256": sample_sha256,
         "dropped_judge_unread": sorted(dropped),
+        "per_aspect_floor": PER_ASPECT_FLOOR,
         "seed": seed,
         "n_resamples": n_resamples,
         "scorer": AGREEMENT_SCORER,

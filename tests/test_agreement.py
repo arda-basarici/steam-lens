@@ -33,9 +33,11 @@ from steamlens.core.classify import PROMPT_VERSION
 from steamlens.evals.agreement import (
     AGREEMENT_SCORER,
     agreement_pool,
+    per_aspect_metrics,
     reference_digest,
 )
 from steamlens.evals.judge_dispatch import JUDGE_MODEL_ID
+from steamlens.evals.scoring import tally_review
 from steamlens.ontology import load_ontology_version
 from steamlens.store import Store
 
@@ -228,6 +230,54 @@ def test_reference_digest_pins_labels_not_bookkeeping() -> None:
     assert reference_digest((e1, e2)) == reference_digest((e2, e1_other_run))
     e1_changed = _envelope("r1", _JUDGE, (_mention("gameplay", Sentiment.NEGATIVE),), run_a)
     assert reference_digest((e1, e2)) != reference_digest((e1_changed, e2))
+
+
+def test_per_aspect_rows_respect_the_floor_and_pair_by_hand() -> None:
+    """gameplay (judge_n 4: 3 matched + 1 judge-only) clears a floor of 3 →
+    an n row and an F1 row with an interval; performance (judge_n 1) stays
+    out. Hand-computed F1: tp=3 fp=0 fn=1 → 6/7."""
+    index = {"gameplay": "gameplay", "performance": "performance"}
+    tallies = [
+        tally_review([("gameplay", Sentiment.POSITIVE)], [("gameplay", Sentiment.POSITIVE)], index)
+        for _ in range(3)
+    ]
+    tallies.append(
+        tally_review(
+            [("gameplay", Sentiment.POSITIVE), ("performance", Sentiment.NEGATIVE)], [], index
+        )
+    )
+    rows = per_aspect_metrics(tallies, seed=7, n_resamples=200, floor=3)
+    named = {m.metric: m for m in rows}
+    assert set(named) == {"judge_agreement_n/gameplay", "judge_agreement/gameplay"}
+    n_row = named["judge_agreement_n/gameplay"]
+    assert n_row.value == 4.0
+    assert n_row.ci_low is None and n_row.ci_high is None
+    f1_row = named["judge_agreement/gameplay"]
+    assert f1_row.value == pytest.approx(6 / 7)
+    assert f1_row.ci_low is not None and f1_row.ci_high is not None
+    assert 0.0 <= f1_row.ci_low <= f1_row.value <= f1_row.ci_high <= 1.0
+
+
+def test_agreement_run_journals_per_aspect_rows_above_the_default_floor(
+    tmp_path: Path,
+) -> None:
+    """30 reviews agreeing on gameplay reach the default floor; the one
+    judge-only performance mention does not — no row for it, and the n row
+    rides next to its F1 row in the minted record."""
+    ids = [f"r{i}" for i in range(30)]
+    gameplay = (_mention("gameplay", Sentiment.POSITIVE),)
+    judge_mentions = {rid: gameplay for rid in ids}
+    judge_mentions["r0"] = gameplay + (_mention("performance", Sentiment.NEGATIVE),)
+    store = _store(ids, production={rid: gameplay for rid in ids}, judge=judge_mentions)
+    try:
+        eval_run = _run(store, _sample_file(tmp_path, ids))
+    finally:
+        store.close()
+    named = {m.metric: m for m in eval_run.metrics}
+    assert named["judge_agreement_n/gameplay"].value == 30.0
+    assert named["judge_agreement/gameplay"].value == 1.0
+    assert "judge_agreement/performance" not in named
+    assert "judge_agreement_n/performance" not in named
 
 
 def test_agreement_run_survives_the_journal_round_trip(tmp_path: Path) -> None:

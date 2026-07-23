@@ -36,6 +36,13 @@ class ReviewTally:
     ``parse_failed`` instead, so the zero-share diagnostic never credits a
     crash as a considered zero. The candidate tuples carry each side's
     candidate normal forms for the diagnostics, unscored.
+
+    The aspect tuples decorate the counts with *identity* — which pinned
+    labels matched, which were prediction-only, which reference-only — so
+    per-aspect slicing can happen downstream without re-pairing. The counts
+    stay the scored truth; ``tally_review`` derives both from the same sets,
+    so at the real construction site they cannot disagree. They default empty
+    for hand-built tallies that only exercise the counts.
     """
 
     tp: int
@@ -47,6 +54,9 @@ class ReviewTally:
     parse_failed: bool
     gold_candidates: tuple[str, ...]
     pred_candidates: tuple[str, ...]
+    matched_aspects: tuple[str, ...] = ()
+    pred_only_aspects: tuple[str, ...] = ()
+    gold_only_aspects: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -127,19 +137,24 @@ def tally_review(
             pred_pinned.setdefault(resolved.aspect, set()).add(sentiment)
 
     matched = gold_pinned.keys() & pred_pinned.keys()
+    pred_only = pred_pinned.keys() - gold_pinned.keys()
+    gold_only = gold_pinned.keys() - pred_pinned.keys()
     sentiment_correct = sum(
         1 for label in matched if pred_pinned[label] == {gold_pinned[label]}
     )
     return ReviewTally(
         tp=len(matched),
-        fp=len(pred_pinned.keys() - gold_pinned.keys()),
-        fn=len(gold_pinned.keys() - pred_pinned.keys()),
+        fp=len(pred_only),
+        fn=len(gold_only),
         sentiment_correct=sentiment_correct,
         gold_zero=not gold_pinned,
         pred_zero=not parse_failed and not pred_pinned and not pred_candidates,
         parse_failed=parse_failed,
         gold_candidates=tuple(sorted(set(gold_candidates))),
         pred_candidates=tuple(sorted(set(pred_candidates))),
+        matched_aspects=tuple(sorted(matched)),
+        pred_only_aspects=tuple(sorted(pred_only)),
+        gold_only_aspects=tuple(sorted(gold_only)),
     )
 
 
