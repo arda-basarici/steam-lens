@@ -7,6 +7,75 @@ decisions it feeds.
 
 ---
 
+## 2026-07-23 — Certifying the shipment, not the rehearsal: the production labels came in three points under the lab arm, and the fabricated-quote metric found its crime already prevented
+
+*The D2a certification build + D2b mechanical audit — extraction+eval (M1), the $0
+half of the eval harness, built and run the session after the D2 scoping. Feeds: the
+M1 post's evaluation-methodology section (what "certified" actually certifies) and its
+honest-limitations section (the production-vs-lab gap, the 245/250 scope note).*
+
+The scoping session had noticed the headline certification was already paid for — the
+census buy had labeled gold's 250 reviews along with everything else, so scoring the
+bought envelopes against gold costs nothing. This session ran that score, and it
+produced the arc's genuinely surprising number: the production labels are *measurably
+worse* than the lab run that justified buying them. Same model, same prompt, same
+codebook, same gold — the certification arm (C0.5's winning configuration, scored on
+batches composed purely of gold reviews) sits at F1 0.799 on the shared slice, the
+census's own envelopes at **0.766 [0.713–0.811]**, and the paired bootstrap puts the
+gap at **−0.033 [−0.061, −0.007]** — real at the 95% level, and consistent across
+precision (−0.030) and recall (−0.036), with sentiment accuracy indistinguishable
+(eval run `certify-20260723T093643Z-4eab554c` in the census DB's `eval_runs` journal,
+code `4f74ccb`; the paired read regenerates via `probes/census_vs_gold_gap.py`, seed
+20260718). Read separately, the two runs' intervals overlap comfortably and the gap
+would pass as noise; the paired resampling — same review subset applied to both sides,
+so shared review-difficulty cancels — is what makes it a finding.
+
+Why it matters for the report: the number a certification usually advertises is the
+lab number, and here the lab number is flattering by three F1 points. The honest
+headline becomes "production agreement 0.766," with 0.799 relabeled as "same
+configuration under lab batch conditions." The suspected mechanism was pre-registered
+before this number existed: batch composition. The classifier labels ten reviews per
+prompt, so every label is conditioned on its nine batch neighbors — the lab arm's
+neighbors were other gold reviews, the census's were arbitrary corpus text — and the
+model had already shown batch *size* sensitivity (the N=10-beats-N=20 result that
+froze the dispatch config). The registered D2d experiment now has an effect size to
+chase; provider-side drift stays the weaker alternative suspect (the two runs sit
+about a day apart) [PRELIMINARY — the gap is confirmed; its *cause* is hypothesis
+until D2d re-buys gold's reviews under both batch compositions].
+
+A smaller scope catch rides along, worth its sentence in the limitations section: gold
+holds five CS2 reviews the census never labeled, because gold's draw predates the
+usable-pool ruling that excluded CS2 (a ~19-English-review corpus slice). The
+certification therefore covers a 245-of-250 intersection — the five are skipped, never
+counted as failures, since scoring reviews the model was never sent would fabricate a
+penalty — and the narrowing is stored on the run row itself (`n_scored_reviews`), not
+buried in prose.
+
+The D2b half produced a reframe instead of a number. The planned "fabricated-quote
+rate over ~170K mentions" turned out to measure a door the pipeline had already
+locked: the parse verifies every evidence quote is a verbatim substring of its review
+*at write time*, nulling failures, so the stored pool's fabricated-quote rate is zero
+by construction. The metric decomposed honestly into three: an **invariant audit** —
+every stored span re-checked census-wide, **0 violations over 163,842 spans** (96.1%
+of 170,532 mentions carry evidence; `probes/captures/census_health/HEALTH.md`) —
+upgrading "zero by construction" to "zero, verified"; an **attempted-fabrication
+rate** — the write-time repair counts say the model emitted a non-verbatim quote
+~2.9% of the time it tried (4,979 repairs across the census run manifests), which is
+the model-quality diagnostic the stored data can no longer show because its bad
+quotes were repaired away; and the standing caveat that verbatim-checking passes a
+real quote read upside-down — misattribution remains the ~100-claim human audit. The
+threshold-free per-game health table read coherent rather than pathological, and
+photogenic: zero-share spans 23.7% (Redfall — angry reviews itemize their anger) to
+80.1% (Goat Simulator — meme reviews say nothing labelable), evidence coverage holds
+a tight 93.1–98.1% band across all 49 games, and the drama games top on exactly their
+drama — The Day Before's most-mentioned aspect is `developer_conduct`, at 38.1% of
+its mentions.
+
+Figure: the paired census-vs-lab comparison — four metrics, both runs' points with
+the paired-delta CIs — makes the "lab conditions flatter" point in one glance.
+Figure: the per-game zero-share spread (Redfall to Goat Simulator), as the "review
+culture varies more than the pipeline does" aside.
+
 ## 2026-07-23 — The judge was demoted before it was hired: certification turned out to be already paid for, the "best model in the table" was grading its own homework, and the codebook had studied for the exam
 
 *The D2 scoping discussion (judge + metrics) — extraction+eval (M1), the design-before-
