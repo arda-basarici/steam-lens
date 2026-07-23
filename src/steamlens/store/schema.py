@@ -158,7 +158,22 @@ _STEP_2: tuple[str, ...] = (
     "CREATE INDEX idx_eval_metrics_metric ON eval_metrics (metric)",
 )
 
-MIGRATION_STEPS: tuple[tuple[str, ...], ...] = (_STEP_1, _STEP_2)
+# Step 3 — the reference generalization (the D2c census-sample fit). The journal's
+# measuring stick was born gold-shaped (a file path + byte hash); agreement runs
+# score against another annotator's stored labels, so the pin generalizes: renamed
+# reference columns plus a kind tag telling a reader how to dereference the pin
+# (the closed vocabulary and each kind's pin mechanics live on the contract enum,
+# ReferenceKind). Additive per the freeze rule — the renames rewrite no data, and
+# the ADD COLUMN default doubles as the honest backfill (every pre-step-3 row was
+# scored against a gold file); the write path always supplies the kind explicitly.
+_STEP_3: tuple[str, ...] = (
+    "ALTER TABLE eval_runs RENAME COLUMN gold_path TO reference_id",
+    "ALTER TABLE eval_runs RENAME COLUMN gold_sha256 TO reference_sha256",
+    "ALTER TABLE eval_runs RENAME COLUMN n_gold_reviews TO n_reference_reviews",
+    "ALTER TABLE eval_runs ADD COLUMN reference_kind TEXT NOT NULL DEFAULT 'gold-file'",
+)
+
+MIGRATION_STEPS: tuple[tuple[str, ...], ...] = (_STEP_1, _STEP_2, _STEP_3)
 
 SCHEMA_VERSION = len(MIGRATION_STEPS)
 

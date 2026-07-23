@@ -7,7 +7,100 @@ decisions it feeds.
 
 ---
 
-## 2026-07-23 — The judge dissolved into a second annotator: anchoring killed the verifier, and the honest design's infrastructure turned out to be already built
+## 2026-07-23 — The second annotator passed: +0.050 F1 over production, recall-shaped — and a guard built in the morning paid for itself by noon, at zero spend
+
+*The D2c judge build + calibration session — the execution-and-verdict chapter of the
+"judge dissolved into a second annotator" design story (previous entry, same date).
+Extraction+eval (M1). Feeds: the M1 post's evaluation-methodology section (the judge
+calibration and its pass verdict), its honest-limitations section (the shared-blind-spot
+caveat), and the batch-composition experiment's motivation (the registered D2d). Build
+record: DESIGN.md's "D2c build decisions" entry.*
+
+The build session opened by reopening one thing the design had left generic: "Gemini
+flash." Crossing live prices (OpenRouter's model listing, checked in-session) against
+the bake-off's gold-scored arms turned the pick into an evidence question rather than a
+default: gemini-3-flash-preview was the only flash candidate consistently above
+production's 0.766 (F1 0.801 at N=20, 0.789 at N=50 — bake-off `TABLE.md`), where a
+0.775-class judge (2.5-flash, the design's literal reading, or 3.1-flash-lite) would
+near-guarantee the calibration's *marginal* outcome and a demoted instrument. The
+estimate: ~$0.90 for the 250-review calibration, versus ~$2.80 for 3.5-flash's noisier
+evidence. Two caveats were stated at pick time rather than discovered later: the same
+gold measures the pick and the calibration, so the 0.801 carries winner's-curse
+optimism; and a `-preview` id can be retired, so calibration and the census sample
+should run close together. Routing went direct to the Gemini API rather than through an
+aggregator, purely for instrument continuity — the bake-off measured this model under
+one exact generation config (constrained decoding on the classify schema, thinking off,
+temperature 0), and the calibration should inherit that config, not a re-plumbed
+approximation of it.
+
+Then the store pushed back on the design. The calibration ruling says the judge labels
+all 250 gold reviews, CS2's five included — but the label pool's foreign key demands a
+review row per envelope, and the census-built reviews table deliberately excludes CS2.
+The resolution kept both invariants honest instead of sacrificing either: the driver
+backfills the five CS2 gold reviews from their corpus file with their true metadata
+(fabricated placeholder rows were never on the table), and the census driver's supply
+assertion and selection became scope-aware, so the backfilled rows can never be counted
+against the ruled census or bought by a future labeling run. The alternatives died for
+real reasons: calibrating on the 245 intersection would have relitigated a design
+ruling for convenience, and parking five envelopes outside the pool would have
+fragmented exactly the one-envelope-set identity the whole scorer-reuse design leans
+on.
+
+The first dispatch attempt cost $0.00, and that sentence is the story. A text
+handshake had gone into the driver that morning — gold's text must equal the stored
+review's text, because an envelope must never claim text the judge never read — and it
+aborted the run on 14 of 250 rows before a single request left the machine. The
+diagnosis took minutes: the gold draw stripped edge whitespace at minting
+(`draw_gold_set.py`, the `.strip()` on the drawn text) while the corpus rows are raw;
+a full sweep confirmed all 14 differ by trailing newlines and the like, zero rows
+diverge beyond edges. The handshake softened to strip-equality — content divergence
+still aborts — and the run proceeded. A cheap invariant, written on principle, caught
+a real two-artifact inconsistency the same afternoon, at the only price you'd ever
+want to pay for that lesson: nothing.
+
+Mid-run, Arda spotted a lever the build hadn't considered: Gemini's Batch API — async
+transport batching at half the interactive price. The distinction that made it
+admissible is worth the report's ink: it batches *requests*, not *reviews into one
+prompt*, so each call stays single-review and the design's batch-composition rider
+survives intact. The ruling was proportionate rather than eager: not worth a session
+of new plumbing plus up-to-24h latency to save ~$0.70 on a calibration that answers
+in five minutes — but registered as a mandatory pricing option for the census-sample
+and frontier-escalation proposals, where halving the marginal cost changes what
+sample size the money buys.
+
+The dispatch itself was uneventful in the way instrumentation should be: 250/250 gold
+reviews judged (a 3-review pilot, then the 247 remainder; runs
+`judge-20260723T120015Z-b15fed10` and `judge-20260723T120946Z-18373cfa`), zero
+refusals, zero durable failures, two evidence repairs, one transient 503 absorbed by
+the retry path, $1.21 all-in.
+
+The verdict, journaled and pre-registered before any number existed: judge-vs-gold F1
+**0.816 [0.773–0.855]**, precision 0.795, recall 0.838, sentiment accuracy 0.928 —
+and a zero-mention share of 0.492 against gold's 0.492, the two instruments agreeing
+to the third decimal on how often reviews say nothing (eval run
+`certify-20260723T121854Z-80d61796`, scorer `judge-vs-gold/1`, seed 20260718). The
+paired read on the 245 shared in-scope reviews
+(`probes/judge_vs_production_gap.py`, same seed): Δ(judge − production) F1 **+0.050
+[+0.019, +0.083]**, recall +0.085 [+0.050, +0.123], precision +0.016 [−0.027, +0.059]
+(indistinguishable), sentiment +0.032 [+0.003, +0.060]. The pre-registered rule reads
+F1: **PASS** — the judge is a valid quality reader, its census-sample verdicts count
+as reference-grade, and the frontier-escalation contingency stays unspent. The gap's
+shape is the interesting part: the judge wins on recall at equal precision — it finds
+mentions production misses, it does not relabel what production found.
+
+Two honest riders. The winner's-curse shrinkage the pick had braced for never
+materialized — 0.816 sits *above* the 0.801 that motivated the choice — and the
+likeliest reason is itself evidence: this model now traces a monotone batch-size line,
+0.789 at N=50, 0.801 at N=20, 0.816 at N=1 (bake-off `TABLE.md` + the calibration
+run), a fresh data point *for* the batch-composition hypothesis the registered D2d
+experiment exists to isolate, worth citing when it runs. And the design session's
+standing caveat is unchanged by the pass: two models agreeing is an optimistic bound —
+shared blind spots don't disagree — so the human holdout remains the backstop, not a
+formality.
+
+Figure: the batch-size trend line (F1 0.789 → 0.801 → 0.816 across N=50/20/1) — the
+batch-composition story in one glance. Figure: the paired-Δ forest plot (four metrics,
+CIs against zero) — the pass verdict made visual.
 
 *The D2c judge design session — four forks ruled (Arda's rulings), design only, build
 next session — plus the misattribution audit sample mint. Extraction+eval (M1). Feeds:

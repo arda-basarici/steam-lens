@@ -19,6 +19,7 @@ from steamlens.contracts.enums import (
     FinishReason,
     LlmStage,
     Origin,
+    ReferenceKind,
     Sentiment,
     StageKind,
 )
@@ -44,6 +45,7 @@ __all__ = [
     "StageKind",
     "LlmStage",
     "FinishReason",
+    "ReferenceKind",
     # provenance
     "Provenance",
     "ClassifierVersions",

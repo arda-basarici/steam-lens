@@ -30,6 +30,7 @@ from steamlens.contracts import (
     LlmStage,
     Origin,
     Provenance,
+    ReferenceKind,
     ResponseArchive,
     Review,
     ReviewClassification,
@@ -493,9 +494,10 @@ def _eval_run(
         run=_provenance(run_id),
         versions=_versions(),
         ontology_content_hash="onto-hash",
-        gold_path="eval/gold/gold.jsonl",
-        gold_sha256="gold-hash",
-        n_gold_reviews=250,
+        reference_kind=ReferenceKind.GOLD_FILE,
+        reference_id="eval/gold/gold.jsonl",
+        reference_sha256="gold-hash",
+        n_reference_reviews=250,
         n_scored_reviews=245,
         seed=7,
         n_resamples=100,
@@ -571,3 +573,60 @@ class TestEvalRunLog:
             assert conn.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION
         finally:
             conn.close()
+
+    def test_v2_file_with_minted_runs_upgrades_to_reference_columns(
+        self, tmp_path: Path
+    ) -> None:
+        """The post-D2a DB's shape: gold-named journal rows survive the step-3 rename.
+
+        Built by hand at version 2 with an eval run minted under the old
+        column names — exactly what the real DB holds — then opened by
+        current code: the row must read back whole, with the backfilled
+        ``reference_kind`` saying what was always true of pre-step-3 rows.
+        """
+        path = tmp_path / "steamlens.sqlite3"
+        conn = sqlite3.connect(path)
+        for step in MIGRATION_STEPS[:2]:
+            for statement in step:
+                conn.execute(statement)
+        conn.execute(
+            "INSERT INTO runs (run_id, code_version, created_at, config_hash)"
+            " VALUES ('certify-old', 'abc1234', '2026-07-23T09:36:43.000000+00:00', 'cfg')"
+        )
+        conn.execute(
+            "INSERT INTO eval_runs (run_id, model_version, prompt_version,"
+            " ontology_version, ontology_content_hash, gold_path, gold_sha256,"
+            " n_gold_reviews, n_scored_reviews, seed, n_resamples, scorer)"
+            " VALUES ('certify-old', 'm', 'p', 'v2', 'onto-hash',"
+            " 'eval/gold/gold.jsonl', 'gold-hash', 250, 245, 7, 100, 'census-vs-gold/1')"
+        )
+        conn.execute(
+            "INSERT INTO eval_metrics (run_id, metric, value, ci_low, ci_high)"
+            " VALUES ('certify-old', 'f1', 0.766, 0.713, 0.811)"
+        )
+        conn.execute("PRAGMA user_version = 2")
+        conn.commit()
+        conn.close()
+        with Store(path) as store:
+            migrated = store.eval_runs.get("certify-old")
+        assert migrated is not None
+        assert migrated.reference_kind is ReferenceKind.GOLD_FILE
+        assert migrated.reference_id == "eval/gold/gold.jsonl"
+        assert migrated.reference_sha256 == "gold-hash"
+        assert migrated.n_reference_reviews == 250
+        assert migrated.metrics == (
+            EvalMetric(metric="f1", value=0.766, ci_low=0.713, ci_high=0.811),
+        )
+
+    def test_corrupt_reference_kind_fails_loud(self, tmp_path: Path) -> None:
+        path = tmp_path / "steamlens.sqlite3"
+        with Store(path) as store:
+            store.eval_runs.record(_eval_run())
+        conn = sqlite3.connect(path)
+        try:
+            conn.execute("UPDATE eval_runs SET reference_kind = 'vibes'")
+            conn.commit()
+        finally:
+            conn.close()
+        with Store(path) as store, pytest.raises(StoreDataError, match="vibes"):
+            store.eval_runs.get("certify-1")

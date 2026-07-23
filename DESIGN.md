@@ -1111,6 +1111,41 @@ still aborts. The scoring-side generalizations (a
 `judge-vs-gold/1` scorer identity, the no-exclusion scope) land with the scoring
 step, not the dispatcher.
 
+**The agreement-run journal fit: one journal, the reference generalized** (settled
+2026-07-23, ruled by Arda — the fork the build flag left open). The census-sample
+read scores judge-vs-production with no gold anywhere, but the journal hard-pinned
+its measuring stick as a file (`gold_path`/`gold_sha256`, NOT NULL). Ruling: **a
+step-3 schema generalization**, not a sibling agreement-runs table — the gold-named
+columns become reference columns (`reference_id`, `reference_sha256`,
+`n_reference_reviews`) plus a `reference_kind` tag whose closed vocabulary lives on
+the contract enum (`gold-file` now; `pool-labels` defined now, first written by the
+census-sample scorer), existing rows backfilled `gold-file` — which is what they
+always were. Three reasons, descending: the epistemic distinction a sibling table
+would enforce structurally (a certification against human truth vs two machines
+agreeing) is already recorded twice on every row — the scorer identity and now the
+kind — so a reader aggregating quality numbers filters on those; the one-journal
+intent was half-declared when `eval_metrics` was born name-keyed "so per-category
+judge agreement lands as new rows"; and every run kind on the horizon —
+census-vs-gold, judge-vs-gold, judge-vs-production, the misattribution-audit rate
+(whose reference is Arda's sheet, a file again) — answers the same sentence, *this
+label set, scored against that pinned reference, by this scorer*, differing by two
+columns: too little difference to pay for a duplicated journal surface (a second
+contract, a second record/get with the atomicity discipline, and `eval_metrics` FK
+surgery besides). The accepted cost, eyes open: the reference columns' meaning now
+depends on the kind — one flat table quietly holding a sum type. For `pool-labels`
+rows the pinning property survives by digest: `reference_id` names the reference
+annotator's versions triple plus the sampled slice, `reference_sha256` hashes the
+canonically-serialized reference label set — computed rather than read from a file,
+same tamper-evidence (exact serialization defined when that scorer builds).
+Rejected: production labels in fields named gold (dishonest naming, ruled at the
+build flag) and materializing the judge's sample labels as a reference *file* — a
+copy minted solely to satisfy a column shape, whose truth lives in the store. The
+migration stays additive per the freeze rule (column renames rewrite no data; the
+ADD COLUMN default is the honest backfill), verified by an upgrade test built at
+version 2 with a gold-named minted row — the real DB's exact shape. Sample-draw
+provenance, when the agreement run lands, rides the run's `config_hash` like every
+other run dial; the existing `seed` column stays the bootstrap's.
+
 ## Scope & non-goals
 
 - In: aspect reports with receipts, narrated live analysis, the event investigator, the

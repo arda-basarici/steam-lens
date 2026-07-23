@@ -59,6 +59,27 @@ class Sentiment(StrEnum):
     NEUTRAL = "neutral"
 
 
+class ReferenceKind(StrEnum):
+    """What kind of measuring stick an eval run was scored against.
+
+    The eval-run journal pins every reference by content, but the pin's
+    mechanics depend on the kind: a ``GOLD_FILE`` reference is a file on disk
+    — the run's ``reference_id`` is its path and ``reference_sha256`` hashes
+    its bytes; a ``POOL_LABELS`` reference is another annotator's stored label
+    set — ``reference_id`` names its versions triple plus the sampled slice,
+    and the hash is a digest of the canonically-serialized labels. Alongside
+    the scorer identity, the kind also marks a row's epistemic weight: a
+    gold-file run certifies against human truth, a pool-labels run measures
+    two instruments agreeing — which can share blind spots.
+
+    >>> ReferenceKind.GOLD_FILE == "gold-file"
+    True
+    """
+
+    GOLD_FILE = "gold-file"
+    POOL_LABELS = "pool-labels"
+
+
 class LlmStage(StrEnum):
     """Which pipeline job a model call serves — the routing key at the LLM door.
 

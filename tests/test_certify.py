@@ -23,6 +23,7 @@ from steamlens.contracts import (
     ClassifierVersions,
     Origin,
     Provenance,
+    ReferenceKind,
     Review,
     ReviewClassification,
     Sentiment,
@@ -177,10 +178,12 @@ class TestCertifyPool:
             )
         finally:
             store.close()
-        assert eval_run.n_gold_reviews == 4
+        assert eval_run.n_reference_reviews == 4
         assert eval_run.n_scored_reviews == 3
         assert eval_run.versions == _VERSIONS
-        assert eval_run.gold_sha256 == hashlib.sha256(gold_path.read_bytes()).hexdigest()
+        assert eval_run.reference_kind is ReferenceKind.GOLD_FILE
+        assert eval_run.reference_id == gold_path.as_posix()
+        assert eval_run.reference_sha256 == hashlib.sha256(gold_path.read_bytes()).hexdigest()
         assert eval_run.ontology_content_hash == _STAMP.content_hash
         named = {m.metric for m in eval_run.metrics}
         assert {"precision", "recall", "f1", "sentiment_accuracy"} <= named

@@ -12,7 +12,7 @@ Scope rule: gold reviews from games outside the pool's scope (gold predates
 the usable-pool ruling; the CS2 case) are excluded from scoring, never
 counted as failures — a model must not be penalized for reviews it was never
 sent. The narrowing is recorded on the run row (``n_scored_reviews`` vs
-``n_gold_reviews``), visible forever.
+``n_reference_reviews``), visible forever.
 """
 
 from __future__ import annotations
@@ -26,7 +26,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Final
 
-from steamlens.contracts import ClassifierVersions, EvalMetric, EvalRun, Provenance
+from steamlens.contracts import (
+    ClassifierVersions,
+    EvalMetric,
+    EvalRun,
+    Provenance,
+    ReferenceKind,
+)
 from steamlens.core.classify import PROMPT_VERSION
 from steamlens.core.normalize import build_surface_index
 from steamlens.evals.gold import GoldRecord, load_gold
@@ -185,9 +191,10 @@ def certify_pool(
         ),
         versions=versions,
         ontology_content_hash=stamp.content_hash,
-        gold_path=gold_path.as_posix(),
-        gold_sha256=gold_sha256,
-        n_gold_reviews=len(gold_records),
+        reference_kind=ReferenceKind.GOLD_FILE,
+        reference_id=gold_path.as_posix(),
+        reference_sha256=gold_sha256,
+        n_reference_reviews=len(gold_records),
         n_scored_reviews=len(tallies),
         seed=seed,
         n_resamples=n_resamples,
@@ -203,8 +210,9 @@ def _render(eval_run: EvalRun) -> str:
         f"code {eval_run.run.code_version}",
         f"pool: {eval_run.versions.model_version} / {eval_run.versions.prompt_version} / "
         f"{eval_run.versions.ontology_version} ({eval_run.ontology_content_hash[:12]}…)",
-        f"gold: {eval_run.gold_path} ({eval_run.gold_sha256[:12]}…) · "
-        f"scored {eval_run.n_scored_reviews}/{eval_run.n_gold_reviews} reviews · "
+        f"reference ({eval_run.reference_kind}): {eval_run.reference_id} "
+        f"({eval_run.reference_sha256[:12]}…) · "
+        f"scored {eval_run.n_scored_reviews}/{eval_run.n_reference_reviews} reviews · "
         f"seed {eval_run.seed} · {eval_run.n_resamples:,} resamples",
     ]
     for m in eval_run.metrics:

@@ -13,8 +13,8 @@ from __future__ import annotations
 
 import sqlite3
 
-from steamlens.contracts import ClassifierVersions, EvalMetric, EvalRun, Provenance
-from steamlens.store.convert import parse_utc_isoformat, utc_isoformat
+from steamlens.contracts import ClassifierVersions, EvalMetric, EvalRun, Provenance, ReferenceKind
+from steamlens.store.convert import parse_enum, parse_utc_isoformat, utc_isoformat
 from steamlens.store.errors import StoreDataError, StoreError
 
 
@@ -50,18 +50,20 @@ class EvalRunLog:
             )
             cursor.execute(
                 "INSERT INTO eval_runs (run_id, model_version, prompt_version,"
-                " ontology_version, ontology_content_hash, gold_path, gold_sha256,"
-                " n_gold_reviews, n_scored_reviews, seed, n_resamples, scorer)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                " ontology_version, ontology_content_hash, reference_kind, reference_id,"
+                " reference_sha256, n_reference_reviews, n_scored_reviews, seed,"
+                " n_resamples, scorer)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     run.run_id,
                     eval_run.versions.model_version,
                     eval_run.versions.prompt_version,
                     eval_run.versions.ontology_version,
                     eval_run.ontology_content_hash,
-                    eval_run.gold_path,
-                    eval_run.gold_sha256,
-                    eval_run.n_gold_reviews,
+                    eval_run.reference_kind,
+                    eval_run.reference_id,
+                    eval_run.reference_sha256,
+                    eval_run.n_reference_reviews,
                     eval_run.n_scored_reviews,
                     eval_run.seed,
                     eval_run.n_resamples,
@@ -96,7 +98,8 @@ class EvalRunLog:
         """
         row = self._conn.execute(
             "SELECT e.model_version, e.prompt_version, e.ontology_version,"
-            " e.ontology_content_hash, e.gold_path, e.gold_sha256, e.n_gold_reviews,"
+            " e.ontology_content_hash, e.reference_kind, e.reference_id,"
+            " e.reference_sha256, e.n_reference_reviews,"
             " e.n_scored_reviews, e.seed, e.n_resamples, e.scorer,"
             " r.code_version, r.created_at, r.config_hash"
             " FROM eval_runs e JOIN runs r ON r.run_id = e.run_id"
@@ -128,11 +131,11 @@ class EvalRunLog:
         return EvalRun(
             run=Provenance(
                 run_id=run_id,
-                code_version=str(row[11]),
+                code_version=str(row[12]),
                 created_at=parse_utc_isoformat(
-                    str(row[12]), context=f"runs[{run_id}].created_at"
+                    str(row[13]), context=f"runs[{run_id}].created_at"
                 ),
-                config_hash=str(row[13]),
+                config_hash=str(row[14]),
             ),
             versions=ClassifierVersions(
                 model_version=str(row[0]),
@@ -140,12 +143,15 @@ class EvalRunLog:
                 ontology_version=str(row[2]),
             ),
             ontology_content_hash=str(row[3]),
-            gold_path=str(row[4]),
-            gold_sha256=str(row[5]),
-            n_gold_reviews=int(row[6]),
-            n_scored_reviews=int(row[7]),
-            seed=int(row[8]),
-            n_resamples=int(row[9]),
-            scorer=str(row[10]),
+            reference_kind=parse_enum(
+                ReferenceKind, str(row[4]), context=f"eval_runs[{run_id}].reference_kind"
+            ),
+            reference_id=str(row[5]),
+            reference_sha256=str(row[6]),
+            n_reference_reviews=int(row[7]),
+            n_scored_reviews=int(row[8]),
+            seed=int(row[9]),
+            n_resamples=int(row[10]),
+            scorer=str(row[11]),
             metrics=tuple(metrics),
         )
