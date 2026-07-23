@@ -30,6 +30,7 @@ from steamlens.contracts import ClassifierVersions, EvalMetric, EvalRun, Provena
 from steamlens.core.classify import PROMPT_VERSION
 from steamlens.core.normalize import build_surface_index
 from steamlens.evals.gold import GoldRecord, load_gold
+from steamlens.evals.judge_gold import JUDGE_MODEL_ID
 from steamlens.evals.scoring import ReviewTally, bootstrap_ci, score, tally_review
 from steamlens.ontology import load_ontology, load_ontology_version
 from steamlens.store.store import Store
@@ -44,6 +45,12 @@ candidate mentions unscored, the out-of-scope exclusion rule — so a future
 semantics change bumps this string and old rows stay attributable to old
 semantics.
 """
+
+JUDGE_SCORER: Final = "judge-vs-gold/1"
+"""The judge-calibration variant's identity: same pairing and metrics, but NO
+out-of-scope exclusion — the judge labels all of gold (pool scope was the
+labeler's constraint, not the judge's), so its runs must not wear a scorer
+name whose semantics include the exclusion rule."""
 
 _BOOTSTRAPPED: Final[dict[str, Callable[[Sequence[ReviewTally]], float]]] = {
     "precision": lambda t: score(t).precision,
@@ -130,6 +137,8 @@ def certify_pool(
     seed: int,
     n_resamples: int,
     started: datetime | None = None,
+    excluded_app_ids: Collection[int] = EXCLUDED_APP_IDS,
+    scorer: str = SCORER,
 ) -> EvalRun:
     """Score the pool's labels for gold's reviews and build the full run record.
 
@@ -137,7 +146,10 @@ def certify_pool(
     the scoring core — and stamps the result with everything a regeneration
     needs. Pure assembly over its inputs (no writes): recording the returned
     ``EvalRun`` is the caller's explicit step, so tests and dry reads can
-    certify without minting.
+    certify without minting. ``excluded_app_ids`` and ``scorer`` travel
+    together on purpose: the exclusion rule is part of the procedure a scorer
+    string names, so the judge-calibration caller passes the no-exclusion
+    scope WITH ``JUDGE_SCORER`` — never one without the other.
     """
     started = started if started is not None else datetime.now(UTC)
     stamp = load_ontology_version(ontology_path)
@@ -149,7 +161,7 @@ def certify_pool(
     gold_records = load_gold(gold_path)
     gold_sha256 = hashlib.sha256(gold_path.read_bytes()).hexdigest()
     index = build_surface_index(load_ontology(ontology_path))
-    tallies = pool_tallies(store, gold_records, index, versions)
+    tallies = pool_tallies(store, gold_records, index, versions, excluded_app_ids=excluded_app_ids)
     metrics = certification_metrics(tallies, seed=seed, n_resamples=n_resamples)
     config = {
         "model_version": versions.model_version,
@@ -158,10 +170,10 @@ def certify_pool(
         "ontology_content_hash": stamp.content_hash,
         "gold_path": gold_path.as_posix(),
         "gold_sha256": gold_sha256,
-        "excluded_app_ids": sorted(EXCLUDED_APP_IDS),
+        "excluded_app_ids": sorted(excluded_app_ids),
         "seed": seed,
         "n_resamples": n_resamples,
-        "scorer": SCORER,
+        "scorer": scorer,
     }
     canonical = json.dumps(config, sort_keys=True, separators=(",", ":"))
     return EvalRun(
@@ -179,7 +191,7 @@ def certify_pool(
         n_scored_reviews=len(tallies),
         seed=seed,
         n_resamples=n_resamples,
-        scorer=SCORER,
+        scorer=scorer,
         metrics=metrics,
     )
 
@@ -204,7 +216,13 @@ def _render(eval_run: EvalRun) -> str:
 
 
 def main() -> None:
-    """Certify, mint the journal row, verify the round-trip — the D2a front door."""
+    """Certify, mint the journal row, verify the round-trip — the D2a front door.
+
+    ``--judge`` is a preset, not a free dial: judge calibration changes the
+    model, the scope, and the scorer identity *together* (a no-exclusion run
+    under the census scorer's name would misdescribe its own procedure), so
+    the three are one flag.
+    """
     parser = argparse.ArgumentParser(
         description="Score the pool's labels against gold and journal the certification."
     )
@@ -214,25 +232,32 @@ def main() -> None:
                         help="the gold JSONL artifact (default: eval/gold/gold.jsonl)")
     parser.add_argument("--ontology", type=Path, default=None,
                         help="ontology artifact path (default: packaged v1; census pins v2)")
-    parser.add_argument("--model", default=MODEL_ID,
-                        help="the pool triple's model_version (default: the census's)")
+    parser.add_argument("--model", default=None,
+                        help="the pool triple's model_version "
+                             "(default: the census's; with --judge, the judge's)")
     parser.add_argument("--prompt", default=PROMPT_VERSION,
                         help="the pool triple's prompt_version (default: the census's)")
+    parser.add_argument("--judge", action="store_true",
+                        help="score the judge's envelope set: judge model, all gold "
+                             "games in scope, scorer judge-vs-gold/1")
     parser.add_argument("--seed", type=int, default=20260718)
     parser.add_argument("--resamples", type=int, default=10_000)
     parser.add_argument("--dry-run", action="store_true",
                         help="score and print without journaling the run")
     args = parser.parse_args()
 
+    default_model = JUDGE_MODEL_ID if args.judge else MODEL_ID
     with Store(args.db) as store:
         eval_run = certify_pool(
             store,
             gold_path=args.gold,
             ontology_path=args.ontology,
-            model_version=args.model,
+            model_version=args.model if args.model is not None else default_model,
             prompt_version=args.prompt,
             seed=args.seed,
             n_resamples=args.resamples,
+            excluded_app_ids=() if args.judge else EXCLUDED_APP_IDS,
+            scorer=JUDGE_SCORER if args.judge else SCORER,
         )
         print(_render(eval_run))
         if args.dry_run:

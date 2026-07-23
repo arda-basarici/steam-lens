@@ -75,7 +75,11 @@ from steamlens.llm_client import (
 from steamlens.llm_client.openai_compat import DEEPSEEK_BASE_URL
 from steamlens.ontology import load_ontology, load_ontology_version
 from steamlens.store import Store
-from steamlens.studies.local_corpus import corpus_review_files, read_reviews_file
+from steamlens.studies.local_corpus import (
+    EXCLUDED_APP_IDS,
+    corpus_review_files,
+    read_reviews_file,
+)
 
 RULED_CENSUS_SUPPLY: Final = 135_260
 """The census-slice ruling's usable-pool size — the default ingest assertion."""
@@ -277,7 +281,10 @@ def ingest_corpus(cfg: RunConfig, store: Store, sink: TeeSink) -> None:
     assertion runs against the *table* — the set selection draws from — and a
     mismatch aborts before any money moves: the census was priced on exactly
     ``expected_supply`` reviews, so a differing count means the corpus files
-    or the usable filter drifted from what the ruling saw.
+    or the usable filter drifted from what the ruling saw. Both the assertion
+    and the selection count only usable-scope rows: eval dispatches backfill
+    out-of-scope gold reviews (the judge's CS2 rows) into the table for the
+    label pool's foreign key, and those are never this driver's to price or buy.
     """
     files = corpus_review_files(cfg.corpus_dir)
     total = non_english = empty = usable = inserted = 0
@@ -294,7 +301,7 @@ def ingest_corpus(cfg: RunConfig, store: Store, sink: TeeSink) -> None:
         f"+ {empty:,} empty dropped → {usable:,} usable ({inserted:,} newly inserted)",
         stage="c1.ingest",
     )
-    count = store.reviews.count()
+    count = store.reviews.count(excluding_app_ids=EXCLUDED_APP_IDS)
     if count != cfg.expected_supply:
         raise RunAbort(
             f"supply assertion failed: reviews table holds {count:,}, the ruling "
@@ -352,7 +359,7 @@ def classify_batch(
     )
 
 
-class _DriftWatch:
+class DriftWatch:
     """Holds the first provider-reported model version; a change aborts the run.
 
     A silent provider roll mid-census would split the pool's "one annotator"
@@ -382,7 +389,7 @@ def _write_outcome(
     run: Provenance,
     attempt: str,
     totals: RunTotals,
-    drift: _DriftWatch,
+    drift: DriftWatch,
     sink: TeeSink,
 ) -> list[Review]:
     """Consume one outcome on the main thread: envelopes in, failures forward.
@@ -538,7 +545,7 @@ def execute_run(cfg: RunConfig, entry: ProviderEntry, started: datetime | None =
     )
 
     totals = RunTotals()
-    drift = _DriftWatch()
+    drift = DriftWatch()
     aborted: str | None = None
     selected = already_labeled = supply = 0
 
@@ -558,8 +565,10 @@ def execute_run(cfg: RunConfig, entry: ProviderEntry, started: datetime | None =
         )
         try:
             ingest_corpus(cfg, driver_store, sink)
-            supply = driver_store.reviews.count()
-            pending = driver_store.reviews.unlabeled_under(versions)
+            supply = driver_store.reviews.count(excluding_app_ids=EXCLUDED_APP_IDS)
+            pending = driver_store.reviews.unlabeled_under(
+                versions, excluding_app_ids=EXCLUDED_APP_IDS
+            )
             already_labeled = supply - len(pending)
             if cfg.limit is not None:
                 pending = pending[: cfg.limit]

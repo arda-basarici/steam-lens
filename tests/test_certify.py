@@ -29,7 +29,7 @@ from steamlens.contracts import (
 )
 from steamlens.core.normalize import build_surface_index
 from steamlens.evals import load_gold
-from steamlens.evals.certify import certify_pool, pool_tallies
+from steamlens.evals.certify import JUDGE_SCORER, certify_pool, pool_tallies
 from steamlens.ontology import load_ontology, load_ontology_version
 from steamlens.store import Store
 
@@ -211,6 +211,30 @@ class TestCertifyPool:
         # Same resolved config → same fingerprint; only the run identity differs.
         assert runs[0].run.config_hash == runs[1].run.config_hash
         assert runs[0].run.run_id != runs[1].run.run_id
+
+    def test_judge_scope_scores_all_games_under_its_own_scorer(self, tmp_path: Path) -> None:
+        """The calibration variant: no exclusion, and the scorer identity says so."""
+        gold_path = _write_gold(tmp_path, _GOLD_LINES)
+        envelopes = dict(_ENVELOPES)
+        envelopes["r-cs2"] = (_mention("gameplay", Sentiment.POSITIVE),)
+        store = _pool_store(envelopes, _APPS)
+        try:
+            eval_run = certify_pool(
+                store,
+                gold_path=gold_path,
+                ontology_path=None,
+                model_version=_VERSIONS.model_version,
+                prompt_version=_VERSIONS.prompt_version,
+                seed=7,
+                n_resamples=200,
+                started=_NOON,
+                excluded_app_ids=(),
+                scorer=JUDGE_SCORER,
+            )
+        finally:
+            store.close()
+        assert eval_run.n_scored_reviews == 4  # the CS2 review scores, not skipped
+        assert eval_run.scorer == JUDGE_SCORER
 
     def test_certification_survives_the_journal_round_trip(self, tmp_path: Path) -> None:
         gold_path = _write_gold(tmp_path, _GOLD_LINES)

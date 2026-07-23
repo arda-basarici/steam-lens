@@ -1065,6 +1065,48 @@ field named gold would be dishonest naming; likely a small step-3 generalization
 sibling table) · the `origin` value judge envelopes carry · whether the census-sample
 draw reuses the misattribution draw machinery.
 
+**D2c build decisions: the judge dispatch shell** (2026-07-23 build session; the
+model and routing picks Arda's, the rest built to the settled design). **The model
+pick amends the design's generic "Gemini flash" to `gemini-3-flash-preview`**, on
+evidence assembled at build time: current prices (OpenRouter's listing, checked live)
+crossed with the bake-off's gold-scored arms put 3-flash at F1 0.801/0.789 across two
+batch sizes — the only flash candidate consistently above production's 0.766, where a
+0.775-class judge (2.5-flash, 3.1-flash-lite) near-guarantees a *marginal* calibration
+verdict and a demoted instrument — at ~$0.90 for the 250-review calibration versus
+~$2.80 for 3.5-flash's weaker, noisier evidence. Two caveats recorded with the pick:
+the 0.801 carries selection optimism (the same gold measures the pick and the
+calibration — winner's-curse shrinkage expected), and the `-preview` id can be retired
+or revised; mitigation is running calibration and the census sample close together,
+with the GA-id fallback (3.5-flash) priced. **Routing is direct Gemini API**, not
+OpenRouter: the bake-off measured this model under the exact `responseSchema` +
+`thinkingBudget: 0` generation config the adapter sends, and instrument continuity
+with that evidence is worth the one-time billing-enable on the Google key (OpenRouter
+would change the serving path and structured-output mode, and adds ~5.5% on credits).
+**The CS2 rows are backfilled, honestly**: the label pool's foreign key demands a
+review row per envelope, so the driver inserts gold's out-of-scope reviews from their
+corpus files with true metadata — never fabricated rows — and the census driver's
+supply assertion and selection are scoped by excluded app ids so the backfilled rows
+are never counted or bought by a labeling run (the alternatives — calibrating on 245
+only, or parking CS2 envelopes outside the pool — respectively relitigate fork 2 and
+fragment the envelope-set identity the scorer reuse leans on). **Judge envelopes carry
+`origin = survey`** (the flagged deliberate look, resolved): they label survey-track
+reviews, the two-track wall is origin ∩ versions triple, and the judge's own
+`model_version` already keeps its envelopes out of every displayed fold —
+`investigation` would misstate the track. **Single-review dispatch collapses the
+failure sweep**: a malformed answer at N=1 is C1's isolate case on first attempt (a
+temperature-0 retry replays the identical cached response), so it takes its durable
+mark immediately; and both refusal shapes — a request-level rejection and Gemini's
+generation-level safety block (a `REFUSAL` finish with an empty body) — converge on
+the typed failure path, counted against a 5-refusal circuit breaker (gold text is
+twice-vetted; more than a handful means a systemic request problem). **Placement:**
+`evals/judge_gold.py` — the driver consumes the gold artifact, and the import law
+(nothing imports `evals`) forces the arrow, same reasoning as the certify shell. A
+**text handshake** guards instrument identity: every gold record's text must equal
+the stored review's text verbatim or the run refuses to dispatch — an envelope must
+never claim text the judge never read. The scoring-side generalizations (a
+`judge-vs-gold/1` scorer identity, the no-exclusion scope) land with the scoring
+step, not the dispatcher.
+
 ## Scope & non-goals
 
 - In: aspect reports with receipts, narrated live analysis, the event investigator, the

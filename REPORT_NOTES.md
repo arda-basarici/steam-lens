@@ -7,7 +7,81 @@ decisions it feeds.
 
 ---
 
-## 2026-07-23 — Certifying the shipment, not the rehearsal: the production labels came in three points under the lab arm, and the fabricated-quote metric found its crime already prevented
+## 2026-07-23 — The judge dissolved into a second annotator: anchoring killed the verifier, and the honest design's infrastructure turned out to be already built
+
+*The D2c judge design session — four forks ruled (Arda's rulings), design only, build
+next session — plus the misattribution audit sample mint. Extraction+eval (M1). Feeds:
+the M1 post's evaluation-methodology section (the "why our judge isn't a judge" story)
+and its limitations section (the shared-blind-spot caveat). Design record: DESIGN.md's
+"D2c judge design" and "misattribution audit sample" entries, committed 2026-07-23.*
+
+The session opened mechanically: minting the ~100-claim sample for the human
+misattribution audit — the check the previous session's mechanical sweep explicitly
+could not make, since a verbatim-true quote can still be read upside-down. The draw is
+a seeded systematic pass over all 163,842 evidence-carrying census mentions sorted by
+(game, aspect, sentiment) — sorting first turns the every-k-th step into an implicit
+proportional stratification across all three dimensions at once, so the audited rate
+will estimate the population rate with no reweighting (100 primary + 10 reserves, seed
+20260723, `probes/mint_misattribution_sample.py`; artifacts under
+`eval/audits/misattribution/`). The sample's first item is already the audit's poster
+child: a No Man's Sky review whose quote "performace related" is claimed as
+performance/negative — verbatim-true, aspect fine, but the complaint sits inside an
+otherwise glowing review wrapped in "I trust the team at Hello Games will fix it,"
+and whether *negative* survives that context is exactly the judgment no mechanical
+check reaches.
+
+Then the design discussion, and its arc is the entry's title. The milestone plan had
+reserved an "LLM judge" for its own design session, and the session's first fork
+killed the shape everyone associates with the word. A verifier-style judge — shown
+the production label, asked to verdict it — died on anchoring: a grader who sees the
+answer leans toward endorsing it, which inflates measured quality in precisely the
+direction a self-certification cannot afford, and the customary "anything missed?"
+recall clause is a fig leaf next to actually running the extraction. What won is an
+independent re-labeler: the judge reads the raw review fresh under the same frozen
+prompt and codebook, never sees production's answer, and agreement is computed
+mechanically afterwards. The clinching discovery was that this design costs almost
+nothing to build — a judge run is just another envelope set under its own versions
+triple (`gemini-flash / classify-v1 / v2`), so the store's uniqueness key, the
+certification scorer, and the paired-bootstrap machinery from the previous session
+all apply unchanged. The "judge" came out of the discussion renamed to what it
+honestly is: a second annotator, with inter-annotator disagreement as the quality
+signal — and the report should tell it that way.
+
+Two riders carry the session's empirical spine forward. The batch-composition finding
+(production labels a real −0.033 F1 under the lab arm; eval run
+`certify-20260723T093643Z-4eab554c`) promoted the judge's own batching from
+implementation detail to design variable — resolved by construction: the judge
+dispatches single-review at temperature 0, so the instrument cannot inherit the very
+contamination it exists to help measure. And the calibration protocol was
+pre-registered *before* any judge number exists, against production's 0.766: pass
+(significantly above → the judge's census-sample verdicts count as reference-grade),
+marginal (indistinguishable → the judge is a disagreement flagger, and the
+census-sample read reports agreement rates, never "judge-corrected quality"), fail
+(significantly below → reported as a finding; certification already stands on the
+mechanical layers). The graded middle is the honest part: indistinguishable is the
+*likely* outcome for a same-tier cross-family model, and deciding now what that
+outcome licenses is what stops the number from being rationalized after the fact.
+
+Two smaller rulings round the story out. The census's single refused review (the
+Chinese-hosted labeler declining a Tiananmen-line review) stays a refusal — routing
+it to the second model for a replacement label was rejected because a substitute from
+a different annotator can't quietly join a pool whose identity is one annotator's
+triple, and because patching it would launder the instrument-limitation footnote out
+of the record; the judge's own refusals score as intersection-plus-disclosed-counts,
+since an instrument that declines to read didn't read wrong. And the "model grading
+its own homework" demonstration was reframed rather than dropped: under a re-labeler
+judge, self-consistency dissolves into the registered batch-composition experiment,
+and what remains distinctly self-grading is a 2×2 — each of DeepSeek v4-flash and
+Gemini flash verifying its own and the other's gold labels, endorsement rates scored
+against gold — because a single "endorses itself 94%" cell can't separate
+self-preference from plain leniency. Registered at ~$1, deferred to the post-writing
+milestone's cost proposal: it's the empirical receipt for the eval chain's
+no-self-grading stance, bought only if the post wants to show it rather than assert
+it.
+
+Figure: the pass/marginal/fail decision ladder against production's 0.766 — the
+pre-registration made visual. Figure: the self-grading 2×2 (own vs other's labels ×
+the two models), which explains the bias-demonstration design in one glance.
 
 *The D2a certification build + D2b mechanical audit — extraction+eval (M1), the $0
 half of the eval harness, built and run the session after the D2 scoping. Feeds: the

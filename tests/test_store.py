@@ -290,10 +290,10 @@ def store(tmp_path: Path) -> Iterator[Store]:
         yield s
 
 
-def _review(review_id: str = "r1", *, created_at: datetime = _NOON) -> Review:
+def _review(review_id: str = "r1", *, created_at: datetime = _NOON, app_id: int = 440) -> Review:
     return Review(
         review_id=review_id,
-        app_id=440,
+        app_id=app_id,
         created_at=created_at,
         language="english",
         text="great gunplay, weak netcode",
@@ -365,6 +365,12 @@ class TestReviewStore:
         assert store.reviews.put_many([_review("r1"), _review("r2"), _review("r3")]) == 1
         assert store.reviews.count() == 3
 
+    def test_count_scoped_ignores_backfilled_out_of_scope_reviews(self, store: Store) -> None:
+        """The census supply assertion must not move when an eval backfills CS2 rows."""
+        store.reviews.put_many([_review("r1"), _review("r2"), _review("cs2", app_id=730)])
+        assert store.reviews.count() == 3
+        assert store.reviews.count(excluding_app_ids={730}) == 2
+
 
 class TestLabelPool:
     def test_envelope_round_trip(self, store: Store) -> None:
@@ -433,6 +439,17 @@ class TestSelectionLoop:
     def test_selection_order_is_by_review_id_not_insertion(self, store: Store) -> None:
         store.reviews.put_many([_review("r2"), _review("r1")])
         assert [r.review_id for r in store.reviews.unlabeled_under(_versions())] == ["r1", "r2"]
+
+    def test_selection_scoped_never_offers_backfilled_out_of_scope_reviews(
+        self, store: Store
+    ) -> None:
+        """A future labeling run must not buy labels for eval-backfilled CS2 rows."""
+        store.reviews.put_many([_review("r1"), _review("cs2", app_id=730)])
+        scoped = store.reviews.unlabeled_under(_versions(), excluding_app_ids={730})
+        assert [r.review_id for r in scoped] == ["r1"]
+        assert [
+            r.review_id for r in store.reviews.unlabeled_under(_versions())
+        ] == ["cs2", "r1"]  # unscoped still sees everything — the judge's own selection
 
 
 class TestReadBoundary:

@@ -14,13 +14,27 @@ can actually change between fetches.
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Iterable
+from collections.abc import Collection, Iterable
 from typing import Any
 
 from steamlens.contracts import ClassifierVersions, Review
 from steamlens.store.convert import parse_utc_isoformat, utc_isoformat
 
 _REVIEW_COLUMNS = "review_id, app_id, created_at, language, text, voted_up"
+
+
+def _exclusion_clause(
+    column: str, app_ids: Collection[int], *, prefix: str = " WHERE"
+) -> tuple[str, tuple[int, ...]]:
+    """A ``NOT IN`` fragment plus its parameters, or nothing when the set is empty.
+
+    Sorted so an identical exclusion set always renders identical SQL.
+    """
+    if not app_ids:
+        return "", ()
+    ordered = tuple(sorted(app_ids))
+    placeholders = ", ".join("?" for _ in ordered)
+    return f"{prefix} {column} NOT IN ({placeholders})", ordered
 
 
 def _review_from_row(row: Any) -> Review:
@@ -88,9 +102,17 @@ class ReviewStore:
         ).fetchone()
         return None if row is None else _review_from_row(row)
 
-    def count(self) -> int:
-        """How many reviews the snapshot holds — the driver's denominator."""
-        row = self._conn.execute("SELECT COUNT(*) FROM reviews").fetchone()
+    def count(self, *, excluding_app_ids: Collection[int] = ()) -> int:
+        """How many reviews the snapshot holds — the driver's denominator.
+
+        ``excluding_app_ids`` narrows the count to a labeling run's scope: the
+        table may hold reviews outside the census's usable pool (eval dispatches
+        backfill their out-of-scope gold reviews — the judge's CS2 rows — so
+        their envelopes can satisfy the label pool's review foreign key), and a
+        supply assertion priced on the usable pool must not count them.
+        """
+        clause, params = _exclusion_clause("app_id", excluding_app_ids)
+        row = self._conn.execute(f"SELECT COUNT(*) FROM reviews{clause}", params).fetchone()
         return int(row[0])
 
     def app_id_by_review(self) -> dict[str, int]:
@@ -106,16 +128,25 @@ class ReviewStore:
             for row in self._conn.execute("SELECT review_id, app_id FROM reviews")
         }
 
-    def unlabeled_under(self, versions: ClassifierVersions) -> tuple[Review, ...]:
+    def unlabeled_under(
+        self,
+        versions: ClassifierVersions,
+        *,
+        excluding_app_ids: Collection[int] = (),
+    ) -> tuple[Review, ...]:
         """The reviews still owed a verdict under ``versions`` — the driver's selection loop.
 
         Excludes reviews with an envelope (labeled, possibly with zero mentions)
         *and* reviews with a failure mark (unclassifiable-under-this-version)
         for exactly this versions triple; bumping any version reopens both.
+        ``excluding_app_ids`` keeps out-of-scope backfilled reviews (see
+        ``count``) from being selected — which reviews a labeling run may buy
+        is part of the selection question, so the scope lives in the query.
         Ordered by ``review_id`` so a re-run selects deterministically —
         batch composition varies with the remaining *set*, never with row order
         luck.
         """
+        clause, scope_params = _exclusion_clause("r.app_id", excluding_app_ids, prefix=" AND")
         rows = self._conn.execute(
             f"""
             SELECT {_REVIEW_COLUMNS} FROM reviews r
@@ -128,7 +159,7 @@ class ReviewStore:
                     SELECT 1 FROM classification_failures f
                     WHERE f.review_id = r.review_id
                       AND f.model_version = ? AND f.prompt_version = ? AND f.ontology_version = ?
-                  )
+                  ){clause}
             ORDER BY r.review_id
             """,
             (
@@ -136,6 +167,7 @@ class ReviewStore:
                 versions.prompt_version,
                 versions.ontology_version,
             )
-            * 2,
+            * 2
+            + scope_params,
         ).fetchall()
         return tuple(_review_from_row(row) for row in rows)
