@@ -7,6 +7,115 @@ decisions it feeds.
 
 ---
 
+## 2026-07-23 — No cliff beyond gold: census agreement 0.791 lands between the two anchors — earned through an evening of fighting a deprioritized preview model for capacity
+
+*The D2c census-sample session — the instrument-leaves-the-lab chapter, closing the
+arc the calibration-PASS entry (same date, below) opened. Extraction+eval (M1).
+Feeds: the M1 post's evaluation-methodology section (the census-wide quality claim and
+how it's grounded), its honest-limitations section (agreement ≠ accuracy; the
+preview-instrument caveat), and the ops story (the capacity-event diagnosis and the
+retry fix). Build record: DESIGN.md's "agreement-run journal fit" and "census-sample
+stage" entries.*
+
+The session's design work opened with a schema honesty problem. Census-sample scoring
+is judge-vs-production — no gold anywhere — but the eval-run journal hard-required a
+gold file's path and hash as its measuring-stick pin. Stuffing production's identity
+into fields named gold was ruled out on arrival (dishonest naming); the real fork was
+one journal with the reference columns generalized versus a sibling agreement-runs
+table. The sibling table's argument was epistemic hygiene made structural — a
+certification against human truth and two machines agreeing are different kinds of
+claim, and separate tables make them unconfusable. It lost to proportionality: the
+distinction is already recorded twice on every row (the scorer identity and a new
+`reference_kind` column), the metrics child table had half-declared the one-journal
+intent at birth (its schema comment names "per-category judge agreement" as expected
+growth), and every run kind on the horizon answers the same sentence — *this label
+set, scored against that pinned reference, by this procedure*. The accepted cost was
+named in the ruling rather than discovered later: one flat table now quietly holds a
+sum type, its reference columns meaning different things under different kinds. For
+the pool-labels kind, the tamper-evidence property survives by digest — the reference
+hash pins the judge's canonically-serialized labels instead of a file's bytes, so an
+identical re-dispatch verifies identical.
+
+Three dials, one costed proposal: the sample frame is *reviews* (the judge's unit of
+work and the scorer's tally unit — a mention frame would overweight multi-mention
+reviews with no clean review-level reading), n = 1,000 (~$5 at calibration's measured
+$1.21/250; roughly halves gold's F1 interval, and ±0.02 wasn't worth doubling the
+spend), and dispatch stays sync — the Batch API's 50% discount (~$2.50 here) doesn't
+pay for a job-submit/poll/download build at this scale. That lever took a second
+strike later the same evening: the only Google staff response in the capacity-event
+forum thread was an admission that Batch API jobs were stuck in a pending state.
+A cost option that is both not-yet-built and operationally unreliable prices
+differently than a discount.
+
+The build's one structural move: with two dispatch surfaces needed (gold calibration,
+census sample), everything instrument-defining — the model pick and its measured
+generation config, the single-review/temperature-0 riders, both refusal shapes, the
+durable-mark-on-first-attempt rule — was extracted into one shared engine
+(`evals/judge_dispatch`), leaving two thin shells that own only what genuinely
+differs: where reviews come from and how text identity is verified. The sample shell's
+answer to the identity problem improved on gold's: the minted sample
+(`probes/mint_census_sample.py`, seed 20260723, seeded systematic over the census's
+135,259 envelopes) carries no review text at all, only each drawn review's text
+sha256 — the dispatch prompts from the store and refuses to run over a drifted frame.
+
+Then the instrument met the real world. The full dispatch died within minutes on
+503 "high demand" — and kept dying for five hours. The diagnosis chain is the
+report-worthy part, because every hypothesis was retired by a measurement rather
+than a guess: the quota dashboard showed under 1% usage on every axis (not limits);
+a 10-token probe served instantly while a dispatch-shaped 10K-token request hung to
+timeout at the same moment (load-sensitive shedding — heavy requests shed first);
+the bare `gemini-3-flash` id 404'd while the preview id served and self-reported its
+own name (not a retired endpoint — Arda's suggestion to test, worth testing, cleanly
+falsified); the status page stayed green throughout (capacity management on a preview
+model doesn't rise to incident); and a developer-forum thread reported 50–70% failure
+rates on this exact id over one-to-two *weeks* — chronic intermittent degradation,
+not an evening outage. The deprecation page completed the picture: the id has a named
+successor (`gemini-3.6-flash`) but no shutdown date — a deprioritized preview being
+load-shed under demand, exactly the retirement-risk caveat the model-pick entry had
+recorded in the morning, now observed live. Arda drove several of the checks — the
+dashboard read, the endpoint question, a key-restriction notice that probe logic
+ruled unrelated (policy rejects with 403 at the door; we were being shed after
+admission).
+
+The incident bought one permanent improvement. Reading the client's retry
+timestamps against its code showed full-jitter backoff drawing near-zero delays —
+a request could burn all four attempts inside a one-second shed burst, and one
+exhausted request aborts a whole run, wasting a hard-won partial window (one attempt
+harvested 167 reviews before dying exactly that way — run
+`judge-sample-20260723T151117Z-4a4cd931`). The fix was aligned to the provider's own
+guidance rather than invented: Google's docs prescribe bounded exponential backoff
+with jitter and its SDK retries with delays up to 60s, so the client widened from
+4 attempts/1s base to 6 attempts/2s (~30s expected, ~60s worst-case per-request
+patience; committed same evening). The first attempt under the new constants
+survived twenty minutes of shed storm and banked a trickle where its predecessors
+died in seconds — and at ~21:16 local a real window opened and one attempt swept all
+819 remaining reviews in 25 minutes, zero refusals, zero failures, $3.80 (run
+`judge-sample-20260723T181525Z-df6b5591`). Sample dispatch totaled ~$4.60; D2c
+end-to-end, calibration included, ~$5.80.
+
+The number the stage existed to produce: judge-vs-production agreement F1 **0.791
+[0.772–0.810]** across all 1,000 sampled reviews, none dropped (eval run
+`agree-20260723T184154Z-2ce02b01`, scorer `judge-vs-production/1`). Its meaning
+comes from where it sits: production-vs-gold measured 0.766 [0.713–0.811] and
+judge-vs-gold 0.816 [0.773–0.855] on the lab slice, and two-annotator agreement is
+bounded by each annotator's accuracy — so agreement landing *between* the anchors,
+with half the interval width, is the signature of production performing across the
+census about as it did on gold. No quality cliff outside the slice the humans
+labeled: that is the M1 post's load-bearing sentence, and it is an agreement claim,
+not an accuracy claim — the shared-blind-spot caveat from the calibration entry
+carries forward unchanged. The texture all points the same direction: precision
+0.855 vs recall 0.737 (the judge's recall-shape, confirmed at scale), sentiment
+agreement on matches 0.944, the judge's census zero-share 50.3% against gold's
+49.2%, quiet-agreement 96.4% where the judge finds nothing, and the weakest slice
+exactly where you'd expect fuzz — reviews where the judge emits free-form candidate
+aspects (F1 0.758, n=92). One free invariant closed the loop: production's
+zero-share in the scored sample, 0.522, equals the draw manifest's empty-envelope
+share to the third digit — two independent paths to the same quantity.
+
+Figure: the three F1s with their intervals on one axis (production-vs-gold,
+judge-vs-gold, production-vs-judge) — the "agreement lands between the anchors, no
+cliff" visual, essentially the whole argument in one chart.
+
 ## 2026-07-23 — The second annotator passed: +0.050 F1 over production, recall-shaped — and a guard built in the morning paid for itself by noon, at zero spend
 
 *The D2c judge build + calibration session — the execution-and-verdict chapter of the
