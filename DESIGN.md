@@ -954,6 +954,38 @@ runs sit ~1 day apart). **The honest headline**: M1 certifies the production lab
 0.766; the 0.796 is the same configuration under lab batch conditions. Evidence
 regenerates via `probes/census_vs_gold_gap.py`.
 
+**D2b mechanical census audit: the fabricated-quote metric reframed, health without
+thresholds, numeric grounding deferred** (settled 2026-07-23, three rulings). **The
+reframe**: the parse already enforces the verbatim check at *write time* — a
+non-verbatim quote is repaired to null (counted as an `EvidenceRepair`) and the mention
+survives — so the stored pool holds zero fabricated quotes **by construction**, and
+"fabricated-quote rate over the census" decomposes honestly into three numbers: the
+**invariant audit** (every stored span re-checked as a verbatim substring of its
+review: **0 violations over 163,842 spans**, 96.1% of 170,532 mentions carry evidence —
+"zero, verified," not "zero, assumed"; a violation exits nonzero, it means parse or
+storage drifted), the **attempted-fabrication rate** (write-time repair counts from the
+census run manifests: 4,979 repairs ≈ 2.9% of attempted quotes, the model-quality
+diagnostic the stored pool can no longer show because its bad quotes were nulled before
+storage), and the standing spine caveat (verbatim passes a quote read upside-down —
+misattribution stays the human audit). **Ruling 1, homes**: audits stay out of the
+eval-run journal — `eval_runs` means "scored against a measuring stick" and an audit
+has none; `probes/census_health.py` renders `captures/census_health/HEALTH.md`,
+derived-and-regenerable (the TABLE.md pattern); if D3's trend gate later wants audit
+history, its row shape is designed then. **Ruling 2, per-game health carries no
+thresholds**: the table (zero-share, mentions/review, evidence coverage, candidate
+share, top-aspect concentration per game) is for human reading; inventing cutoffs
+before seeing the distribution tunes alarms to nothing — tolerance bands are D3's
+decision. First read: the shape is coherent, not pathological — zero-share spans 23.7%
+(Redfall) to 80.1% (Goat Simulator, meme-review culture; census 51.6% overall vs gold's
+49.8%), evidence coverage sits in a tight 93.1–98.1% band, and the drama games top on
+exactly their drama (The Day Before: `developer_conduct` at 38.1% of mentions).
+**Ruling 3, the numeric-grounding checker is deferred to its first consumer**: its
+input contract (what a numeric claim *is* — structured tuples vs prose to parse) is
+undiscoverable until composed prose exists (M3's composer, or F1's post tooling at a
+stretch); building it now would freeze a guessed seam. Recorded here so D2's metric
+list stays honest: classification agreement (D2a, journaled), fabricated-quote
+(this entry's decomposition), numeric grounding (deferred, with this reason).
+
 ## Scope & non-goals
 
 - In: aspect reports with receipts, narrated live analysis, the event investigator, the
