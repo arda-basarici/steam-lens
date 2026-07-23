@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SteamLens — model-vs-model agreement</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0d0d0d;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: #ffffff;
+    display: flex; justify-content: center;
+    padding: 40px 0;
+  }
+  .card {
+    width: 1120px;
+    background: #1a1a19;
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 16px;
+    padding: 44px 48px 36px;
+  }
+  /* ---------- header ---------- */
+  .eyebrow {
+    font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: #898781; margin-bottom: 10px;
+  }
+  h1 { font-size: 29px; font-weight: 650; letter-spacing: -0.01em; margin-bottom: 10px; }
+  .sub { font-size: 14.5px; line-height: 1.5; color: #c3c2b7; max-width: 900px; }
+  .sub b { color: #ffffff; font-weight: 600; }
+
+  /* ---------- stat tiles ---------- */
+  .tiles {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    margin: 26px 0 8px;
+  }
+  .tile {
+    background: #212120; border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px; padding: 14px 16px 12px;
+  }
+  .tile .label { font-size: 12px; color: #898781; margin-bottom: 4px; }
+  .tile .value { font-size: 30px; font-weight: 600; }
+  .tile .value .ci { font-size: 13px; font-weight: 400; color: #898781; margin-left: 6px; }
+  .tile .note { font-size: 11.5px; color: #898781; line-height: 1.35; margin-top: 4px; }
+
+  /* ---------- legend ---------- */
+  .legend { display: flex; gap: 22px; margin: 20px 0 4px; font-size: 12.5px; color: #c3c2b7; }
+  .key { display: flex; align-items: center; gap: 7px; }
+  .key .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .key .bar { width: 18px; height: 6px; border-radius: 3px; }
+
+  /* ---------- chart ---------- */
+  .colheads { display: flex; font-size: 12px; color: #898781; margin-top: 14px; }
+  .chart-rows { border-top: 1px solid #2c2c2a; }
+  .row { display: flex; align-items: stretch; }
+  .row .aspect {
+    width: 158px; flex: none; display: flex; align-items: center; justify-content: flex-end;
+    padding-right: 16px; font-size: 13.5px; color: #ffffff;
+  }
+  .cell { position: relative; flex: none; }
+  .f1cell  { width: 470px; }
+  .gap1 { width: 34px; flex: none; }
+  .cntcell { width: 300px; }
+  .valcell {
+    width: 74px; flex: none; display: flex; align-items: center; justify-content: flex-end;
+    font-size: 13.5px; font-variant-numeric: tabular-nums; color: #c3c2b7;
+  }
+  .gridline { position: absolute; top: 0; bottom: 0; width: 1px; background: #2c2c2a; }
+  .refline  { position: absolute; top: 0; bottom: 0; width: 1px; background: #52514e; }
+  .ci-bar {
+    position: absolute; top: 50%; height: 6px; transform: translateY(-50%);
+    border-radius: 3px; background: rgba(25,158,112,0.32);
+  }
+  .f1dot {
+    position: absolute; top: 50%; width: 11px; height: 11px; transform: translate(-50%,-50%);
+    border-radius: 50%; background: #199e70; box-shadow: 0 0 0 2px #1a1a19;
+  }
+  .link {
+    position: absolute; top: 50%; height: 2px; transform: translateY(-50%);
+    background: #383835;
+  }
+  .cdot {
+    position: absolute; top: 50%; width: 9px; height: 9px; transform: translate(-50%,-50%);
+    border-radius: 50%; box-shadow: 0 0 0 2px #1a1a19;
+  }
+  .cdot.prod  { background: #3987e5; }
+  .cdot.judge { background: #d95926; }
+  .cnum {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    font-size: 11px; color: #898781; font-variant-numeric: tabular-nums;
+  }
+  .anno {
+    font-size: 12px; color: #898781; padding: 0 0 10px 174px; margin-top: -4px;
+  }
+  .cdot.both-outer { background: #3987e5; width: 13px; height: 13px; }
+  .cdot.both-inner { background: #d95926; width: 6px; height: 6px; box-shadow: none; }
+
+  /* ---------- axes ---------- */
+  .axisrow { display: flex; font-size: 11.5px; color: #898781; }
+  .axisrow .cell { height: 20px; }
+  .axis-tick { position: absolute; transform: translateX(-50%); top: 3px; font-variant-numeric: tabular-nums; }
+  .axis-note { position: absolute; top: 3px; white-space: nowrap; }
+  .reflabel {
+    position: absolute; transform: translateX(-50%); top: 0; font-size: 11px;
+    color: #c3c2b7; white-space: nowrap;
+  }
+  .toprow .cell { height: 18px; }
+
+  /* ---------- footer ---------- */
+  .footer {
+    border-top: 1px solid #2c2c2a; margin-top: 18px; padding-top: 14px;
+    font-size: 12px; color: #898781; line-height: 1.55;
+    display: flex; justify-content: space-between; gap: 40px;
+  }
+  .footer .brand { flex: none; text-align: right; color: #52514e; }
+  .footer .brand b { color: #898781; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="eyebrow">SteamLens · aspect extraction · model-vs-model agreement</div>
+  <h1>Two models read the same 1,000 Steam reviews. Where do they agree?</h1>
+  <div class="sub">
+    <b>DeepSeek v4-flash</b> labeled all 135,259 reviews in the SteamLens census.
+    A separately calibrated <b>Gemini Flash judge</b> re-read a random 1,000-review sample —
+    independently, under the same 51-aspect codebook. Per aspect: how often the two
+    find the same thing in a review (agreement F1), and how many reviews each model
+    flags for that aspect.
+  </div>
+
+  <div class="tiles">
+    <div class="tile">
+      <div class="label">Overall agreement F1</div>
+      <div class="value">0.791<span class="ci">[0.772–0.810]</span></div>
+      <div class="note">across all 1,000 reviews, 51 aspects</div>
+    </div>
+    <div class="tile">
+      <div class="label">Precision</div>
+      <div class="value">0.855</div>
+      <div class="note">of what DeepSeek finds, the judge corroborates</div>
+    </div>
+    <div class="tile">
+      <div class="label">Recall</div>
+      <div class="value">0.737</div>
+      <div class="note">of what the judge finds, DeepSeek also found</div>
+    </div>
+    <div class="tile">
+      <div class="label">Sentiment agreement</div>
+      <div class="value">0.944</div>
+      <div class="note">same positive / negative / mixed call on matched mentions</div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span class="key"><span class="dot" style="background:#199e70"></span>agreement F1 <span style="color:#898781">(95% CI)</span></span>
+    <span class="key"><span class="dot" style="background:#3987e5"></span>reviews where DeepSeek flags it</span>
+    <span class="key"><span class="dot" style="background:#d95926"></span>reviews where the judge flags it</span>
+    <span class="key"><span style="position:relative;width:13px;height:13px;display:inline-block"><span class="dot" style="background:#3987e5;width:13px;height:13px;position:absolute"></span><span class="dot" style="background:#d95926;width:6px;height:6px;position:absolute;left:3.5px;top:3.5px"></span></span>both ≈ the same count</span>
+  </div>
+
+  <div id="chart"></div>
+
+  <div class="footer">
+    <div>
+      1,000-review sample from the 135,259-review census (49 games) · both models label independently
+      under the same codebook (ontology v2) · aspects shown: judge n ≥ 30 (20 of 51) · error bars:
+      95% bootstrap CIs, 10,000 resamples · eval run agree-20260723T203011Z.<br>
+      Agreement ≠ accuracy — high agreement means the two read reviews the same way;
+      where they split, human adjudication decides who is right.
+    </div>
+    <div class="brand"><b>SteamLens</b><br>2026-07-23</div>
+  </div>
+</div>
+
+<script>
+  // [display name, f1, ci_low, ci_high, judge_n, prod_n], sorted by F1 desc.
+  // Source: eval run agree-20260723T203011Z-78258f68 (F1 + CI + judge_n) and
+  // probes/agreement_deep_read.py (prod_n).
+  const DATA = [
+    ["music",             0.974, 0.933, 1.000,  39,  39],
+    ["story",             0.912, 0.871, 0.946, 117, 100],
+    ["exploration",       0.885, 0.786, 0.954,  33,  28],
+    ["performance",       0.882, 0.794, 0.959,  34,  34],
+    ["combat",            0.870, 0.791, 0.939,  48,  44],
+    ["game length",       0.870, 0.781, 0.946,  35,  34],
+    ["developer conduct", 0.854, 0.771, 0.917,  53,  50],
+    ["bugs",              0.852, 0.778, 0.918,  60,  55],
+    ["price & value",     0.846, 0.763, 0.909,  56,  48],
+    ["world",             0.825, 0.730, 0.907,  42,  38],
+    ["graphics",          0.818, 0.700, 0.901,  32,  34],
+    ["multiplayer",       0.806, 0.679, 0.896,  32,  30],
+    ["replayability",     0.750, 0.621, 0.857,  31,  33],
+    ["characters",        0.745, 0.644, 0.832,  58,  36],
+    ["content amount",    0.742, 0.629, 0.827,  51,  46],
+    ["addictiveness",     0.733, 0.593, 0.848,  34,  26],
+    ["difficulty",        0.722, 0.607, 0.819,  54,  43],
+    ["gameplay",          0.706, 0.632, 0.774,  94, 107],
+    ["atmosphere",        0.667, 0.526, 0.783,  35,  28],
+    ["updates",           0.611, 0.483, 0.718,  64,  31],
+  ];
+  const OVERALL = 0.791;
+  const F1_MIN = 0.45, F1_MAX = 1.0;
+  const CNT_MAX = 120;
+  const ROW_H = 40;
+  // rows that get count numbers beside the dots (the gap stories only)
+  const LABELED = { "updates": 1, "characters": 1, "gameplay": 1 };
+  const ANNOTATIONS = {
+    "music":   "near-perfect: 38 of 39 mentions matched, every sentiment call agreed",
+    "updates": "the sharpest split — the judge flags game-update talk twice as often as DeepSeek",
+  };
+
+  const fx = v => ((v - F1_MIN) / (F1_MAX - F1_MIN) * 100).toFixed(2) + "%";
+  const cx = v => (v / CNT_MAX * 100).toFixed(2) + "%";
+
+  function gridlines(ticks, toPct, cls) {
+    return ticks.map(t => `<div class="${cls}" style="left:${toPct(t)}"></div>`).join("");
+  }
+
+  const F1_TICKS = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
+  const CNT_TICKS = [0, 40, 80, 120];
+
+  // A dumbbell whose dots would overlap collapses to a bullseye (blue under,
+  // orange inner) — otherwise the top dot's surface ring erases the other model.
+  const CNT_TRACK_PX = 300;
+  function dumbbell(jn, pn) {
+    const gapPx = Math.abs(jn - pn) / CNT_MAX * CNT_TRACK_PX;
+    if (gapPx < 8) {
+      const mid = (jn + pn) / 2;
+      return `<div class="cdot both-outer" style="left:${cx(mid)}"></div>
+              <div class="cdot both-inner" style="left:${cx(mid)}"></div>`;
+    }
+    const lo = Math.min(jn, pn), hi = Math.max(jn, pn);
+    return `<div class="link" style="left:${cx(lo)};width:calc(${cx(hi)} - ${cx(lo)})"></div>
+            <div class="cdot prod" style="left:${cx(pn)}"></div>
+            <div class="cdot judge" style="left:${cx(jn)}"></div>`;
+  }
+
+  let html = "";
+
+  // reference-line label row
+  html += `<div class="row toprow">
+    <div class="aspect"></div>
+    <div class="cell f1cell"><div class="reflabel" style="left:${fx(OVERALL)}">overall 0.791</div></div>
+    <div class="gap1"></div><div class="cell cntcell"></div><div class="valcell"></div>
+  </div>`;
+
+  // column heads
+  html += `<div class="colheads row" style="height:22px">
+    <div class="aspect" style="font-size:12px;color:#898781">aspect</div>
+    <div class="cell f1cell" style="display:flex;align-items:center">agreement between the two (F1)<div class="refline" style="left:${fx(OVERALL)}"></div></div>
+    <div class="gap1"></div>
+    <div class="cell cntcell" style="display:flex;align-items:center">reviews flagged per model (of 1,000)</div>
+    <div class="valcell" style="font-size:12px;color:#898781">F1</div>
+  </div>`;
+
+  html += `<div class="chart-rows">`;
+  for (const [name, f1, lo, hi, jn, pn] of DATA) {
+    const loDot = Math.min(jn, pn), hiDot = Math.max(jn, pn);
+    let counts = "";
+    if (LABELED[name]) {
+      counts += `<div class="cnum" style="right:calc(100% - ${cx(loDot)} + 10px)">${loDot}</div>`;
+      counts += `<div class="cnum" style="left:calc(${cx(hiDot)} + 10px)">${hiDot}</div>`;
+    }
+    html += `<div class="row" style="height:${ROW_H}px">
+      <div class="aspect">${name}</div>
+      <div class="cell f1cell">
+        ${gridlines(F1_TICKS, fx, "gridline")}
+        <div class="refline" style="left:${fx(OVERALL)}"></div>
+        <div class="ci-bar" style="left:${fx(lo)};width:calc(${fx(hi)} - ${fx(lo)})"></div>
+        <div class="f1dot" style="left:${fx(f1)}"></div>
+      </div>
+      <div class="gap1"></div>
+      <div class="cell cntcell">
+        ${gridlines(CNT_TICKS, cx, "gridline")}
+        ${dumbbell(jn, pn)}
+        ${counts}
+      </div>
+      <div class="valcell">${f1.toFixed(3)}</div>
+    </div>`;
+    if (ANNOTATIONS[name]) {
+      html += `<div class="anno">${ANNOTATIONS[name]}</div>`;
+    }
+  }
+  html += `</div>`;
+
+  // bottom axis
+  html += `<div class="axisrow row">
+    <div class="aspect"></div>
+    <div class="cell f1cell" style="border-top:1px solid #383835">
+      ${F1_TICKS.map(t => `<div class="axis-tick" style="left:${fx(t)}">${t.toFixed(1)}</div>`).join("")}
+    </div>
+    <div class="gap1"></div>
+    <div class="cell cntcell" style="border-top:1px solid #383835">
+      ${CNT_TICKS.map(t => `<div class="axis-tick" style="left:${cx(t)}">${t}</div>`).join("")}
+    </div>
+    <div class="valcell"></div>
+  </div>`;
+
+  document.getElementById("chart").innerHTML = html;
+</script>
+</body>
+</html>
