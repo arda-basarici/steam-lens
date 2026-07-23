@@ -112,9 +112,47 @@ aspects (F1 0.758, n=92). One free invariant closed the loop: production's
 zero-share in the scored sample, 0.522, equals the draw manifest's empty-envelope
 share to the third digit — two independent paths to the same quantity.
 
-Figure: the three F1s with their intervals on one axis (production-vs-gold,
-judge-vs-gold, production-vs-judge) — the "agreement lands between the anchors, no
-cliff" visual, essentially the whole argument in one chart.
+The evening closed with the read-through the headline can't show — a scratchpad
+deep-read over the same envelopes (session 2026-07-23; journaling per-aspect rows
+under the design's `judge_agreement/<aspect>` naming is a registered follow-up, so
+every number here is a point estimate without an interval — exploration, not
+certification). Agreement turned out aspect-shaped, spanning 0.61 to 0.97: the
+concrete, technical aspects agree like instruments should (music 0.974, story 0.912,
+performance 0.882, bugs 0.852), while the soft, meta aspects carry the recall gap —
+`updates` at 0.611 is the sharpest number in the table (the judge found update-talk
+in 64 reviews, production in 31: 35 misses), with `atmosphere` 0.667 and
+`characters` 0.745 in the same band. `gameplay` (0.706) is the one aspect wrong in
+*both* directions (36 false positives, 23 misses) — a boundary-drawing disagreement,
+visible in exemplars where production reads exploration-plus-atmosphere and the
+judge reads world-plus-gameplay off the same sentences. Sentiment on matched aspects
+holds a strong diagonal (688 positive–positive, 334 negative–negative, single-digit
+leakage), with `mixed` the one hard class: the judge's mixed matched as mixed only
+20 of 39 times — the same difficulty gold adjudication fought. And the per-game
+spread, 0.632 (Darkest Dungeon) to 0.889 (Papers, Please), is the per-aspect finding
+seen twice: story-driven games top the table (What Remains of Edith Finch 0.882,
+Baldur's Gate 3 0.885) because `story` agrees at 0.91, while sim/management and
+live-service games sit low (Tavern Master 0.640, Overwatch 0.642, Starfield 0.644 at
+a solid judge-side n of 47) because their mention mix is dominated by exactly the
+weak aspects.
+
+The exemplar pass surfaced one genuinely new failure mode: Steam's checklist-template
+reviews empty production out. The largest single disagreement (No Man's Sky review
+`225371476`, the "---{ Graphics }--- ☐/☑" checkbox format) drew an *empty* production
+envelope while the judge extracted eight aspects — the template format defeats
+production's reading entirely, a recall failure class invisible until a second
+annotator read the same text. Census-wide prevalence is cheaply checkable (the format
+has a distinctive signature) and is parked in FIXLOG. The honest frame for all of
+this stays the entry's own caveat: agreement is not accuracy, and the judge is the
+recall-shaped instrument — its extra mentions are not automatically correct, so
+whether `updates` at 0.611 is production missing or the judge over-reading is a
+human-adjudication question. The top-disagreement exemplars are the ready-made seed
+for exactly that adjudication track.
+
+Figure candidates: the three F1s with their intervals on one axis
+(production-vs-gold, judge-vs-gold, production-vs-judge) — the "agreement lands
+between the anchors, no cliff" visual, essentially the whole argument in one chart;
+and the per-aspect agreement dumbbell (judge-side n vs production-side n per aspect,
+sorted by gap) — the `updates` gap and the concrete-vs-soft split in one look.
 
 ## 2026-07-23 — The second annotator passed: +0.050 F1 over production, recall-shaped — and a guard built in the morning paid for itself by noon, at zero spend
 
