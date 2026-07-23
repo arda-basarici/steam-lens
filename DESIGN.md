@@ -986,6 +986,85 @@ stretch); building it now would freeze a guessed seam. Recorded here so D2's met
 list stays honest: classification agreement (D2a, journaled), fabricated-quote
 (this entry's decomposition), numeric grounding (deferred, with this reason).
 
+**The misattribution audit sample: the draw** (minted 2026-07-23 — the human half
+D2b's reframe reserved). Unit is the **claim** — one evidence-carrying mention
+(aspect, sentiment, verbatim quote) in its review; the metric is the share of claims
+whose verbatim-true quote is attached to the wrong aspect or to a sentiment it doesn't
+carry. Draw: a **seeded systematic pass over the frame sorted by (game, aspect,
+sentiment)** — all 163,842 evidence-carrying census mentions, every k-th row from a
+random start — which is implicit proportional stratification across all three
+dimensions at once: self-weighting, so the audited rate estimates the population rate
+with no reweighting. Balanced over-sampling of rare strata rejected: it buys
+per-stratum reads n=100 cannot resolve and costs the clean headline number. 100
+primary + 10 ordered reserves; a seeded shuffle assigns the split so reserves aren't
+biased toward the sort-order tail. Verdicts are **two independent checks** per claim —
+`aspect_supported` / `sentiment_supported` (yes/no/unclear) — so the rate decomposes
+into misattribution and sentiment-given-quote. Artifacts in
+`eval/audits/misattribution/` (SHEET.md, the audit sheet with the quote bracketed in
+its full review · sample.jsonl · manifest.json with seed/rule/pool/strata); minted by
+`probes/mint_misattribution_sample.py`; the verdict scorer (rate + CI, journaled as an
+eval run) builds after Arda's audit, as its own step.
+
+**D2c judge design: a second annotator, not a verifier** (settled 2026-07-23,
+four-fork design discussion; rulings Arda's). **Fork 1, task shape — independent
+re-labeler.** The judge never sees production's answer: it labels the review fresh
+under the same frozen artifacts (`classify-v1`, the v2 codebook), and agreement is
+computed mechanically afterwards. Verifier-shaped judging rejected: showing the
+prediction anchors the judge toward endorsing it — leniency in exactly the direction a
+self-certification can't afford — and an "anything missed?" clause is a weak
+substitute for actually running the extraction task. The re-labeler also makes
+infrastructure reuse total: a judge run is an envelope set under its own versions
+triple (`gemini-flash / classify-v1 / v2` first, per the §8 eval-chain extension), so
+calibration (judge-vs-gold) and the census-sample read (judge-vs-production) are the
+existing certify scorer pointed at different pairs. Riders: **single-review dispatch,
+temperature 0** — batch composition measurably moved production's labels (the −0.033
+census-vs-lab delta), and the instrument must not inherit a variable it exists to
+measure. Standing caveat: two models can share blind spots, so agreement is an
+optimistic bound — mitigated by the cross-family pick, backstopped by the human
+holdout. A verification-shaped pass stays available later as an adjudication
+assistant; it is not the judge. **Fork 2, calibration protocol.** The judge labels all
+250 gold reviews (CS2 included — the judge reads review text; the 245 intersection was
+pool scope), scored by the frozen scorer: overall precision/recall/F1 +
+sentiment-on-matches — the same metrics production was certified on, so the two
+instruments compare directly — plus per-item-type slices gold's n can carry
+(zero-mention, multi-mention, candidate-emitting); per-aspect agreement (~7 gold
+mentions per aspect) waits for the census sample, where the journal's
+`judge_agreement/<aspect>` naming finally gets its n. **The decision rule,
+pre-registered** so the number can't be rationalized after the fact, reads the paired
+bootstrap Δ(judge − production) on shared gold: **pass** — significantly above
+production's 0.766 → the judge is a valid quality reader and census-sample verdicts
+are reference-grade; **marginal** — indistinguishable → the judge remains a
+disagreement flagger (two independent annotators agreeing correlates with
+correctness), and the sample reports agreement rates, never "judge-corrected quality";
+**fail** — significantly below → reported as a finding, certification stands on the
+mechanical layers. Frontier escalation (~$25, sample-only) is proposed to Arda only
+from marginal/fail, never auto-fired. **Fork 3, refusal routing** — resolves the
+parked `llm_client` ambiguity, both readings. Routing labeler-refused reviews to the
+judge as a replacement labeler: **rejected** — the pool's identity is one annotator's
+triple, a substitute label is a different triple that can't quietly join the displayed
+numbers, and patching would launder the instrument-limitation footnote (the
+Chinese-hosted annotator's content policy) out of the record; the one refused review
+is human-readable at zero cost. The judge's own refusals ride the existing
+typed-refusal mechanism unchanged (durable marks under the judge's triple); scoring
+computes agreement over the mutually-labeled intersection with refusal counts
+disclosed — an instrument that declines to read didn't read wrong — via the run row's
+existing `n_gold_reviews` vs `n_scored_reviews`. **Fork 4, the self-grading arm —
+reframed, registered, deferred to F1.** Under a re-labeler judge, "v4-flash judging
+its own labels" splits: the *consistency* reading (re-labeling single-review) is D2d's
+batch-composition isolation and lives there; the distinctly *self-grading* remainder
+is a verifier-shaped bias demonstration — the 2×2 where each of v4-flash and Gemini
+flash verifies its own and the other's gold labels, endorsement rates scored against
+gold, self-preference = endorsing your own beyond what correctness explains (one cell
+alone can't separate self-preference from plain leniency). Registered off the critical
+path (~$1 of verifier calls); F1 decides with a cost proposal whether the post wants
+the demonstration — the empirical receipt for the eval chain's no-self-grading stance.
+**Flagged for the build, not decided here**: the journal's annotator-vs-annotator fit
+(`eval_runs` hard-requires `gold_path`/`gold_sha256`, but the census-sample read
+scores judge-vs-production with no gold anywhere — stuffing production labels into a
+field named gold would be dishonest naming; likely a small step-3 generalization or a
+sibling table) · the `origin` value judge envelopes carry · whether the census-sample
+draw reuses the misattribution draw machinery.
+
 ## Scope & non-goals
 
 - In: aspect reports with receipts, narrated live analysis, the event investigator, the
