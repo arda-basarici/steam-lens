@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SteamLens — per-game agreement, post variant</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0d0d0d;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: #ffffff;
+  }
+  .card {
+    width: 1200px; height: 675px;
+    background: #1a1a19;
+    padding: 34px 48px 22px;
+    display: flex; flex-direction: column;
+  }
+
+  /* ---------- header: headline + model chips ---------- */
+  .eyebrow {
+    font-size: 12.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: #898781; margin-bottom: 10px;
+  }
+  .headrow { display: flex; align-items: flex-start; justify-content: space-between; gap: 40px; }
+  h1 { font-size: 31px; font-weight: 650; letter-spacing: -0.01em; line-height: 1.2; max-width: 620px; }
+  .matchup { flex: none; text-align: right; padding-top: 4px; max-width: 420px; }
+  .chips { display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    border-radius: 999px; padding: 7px 14px;
+    font-size: 14.5px; font-weight: 600;
+  }
+  .chip .dot { width: 9px; height: 9px; border-radius: 50%; }
+  .chip.deepseek { background: rgba(57,135,229,0.16); border: 1px solid rgba(57,135,229,0.55); }
+  .chip.deepseek .dot { background: #3987e5; }
+  .chip.gemini { background: rgba(217,89,38,0.14); border: 1px solid rgba(217,89,38,0.55); }
+  .chip.gemini .dot { background: #d95926; }
+  .vs { font-size: 13px; color: #898781; font-weight: 600; }
+  .matchup .roles { font-size: 12.5px; color: #898781; margin-top: 8px; line-height: 1.45; }
+
+  /* ---------- body: hero left, bars right ---------- */
+  .main { display: flex; gap: 44px; flex: 1; min-height: 0; margin-top: 12px; }
+  .left { width: 300px; flex: none; display: flex; flex-direction: column; justify-content: center; }
+  .hero .num {
+    font-size: 58px; font-weight: 650; letter-spacing: -0.02em; line-height: 1;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .hero .num .arrow { color: #52514e; font-weight: 400; }
+  .hero .label { font-size: 15px; color: #c3c2b7; margin-top: 10px; line-height: 1.5; }
+  .second { margin-top: 24px; font-size: 14.5px; color: #c3c2b7; line-height: 1.55; }
+  .second b { color: #ffffff; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .notes { margin-top: 22px; font-size: 12.5px; color: #898781; line-height: 1.6; }
+
+  .right { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .row { display: flex; align-items: center; height: 36px; }
+  .row .aspect {
+    width: 228px; flex: none; text-align: right; padding-right: 16px;
+    font-size: 15px; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .track { position: relative; flex: 1; height: 100%; }
+  .gridline { position: absolute; top: 0; bottom: 0; width: 1px; background: #262624; }
+  .bar {
+    position: absolute; top: 50%; height: 17px; transform: translateY(-50%);
+    background: #199e70; border-radius: 0 4px 4px 0; left: 0;
+  }
+  .ci {
+    position: absolute; top: 50%; height: 2px; transform: translateY(-50%);
+    background: rgba(255,255,255,0.55);
+  }
+  .mixtick {
+    position: absolute; top: 50%; width: 3px; height: 23px; transform: translate(-50%,-50%);
+    background: #c3c2b7; border-radius: 1.5px; box-shadow: 0 0 0 2px #1a1a19;
+  }
+  .val {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    font-size: 15px; font-weight: 600; color: #ffffff; font-variant-numeric: tabular-nums;
+  }
+  .divider { display: flex; align-items: center; height: 24px; }
+  .divider .aspect { width: 228px; flex: none; }
+  .divider .track { display: flex; align-items: center; }
+  .divider .text { font-size: 13px; color: #898781; background: #1a1a19; padding: 0 8px; z-index: 1; }
+  .keyrow { display: flex; height: 20px; font-size: 12.5px; color: #898781; }
+  .keyrow .aspect { width: 228px; flex: none; }
+  .keyrow .track { display: flex; align-items: center; gap: 18px; }
+  .key { display: inline-flex; align-items: center; gap: 7px; }
+  .key .swatch-bar { width: 18px; height: 8px; border-radius: 0 3px 3px 0; background: #199e70; }
+  .key .swatch-tick { width: 3px; height: 14px; border-radius: 1.5px; background: #c3c2b7; }
+  .axisrow { display: flex; height: 18px; font-size: 12.5px; color: #898781; }
+  .axisrow .aspect { width: 228px; flex: none; }
+  .axisrow .track { border-top: 1px solid #383835; }
+  .axis-tick { position: absolute; transform: translateX(-50%); top: 5px; font-variant-numeric: tabular-nums; }
+
+  /* ---------- footer ---------- */
+  .footer {
+    border-top: 1px solid #2c2c2a; margin-top: 18px; padding-top: 11px;
+    font-size: 12.5px; color: #898781; line-height: 1.5;
+    display: flex; justify-content: space-between; gap: 40px; flex: none;
+  }
+  .footer .brand { flex: none; text-align: right; color: #52514e; }
+  .footer .brand b { color: #898781; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="eyebrow">SteamLens · aspect extraction</div>
+  <div class="headrow">
+    <h1>Same two models, same codebook. Agreement depends on the game.</h1>
+    <div class="matchup">
+      <div class="chips">
+        <span class="chip deepseek"><span class="dot"></span>DeepSeek v4-flash</span>
+        <span class="vs">×</span>
+        <span class="chip gemini"><span class="dot"></span>Gemini Flash</span>
+      </div>
+      <div class="roles">the same 1,000-review sample as the per-aspect chart &mdash; here grouped by the 49 games the reviews came from</div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="left">
+      <div class="hero">
+        <div class="num">0.63 <span class="arrow">&rarr;</span> 0.89</div>
+        <div class="label">per-game agreement F1 across the 23 games with enough judged mentions</div>
+      </div>
+      <div class="second">
+        Part of the spread is what each game's reviews talk about: <b>story</b> agrees
+        at 0.91, <b>updates</b> at 0.61, and every game inherits its own mix. But the
+        mix alone predicts only the narrow band of ticks. The rest of the spread looks
+        like communities writing differently.
+      </div>
+      <div class="notes">
+        Story-driven games sit above what their aspect mix predicts; the sim &amp;
+        live-service cluster sits below it. Whiskers are wide on small games &mdash;
+        neighboring ranks are within noise, the overall spread is not.
+      </div>
+    </div>
+    <div class="right">
+      <div id="chart"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div>
+      judge-vs-production agreement per game &middot; 1,000-review sample from the 135,259-review census &middot;
+      whiskers: 95% bootstrap CIs, 10,000 resamples &middot; shown: judge n &ge; 15 mentions (23 of 49 games) &middot;
+      probes/per_game_agreement.py over run agree-20260723T203011Z.<br>
+      Agreement &ne; accuracy &mdash; where the two split, only human adjudication decides who is right.
+    </div>
+    <div class="brand"><b>SteamLens</b><br>2026-07-24</div>
+  </div>
+</div>
+
+<script>
+  // Top 5 and bottom 5 of the 23 games with judge_n >= 15, from
+  // probes/per_game_agreement.py (seed 20260724) over run
+  // agree-20260723T203011Z-78258f68: [name, f1, ci_lo, ci_hi, mix_expected]
+  const TOP = [
+    ["Papers, Please",              0.889, 0.806, 0.954, 0.790],
+    ["Baldur's Gate 3",             0.885, 0.771, 0.946, 0.793],
+    ["What Remains of Edith Finch", 0.882, 0.795, 0.963, 0.803],
+    ["Mass Effect Legendary Ed.",   0.867, 0.791, 0.934, 0.799],
+    ["Stardew Valley",              0.852, 0.755, 0.950, 0.796],
+  ];
+  const BOTTOM = [
+    ["Warsim: The Realm of Aslona", 0.688, 0.593, 0.766, 0.777],
+    ["Starfield",                   0.644, 0.506, 0.722, 0.771],
+    ["Overwatch",                   0.642, 0.440, 0.800, 0.775],
+    ["Tavern Master",               0.640, 0.414, 0.778, 0.733],
+    ["Darkest Dungeon",             0.632, 0.381, 0.723, 0.751],
+  ];
+  const TICKS = [0, 0.2, 0.4, 0.6, 0.8, 1.0];
+
+  const fx = v => (v * 100).toFixed(2) + "%";
+  const grid = () => TICKS.slice(1).map(t => `<div class="gridline" style="left:${fx(t)}"></div>`).join("");
+
+  function rows(data) {
+    return data.map(([name, f1, lo, hi, exp]) => `<div class="row">
+        <div class="aspect">${name}</div>
+        <div class="track">
+          ${grid()}
+          <div class="bar" style="width:${fx(f1)}"></div>
+          <div class="ci" style="left:${fx(lo)};width:calc(${fx(hi)} - ${fx(lo)})"></div>
+          <div class="mixtick" style="left:${fx(exp)}"></div>
+          <div class="val" style="left:calc(${fx(Math.max(hi, exp))} + 12px)">${f1.toFixed(3)}</div>
+        </div>
+      </div>`).join("");
+  }
+
+  let html = "";
+  html += `<div class="keyrow">
+    <div class="aspect"></div>
+    <div class="track">
+      <span class="key"><span class="swatch-bar"></span>agreement F1</span>
+      <span class="key"><span class="swatch-tick"></span>what the game's aspect mix alone predicts</span>
+    </div>
+  </div>`;
+  html += rows(TOP);
+  html += `<div class="divider">
+    <div class="aspect"></div>
+    <div class="track" style="display:flex;align-items:center;justify-content:center">${grid()}<span class="text">&middot;&nbsp;&middot;&nbsp;&middot;&nbsp; 13 more games between 0.70 and 0.84 &nbsp;&middot;&nbsp;&middot;&nbsp;&middot;</span></div>
+  </div>`;
+  html += rows(BOTTOM);
+  html += `<div class="axisrow">
+    <div class="aspect"></div>
+    <div class="track">${TICKS.map(t => `<div class="axis-tick" style="left:${fx(t)}">${t === 0 ? "0" : t.toFixed(1)}</div>`).join("")}</div>
+  </div>`;
+
+  document.getElementById("chart").innerHTML = html;
+</script>
+</body>
+</html>

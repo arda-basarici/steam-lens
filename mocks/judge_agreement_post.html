@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SteamLens — judge agreement, post variant</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0d0d0d;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: #ffffff;
+  }
+  .card {
+    width: 1200px; height: 675px;
+    background: #1a1a19;
+    padding: 40px 48px 26px;
+    display: flex; flex-direction: column;
+  }
+
+  /* ---------- header: headline + model chips ---------- */
+  .eyebrow {
+    font-size: 12.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: #898781; margin-bottom: 10px;
+  }
+  .headrow { display: flex; align-items: flex-start; justify-content: space-between; gap: 40px; }
+  h1 { font-size: 31px; font-weight: 650; letter-spacing: -0.01em; line-height: 1.2; max-width: 640px; }
+  .matchup { flex: none; text-align: right; padding-top: 4px; max-width: 420px; }
+  .chips { display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    border-radius: 999px; padding: 7px 14px;
+    font-size: 14.5px; font-weight: 600;
+  }
+  .chip .dot { width: 9px; height: 9px; border-radius: 50%; }
+  .chip.deepseek { background: rgba(57,135,229,0.16); border: 1px solid rgba(57,135,229,0.55); }
+  .chip.deepseek .dot { background: #3987e5; }
+  .chip.gemini { background: rgba(217,89,38,0.14); border: 1px solid rgba(217,89,38,0.55); }
+  .chip.gemini .dot { background: #d95926; }
+  .vs { font-size: 13px; color: #898781; font-weight: 600; }
+  .matchup .roles { font-size: 12.5px; color: #898781; margin-top: 8px; line-height: 1.45; }
+
+  /* ---------- body: hero left, bars right ---------- */
+  .main { display: flex; gap: 52px; flex: 1; min-height: 0; margin-top: 22px; }
+  .left { width: 330px; flex: none; display: flex; flex-direction: column; justify-content: center; }
+  .hero .num {
+    font-size: 84px; font-weight: 650; letter-spacing: -0.02em; line-height: 1;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .hero .num .heroci { font-size: 16px; font-weight: 400; color: #898781; margin-left: 8px; }
+  .hero .label { font-size: 15px; color: #c3c2b7; margin-top: 10px; line-height: 1.5; }
+  .second { margin-top: 30px; font-size: 15px; color: #c3c2b7; line-height: 1.55; }
+  .second b { color: #ffffff; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .notes { margin-top: 26px; font-size: 12.5px; color: #898781; line-height: 1.6; }
+  .notes b { color: #c3c2b7; font-weight: 600; }
+
+  .right { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .row { display: flex; align-items: center; height: 42px; }
+  .row .aspect {
+    width: 130px; flex: none; text-align: right; padding-right: 16px;
+    font-size: 16px; color: #ffffff;
+  }
+  .track { position: relative; flex: 1; height: 100%; }
+  .gridline { position: absolute; top: 0; bottom: 0; width: 1px; background: #262624; }
+  .refline  { position: absolute; top: 0; bottom: 0; width: 1px; background: #52514e; }
+  .bar {
+    position: absolute; top: 50%; height: 18px; transform: translateY(-50%);
+    background: #199e70; border-radius: 0 4px 4px 0; left: 0;
+  }
+  .ci {
+    position: absolute; top: 50%; height: 2px; transform: translateY(-50%);
+    background: rgba(255,255,255,0.55);
+  }
+  .val {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    font-size: 16px; font-weight: 600; color: #ffffff; font-variant-numeric: tabular-nums;
+  }
+  .anno {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    font-size: 12.5px; color: #898781; white-space: nowrap;
+  }
+  .divider { display: flex; align-items: center; height: 32px; }
+  .divider .aspect { width: 130px; flex: none; }
+  .divider .track { display: flex; align-items: center; }
+  .divider .text { font-size: 13px; color: #898781; background: #1a1a19; padding: 0 8px; z-index: 1; }
+  .reflabel {
+    position: absolute; margin-left: 7px; top: 0; font-size: 12.5px;
+    color: #c3c2b7; white-space: nowrap;
+  }
+  .headspace { position: relative; height: 18px; display: flex; }
+  .headspace .aspect { width: 130px; flex: none; }
+  .headspace .track { position: relative; flex: 1; }
+  .axisrow { display: flex; height: 20px; font-size: 12.5px; color: #898781; }
+  .axisrow .aspect { width: 130px; flex: none; }
+  .axisrow .track { border-top: 1px solid #383835; }
+  .axis-tick { position: absolute; transform: translateX(-50%); top: 5px; font-variant-numeric: tabular-nums; }
+
+  /* ---------- footer ---------- */
+  .footer {
+    border-top: 1px solid #2c2c2a; margin-top: 18px; padding-top: 11px;
+    font-size: 12.5px; color: #898781; line-height: 1.5;
+    display: flex; justify-content: space-between; gap: 40px; flex: none;
+  }
+  .footer .brand { flex: none; text-align: right; color: #52514e; }
+  .footer .brand b { color: #898781; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="eyebrow">SteamLens · aspect extraction</div>
+  <div class="headrow">
+    <h1>Two AI models read the same 1,000 Steam reviews. Where do they agree?</h1>
+    <div class="matchup">
+      <div class="chips">
+        <span class="chip deepseek"><span class="dot"></span>DeepSeek v4-flash</span>
+        <span class="vs">×</span>
+        <span class="chip gemini"><span class="dot"></span>Gemini Flash</span>
+      </div>
+      <div class="roles">DeepSeek labeled all 135,259 reviews &middot; the Gemini judge re-read 1,000 &mdash; independently, same codebook</div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="left">
+      <div class="hero">
+        <div class="num">0.791<span class="heroci">[0.772&ndash;0.810]</span></div>
+        <div class="label">overall agreement F1 &mdash; how often the two find the same thing in a review</div>
+      </div>
+      <div class="second">
+        When both find the same mention, they agree on the player's sentiment
+        <b>94%</b> of the time. The hard part isn't reading the feeling &mdash;
+        it's deciding what a review is <i>about</i>.
+      </div>
+      <div class="notes">
+        <b>music</b> &mdash; 38 of 39 mentions matched, every sentiment call agreed<br>
+        <b>updates</b> &mdash; the sharpest split: the judge flags it 2&times; as often as DeepSeek
+      </div>
+    </div>
+    <div class="right">
+      <div id="chart"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div>
+      1,000-review sample from the 135,259-review census (49 games) &middot; whiskers: 95% bootstrap CIs &middot;
+      the judge was itself calibrated first: F1 0.816 vs human gold labels, above production's 0.766 &middot;
+      run agree-20260723T203011Z.<br>
+      Agreement &ne; accuracy &mdash; where the two split, only human adjudication decides who is right.
+    </div>
+    <div class="brand"><b>SteamLens</b><br>2026-07-24</div>
+  </div>
+</div>
+
+<script>
+  // Highest and lowest 4 of the 20 measured aspects (judge n >= 30), from eval
+  // run agree-20260723T203011Z-78258f68: [name, f1, ci_low, ci_high, annotation?]
+  const TOP = [
+    ["music",       0.974, 0.933, 1.000, "38 of 39 mentions matched"],
+    ["story",       0.912, 0.871, 0.946, null],
+    ["exploration", 0.885, 0.786, 0.954, null],
+    ["performance", 0.882, 0.794, 0.959, null],
+  ];
+  const BOTTOM = [
+    ["difficulty",  0.722, 0.607, 0.819, null],
+    ["gameplay",    0.706, 0.632, 0.774, null],
+    ["atmosphere",  0.667, 0.526, 0.783, null],
+    ["updates",     0.611, 0.483, 0.718, "the judge flags update talk 2× as often"],
+  ];
+  const OVERALL = 0.791;
+  const TICKS = [0, 0.2, 0.4, 0.6, 0.8, 1.0];
+
+  const fx = v => (v * 100).toFixed(2) + "%";
+  const grid = () => TICKS.slice(1).map(t => `<div class="gridline" style="left:${fx(t)}"></div>`).join("")
+                   + `<div class="refline" style="left:${fx(OVERALL)}"></div>`;
+
+  function rows(data) {
+    return data.map(([name, f1, lo, hi, anno]) => {
+      return `<div class="row">
+        <div class="aspect">${name}</div>
+        <div class="track">
+          ${grid()}
+          <div class="bar" style="width:${fx(f1)}"></div>
+          <div class="ci" style="left:${fx(lo)};width:calc(${fx(hi)} - ${fx(lo)})"></div>
+          <div class="val" style="left:calc(${fx(hi)} + 12px)">${f1.toFixed(3)}</div>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  let html = "";
+  html += `<div class="headspace">
+    <div class="aspect"></div>
+    <div class="track"><div class="refline" style="left:${fx(OVERALL)};top:0;bottom:-4px"></div><div class="reflabel" style="left:${fx(OVERALL)};margin-left:0;transform:translateX(-100%);padding-right:8px">overall 0.791</div></div>
+  </div>`;
+  html += rows(TOP);
+  html += `<div class="divider">
+    <div class="aspect"></div>
+    <div class="track" style="display:flex;align-items:center;justify-content:center">${grid()}<span class="text">&middot;&nbsp;&middot;&nbsp;&middot;&nbsp; 12 more aspects between 0.73 and 0.87 &nbsp;&middot;&nbsp;&middot;&nbsp;&middot;</span></div>
+  </div>`;
+  html += rows(BOTTOM);
+  html += `<div class="axisrow">
+    <div class="aspect"></div>
+    <div class="track">${TICKS.map(t => `<div class="axis-tick" style="left:${fx(t)}">${t === 0 ? "0" : t.toFixed(1)}</div>`).join("")}</div>
+  </div>`;
+
+  document.getElementById("chart").innerHTML = html;
+</script>
+</body>
+</html>
