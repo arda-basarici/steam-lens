@@ -1199,6 +1199,61 @@ all bootstrapped within-slice. Remaining to execute, in order: the judge dispatc
 re-run `certify --judge` at zero cost to journal a calibration run carrying the new
 slice rows.
 
+**D2d registered experiments: the contamination isolation and the compact 2×2**
+(ruled 2026-07-25, both forks Arda's from the design discussion; design-first, no
+dispatch yet — the costed dispatch proposal builds from live pricing). Both arms ride
+existing references — the judge never runs again (its 1,000-sample verdicts are the
+fixed ruler; the preview-id retirement caveat doesn't bite), and gold is gold.
+**The contamination arm buys both reads**: (1) *gold-referenced recovery* — the 245
+census-labeled gold reviews re-labeled by production's own model at N=1, scored
+against gold; the anchor's position is the diagnosis — landing near the lab 0.799
+says batch *company* did the damage (solo ≈ among-gold-peers), above it says size
+itself costs (the judge's monotone shape), near the census 0.766 acquits batching;
+(2) *judge-referenced shift at scale* — the minted 1,000-review agreement sample
+re-labeled at N=1, scored by the existing `judge-vs-production` scorer against the
+judge's stored verdicts, paired on the same reviews as the recorded N=10 0.791
+[0.772–0.810]. The reads answer accuracy and scale respectively; slice overlap is
+negligible by construction (~2 reviews expected). **A contingent third buy is
+registered with its trigger fixed now**: re-run the *lab* condition (the 245 at N=10
+among fresh census neighbors) *iff* the gold read's paired Δ (N=1 minus the census
+condition) fails to exclude zero upward — that branch alone can't distinguish
+"batching never mattered" from provider drift since 07-19, and the rerun separates
+them; if the trigger doesn't fire, the money is never spent. **The compact arm
+completes the 2×2** — codebook {full, compact} × batch {N=10, N=1} on the same
+1,000-review sample, judge-referenced; full×N=10 is the production census read
+(0.791), full×N=1 is the contamination arm's second read, so only the two compact
+cells are new. The registered question ("does a leaner rule set beat a muddier
+context") is an *interaction* claim — C0.5 already showed compact-vs-full
+indistinguishable in clean gold-among-gold context; census batches are the muddy
+context, so the readings are compact's batch penalty vs full's, plus the
+deployment-relevant compact×N=10 cell against 0.791. A winning compact becomes a
+*priced candidate* for future buys, never an auto-switch — C0's reopen condition
+stands: a prompt change re-certifies quality and N on gold first. **Rejected**: a
+gold-referenced compact rider (the 245 under compact at census conditions) — its
+question only goes live if compact wins, and the re-certification that victory
+triggers supersedes a 245-review anchor. **The cell-identity seam** (build
+discovery 2026-07-25, ruled by Arda same day): the pool's envelope key is the bare
+versions triple, and *three* of the four cells would collide under it — full-N=1
+with production's census labels exactly, and the two compact cells with each other
+(same model, same `classify-v1-compact` pin, only N differs — and N officially rides
+the run's config hash, which the pool key never sees). Ruling: experiment envelopes
+stay in the pool but their `model_version` key carries the batch condition —
+`deepseek-v4-flash@n1` / `@n10` — while the wire request uses the real model id and
+the manifest records both. The tag is honest at the level the key exists for: the
+triple names the annotator whose labels these are, and D2d's premise is that batch
+condition measurably changes that annotator — two label sets expected to differ must
+not share an identity. It also buys containment (production folds filter the
+untagged triple, so experiment labels can never leak into a displayed number) and
+verbatim scorer reuse (certify's and agreement's existing `--model` dial). Rejected:
+tagging `prompt_version` (claims prompt artifacts that don't exist — the template is
+byte-identical across N) and a sibling experiment table (schema surgery plus a
+duplicated scorer read path for a sub-dollar experiment). The N=10 cells batch
+sample reviews among themselves, which stands in for census composition because a
+random census draw's neighbors are census neighbors in distribution. **Cost, estimated from
+C1's recorded all-in** (~9–10× per-review at N=1 for the full codebook): the two
+contamination reads ~$0.31, the two compact cells ~$0.21, the contingent ~$0.07 if
+fired — total under a dollar; the dispatch proposal prices exactly before any call.
+
 ## Scope & non-goals
 
 - In: aspect reports with receipts, narrated live analysis, the event investigator, the
