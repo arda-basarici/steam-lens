@@ -42,6 +42,7 @@ import argparse
 import hashlib
 import json
 import os
+import random
 import traceback
 import uuid
 from collections.abc import Callable, Mapping, Sequence
@@ -107,7 +108,14 @@ KEY_ENV: Final = "DEEPSEEK_API_KEY"
 # (~1 refusal per 10K requests there), so a handful means systemic trouble.
 REFUSED_LIMIT: Final = 5
 
-Scope = Literal["sample", "gold"]
+Scope = Literal["sample", "gold", "gold-recomposed"]
+
+FILLERS_PER_GOLD: Final = 9
+"""The recomposed cell's batch arithmetic: one gold review + nine fresh census
+neighbors = the census's N=10. Same-game fillers by preference — the census
+dispatched in ingest order, so a gold review's original neighbors were
+overwhelmingly same-game; a cross-game draw would swap the condition under
+test for a new one."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -133,6 +141,7 @@ CELLS: Final[Mapping[str, ExperimentCell]] = {
         ExperimentCell("full-n1-sample", PROMPT_VERSION, 1, "sample"),
         ExperimentCell("compact-n10-sample", COMPACT_PROMPT_VERSION, 10, "sample"),
         ExperimentCell("compact-n1-sample", COMPACT_PROMPT_VERSION, 1, "sample"),
+        ExperimentCell("full-n10-gold-recomposed", PROMPT_VERSION, 10, "gold-recomposed"),
     )
 }
 """The closed cell registry — the registration, in code.
@@ -141,10 +150,13 @@ CELLS: Final[Mapping[str, ExperimentCell]] = {
 (the in-scope gold reviews, solo); ``full-n1-sample`` its judge-referenced
 read at census scale; the two compact cells complete the codebook × batch
 2×2 on the same sample. The fourth 2×2 cell — full × N=10 — is production's
-census labels, already bought. The contingent lab-recomposition rerun is
-registered in DESIGN with its trigger and gets built only if the trigger
-fires; free dials are deliberately absent — an unregistered condition should
-not be one typo away.
+census labels, already bought. ``full-n10-gold-recomposed`` is the
+contingent lab-recomposition rerun, registered in DESIGN with its trigger
+and built 2026-07-25 when the trigger fired (the gold read's ΔF1 failed to
+exclude zero upward): each in-scope gold review re-labeled *today* embedded
+among fresh census neighbors, separating provider drift from batch
+composition on the acquittal branch. Free dials are deliberately absent —
+an unregistered condition should not be one typo away.
 """
 
 
@@ -178,8 +190,11 @@ class ExperimentRunConfig:
     ``ontology_path`` is required and explicit for the same reason as the
     judge shells': every cell must annotate under the census's v2 artifact,
     pinned by path — an accidental fall-through to packaged v1 would mint a
-    whole envelope set under the wrong contract. ``limit`` is the pilot dial;
-    the unused scope's path is simply never read.
+    whole envelope set under the wrong contract. ``limit`` is the pilot dial
+    (reviews for the flat scopes, batches for the recomposed one); the
+    unused scope's path is simply never read. ``fillers_seed`` drives the
+    recomposed scope's filler draw and rides the config hash — composition
+    must be regenerable, and a resume must re-form the same batches.
     """
 
     cell: ExperimentCell
@@ -191,6 +206,7 @@ class ExperimentRunConfig:
     max_workers: int
     budget_usd: float
     limit: int | None
+    fillers_seed: int = 20260725
 
 
 def scope_reviews(
@@ -216,9 +232,22 @@ def scope_reviews(
                 "sample_sha256": hashlib.sha256(cfg.sample_path.read_bytes()).hexdigest(),
             },
         )
+    return (
+        _in_scope_gold_rows(cfg.gold_path, store),
+        {
+            "scope": "gold",
+            "gold_path": cfg.gold_path.as_posix(),
+            "gold_sha256": hashlib.sha256(cfg.gold_path.read_bytes()).hexdigest(),
+            "excluded_app_ids": sorted(EXCLUDED_APP_IDS),
+        },
+    )
+
+
+def _in_scope_gold_rows(gold_path: Path, store: Store) -> tuple[Review, ...]:
+    """The in-scope gold reviews' stored rows, gold-file order, handshaken."""
     excluded = {str(app_id) for app_id in EXCLUDED_APP_IDS}
     in_scope = tuple(
-        record for record in load_gold(cfg.gold_path) if record.app_id not in excluded
+        record for record in load_gold(gold_path) if record.app_id not in excluded
     )
     assert_gold_text_matches_pool(in_scope, store)
     rows: list[Review] = []
@@ -227,15 +256,106 @@ def scope_reviews(
         if stored_row is None:  # unreachable: the handshake above already aborted
             raise RunAbort(f"gold review {record.review_id} vanished mid-run")
         rows.append(stored_row)
-    return (
-        tuple(rows),
-        {
-            "scope": "gold",
-            "gold_path": cfg.gold_path.as_posix(),
-            "gold_sha256": hashlib.sha256(cfg.gold_path.read_bytes()).hexdigest(),
-            "excluded_app_ids": sorted(EXCLUDED_APP_IDS),
-        },
-    )
+    return tuple(rows)
+
+
+def recomposed_batches(
+    cfg: ExperimentRunConfig, store: Store
+) -> tuple[tuple[tuple[Review, ...], ...], frozenset[str], dict[str, object]]:
+    """Each in-scope gold review embedded among fresh census neighbors at N=10.
+
+    Returns ``(batches, gold_ids, descriptor)`` — one batch per gold review,
+    its position seeded within nine fillers. Composition draws only from
+    stable inputs (the gold file's order, the reviews table's id→app map,
+    ``fillers_seed``), so a resume re-forms identical batches and
+    already-bought responses replay from the content-keyed cache. Fillers
+    prefer the gold review's own game (the census dispatched in ingest
+    order, so a gold review's original neighbors were overwhelmingly
+    same-game) and are never reused across batches; a game too small to
+    supply its gold tops up from the remaining corpus, seeded, with the
+    crossover count disclosed in the descriptor. Raises ``RunAbort`` when
+    the corpus cannot supply enough distinct fillers at all.
+    """
+    gold_rows = _in_scope_gold_rows(cfg.gold_path, store)
+    gold_ids = frozenset(row.review_id for row in gold_rows)
+    excluded = set(EXCLUDED_APP_IDS)
+    by_app: dict[int, list[str]] = {}
+    for review_id, app_id in store.reviews.app_id_by_review().items():
+        if app_id not in excluded and review_id not in gold_ids:
+            by_app.setdefault(app_id, []).append(review_id)
+    for candidates in by_app.values():
+        candidates.sort()
+
+    rng = random.Random(cfg.fillers_seed)
+    chosen: dict[str, list[str]] = {}
+    deficits: list[tuple[str, int]] = []
+    for row in gold_rows:
+        candidates = by_app.get(row.app_id, [])
+        take = min(FILLERS_PER_GOLD, len(candidates))
+        picked = rng.sample(candidates, take)
+        for review_id in picked:
+            candidates.remove(review_id)
+        chosen[row.review_id] = picked
+        if take < FILLERS_PER_GOLD:
+            deficits.append((row.review_id, FILLERS_PER_GOLD - take))
+    topup_pool = sorted(rid for candidates in by_app.values() for rid in candidates)
+    n_topup = 0
+    for gold_id, deficit in deficits:
+        if deficit > len(topup_pool):
+            raise RunAbort(
+                f"the corpus cannot supply {FILLERS_PER_GOLD} distinct fillers per gold "
+                f"review — short {deficit - len(topup_pool)} at {gold_id}"
+            )
+        extra = rng.sample(topup_pool, deficit)
+        for review_id in extra:
+            topup_pool.remove(review_id)
+        chosen[gold_id].extend(extra)
+        n_topup += deficit
+
+    batches: list[tuple[Review, ...]] = []
+    for row in gold_rows:
+        members: list[Review] = []
+        for filler_id in chosen[row.review_id]:
+            filler = store.reviews.get(filler_id)
+            if filler is None:  # unreachable: ids came from the reviews table
+                raise RunAbort(f"filler review {filler_id} vanished mid-run")
+            members.append(filler)
+        members.insert(rng.randrange(len(members) + 1), row)
+        batches.append(tuple(members))
+    descriptor: dict[str, object] = {
+        "scope": "gold-recomposed",
+        "gold_path": cfg.gold_path.as_posix(),
+        "gold_sha256": hashlib.sha256(cfg.gold_path.read_bytes()).hexdigest(),
+        "excluded_app_ids": sorted(EXCLUDED_APP_IDS),
+        "fillers_seed": cfg.fillers_seed,
+        "fillers_per_gold": FILLERS_PER_GOLD,
+        "n_topup_cross_game": n_topup,
+    }
+    return tuple(batches), gold_ids, descriptor
+
+
+def pending_recomposed_batches(
+    batches: Sequence[tuple[Review, ...]],
+    gold_ids: frozenset[str],
+    store: Store,
+    versions: ClassifierVersions,
+) -> tuple[tuple[Review, ...], ...]:
+    """The batches whose *gold* member is still unsettled — the resume unit.
+
+    Fillers never drive selection: they are condition scenery, bought as a
+    byproduct, and a settled filler inside a re-formed batch is skipped at
+    write time (disclosed) rather than re-selected here.
+    """
+    def gold_unsettled(batch: tuple[Review, ...]) -> bool:
+        for review in batch:
+            if review.review_id in gold_ids:
+                return (
+                    store.labels.get(review.review_id, versions) is None
+                    and store.labels.get_failure(review.review_id, versions) is None
+                )
+        raise RunAbort("a recomposed batch carries no gold member — composition bug")
+
+    return tuple(batch for batch in batches if gold_unsettled(batch))
 
 
 def pending_reviews(
@@ -303,6 +423,19 @@ def classify_cell_batch(
     )
 
 
+@dataclass(slots=True)
+class ExperimentTotals(RunTotals):
+    """The census counters plus the recomposed scope's disclosed skip.
+
+    ``skipped_settled`` counts writes skipped because the member was already
+    settled under the cell's triple — legitimate only for recomposed batches
+    re-formed across a resume (fillers don't drive selection), disclosed in
+    the manifest rather than silently absorbed.
+    """
+
+    skipped_settled: int = 0
+
+
 def _narrate(sink: TeeSink, kind: StageKind, message: str) -> None:
     sink.emit(StageEvent(stage="d2d.driver", kind=kind, message=message))
 
@@ -313,9 +446,11 @@ def _write_outcome(
     versions: ClassifierVersions,
     run: Provenance,
     final: bool,
-    totals: RunTotals,
+    totals: ExperimentTotals,
     drift: DriftWatch,
     sink: TeeSink,
+    *,
+    skip_settled: bool,
 ) -> list[Review]:
     """Consume one outcome on the main thread: envelopes in, failures forward.
 
@@ -324,7 +459,10 @@ def _write_outcome(
     marks, closing selection under the cell's triple. There is deliberately
     no isolate stage behind this (the module docstring's condition-purity
     rule). A provider-refused outcome skips the drift watch (nothing served
-    the call) and counts toward the refusal circuit breaker.
+    the call) and counts toward the refusal circuit breaker. With
+    ``skip_settled`` (the recomposed scope), a member already settled under
+    the triple is counted and skipped instead of failing the duplicate-write
+    guard — a re-formed batch legitimately contains settled fillers.
     """
     if outcome.refusal is not None:
         totals.refused_batches += 1
@@ -346,9 +484,18 @@ def _write_outcome(
     totals.output_tokens += outcome.usage.output_tokens
     totals.thinking_tokens += outcome.usage.thinking_tokens
     totals.repairs += len(outcome.parse.repairs)
+    def settled(review: Review) -> bool:
+        return (
+            store.labels.get(review.review_id, versions) is not None
+            or store.labels.get_failure(review.review_id, versions) is not None
+        )
+
     had_failures = bool(outcome.parse.failures)
     for parsed in outcome.parse.parsed:
         review = outcome.batch[parsed.idx]
+        if skip_settled and settled(review):
+            totals.skipped_settled += 1
+            continue
         store.labels.put(
             ReviewClassification(
                 review_id=review.review_id,
@@ -370,6 +517,9 @@ def _write_outcome(
             continue
         review = outcome.batch[failure.idx]
         if final:
+            if skip_settled and settled(review):
+                totals.skipped_settled += 1
+                continue
             store.labels.record_failure(
                 review.review_id, versions, run.run_id, failure.reason
             )
@@ -388,8 +538,7 @@ def _chunk(reviews: Sequence[Review], n: int) -> list[tuple[Review, ...]]:
 
 
 def _run_pass(
-    reviews: Sequence[Review],
-    batch_size: int,
+    batches: Sequence[tuple[Review, ...]],
     attempt: str,
     final: bool,
     worker: Callable[[tuple[Review, ...]], BatchOutcome],
@@ -399,15 +548,16 @@ def _run_pass(
     *,
     warmup: bool,
 ) -> list[Review]:
-    """One labeling pass: chunk at the cell's N, dispatch, consume as completed.
+    """One labeling pass over pre-composed batches, consumed as futures finish.
 
-    ``warmup`` runs the first batch synchronously before the pool opens so
-    the provider's prefix cache is seeded by one completed request — the
-    census driver's cost discipline, kept because the codebook prefix
-    repeats on every request. Consumption happens on this thread as futures
-    finish; ordering is not needed because every write is per-review keyed.
+    Callers own composition (the flat scopes chunk at the cell's N, the
+    recomposed scope hands its seeded batches over verbatim). ``warmup``
+    runs the first batch synchronously before the pool opens so the
+    provider's prefix cache is seeded by one completed request — the census
+    driver's cost discipline, kept because the codebook prefix repeats on
+    every request. Ordering is not needed because every write is
+    per-review keyed.
     """
-    batches = _chunk(reviews, batch_size)
     total = len(batches)
     failed: list[Review] = []
     done = 0
@@ -488,7 +638,7 @@ def execute_experiment_run(
     versions = cell_versions(cell, stamp.version)
     build_prompt = cell_prompt_builder(cell)
 
-    totals = RunTotals()
+    totals = ExperimentTotals()
     drift = DriftWatch()
     aborted: str | None = None
     selected = in_scope = already_settled = 0
@@ -509,8 +659,29 @@ def execute_experiment_run(
             f"ontology {stamp.version} · budget ${cfg.budget_usd:.2f}",
         )
         try:
-            reviews, scope_descriptor = scope_reviews(cfg, driver_store)
-            in_scope = len(reviews)
+            skip_settled = cell.scope == "gold-recomposed"
+            if skip_settled:
+                composed, gold_ids, scope_descriptor = recomposed_batches(cfg, driver_store)
+                in_scope = len(composed)
+                pending_batches = pending_recomposed_batches(
+                    composed, gold_ids, driver_store, versions
+                )
+                already_settled = in_scope - len(pending_batches)
+                if cfg.limit is not None:
+                    pending_batches = pending_batches[: cfg.limit]
+                batches: Sequence[tuple[Review, ...]] = pending_batches
+                selected = len(batches)
+                unit = "gold-anchored batches"
+            else:
+                reviews, scope_descriptor = scope_reviews(cfg, driver_store)
+                in_scope = len(reviews)
+                pending = pending_reviews(reviews, driver_store, versions)
+                already_settled = in_scope - len(pending)
+                if cfg.limit is not None:
+                    pending = pending[: cfg.limit]
+                selected = len(pending)
+                batches = _chunk(pending, cell.batch_size)
+                unit = "reviews"
             run = Provenance(
                 run_id=run_id,
                 code_version=code_version(),
@@ -518,19 +689,14 @@ def execute_experiment_run(
                 config_hash=_config_hash(cfg, stamp.version, stamp.content_hash,
                                          scope_descriptor),
             )
-            pending = pending_reviews(reviews, driver_store, versions)
-            already_settled = in_scope - len(pending)
-            if cfg.limit is not None:
-                pending = pending[: cfg.limit]
-            selected = len(pending)
             _narrate(
                 sink, StageKind.PROGRESS,
-                f"selection: {selected} to label under {versions.model_version}/"
+                f"selection: {selected} {unit} to label under {versions.model_version}/"
                 f"{versions.prompt_version}/{versions.ontology_version} "
                 f"({already_settled} of {in_scope} already settled"
                 + (f", limit {cfg.limit})" if cfg.limit is not None else ")"),
             )
-            if pending:
+            if batches:
                 driver_store.labels.record_run(run)
 
                 def worker(batch: tuple[Review, ...]) -> BatchOutcome:
@@ -540,13 +706,14 @@ def execute_experiment_run(
 
                 def consume(outcome: BatchOutcome, final: bool) -> list[Review]:
                     return _write_outcome(
-                        outcome, driver_store, versions, run, final, totals, drift, sink
+                        outcome, driver_store, versions, run, final, totals, drift,
+                        sink, skip_settled=skip_settled,
                     )
 
                 single_attempt = cell.batch_size == 1
                 with ThreadPoolExecutor(max_workers=cfg.max_workers) as pool:
                     failed = _run_pass(
-                        pending, cell.batch_size, "initial", single_attempt,
+                        batches, "initial", single_attempt,
                         worker, consume, pool, sink, warmup=True,
                     )
                     if failed:
@@ -557,7 +724,7 @@ def execute_experiment_run(
                         )
                         totals.rebatched = len(failed)
                         _run_pass(
-                            tuple(failed), cell.batch_size, "rebatch", True,
+                            _chunk(tuple(failed), cell.batch_size), "rebatch", True,
                             worker, consume, pool, sink, warmup=False,
                         )
         except KeyboardInterrupt:
@@ -599,6 +766,7 @@ def execute_experiment_run(
                 "rebatched": totals.rebatched,
                 "failed_durable": totals.failed_durable,
                 "refused_batches": totals.refused_batches,
+                "skipped_settled": totals.skipped_settled,
             },
             "requests": totals.batches,
             "tokens": {
@@ -647,7 +815,11 @@ def main() -> None:
     parser.add_argument("--budget-usd", type=float, required=True,
                         help="this run's spend cap (see the D2d dispatch proposal)")
     parser.add_argument("--limit", type=int, default=None,
-                        help="label only the first K selected reviews (the pilot dial)")
+                        help="label only the first K selected units (the pilot dial; "
+                             "reviews for flat scopes, batches for the recomposed one)")
+    parser.add_argument("--fillers-seed", type=int, default=20260725,
+                        help="the recomposed scope's filler-draw seed (default: 20260725; "
+                             "rides the config hash)")
     args = parser.parse_args()
 
     key = os.environ.get(KEY_ENV)
@@ -663,6 +835,7 @@ def main() -> None:
         max_workers=args.max_workers,
         budget_usd=args.budget_usd,
         limit=args.limit,
+        fillers_seed=args.fillers_seed,
     )
     entry = openai_compat_entry(key, base_url=DEEPSEEK_BASE_URL)
     raise SystemExit(execute_experiment_run(cfg, entry))

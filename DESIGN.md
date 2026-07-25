@@ -1254,6 +1254,44 @@ C1's recorded all-in** (~9–10× per-review at N=1 for the full codebook): the 
 contamination reads ~$0.31, the two compact cells ~$0.21, the contingent ~$0.07 if
 fired — total under a dollar; the dispatch proposal prices exactly before any call.
 
+**D2d executed: composition acquitted, buy-time variance found, the compact
+codebook closed** (2026-07-25, same session as the design ruling; all five cells +
+the fired contingent bought for ~$2.98 ledger / ~$0.45 expected billed, 5,693
+envelopes, zero failures). **The registered trigger fired** — the gold read's ΔF1
+(N=1 minus census) +0.013 [−0.021, +0.046] failed to exclude zero upward — and the
+contingent it bought (`full-n10-gold-recomposed`: each in-scope gold review
+re-labeled same-day among nine fresh seeded same-game fillers, ~$0.38) overturned
+the arm's working story. **Every same-day composition comparison is null**: compact
+N=1 vs N=10 −0.003 [−0.017, +0.010] (n=1,000, judge-referenced; runs
+`agree-20260725T122123Z-d19a401b` / `agree-20260725T122103Z-9a58bafa`), full N=1 vs
+recomposed-N=10 −0.012 [−0.046, +0.022] (n=245, gold-referenced). **Every cross-day
+comparison shows the ~0.02–0.03 gap**, including with composition held fixed:
+recomposed-vs-census recall +0.042 [+0.003, +0.083] — the recall recovery the N=1
+cell showed over the census appears identically under census-style batching, so it
+belongs to *when* the labels were bought, not to batch size or company. Verdict:
+**batch composition is acquitted; the census-vs-lab −0.033 is buy-time variance of
+the served model** (non-monotone timeline — lab 07-18 0.799, census 07-19 0.766,
+today 0.791 — so serving-state variance, not steady drift; temperature 0
+throughout). Named residue, eyes open: the recomposition drew *random* same-game
+neighbors while the census's true batches were *consecutive* ingest-order neighbors
+— that alternative is untested, and n=245 bounds the gold-side power. **The
+matrix-read interaction that briefly read as confirming the leaner-codebook
+hypothesis (+0.023 [+0.003, +0.044]) is a day artifact** — its full-codebook penalty
+compared a 07-19 buy against a same-day buy while the compact cells were both
+same-day; the drift-clean codebook comparison (both cells same-day, N=1, n=1,000,
+paired vs judge) reads **compact 0.793 vs full 0.811, Δ −0.018 [−0.031, −0.005],
+real** — C0.5's recall-loss verdict confirmed at census scale. **Consequences**:
+(1) the N=10 batching lever is vindicated — no future buy pays solo-dispatch prices
+for quality; (2) `classify-v1-compact` is closed as a dispatch candidate on
+measured evidence (it remains a versioned artifact; reopening requires new
+evidence, not new hope); (3) a new standing instrument caveat — same config, same
+composition, different day moved F1 by ~0.02–0.03, so any cross-day label
+comparison carries a buy-time rider, and re-certification after a re-buy is not
+optional; (4) production's census certification 0.766 stands — it certifies the
+labels actually bought. Runs of record: `certify-20260725T122037Z-ce9315b2` (N=1
+vs gold) plus the three agreement rows above; readings regenerate via
+`probes/d2d_reads.py` (the same-day codebook read is post-hoc, disclosed as such).
+
 ## Scope & non-goals
 
 - In: aspect reports with receipts, narrated live analysis, the event investigator, the

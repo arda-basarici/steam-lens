@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SteamLens — what moved the labels: batching vs buy day</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0d0d0d;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: #ffffff;
+    display: flex; justify-content: center;
+    padding: 40px 0;
+  }
+  .card {
+    width: 1120px;
+    background: #1a1a19;
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 16px;
+    padding: 44px 48px 36px;
+  }
+  /* ---------- header ---------- */
+  .eyebrow {
+    font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: #898781; margin-bottom: 10px;
+  }
+  h1 { font-size: 29px; font-weight: 650; letter-spacing: -0.01em; margin-bottom: 10px; }
+  .sub { font-size: 14.5px; line-height: 1.5; color: #c3c2b7; max-width: 940px; }
+  .sub b { color: #ffffff; font-weight: 600; }
+
+  /* ---------- stat tiles ---------- */
+  .tiles {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    margin: 26px 0 8px;
+  }
+  .tile {
+    background: #212120; border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px; padding: 14px 16px 12px;
+  }
+  .tile .label { font-size: 12px; color: #898781; margin-bottom: 4px; }
+  .tile .value { font-size: 27px; font-weight: 600; }
+  .tile .value .ci { font-size: 12.5px; font-weight: 400; color: #898781; margin-left: 5px; }
+  .tile .note { font-size: 11.5px; color: #898781; line-height: 1.35; margin-top: 4px; }
+
+  /* ---------- chart ---------- */
+  .grouphead {
+    display: flex; align-items: baseline; gap: 10px;
+    margin: 0; padding: 18px 0 6px 0;
+    font-size: 13px; color: #ffffff; font-weight: 600;
+  }
+  .grouphead .verdict { font-size: 12px; font-weight: 400; color: #898781; }
+  .chart-rows { border-top: 1px solid #2c2c2a; }
+  .row { display: flex; align-items: stretch; }
+  .row .rowlabel {
+    width: 312px; flex: none; display: flex; flex-direction: column; justify-content: center;
+    padding-right: 16px;
+  }
+  .rowlabel .what { font-size: 13.5px; color: #ffffff; }
+  .rowlabel .how  { font-size: 11.5px; color: #898781; margin-top: 1px; }
+  .cell { position: relative; flex: none; }
+  .dcell { width: 472px; }
+  .valcell {
+    width: 190px; flex: none; display: flex; align-items: center; justify-content: flex-end;
+    font-size: 13.5px; font-variant-numeric: tabular-nums; color: #c3c2b7;
+    white-space: nowrap;
+  }
+  .readcell {
+    width: 50px; flex: none; display: flex; align-items: center; justify-content: flex-end;
+    font-size: 12px;
+  }
+  .readcell .null { color: #898781; }
+  .readcell .real { color: #d95926; font-weight: 600; }
+  .gridline { position: absolute; top: 0; bottom: 0; width: 1px; background: #262624; }
+  .zeroline { position: absolute; top: 0; bottom: 0; width: 1px; background: #52514e; }
+  .ci-bar {
+    position: absolute; top: 50%; height: 6px; transform: translateY(-50%);
+    border-radius: 3px; background: rgba(25,158,112,0.32);
+  }
+  .ci-bar.hot { background: rgba(217,89,38,0.32); }
+  .ddot {
+    position: absolute; top: 50%; width: 11px; height: 11px; transform: translate(-50%,-50%);
+    border-radius: 50%; background: #199e70; box-shadow: 0 0 0 2px #1a1a19;
+  }
+  .ddot.hot { background: #d95926; }
+  .anno {
+    font-size: 12px; color: #898781; padding: 0 0 8px 328px; margin-top: -4px;
+  }
+
+  /* ---------- axes ---------- */
+  .axisrow { display: flex; font-size: 11.5px; color: #898781; }
+  .axisrow .cell { height: 20px; }
+  .axis-tick { position: absolute; transform: translateX(-50%); top: 3px; font-variant-numeric: tabular-nums; }
+  .zerolabel {
+    position: absolute; transform: translateX(-50%); top: 0; font-size: 11px;
+    color: #c3c2b7; white-space: nowrap;
+  }
+  .toprow .cell { height: 18px; }
+
+  /* ---------- legend ---------- */
+  .legend { display: flex; gap: 22px; margin: 18px 0 0; font-size: 12.5px; color: #c3c2b7; }
+  .key { display: flex; align-items: center; gap: 7px; }
+  .key .dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  /* ---------- footer ---------- */
+  .footer {
+    border-top: 1px solid #2c2c2a; margin-top: 18px; padding-top: 14px;
+    font-size: 12px; color: #898781; line-height: 1.55;
+    display: flex; justify-content: space-between; gap: 40px;
+  }
+  .footer .brand { flex: none; text-align: right; color: #52514e; }
+  .footer .brand b { color: #898781; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="eyebrow">SteamLens · aspect extraction · a pre-registered labeling experiment</div>
+  <h1>We suspected batching was hurting our labels. It was the buy date.</h1>
+  <div class="sub">
+    <b>DeepSeek v4-flash</b> labels Steam reviews <b>10 per prompt</b> to amortize a 9K-token
+    codebook — a 10× cost lever that came under suspicion when the batched census labels scored
+    0.033 F1 below a lab run of the same configuration. Five controlled re-label runs
+    (5,693 fresh labels, ≈$3, decision rules fixed before any data) split the two suspects:
+    vary one thing, hold the other, and watch the change in agreement (ΔF1).
+  </div>
+
+  <div class="tiles">
+    <div class="tile">
+      <div class="label">Change the batching (same day)</div>
+      <div class="value">−0.003<span class="ci">[−0.017, +0.010]</span></div>
+      <div class="note">solo vs 10-per-prompt, 1,000 reviews — null; the cost lever is safe</div>
+    </div>
+    <div class="tile">
+      <div class="label">Change the buy day (same batching)</div>
+      <div class="value">+0.033<span class="ci">[+0.007, +0.061]</span></div>
+      <div class="note">identical config, bought a day apart — a real gap, temperature 0</div>
+    </div>
+    <div class="tile">
+      <div class="label">Leaner codebook, same day</div>
+      <div class="value">−0.018<span class="ci">[−0.031, −0.005]</span></div>
+      <div class="note">compact vs full prompt — confirmed worse; candidate closed</div>
+    </div>
+    <div class="tile">
+      <div class="label">The experiment</div>
+      <div class="value">$3<span class="ci">· 0 failures</span></div>
+      <div class="note">5 re-label runs, 5,693 labels; the deciding rerun cost $0.38</div>
+    </div>
+  </div>
+
+  <div id="chart"></div>
+
+  <div class="legend">
+    <span class="key"><span class="dot" style="background:#199e70"></span>interval crosses zero — no effect detected</span>
+    <span class="key"><span class="dot" style="background:#d95926"></span>interval excludes zero — real shift</span>
+  </div>
+
+  <div class="footer">
+    <div>
+      ΔF1 with 95% paired bootstrap CIs, 10,000 resamples · 245-review rows scored against a
+      human gold set, 1,000-review rows against an independently calibrated Gemini judge ·
+      same model, prompt, and 51-aspect codebook throughout, temperature 0 ·
+      eval runs certify/agree-20260725, probe d2d_reads.py.<br>
+      "Buy day" means the served model changed between purchases, not steady drift — the
+      timeline is non-monotone (Jul 18: 0.799 · Jul 19: 0.766 · Jul 25: 0.791 vs gold).
+    </div>
+    <div class="brand"><b>SteamLens</b><br>2026-07-25</div>
+  </div>
+</div>
+
+<script>
+  // Each row: [what changed, held/scope line, delta, lo, hi, real?, annotation]
+  // Sources: probes/d2d_reads.py (gold + contingent + matrix reads, seed 20260718),
+  // eval runs agree-20260725T122042Z / agree-20260725T122103Z / agree-20260725T122123Z,
+  // certify-20260725T122037Z / certify-20260725T181938Z; the lab anchor is the C0.5
+  // capture (probes/captures/bakeoff/deepseek-v4-flash-v2/n10).
+  const GROUPS = [
+    {
+      head: "Changed: batching · held: buy day",
+      verdict: "— nothing moves",
+      rows: [
+        ["solo − batched ·  full codebook", "Jul 25 both · 245 reviews vs gold", -0.012, -0.046, 0.022, false, null],
+        ["solo − batched ·  compact codebook", "Jul 25 both · 1,000 reviews vs judge", -0.003, -0.017, 0.010, false,
+         "the tightest test: at n=1,000, batching does nothing"],
+      ],
+    },
+    {
+      head: "Changed: buy day · held: batching",
+      verdict: "— the labels shift",
+      rows: [
+        ["Jul 18 lab − Jul 19 census", "both 10-per-prompt · 245 reviews vs gold", 0.033, 0.007, 0.061, true,
+         "the original alarm — same config, bought a day apart"],
+        ["Jul 25 rerun − Jul 19 census", "both 10-per-prompt · 245 reviews vs gold", 0.025, -0.009, 0.059, false,
+         "leans the same way; its recall component is real (+0.042 [+0.003, +0.083])"],
+      ],
+    },
+    {
+      head: "Changed: both",
+      verdict: "— shifts by the buy-day amount alone",
+      rows: [
+        ["Jul 25 solo − Jul 19 census batch", "1,000 reviews vs judge", 0.020, 0.004, 0.037, true, null],
+      ],
+    },
+  ];
+
+  const D_MIN = -0.06, D_MAX = 0.075;
+  const ROW_H = 42;
+  const fx = v => ((v - D_MIN) / (D_MAX - D_MIN) * 100).toFixed(2) + "%";
+  const TICKS = [-0.06, -0.04, -0.02, 0, 0.02, 0.04, 0.06];
+  const fmt = v => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(3);
+
+  const gridlines = () => TICKS.filter(t => t !== 0)
+    .map(t => `<div class="gridline" style="left:${fx(t)}"></div>`).join("")
+    + `<div class="zeroline" style="left:${fx(0)}"></div>`;
+
+  let html = "";
+
+  html += `<div class="row toprow" style="margin-top:16px">
+    <div class="rowlabel"></div>
+    <div class="cell dcell"><div class="zerolabel" style="left:${fx(0)}">no effect</div></div>
+    <div class="valcell" style="font-size:12px;color:#898781;align-items:flex-end">ΔF1 [95% CI]</div>
+    <div class="readcell"></div>
+  </div>`;
+
+  for (const group of GROUPS) {
+    html += `<div class="grouphead">${group.head} <span class="verdict">${group.verdict}</span></div>`;
+    html += `<div class="chart-rows">`;
+    for (const [what, how, d, lo, hi, real, anno] of group.rows) {
+      const cls = real ? " hot" : "";
+      html += `<div class="row" style="height:${ROW_H}px">
+        <div class="rowlabel"><div class="what">${what}</div><div class="how">${how}</div></div>
+        <div class="cell dcell">
+          ${gridlines()}
+          <div class="ci-bar${cls}" style="left:${fx(lo)};width:calc(${fx(hi)} - ${fx(lo)})"></div>
+          <div class="ddot${cls}" style="left:${fx(d)}"></div>
+        </div>
+        <div class="valcell">${fmt(d)}&nbsp;<span style="color:#898781;font-size:12px">[${fmt(lo)}, ${fmt(hi)}]</span></div>
+        <div class="readcell"><span class="${real ? "real" : "null"}">${real ? "real" : "~0"}</span></div>
+      </div>`;
+      if (anno) html += `<div class="anno">${anno}</div>`;
+    }
+    html += `</div>`;
+  }
+
+  html += `<div class="axisrow row">
+    <div class="rowlabel"></div>
+    <div class="cell dcell" style="border-top:1px solid #383835">
+      ${TICKS.map(t => `<div class="axis-tick" style="left:${fx(t)}">${t === 0 ? "0" : fmt(t).replace("0.0", ".0")}</div>`).join("")}
+    </div>
+    <div class="valcell"></div><div class="readcell"></div>
+  </div>`;
+
+  document.getElementById("chart").innerHTML = html;
+</script>
+</body>
+</html>

@@ -7,7 +7,87 @@ decisions it feeds.
 
 ---
 
-## 2026-07-23 — No cliff beyond gold: census agreement 0.791 lands between the two anchors — earned through an evening of fighting a deprioritized preview model for capacity
+## 2026-07-25 — The experiment that refuted its own headline: batch composition acquitted, and the $0.38 contingent that killed a conclusion already written in chat
+
+*The D2d registered-experiments session — design ruled, built, dispatched, and read
+end-to-end in one day. Extraction+eval (M1). Feeds: the M1 post's
+registered-experiments section (the pre-registration payoff story), its
+honest-limitations section (buy-time instability as a new instrument caveat), and the
+cost-methodology section (the N=10 batching lever, vindicated). Build record:
+DESIGN.md's "D2d registered experiments" entry and its cell-identity ruling.*
+
+The question on the table since certification: the same model, prompt, codebook, and
+gold reviews had produced two different quality readings — F1 0.799 when gold reviews
+were batched among each other in the lab arm, 0.766 when the same reviews were bought
+inside the census among arbitrary corpus neighbors (paired ΔF1 −0.033 [−0.061,
+−0.007], `probes/census_vs_gold_gap.py`). Batch composition was the registered prime
+suspect, and it had supporting evidence that looked damning: the judge's agreement
+with gold rose monotonically as its batches shrank, 0.789/0.801/0.816 at N=50/20/1.
+The D2d design (ruled this morning, DESIGN entry same date) bought the isolation:
+re-label census reviews with production's own model at N=1, complete a codebook ×
+batch-size 2×2 against the judge's stored verdicts, and — the part that ended up
+mattering most — pre-register a *contingent* third buy with its trigger fixed in
+advance, plus a readings probe (`probes/d2d_reads.py`) committed before any data
+existed, so the decision rules were code, not post-hoc analysis.
+
+The morning's numbers told a seductive story. The 2×2 read: the full codebook showed
+a real batch penalty (+0.020 [+0.004, +0.037] going solo, run
+`agree-20260725T122042Z-22b8acf2` vs the census-sample row), the compact codebook
+showed none (−0.003), and the interaction — the registered "does a leaner rule set
+beat a muddier context" question — came out +0.023 [+0.003, +0.044], excluding zero.
+Contamination confirmed, leaner-codebook hypothesis confirmed, mechanism story
+practically writing itself. That conclusion was written into chat as a headline.
+Meanwhile the gold read's recovery was only partial (ΔF1 n1−census +0.013 [−0.021,
++0.046], run `certify-20260725T122037Z-ce9315b2`), which tripped the pre-registered
+trigger: the interval failed to exclude zero upward, so the contingent fired — 245
+gold reviews re-labeled *today* at N=10 among fresh, seeded, same-game census
+neighbors (run `d2d-full-n10-gold-recomposed-*`, $0.38 ledger), built precisely to
+separate provider drift from batch composition on the acquittal branch.
+
+The contingent refuted the headline. The recall recovery that solo dispatch had
+seemed to earn (+0.045 real, n1 vs census) appeared *identically* in the recomposed
+cell — which is batched (+0.042 [+0.003, +0.083], recomposed vs census, composition
+held fixed). Regrouping every comparison by whether it crosses buy dates made the
+pattern unmissable: every same-day composition test is null (the compact pair −0.003
+[−0.017, +0.010] at n=1,000 — the tight one; full n1-vs-recomposed −0.012 [−0.046,
++0.022] at n=245), and every cross-day comparison shows the ~0.02–0.03 gap. The gap
+travels with *when* the labels were bought, not with how many reviews shared the
+prompt. And the celebrated interaction inverted on inspection: the full codebook's
+"penalty" had compared a July-19 buy against a today buy, while both compact cells
+were bought today — the interaction had measured the day gap wearing the hypothesis's
+clothes. The drift-clean codebook comparison (both cells today, N=1, n=1,000, paired
+against the judge) reads compact 0.793 vs full 0.811, Δ −0.018 [−0.031, −0.005] —
+real, and in the *wrong direction* for the leaner-codebook story. Compact is
+genuinely worse at scale, C0.5's recall-loss verdict confirmed; its candidacy for
+future buys is closed on evidence, not deferred.
+
+What survives is arguably better than what died. The N=10 batching lever — the thing
+that made a $3.80 census possible — is fully vindicated: batching does not degrade
+labels, and no future buy needs to pay ~10× prompt tokens for solo dispatch. The
+census certification at 0.766 stands as what it always was, a certification of the
+labels actually bought. The new finding is **buy-time instability**: the same
+temperature-0 configuration produced label sets ~0.02–0.03 F1 apart across buys
+[SUPPORTED WITH NAMED RESIDUE — see below], which becomes a standing instrument
+caveat for every future buy and re-certification: "same config, same labels" does
+not hold across days. Two residues keep the interpretation honest: the recomposition
+drew *random* same-game neighbors while the census's actual batches were
+*consecutive* ingest-order neighbors, so "the census's exact pathological
+compositions" remains a formally untested alternative to serving-state variance; and
+the timeline is non-monotone (lab 07-18: 0.799 → census 07-19: 0.766 → today: 0.791),
+so whatever moved is variance between serving states, not steady improvement.
+
+The meta-point is the one the M1 post should lead with: pre-registration did its job
+twice in one day. The fixed trigger forced a $0.38 purchase whose only role was to
+check a conclusion that had already been written down — and it killed it. The
+pre-committed decision rules left no room to keep the prettier story. Total session
+spend: ≈$2.98 ledger (~$0.45 expected billed under DeepSeek's prefix-cache pricing,
+per the census precedent), 5,693 envelopes across five cells, zero failures.
+
+Figure: the same-day-vs-cross-day regrouping (composition null within a day, the
+~0.02–0.03 gap across days), and the 2×2 with its day-confound annotation. A share
+card is being built at `mocks/` this same session.
+
+
 
 *The D2c census-sample session — the instrument-leaves-the-lab chapter, closing the
 arc the calibration-PASS entry (same date, below) opened. Extraction+eval (M1).

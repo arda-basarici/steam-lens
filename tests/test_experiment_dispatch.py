@@ -33,6 +33,7 @@ from steamlens.evals.experiment_dispatch import (
     cell_prompt_builder,
     cell_versions,
     execute_experiment_run,
+    recomposed_batches,
 )
 from steamlens.ontology import load_ontology_version
 from steamlens.store import Store
@@ -50,12 +51,12 @@ def _batch_size(prompt: str) -> int:
     return len(json.loads(match.group(1)))
 
 
-def _seed_reviews(db_path: Path, rows: list[tuple[str, str]]) -> None:
+def _seed_reviews(db_path: Path, rows: list[tuple[str, str]], *, app_id: int = 440) -> None:
     with Store(db_path) as store:
         store.reviews.put_many(
             Review(
                 review_id=rid,
-                app_id=440,
+                app_id=app_id,
                 created_at=datetime(2026, 6, 1, tzinfo=UTC),
                 language="english",
                 text=text,
@@ -272,6 +273,91 @@ def test_gold_scope_excludes_cs2_and_prompts_stored_text(tmp_path: Path) -> None
     reviews = manifest["reviews"]
     assert isinstance(reviews, dict)
     assert reviews["in_scope"] == 2
+
+
+def test_recomposed_composition_is_seeded_same_game_and_fresh(tmp_path: Path) -> None:
+    """Each batch: exactly one gold review among nine same-game fillers, fillers
+    never reused across batches, and the whole composition regenerable byte-for-byte."""
+    gold = [("g01", "gameplay is tight"), ("g02", "soundtrack slaps")]
+    fillers = [(f"f{i:02d}", f"filler review {i}") for i in range(18)]
+    _seed_reviews(tmp_path / "pool.sqlite3", gold + fillers)
+    _seed_reviews(tmp_path / "pool.sqlite3", [("x01", "other game")], app_id=570)
+    _gold_file(tmp_path, [(rid, "440", text) for rid, text in gold])
+    cfg = _config(tmp_path, "full-n10-gold-recomposed")
+
+    with Store(tmp_path / "pool.sqlite3") as store:
+        batches, gold_ids, descriptor = recomposed_batches(cfg, store)
+        again, _, _ = recomposed_batches(cfg, store)
+    assert batches == again  # seeded — a resume re-forms identical batches
+    assert gold_ids == {"g01", "g02"}
+    assert descriptor["n_topup_cross_game"] == 0
+    seen_fillers: set[str] = set()
+    for batch in batches:
+        assert len(batch) == 10
+        members_gold = [r.review_id for r in batch if r.review_id in gold_ids]
+        members_fill = [r for r in batch if r.review_id not in gold_ids]
+        assert len(members_gold) == 1
+        assert all(r.app_id == 440 for r in members_fill)  # same-game fillers
+        assert seen_fillers.isdisjoint(r.review_id for r in members_fill)
+        seen_fillers.update(r.review_id for r in members_fill)
+
+
+def test_recomposed_tops_up_cross_game_when_short(tmp_path: Path) -> None:
+    """A game too small for nine same-game fillers tops up from the corpus, disclosed."""
+    _seed_reviews(tmp_path / "pool.sqlite3", [("g01", "gameplay is tight")])
+    _seed_reviews(
+        tmp_path / "pool.sqlite3", [(f"f{i}", f"same game {i}") for i in range(5)]
+    )
+    _seed_reviews(
+        tmp_path / "pool.sqlite3",
+        [(f"x{i}", f"other game {i}") for i in range(10)],
+        app_id=570,
+    )
+    _gold_file(tmp_path, [("g01", "440", "gameplay is tight")])
+
+    with Store(tmp_path / "pool.sqlite3") as store:
+        batches, _, descriptor = recomposed_batches(
+            _config(tmp_path, "full-n10-gold-recomposed"), store
+        )
+    assert descriptor["n_topup_cross_game"] == 4
+    (batch,) = batches
+    same_game = [r for r in batch if r.app_id == 440 and r.review_id != "g01"]
+    cross_game = [r for r in batch if r.app_id == 570]
+    assert len(batch) == 10
+    assert len(same_game) == 5 and len(cross_game) == 4
+
+
+def test_recomposed_dispatch_lands_batch_and_resumes(tmp_path: Path) -> None:
+    """The recomposed cell dispatches N=10 batches under the full @n10 triple —
+    gold and filler envelopes both land — and a second run selects nothing."""
+    gold = [("g01", "gameplay is tight")]
+    fillers = [(f"f{i:02d}", f"filler review {i}") for i in range(9)]
+    _seed_reviews(tmp_path / "pool.sqlite3", gold + fillers)
+    _gold_file(tmp_path, [("g01", "440", "gameplay is tight")])
+    provider = FakeProvider()
+    assert execute_experiment_run(
+        _config(tmp_path, "full-n10-gold-recomposed"), provider.entry()
+    ) == 0
+
+    assert [_batch_size(p) for p in provider.prompts] == [10]
+    assert all("Also known as:" in p for p in provider.prompts)  # the full render
+    tagged = cell_versions(CELLS["full-n10-gold-recomposed"], _STAMP.version)
+    with Store(tmp_path / "pool.sqlite3") as store:
+        assert store.labels.get("g01", tagged) is not None
+        assert all(store.labels.get(rid, tagged) is not None for rid, _ in fillers)
+    manifest = _manifest(tmp_path)
+    assert manifest["aborted"] is None
+    assert manifest["annotator_model_version"] == f"{MODEL_ID}@n10"
+    reviews = manifest["reviews"]
+    assert isinstance(reviews, dict)
+    assert reviews["in_scope"] == 1  # gold-anchored batches
+    assert reviews["labeled"] == 10  # gold + fillers
+
+    second = FakeProvider()
+    assert execute_experiment_run(
+        _config(tmp_path, "full-n10-gold-recomposed"), second.entry()
+    ) == 0
+    assert second.prompts == []
 
 
 def test_gold_text_mismatch_refuses_to_dispatch(tmp_path: Path) -> None:

@@ -27,6 +27,14 @@ the full codebook's penalty minus the compact's, one index draw applied to
 all four cells, so "does a leaner rule set suffer less from a muddier
 context" gets its own interval.
 
+**The contingent read** (``--read contingent``) runs only after the gold
+read's trigger fired and the ``full-n10-gold-recomposed`` cell was bought:
+the same gold reviews re-labeled *today* under census-composition batching.
+Two paired tables split the confound the flat gold read cannot: recomposed
+vs census (same composition, different day — a real gap here is provider
+drift) and N=1 vs recomposed (same day, different composition — a real gap
+here is batch contamination, drift-free).
+
 Each read raises loudly (naming review ids) when its cells are not fully
 dispatched — run the read matching what has been bought. Printed, never
 persisted: regenerable from the census DB + captures + gold + seed.
@@ -198,6 +206,40 @@ def gold_read(store: Store, index: dict[str, str], ontology_version: str,
     )
 
 
+def contingent_read(store: Store, index: dict[str, str], ontology_version: str,
+                    *, n_resamples: int, seed: int) -> None:
+    """The fired contingent: drift vs composition, separated on the shared gold."""
+    gold_records = load_gold(_GOLD_PATH)
+    census = ClassifierVersions(MODEL_ID, PROMPT_VERSION, ontology_version)
+    n1 = cell_versions(CELLS["full-n1-gold"], ontology_version)
+    recomposed = cell_versions(CELLS["full-n10-gold-recomposed"], ontology_version)
+    census_tallies = pool_tallies(store, gold_records, index, census)
+    n1_tallies = pool_tallies(store, gold_records, index, n1)
+    recomposed_tallies = pool_tallies(store, gold_records, index, recomposed)
+
+    print(f"## Contingent read — {len(recomposed_tallies)} shared in-scope gold reviews "
+          f"({n_resamples:,} paired resamples, seed {seed})")
+    print("drift test (same composition, different day):")
+    _print_paired_table("recomposed", "census", recomposed_tallies, census_tallies,
+                        n_resamples=n_resamples, seed=seed)
+    print()
+    print("composition test (same day, different composition):")
+    _print_paired_table("n1", "recomposed", n1_tallies, recomposed_tallies,
+                        n_resamples=n_resamples, seed=seed)
+    print()
+    drift_ci = paired_bootstrap_ci(recomposed_tallies, census_tallies, _F1,
+                                   n_resamples=n_resamples, seed=seed)
+    comp_ci = paired_bootstrap_ci(n1_tallies, recomposed_tallies, _F1,
+                                  n_resamples=n_resamples, seed=seed)
+    drift_real = drift_ci.low > 0 or drift_ci.high < 0
+    comp_real = comp_ci.low > 0 or comp_ci.high < 0
+    print("verdict:")
+    print(f"  drift ΔF1(recomposed−census) {'REAL' if drift_real else 'not detected'} "
+          f"[{drift_ci.low:+.3f}–{drift_ci.high:+.3f}] · "
+          f"composition ΔF1(n1−recomposed) {'REAL' if comp_real else 'not detected'} "
+          f"[{comp_ci.low:+.3f}–{comp_ci.high:+.3f}]")
+
+
 def matrix_read(store: Store, index: dict[str, str], ontology_version: str,
                 *, n_resamples: int, seed: int) -> None:
     """The codebook × batch 2×2 against the judge's verdicts over the sample."""
@@ -253,8 +295,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="The D2d registered readings over the pool's dispatched cells."
     )
-    parser.add_argument("--read", choices=("gold", "matrix", "all"), default="all",
-                        help="which registered read to run (default: all)")
+    parser.add_argument("--read", choices=("gold", "matrix", "contingent", "all"),
+                        default="all",
+                        help="which registered read to run (default: all; 'all' skips "
+                             "the contingent unless its cell has been dispatched)")
     parser.add_argument("--seed", type=int, default=20260718)
     parser.add_argument("--resamples", type=int, default=10_000)
     args = parser.parse_args()
@@ -265,9 +309,18 @@ def main() -> None:
         if args.read in ("gold", "all"):
             gold_read(store, index, stamp.version,
                       n_resamples=args.resamples, seed=args.seed)
-        if args.read == "all":
+        if args.read == "contingent":
+            contingent_read(store, index, stamp.version,
+                            n_resamples=args.resamples, seed=args.seed)
+        elif args.read == "all":
             print()
+            try:
+                contingent_read(store, index, stamp.version,
+                                n_resamples=args.resamples, seed=args.seed)
+            except ValueError:
+                print("(contingent read skipped — its cell is not fully dispatched)")
         if args.read in ("matrix", "all"):
+            print()
             matrix_read(store, index, stamp.version,
                         n_resamples=args.resamples, seed=args.seed)
 
