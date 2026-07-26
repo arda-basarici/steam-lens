@@ -1289,8 +1289,59 @@ composition, different day moved F1 by ~0.02–0.03, so any cross-day label
 comparison carries a buy-time rider, and re-certification after a re-buy is not
 optional; (4) production's census certification 0.766 stands — it certifies the
 labels actually bought. Runs of record: `certify-20260725T122037Z-ce9315b2` (N=1
-vs gold) plus the three agreement rows above; readings regenerate via
-`probes/d2d_reads.py` (the same-day codebook read is post-hoc, disclosed as such).
+vs gold), `certify-20260725T184220Z-cf74d6f4` (the recomposed cell vs gold, 0.791 —
+minted clean post-commit), plus the three agreement rows above; readings regenerate
+via `probes/d2d_reads.py` (the same-day codebook read is post-hoc, disclosed as such).
+
+**D3 evals-in-CI: a deterministic re-score pinned to the runs of record** (ruled
+2026-07-26, three-fork design discussion). The premise that shapes everything: CI
+produces no fresh model output — re-scoring stored envelopes against pinned
+references under a fixed seed is deterministic and free — so the gate catches
+*code/scorer/artifact* drift (a normalize change, a gold edit, a schema break),
+never model drift, which only enters at a label re-buy and is already governed by
+the buy-time recertification caveat above. Fork 1, what runs: **both runs of
+record regenerate in CI** — the production certification (F1 0.766) and the
+census-sample agreement read (F1 0.791) — from a committed envelope fixture,
+since CI has no `data/steamlens.sqlite3`: the production envelopes for gold's 245
+in-scope reviews plus the production+judge pairs for the 1,000-review agreement
+intersection, as diffable JSONL with a provenance manifest (source DB, export run
+ids, content hashes), rebuilt in-test into a throwaway store *through the real
+writer surfaces* so CI's read path is production's. As built (`evals/ci_fixture`,
+same date): the pins are fresh current-code exports that must *descend from* the
+journaled anchors at export time, each with one disclosed relaxation — the
+certification anchor `certify-20260723T093643Z-4eab554c` was journaled before the
+item-type slice rows existed, so its digits must survive as an exact ordered
+prefix; the agreement anchor is the per-aspect row of record
+`agree-20260723T203011Z-78258f68`, compared in full but config hash excluded,
+because that hash digests the sample file's pre-normalization CRLF bytes. Which
+surfaced the general rule, now enforced: digest-pinned artifacts (gold, the
+agreement sample, the ontology TOMLs, the fixture itself) are held at LF by
+`.gitattributes`, and the exporter refuses to mint from a CRLF working copy — a
+byte-hashed artifact whose bytes vary by platform can never gate a Linux CI
+checkout. Rejected: certification-only
+(leaves the agreement/per-aspect semantics — the post's second headline number —
+unguarded); integrity-hash checks without re-scoring (a scorer-behavior drift that
+touches no artifact sails through — the gate must regenerate the number, that is
+the point); a binary sqlite fixture (not diffable, not reviewable). The D2d cells
+stay out of CI: closed experiments are journal history, not standing invariants.
+Fork 2, gate semantics: **exact-digit mismatch fails; harness errors fail; nothing
+merely annotates** — a deliberate reinterpretation of the roadmap's "drift
+annotates, harness errors fail" line, which imagined model drift before D2d
+established CI can't produce any; a digit mismatch in a deterministic re-score is
+an unintended behavior change or an undeclared semantics change, and both demand
+in-PR action. The escape hatch is the standing scorer-identity discipline: a
+deliberate semantics change bumps the scorer string (`census-vs-gold/2`) and
+updates the pinned expectation in the same commit. The pin comparison covers
+metric digits and config identity (scorer, reference hashes, seed, resamples) —
+never run ids or timestamps. Tolerance bands exit CI entirely and become the
+**re-buy decision rule**: a recertification after any label re-buy reads against a
+band floored at the measured ~0.03 buy-time variance — tighter would alarm on the
+instrument's own noise. Fork 3, trend surface: **M1-minimal** — the eval-run
+journal already is the trend store (append-only rows with full regenerability);
+no CI trend artifact, no committed trend document to drift; at most a probe
+rendering journal rows chronologically per scorer identity on demand, with the
+bands-overlaid trend view deferred to deployment (M3), when re-buys become
+routine and a surface exists to show it on.
 
 ## Scope & non-goals
 

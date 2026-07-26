@@ -28,5 +28,11 @@ jobs:
       - name: Pyright (types, strict)
         run: uv run pyright
 
-      - name: Pytest (tests + import graph + doctests)
+      # STEAMLENS_EVAL_GATE arms the D3 eval gate (tests/test_eval_gate.py):
+      # rebuild a throwaway store from the committed fixture (eval/ci/) and
+      # regenerate the pinned eval runs to the digit. Deterministic re-scoring
+      # of stored envelopes — any drift is code/scorer/artifact drift and fails.
+      - name: Pytest (tests + import graph + doctests + the eval gate)
         run: uv run pytest -q
+        env:
+          STEAMLENS_EVAL_GATE: "1"

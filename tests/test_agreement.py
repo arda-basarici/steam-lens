@@ -266,7 +266,7 @@ def test_agreement_run_journals_per_aspect_rows_above_the_default_floor(
     rides next to its F1 row in the minted record."""
     ids = [f"r{i}" for i in range(30)]
     gameplay = (_mention("gameplay", Sentiment.POSITIVE),)
-    judge_mentions = {rid: gameplay for rid in ids}
+    judge_mentions: dict[str, tuple[AspectMention, ...]] = {rid: gameplay for rid in ids}
     judge_mentions["r0"] = gameplay + (_mention("performance", Sentiment.NEGATIVE),)
     store = _store(ids, production={rid: gameplay for rid in ids}, judge=judge_mentions)
     try:

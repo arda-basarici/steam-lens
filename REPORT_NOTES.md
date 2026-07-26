@@ -7,6 +7,78 @@ decisions it feeds.
 
 ---
 
+## 2026-07-26 — The drift gate that fired before it was armed: wiring evals into CI caught two live drift vectors on its own construction site
+
+*The D3 evals-in-CI session — designed, ruled, and built in one day.
+Extraction+eval (M1). Feeds: the M1 post's evaluation-harness section (what
+"evals in CI" means when re-scoring is deterministic, and the exact-digit
+discipline), and its honest-limitations section (toolchain pinning as part of
+reproducibility). Build record: DESIGN.md's "D3 evals-in-CI" entry;
+machinery in `evals/ci_fixture` + `tests/test_eval_gate.py`.*
+
+The design discussion started from a premise the batch-composition experiments
+had handed over: re-scoring stored labels against pinned references is
+deterministic and free — same envelopes, same gold, same seed, same digits, no
+API call — so a CI gate can only ever catch *code, scorer, or artifact* drift.
+Model drift physically cannot occur there (CI produces no fresh model output),
+and where it can occur — a label re-buy — the measured ~0.02–0.03 buy-time
+variance of the served model (the 2026-07-25 registered-experiments finding)
+already governs it. That collapsed the original roadmap wording, "drift
+annotates, harness errors fail," which had imagined model drift: in a
+deterministic re-score, any digit that moves is either an unintended behavior
+change or an undeclared semantics change, and both deserve failure, not
+annotation. So the ruling: exact-digit mismatch fails CI; the escape hatch for
+deliberate change is bumping the scorer's version string and re-exporting the
+pinned expectations in the same commit; tolerance bands leave CI entirely and
+become the *re-buy* decision rule, floored at the instrument's own ~0.03
+variance — a tighter band would alarm on noise. The mechanics: CI has no label
+database, so a committed fixture (`eval/ci/` — 1,243 reviews, 2,243 label
+envelopes, ~1.3 MB of diffable JSONL) carries exactly the store rows the two
+runs of record read, a test rebuilds a throwaway store through the production
+writer surfaces, and the re-scores must reproduce the pinned runs — the
+census certification (F1 0.766, descending from journal run
+`certify-20260723T093643Z-4eab554c`) and the judge-agreement read (F1 0.791,
+from `agree-20260723T203011Z-78258f68`) — to the last digit.
+
+The story worth telling is that the gate caught real drift twice *before it
+ever ran in CI*, both catches falling out of the build's own discipline rather
+than luck. First, bytes: the pins embed sha256 digests of committed artifacts
+(the gold file, the agreement sample), and working out where those digests
+must match forced the question of whether the bytes on a Windows working copy
+and a Linux CI checkout are even the same. They were not — git's
+`autocrlf=true` had left the agreement sample file with CRLF line endings
+locally, meaning the journaled agreement run's config hash pins bytes no CI
+checkout can ever reproduce, and any pin minted from that working copy would
+have failed forever in CI while passing locally. The fix is now structural: a
+`.gitattributes` holds every digest-pinned artifact at LF on all platforms,
+the exporter flatly refuses to mint pins from a CRLF working copy, and the one
+unfixable residue — the historical run's config hash, hashed over
+pre-normalization bytes — is handled as a single disclosed field exclusion in
+the exporter's verification against that anchor, recorded in the fixture's
+manifest rather than silently skipped.
+
+Second, tooling: the build's repo-wide type-check went red in a file the
+session had never touched, which led to the discovery that the project's CI
+had already been red since 2026-07-25 — two failed runs, one of them on a
+commit that changed only HTML mock documents. The cause: the PyPI `pyright`
+package is a thin wrapper that downloads the *latest* checker binary at run
+time, so a fresh pyright release with stricter tuple-type inference broke a
+committed test with zero code change. This is precisely the gate's thesis —
+undeclared drift fails loud — demonstrated in the gate's own toolchain, with
+the one property the thesis cares about violated: attribution. An innocent
+mocks-only commit wore the failure. The immediate fix was a one-line
+annotation; the durable lesson (parked in the fix log, leaning yes) is that
+the checker itself must be version-pinned like any dependency, because a
+floating gate muddies exactly the drift attribution it exists to provide.
+
+One honest self-correction from the same session: the bootstrap re-score was
+estimated at minutes of CPU — enough that a separate parallel CI job was
+proposed to shield the fast checks — and the measurement came back at 17
+seconds for both regenerations (local gate run, 2026-07-26), quietly
+vindicating the originally ruled shape of running the gate inside the existing
+test step. The estimate died the way the batch-composition headline died the
+day before: by measuring instead of arguing.
+
 ## 2026-07-25 — The experiment that refuted its own headline: batch composition acquitted, and the $0.38 contingent that killed a conclusion already written in chat
 
 *The D2d registered-experiments session — design ruled, built, dispatched, and read

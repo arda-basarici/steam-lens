@@ -1,0 +1,26 @@
+{
+  "created_at": "2026-07-26T09:15:35.321761+00:00",
+  "source_db": "data/steamlens.sqlite3",
+  "verified_against": {
+    "certification": {
+      "run_id": "certify-20260723T093643Z-4eab554c",
+      "comparison": "identity + metrics as ordered prefix (the anchor was journaled before the item-type slice rows existed)"
+    },
+    "agreement": {
+      "run_id": "agree-20260723T203011Z-78258f68",
+      "comparison": "identity + full metrics, config hash excluded (the anchor's hash digests the sample file's pre-normalization CRLF bytes; same parsed content)"
+    }
+  },
+  "counts": {
+    "reviews": 1243,
+    "runs": 10,
+    "envelopes": 2243
+  },
+  "sha256": {
+    "reviews.jsonl": "ffebf2b3b3cd2a2f7884897a258a37e68272051f9f07314312972999bda0a30b",
+    "runs.jsonl": "d3102e6469f7b1bdff890e21a68bca06ae9d7184e063f187292b7b556a8c742a",
+    "envelopes.jsonl": "28586e38708ea74088f38b5d0cef2b954fc656707cdb1210727024816b574ee0",
+    "expected_certify.json": "4b9d7852f419c22bb5ff1e0f42e512f3c392128678d7fe52ee2e9d9c0877af3b",
+    "expected_agreement.json": "0ff3493cc034bc81e738cd1aa20c5494a2606b2b97f0e3084dd2031ba707e76b"
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "run": {
+    "run_id": "certify-20260726T091517Z-b9f27ef6",
+    "code_version": "83d0c5a+dirty",
+    "created_at": "2026-07-26T09:15:17.211178+00:00",
+    "config_hash": "9d24407a1fca42bd7e549cae4d32de2359852d34f92994230d5e2ee7be630567"
+  },
+  "versions": {
+    "model_version": "deepseek-v4-flash",
+    "prompt_version": "classify-v1",
+    "ontology_version": "v2"
+  },
+  "ontology_content_hash": "363a0ce52f390af3c55d20a0a7fbe114f625ae33be08926b4812dc9149c58e07",
+  "reference_kind": "gold-file",
+  "reference_id": "eval/gold/gold.jsonl",
+  "reference_sha256": "d63d193d2631cc6cfbf38ab671fb88dd1b2565ad992230fd6766b3fd2e499c69",
+  "n_reference_reviews": 250,
+  "n_scored_reviews": 245,
+  "seed": 20260718,
+  "n_resamples": 10000,
+  "scorer": "census-vs-gold/1",
+  "metrics": [
+    {
+      "metric": "precision",
+      "value": 0.778125,
+      "ci_low": 0.7220543806646526,
+      "ci_high": 0.8274760383386581
+    },
+    {
+      "metric": "recall",
+      "value": 0.7545454545454545,
+      "ci_low": 0.6949685534591195,
+      "ci_high": 0.8067226890756303
+    },
+    {
+      "metric": "f1",
+      "value": 0.7661538461538461,
+      "ci_low": 0.712742980561555,
+      "ci_high": 0.8114754098360655
+    },
+    {
+      "metric": "sentiment_accuracy",
+      "value": 0.8995983935742972,
+      "ci_low": 0.8652173913043478,
+      "ci_high": 0.9368421052631579
+    },
+    {
+      "metric": "zero_share_pred",
+      "value": 0.5102040816326531,
+      "ci_low": null,
+      "ci_high": null
+    },
+    {
+      "metric": "candidate_emission_rate",
+      "value": 0.03614457831325301,
+      "ci_low": null,
+      "ci_high": null
+    },
+    {
+      "metric": "parse_failure_rate",
+      "value": 0.0,
+      "ci_low": null,
+      "ci_high": null
+    },
+    {
+      "metric": "n_zero_mention",
+      "value": 122.0,
+      "ci_low": null,
+      "ci_high": null
+    },
+    {
+      "metric": "zero_mention_agreement",
+      "value": 0.9426229508196722,
+      "ci_low": 0.9016393442622951,
+      "ci_high": 0.9754098360655737
+    },
+    {
+      "metric": "n_multi_mention",
+      "value": 66.0,
+      "ci_low": null,
+      "ci_high": null
+    },
+    {
+      "metric": "f1_multi_mention",
+      "value": 0.7819548872180451,
+      "ci_low": 0.7247706422018347,
+      "ci_high": 0.830188679245283
+    },
+    {
+      "metric": "n_candidate_emitting",
+      "value": 15.0,
+      "ci_low": null,
+      "ci_high": null
+    },
+    {
+      "metric": "f1_candidate_emitting",
+      "value": 0.7804878048780488,
+      "ci_low": 0.6,
+      "ci_high": 0.8790322580645161
+    }
+  ]
+}

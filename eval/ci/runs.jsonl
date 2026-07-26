@@ -1,0 +1,10 @@
+{"run_id": "c1-20260719T215332Z-fc8b7a0c", "code_version": "aa41f37", "created_at": "2026-07-19T21:53:32.228751+00:00", "config_hash": "d722b8c222b7c5c6e62cc4f6c865f511a7b80fe19ae73da4f7563a20302f2919"}
+{"run_id": "c1-20260719T215805Z-f90528c7", "code_version": "aa41f37", "created_at": "2026-07-19T21:58:05.527761+00:00", "config_hash": "03c76eb4e7cb4f9efc1481a7bd79ad8064e6b1e9412e25f1fe7ece9f38c24a68"}
+{"run_id": "c1-20260719T223624Z-73994b3a", "code_version": "aa41f37", "created_at": "2026-07-19T22:36:24.540627+00:00", "config_hash": "1e8b8c5e486c638536774b95a2e7ef48d102805f62045770ff5dcdf6c7300024"}
+{"run_id": "c1-20260719T230445Z-a6ae8d71", "code_version": "aa41f37+dirty", "created_at": "2026-07-19T23:04:45.825927+00:00", "config_hash": "0660ce97cc2879679914420b82686aae7f22e8b5f94846d5c8354543e9dd96cc"}
+{"run_id": "c1-20260719T231553Z-d4738303", "code_version": "aa41f37+dirty", "created_at": "2026-07-19T23:15:53.344336+00:00", "config_hash": "0660ce97cc2879679914420b82686aae7f22e8b5f94846d5c8354543e9dd96cc"}
+{"run_id": "judge-20260723T120946Z-18373cfa", "code_version": "529d365+dirty", "created_at": "2026-07-23T12:09:46.326693+00:00", "config_hash": "f90862fe7e4c7ca66d73351f7fe648d39c0694680fe54a0ef3e92633301d27ec"}
+{"run_id": "judge-sample-20260723T145741Z-0f8bc4bf", "code_version": "fa2f178", "created_at": "2026-07-23T14:57:41.258196+00:00", "config_hash": "9f9cf4d37e11cc713a953b7163dea162abb77f26975b04cf703aaec6df275181"}
+{"run_id": "judge-sample-20260723T151117Z-4a4cd931", "code_version": "fa2f178", "created_at": "2026-07-23T15:11:17.920043+00:00", "config_hash": "d47fb80d1965eafcff718c5224e752554906a36edc39e062c0355fd55e43d689"}
+{"run_id": "judge-sample-20260723T175108Z-591c36f9", "code_version": "fa2f178+dirty", "created_at": "2026-07-23T17:51:08.665155+00:00", "config_hash": "d47fb80d1965eafcff718c5224e752554906a36edc39e062c0355fd55e43d689"}
+{"run_id": "judge-sample-20260723T181525Z-df6b5591", "code_version": "29521bf", "created_at": "2026-07-23T18:15:25.593539+00:00", "config_hash": "d47fb80d1965eafcff718c5224e752554906a36edc39e062c0355fd55e43d689"}

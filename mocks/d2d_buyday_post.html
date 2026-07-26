@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SteamLens — buy-day drift, post variant</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0d0d0d;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: #ffffff;
+  }
+  .card {
+    width: 1200px; height: 675px;
+    background: #1a1a19;
+    padding: 36px 48px 24px;
+    display: flex; flex-direction: column;
+  }
+
+  /* ---------- header ---------- */
+  .eyebrow {
+    font-size: 12.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: #898781; margin-bottom: 9px;
+  }
+  h1 { font-size: 30px; font-weight: 650; letter-spacing: -0.01em; line-height: 1.2; }
+
+  /* ---------- the two suspects ---------- */
+  .suspects { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 20px; }
+  .suspect {
+    position: relative; border-radius: 12px; padding: 18px 20px 16px;
+    background: #212120; border: 1px solid rgba(255,255,255,0.07);
+  }
+  .suspect.guilty { border-color: rgba(217,89,38,0.45); }
+  .chip {
+    position: absolute; top: 16px; right: 18px;
+    font-size: 14px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    border-radius: 999px; padding: 6px 16px;
+  }
+  .chip.cleared { color: #199e70; border: 1px solid rgba(25,158,112,0.55); background: rgba(25,158,112,0.10); }
+  .chip.guilty  { color: #ffffff; background: #d95926; }
+  .suspect .tag { font-size: 11.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #898781; }
+  .suspect .name { font-size: 17.5px; font-weight: 650; margin-top: 5px; }
+  .suspect .desc { font-size: 13px; color: #c3c2b7; line-height: 1.45; margin-top: 5px; max-width: 420px; }
+  .suspect .desc b { color: #ffffff; font-weight: 600; }
+  .verdictrow { display: flex; align-items: baseline; gap: 10px; margin-top: 12px; }
+  .verdictrow .num {
+    font-size: 37px; font-weight: 650; letter-spacing: -0.01em; line-height: 1;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .suspect.cleared-box .num { color: #199e70; }
+  .suspect.guilty .num { color: #d95926; }
+  .verdictrow .ci { font-size: 13px; color: #898781; font-variant-numeric: tabular-nums; }
+  .verdictrow .read { font-size: 13px; color: #c3c2b7; }
+
+  /* ---------- timeline ---------- */
+  .tl { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: flex-end; margin-top: 16px; }
+  .tl-head { display: flex; align-items: baseline; justify-content: space-between; gap: 30px; }
+  .tl-title { font-size: 14.5px; font-weight: 600; }
+  .tl-title span { color: #898781; font-weight: 400; }
+  .tl-note { font-size: 12.5px; color: #898781; }
+  .tl svg { display: block; width: 100%; height: 196px; margin-top: 4px; }
+
+  /* ---------- footer ---------- */
+  .footer {
+    border-top: 1px solid #2c2c2a; margin-top: 8px; padding-top: 10px;
+    font-size: 12px; color: #898781; line-height: 1.5;
+    display: flex; justify-content: space-between; gap: 40px; flex: none;
+  }
+  .footer .brand { flex: none; text-align: right; color: #52514e; }
+  .footer .brand b { color: #898781; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="eyebrow">SteamLens · aspect extraction · a pre-registered experiment</div>
+  <h1>We suspected batching was hurting our labels. It was the day we ran the job.</h1>
+
+  <div class="suspects">
+    <div class="suspect cleared-box">
+      <span class="chip cleared">No</span>
+      <div class="tag">Test 1</div>
+      <div class="name">Does batching change the labels?</div>
+      <div class="desc">10 reviews share one prompt — our <b>10× cost lever</b>, and the obvious
+        suspect. Same day, we split every batch apart — one review per prompt — and labeled the
+        same 1,000 reviews again.</div>
+      <div class="verdictrow">
+        <span class="num">−0.003</span>
+        <span class="ci">[−0.017, +0.010]</span>
+        <span class="read">label quality doesn't move</span>
+      </div>
+    </div>
+    <div class="suspect guilty">
+      <span class="chip guilty">Yes</span>
+      <div class="tag">Test 2</div>
+      <div class="name">Does the day you run it change the labels?</div>
+      <div class="desc"><b>Change nothing</b> — same model, same prompt, same settings,
+        temperature 0 — and run the same job again on a different day.</div>
+      <div class="verdictrow">
+        <span class="num">+0.033</span>
+        <span class="ci">[+0.007, +0.061]</span>
+        <span class="read">a real shift, one day apart</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tl">
+    <div class="tl-head">
+      <div class="tl-title">The same job, three different days <span>— scored against the same 245
+        human-labeled reviews (F1, axis zoomed)</span></div>
+      <div class="tl-note">temperature 0 throughout</div>
+    </div>
+    <svg id="tlsvg" viewBox="0 0 1104 196" preserveAspectRatio="none"></svg>
+  </div>
+
+  <div class="footer">
+    <div>
+      95% paired bootstrap CIs, 10,000 resamples · batching test: 1,000 reviews, label sets compared
+      review-by-review against an independently calibrated second model; day test: 245 reviews vs a human
+      answer key · deepseek-v4-flash, same prompt and 51-aspect codebook throughout · pre-registered
+      decision rules, 5,693 fresh labels, zero failures · runs certify/agree-20260725.<br>
+      A model name points at whatever build the provider serves that day — weights, quantization, and
+      serving stack can change behind it. The wobble is variance between serving states, not steady decline.
+    </div>
+    <div class="brand"><b>SteamLens</b><br>2026-07-26</div>
+  </div>
+</div>
+
+<script>
+  // Three buys of the same configuration, F1 vs the 245-review human gold set.
+  // Sources: probes/d2d_reads.py; runs certify-20260725T122037Z / certify-20260725T181938Z;
+  // lab anchor = the C0.5 capture (probes/captures/bakeoff/deepseek-v4-flash-v2/n10).
+  // Inference lives in the paired deltas above; segment notes echo them:
+  // Jul18−Jul19 +0.033 [+0.007, +0.061] real · Jul25−Jul19 +0.025 [−0.009, +0.059] crosses zero.
+  const POINTS = [
+    { day: 0, date: "Jul 18", f1: 0.799 },
+    { day: 1, date: "Jul 19", f1: 0.766 },
+    { day: 7, date: "Jul 25", f1: 0.791 },
+  ];
+  const W = 1104, H = 196, XPAD = 74, YTOP = 16, PLOT_H = 130;
+  const Y_MIN = 0.755, Y_MAX = 0.805;
+  const GRID = [0.76, 0.78, 0.80];
+
+  const xf = d => XPAD + d / 7 * (W - 2 * XPAD);
+  const yf = v => YTOP + (Y_MAX - v) / (Y_MAX - Y_MIN) * PLOT_H;
+
+  let s = "";
+
+  for (const g of GRID) {
+    s += `<line x1="${XPAD - 10}" x2="${W - XPAD + 30}" y1="${yf(g)}" y2="${yf(g)}" stroke="#262624" stroke-width="1"/>`;
+    s += `<text x="${XPAD - 18}" y="${yf(g) + 4}" text-anchor="end" font-size="12" fill="#898781"
+           font-family="system-ui, sans-serif">${g.toFixed(2)}</text>`;
+  }
+
+  const [a, b, c] = POINTS;
+  s += `<polyline points="${POINTS.map(p => xf(p.day) + "," + yf(p.f1)).join(" ")}"
+        fill="none" stroke="#52514e" stroke-width="2"/>`;
+
+  for (const p of POINTS) {
+    s += `<circle cx="${xf(p.day)}" cy="${yf(p.f1)}" r="7" fill="#c3c2b7" stroke="#1a1a19" stroke-width="2.5"/>`;
+    const above = p.f1 >= 0.79;
+    s += `<text x="${xf(p.day)}" y="${yf(p.f1) + (above ? -14 : 24)}" text-anchor="middle" font-size="15"
+           font-weight="600" fill="#ffffff" font-family="system-ui, sans-serif">${p.f1.toFixed(3)}</text>`;
+    s += `<text x="${xf(p.day)}" y="${H - 6}" text-anchor="middle" font-size="13" fill="#898781"
+           font-family="system-ui, sans-serif">${p.date}</text>`;
+  }
+
+  // segment annotations, plain terms
+  s += `<text x="${(xf(a.day) + xf(b.day)) / 2 + 14}" y="${(yf(a.f1) + yf(b.f1)) / 2 + 5}" font-size="13"
+         fill="#d95926" font-weight="600" font-family="system-ui, sans-serif">−0.033 overnight — real</text>`;
+  s += `<text x="${(xf(b.day) + xf(c.day)) / 2}" y="${(yf(b.f1) + yf(c.f1)) / 2 + 26}" text-anchor="middle"
+         font-size="13" fill="#898781" font-family="system-ui, sans-serif">six days later it came partway back — not a steady decline</text>`;
+
+  document.getElementById("tlsvg").innerHTML = s;
+</script>
+</body>
+</html>
