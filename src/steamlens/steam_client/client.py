@@ -18,15 +18,30 @@ from typing import Final
 
 import httpx
 
-from steamlens.contracts import GameRef, PathOutcome, Sink, WindowFetchResult
+from steamlens.contracts import (
+    GameRef,
+    HistogramSnapshot,
+    PathOutcome,
+    Sink,
+    StageEvent,
+    StageKind,
+    WindowFetchResult,
+)
 from steamlens.steam_client.config import SteamClientConfig
+from steamlens.steam_client.feasibility import estimate_skip_pages
 from steamlens.steam_client.identity import identity_verdict
-from steamlens.steam_client.parse import ReviewPage, parse_appdetails, parse_review_page
+from steamlens.steam_client.parse import (
+    ReviewPage,
+    parse_appdetails,
+    parse_histogram,
+    parse_review_page,
+)
 from steamlens.steam_client.transport import SteamTransport
-from steamlens.steam_client.walk import walk_pages
+from steamlens.steam_client.walk import WalkTally, walk_pages
 
 _APPDETAILS_URL: Final = "https://store.steampowered.com/api/appdetails"
 _REVIEWS_URL: Final = "https://store.steampowered.com/appreviews/{app_id}"
+_HISTOGRAM_URL: Final = "https://store.steampowered.com/appreviewhistogram/{app_id}"
 
 # The bias-avoiding base every review fetch shares: the unfiltered trio keeps
 # Steam's default sampling out of the data, and filter_offtopic_activity=0
@@ -66,6 +81,7 @@ class SteamClient:
         now: Callable[[], datetime] = _utc_now,
     ) -> None:
         self._config = config
+        self._sink = sink
         self._transport = SteamTransport(
             config, sink, transport=transport, sleep=sleep, monotonic=monotonic
         )
@@ -101,22 +117,51 @@ class SteamClient:
             total_negative=summary.total_negative if summary else None,
         )
 
+    def fetch_histogram(self, app_id: int) -> HistogramSnapshot:
+        """The game's review-volume histogram as Steam serves it right now.
+
+        One paced request; the rollup unit is read from the response and the
+        snapshot is stamped with this client's clock — histogram shape drives
+        window planning and the fallback's feasibility estimate, so freshness
+        must be checkable.
+        """
+        payload = self._transport.get_json(
+            _HISTOGRAM_URL.format(app_id=app_id), {"l": "english"}
+        )
+        return parse_histogram(payload, app_id, self._now())
+
     def fetch_window(
         self, app_id: int, window_start: datetime, window_end: datetime
     ) -> WindowFetchResult:
         """Every review of ``app_id`` in the window (inclusive), with provenance.
 
-        The windowed-unfiltered walk: ``filter=recent`` composed with the
-        undocumented date-window params — the composition every probe this
-        project ran validated, which the donor never used. Because the params
-        are undocumented, nothing is trusted: every returned timestamp is
-        checked against the window and the violation count rides the result as
-        its semantic-validation verdict. Raises ``ValueError`` on a naive or
-        inverted window — the wire speaks epoch seconds, and a naive datetime
-        would silently shift by the machine's zone.
+        The primary path is the windowed-unfiltered walk: ``filter=recent``
+        composed with the undocumented date-window params — the composition
+        every probe this project ran validated, which the donor never used.
+        Because the params are undocumented, nothing is trusted: every
+        returned timestamp is checked against the window, and a clean walk
+        returns as ``WINDOWED`` with the violation count (zero) as its
+        semantic-validation verdict.
+
+        A dirty verdict — any out-of-window review — means the window params
+        were not honored, so the windowed collection cannot be trusted
+        complete. The client then fetches the histogram (one more paced
+        request), prices the plain-cursor approach with the feasibility
+        estimate, and either walks the fallback (same engine, timestamp-gated;
+        returns ``FALLBACK_WALKED``, whose ``reported_total`` is ``None``
+        because a plain query's summary describes the whole game) or returns
+        ``SKIPPED_INFEASIBLE`` with no reviews — a disclosed hole, never a
+        silent one, keeping the windowed attempt's violation count as the
+        evidence. ``pages_fetched`` and ``retries`` always account every page
+        spent across both attempts; both decisions are narrated over the sink.
+
+        Raises ``ValueError`` on a naive or inverted window — the wire speaks
+        epoch seconds, and a naive datetime would silently shift by the
+        machine's zone.
         """
         _check_window(window_start, window_end)
-        params: dict[str, str | int] = {
+        url = _REVIEWS_URL.format(app_id=app_id)
+        windowed_params: dict[str, str | int] = {
             **_UNFILTERED_BASE,
             "filter": "recent",
             "num_per_page": self._config.num_per_page,
@@ -124,28 +169,99 @@ class SteamClient:
             "end_date": int(window_end.timestamp()),
             "date_range_type": "include",
         }
-        url = _REVIEWS_URL.format(app_id=app_id)
+        retries_before = self._transport.retries_spent
+
+        windowed = self._walk(url, windowed_params, app_id, window_start, window_end, strict=True)
+        if windowed.out_of_window == 0:
+            return self._result(
+                app_id, window_start, window_end, PathOutcome.WINDOWED, windowed,
+                retries=self._transport.retries_spent - retries_before,
+            )
+
+        self._warn(
+            f"windowed params not honored for app {app_id} "
+            f"({windowed.out_of_window} out-of-window): falling back to the plain cursor walk"
+        )
+        histogram = self.fetch_histogram(app_id)
+        skip_pages = estimate_skip_pages(histogram, window_end, self._config.num_per_page)
+        if skip_pages > self._config.fallback_page_budget:
+            self._warn(
+                f"fallback infeasible for app {app_id}: ~{skip_pages} approach pages "
+                f"> budget {self._config.fallback_page_budget} — window skipped"
+            )
+            skipped = WalkTally(
+                reviews=(),
+                pages_fetched=windowed.pages_fetched,
+                out_of_window=windowed.out_of_window,
+                reported_total=windowed.reported_total,
+            )
+            return self._result(
+                app_id, window_start, window_end, PathOutcome.SKIPPED_INFEASIBLE, skipped,
+                retries=self._transport.retries_spent - retries_before,
+            )
+
+        plain_params: dict[str, str | int] = {
+            **_UNFILTERED_BASE,
+            "filter": "recent",
+            "num_per_page": self._config.num_per_page,
+        }
+        fallback = self._walk(url, plain_params, app_id, window_start, window_end, strict=False)
+        merged = WalkTally(
+            reviews=fallback.reviews,
+            pages_fetched=windowed.pages_fetched + fallback.pages_fetched,
+            out_of_window=0,
+            reported_total=None,
+        )
+        return self._result(
+            app_id, window_start, window_end, PathOutcome.FALLBACK_WALKED, merged,
+            retries=self._transport.retries_spent - retries_before,
+        )
+
+    def _walk(
+        self,
+        url: str,
+        params: dict[str, str | int],
+        app_id: int,
+        window_start: datetime,
+        window_end: datetime,
+        *,
+        strict: bool,
+    ) -> WalkTally:
+        """One engine run over ``params`` — the two paths differ only here."""
 
         def fetch_page(cursor: str) -> ReviewPage:
             return parse_review_page(
                 self._transport.get_json(url, {**params, "cursor": cursor}), app_id
             )
 
-        retries_before = self._transport.retries_spent
-        tally = walk_pages(
-            fetch_page, window_start, window_end, out_of_window_is_violation=True
+        return walk_pages(
+            fetch_page, window_start, window_end, out_of_window_is_violation=strict
         )
+
+    def _result(
+        self,
+        app_id: int,
+        window_start: datetime,
+        window_end: datetime,
+        outcome: PathOutcome,
+        tally: WalkTally,
+        *,
+        retries: int,
+    ) -> WindowFetchResult:
         return WindowFetchResult(
             app_id=app_id,
             window_start=window_start,
             window_end=window_end,
-            outcome=PathOutcome.WINDOWED,
+            outcome=outcome,
             pages_fetched=tally.pages_fetched,
-            retries=self._transport.retries_spent - retries_before,
+            retries=retries,
             out_of_window_count=tally.out_of_window,
             reported_total=tally.reported_total,
             reviews=tally.reviews,
         )
+
+    def _warn(self, message: str) -> None:
+        self._sink.emit(StageEvent(stage="steam.fetch", kind=StageKind.WARN, message=message))
 
 
 def _check_window(window_start: datetime, window_end: datetime) -> None:

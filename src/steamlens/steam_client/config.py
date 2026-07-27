@@ -27,10 +27,14 @@ class SteamClientConfig:
     a documented inaccuracy — the same bug thread reports 80 failing where 100
     works), so safety lives in the walk's detect-and-retry and window-bounded
     stops, never in this number. Default 100 matches every probe this project
-    ran.
+    ran. ``fallback_page_budget`` caps how many pages the plain-cursor
+    fallback may burn approaching one window before the feasibility estimate
+    declares it skipped — the default 200 is ~5 minutes at the pacing floor,
+    one full folklore rate-budget window spent on a single fetch.
     """
 
     pacing_floor_s: float = 1.5
     timeout_s: float = 30.0
     user_agent: str = "steam-lens/0.1 (+https://github.com/arda-basarici)"
     num_per_page: int = 100
+    fallback_page_budget: int = 200
