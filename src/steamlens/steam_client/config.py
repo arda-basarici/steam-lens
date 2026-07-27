@@ -22,8 +22,15 @@ class SteamClientConfig:
     the default 1.5s sits at the folklore ~200-requests-per-5-minutes budget;
     ``timeout_s`` bounds each attempt; ``user_agent`` names us to Steam (the
     default requests/urllib UA gets throttled, so a named one is required).
+    ``num_per_page`` is the review-page size — deliberately non-load-bearing:
+    no batch size is universally safe (the donor's "80 is reliable" comment is
+    a documented inaccuracy — the same bug thread reports 80 failing where 100
+    works), so safety lives in the walk's detect-and-retry and window-bounded
+    stops, never in this number. Default 100 matches every probe this project
+    ran.
     """
 
     pacing_floor_s: float = 1.5
     timeout_s: float = 30.0
     user_agent: str = "steam-lens/0.1 (+https://github.com/arda-basarici)"
+    num_per_page: int = 100

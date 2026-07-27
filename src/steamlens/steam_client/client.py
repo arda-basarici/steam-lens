@@ -18,26 +18,29 @@ from typing import Final
 
 import httpx
 
-from steamlens.contracts import GameRef, Sink
+from steamlens.contracts import GameRef, PathOutcome, Sink, WindowFetchResult
 from steamlens.steam_client.config import SteamClientConfig
 from steamlens.steam_client.identity import identity_verdict
-from steamlens.steam_client.parse import parse_appdetails, parse_review_page
+from steamlens.steam_client.parse import ReviewPage, parse_appdetails, parse_review_page
 from steamlens.steam_client.transport import SteamTransport
+from steamlens.steam_client.walk import walk_pages
 
 _APPDETAILS_URL: Final = "https://store.steampowered.com/api/appdetails"
 _REVIEWS_URL: Final = "https://store.steampowered.com/appreviews/{app_id}"
 
-# The one-request totals-only read: num_per_page=0 returns query_summary alone.
-# The unfiltered trio avoids the sampling bias a default fetch bakes in, and
-# filter_offtopic_activity=0 rides every fetch — the proven blanking bug.
-_TOTALS_PARAMS: Final[dict[str, str | int]] = {
+# The bias-avoiding base every review fetch shares: the unfiltered trio keeps
+# Steam's default sampling out of the data, and filter_offtopic_activity=0
+# rides every fetch — a default fetch silently blanks flagged windows (the
+# proven data-integrity bug).
+_UNFILTERED_BASE: Final[dict[str, str | int]] = {
     "json": 1,
-    "num_per_page": 0,
     "language": "all",
     "purchase_type": "all",
     "review_type": "all",
     "filter_offtopic_activity": 0,
 }
+# The one-request totals-only read: num_per_page=0 returns query_summary alone.
+_TOTALS_PARAMS: Final[dict[str, str | int]] = {**_UNFILTERED_BASE, "num_per_page": 0}
 
 
 def _utc_now() -> datetime:
@@ -62,6 +65,7 @@ class SteamClient:
         monotonic: Callable[[], float] = time.monotonic,
         now: Callable[[], datetime] = _utc_now,
     ) -> None:
+        self._config = config
         self._transport = SteamTransport(
             config, sink, transport=transport, sleep=sleep, monotonic=monotonic
         )
@@ -96,3 +100,57 @@ class SteamClient:
             total_positive=summary.total_positive if summary else None,
             total_negative=summary.total_negative if summary else None,
         )
+
+    def fetch_window(
+        self, app_id: int, window_start: datetime, window_end: datetime
+    ) -> WindowFetchResult:
+        """Every review of ``app_id`` in the window (inclusive), with provenance.
+
+        The windowed-unfiltered walk: ``filter=recent`` composed with the
+        undocumented date-window params — the composition every probe this
+        project ran validated, which the donor never used. Because the params
+        are undocumented, nothing is trusted: every returned timestamp is
+        checked against the window and the violation count rides the result as
+        its semantic-validation verdict. Raises ``ValueError`` on a naive or
+        inverted window — the wire speaks epoch seconds, and a naive datetime
+        would silently shift by the machine's zone.
+        """
+        _check_window(window_start, window_end)
+        params: dict[str, str | int] = {
+            **_UNFILTERED_BASE,
+            "filter": "recent",
+            "num_per_page": self._config.num_per_page,
+            "start_date": int(window_start.timestamp()),
+            "end_date": int(window_end.timestamp()),
+            "date_range_type": "include",
+        }
+        url = _REVIEWS_URL.format(app_id=app_id)
+
+        def fetch_page(cursor: str) -> ReviewPage:
+            return parse_review_page(
+                self._transport.get_json(url, {**params, "cursor": cursor}), app_id
+            )
+
+        retries_before = self._transport.retries_spent
+        tally = walk_pages(
+            fetch_page, window_start, window_end, out_of_window_is_violation=True
+        )
+        return WindowFetchResult(
+            app_id=app_id,
+            window_start=window_start,
+            window_end=window_end,
+            outcome=PathOutcome.WINDOWED,
+            pages_fetched=tally.pages_fetched,
+            retries=self._transport.retries_spent - retries_before,
+            out_of_window_count=tally.out_of_window,
+            reported_total=tally.reported_total,
+            reviews=tally.reviews,
+        )
+
+
+def _check_window(window_start: datetime, window_end: datetime) -> None:
+    """Refuse naive or inverted windows before they reach the wire."""
+    if window_start.tzinfo is None or window_end.tzinfo is None:
+        raise ValueError("window datetimes must be timezone-aware")
+    if window_start > window_end:
+        raise ValueError(f"window_start {window_start} is after window_end {window_end}")

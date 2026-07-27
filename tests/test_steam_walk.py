@@ -1,0 +1,269 @@
+"""Behavioral claims on the cursor-walk engine and the windowed fetch path.
+
+The engine tests script ``ReviewPage`` sequences straight at the ``fetch_page``
+seam — no HTTP at all — pinning the stop discipline the design ruled: short
+pages continue, empty pages retry the same cursor before concluding, repeated
+and missing cursors stop, a boundary page trims, and Steam's no-result answer
+is clean. The wire tests below them assert what ``fetch_window`` actually
+sends — the windowed-unfiltered param set with the off-topic restore flag —
+through ``httpx.MockTransport``.
+"""
+
+from __future__ import annotations
+
+import json
+from collections.abc import Iterator
+from datetime import UTC, datetime, timedelta
+
+import httpx
+import pytest
+
+from steamlens.contracts import PathOutcome, Review, SinkEvent
+from steamlens.steam_client import (
+    QuerySummary,
+    ReviewPage,
+    SteamClient,
+    SteamClientConfig,
+    SteamResponseError,
+)
+from steamlens.steam_client.walk import walk_pages
+
+_START = datetime(2026, 6, 1, tzinfo=UTC)
+_END = datetime(2026, 6, 30, tzinfo=UTC)
+
+
+def _review(created_at: datetime, review_id: str = "") -> Review:
+    return Review(
+        review_id=review_id or f"r{created_at.timestamp():.0f}",
+        app_id=440,
+        created_at=created_at,
+        language="english",
+        text="the hats are load-bearing",
+        voted_up=True,
+    )
+
+
+def _in_window(count: int, offset_hours: int = 0) -> tuple[Review, ...]:
+    base = _START + timedelta(hours=offset_hours)
+    return tuple(
+        _review(base + timedelta(minutes=index), review_id=f"r{offset_hours}-{index}")
+        for index in range(count)
+    )
+
+
+def _page(
+    reviews: tuple[Review, ...],
+    cursor: str | None,
+    *,
+    success: int = 1,
+    total: int | None = None,
+) -> ReviewPage:
+    summary = None if total is None else QuerySummary(total, total, 0)
+    return ReviewPage(success=success, cursor=cursor, summary=summary, reviews=reviews)
+
+
+class Feed:
+    """Scripted pages at the ``fetch_page`` seam, cursors asked recorded."""
+
+    def __init__(self, pages: list[ReviewPage]) -> None:
+        self.asked: list[str] = []
+        self._feed: Iterator[ReviewPage] = iter(pages)
+
+    def __call__(self, cursor: str) -> ReviewPage:
+        self.asked.append(cursor)
+        return next(self._feed)
+
+
+# --- the engine's stop discipline ----------------------------------------------
+
+
+def test_short_page_mid_stream_continues() -> None:
+    """A 40-review page mid-stream is Steam being Steam — the walk advances,
+    and the dry tail still costs the empty-page retries before concluding."""
+    feed = Feed(
+        [
+            _page(_in_window(100), "A", total=140),
+            _page(_in_window(40, offset_hours=200), "B"),
+            _page((), "C"),
+            _page((), "C"),
+            _page((), None),
+        ]
+    )
+    tally = walk_pages(feed, _START, _END, out_of_window_is_violation=True)
+    assert len(tally.reviews) == 140
+    assert tally.pages_fetched == 5
+    assert feed.asked == ["*", "A", "B", "B", "B"]
+    assert tally.reported_total == 140
+    assert tally.out_of_window == 0
+
+
+def test_empty_pages_retry_the_same_cursor_before_concluding() -> None:
+    """Empty is suspicious, not conclusive: the same cursor is re-asked twice
+    before the walk accepts a dry stream."""
+    feed = Feed([_page((), "A")] * 3)
+    tally = walk_pages(feed, _START, _END, out_of_window_is_violation=True)
+    assert tally.reviews == ()
+    assert feed.asked == ["*", "*", "*"]
+
+
+def test_repeated_cursor_stops() -> None:
+    """A page pointing back at a cursor already walked would loop forever —
+    trusted stop, page's reviews still kept."""
+    feed = Feed(
+        [
+            _page(_in_window(100), "A"),
+            _page(_in_window(50, offset_hours=300), "A"),
+        ]
+    )
+    tally = walk_pages(feed, _START, _END, out_of_window_is_violation=True)
+    assert len(tally.reviews) == 150
+    assert tally.pages_fetched == 2
+
+
+def test_missing_cursor_stops() -> None:
+    feed = Feed([_page(_in_window(30), None)])
+    tally = walk_pages(feed, _START, _END, out_of_window_is_violation=True)
+    assert len(tally.reviews) == 30
+    assert tally.pages_fetched == 1
+
+
+def test_boundary_page_trims_and_stops() -> None:
+    """Timestamps below the window mean the newest-first stream has passed it:
+    the sub-window tail is trimmed, counted as a violation on the windowed
+    path, and the walk stops without asking the next cursor."""
+    straddling = _in_window(3) + (_review(_START - timedelta(days=2)),)
+    feed = Feed([_page(straddling, "A")])
+    tally = walk_pages(feed, _START, _END, out_of_window_is_violation=True)
+    assert len(tally.reviews) == 3
+    assert tally.out_of_window == 1
+    assert feed.asked == ["*"]
+
+
+def test_newer_than_window_counts_and_continues() -> None:
+    """A too-new review on the windowed path is a params violation — counted,
+    trimmed, and the walk keeps descending toward the window."""
+    mixed = (_review(_END + timedelta(days=3)),) + _in_window(2)
+    feed = Feed([_page(mixed, "A"), _page((), "A"), _page((), "A"), _page((), "A")])
+    tally = walk_pages(feed, _START, _END, out_of_window_is_violation=True)
+    assert len(tally.reviews) == 2
+    assert tally.out_of_window == 1
+    assert tally.pages_fetched == 4
+
+
+def test_fallback_judgment_skips_without_counting() -> None:
+    """The same zones under the fallback flag: out-of-window reviews are the
+    approach and boundary phases, not violations — the verdict stays clean."""
+    approach = (_review(_END + timedelta(days=3)),)
+    straddle = _in_window(2) + (_review(_START - timedelta(days=1)),)
+    feed = Feed([_page(approach, "A"), _page(straddle, "B")])
+    tally = walk_pages(feed, _START, _END, out_of_window_is_violation=False)
+    assert len(tally.reviews) == 2
+    assert tally.out_of_window == 0
+    assert tally.pages_fetched == 2
+
+
+def test_no_result_answer_is_clean_and_keeps_the_summary() -> None:
+    """success == 2 concludes immediately — no retry — with Steam's own totals
+    claim still captured from the first page."""
+    feed = Feed([_page((), None, success=2, total=0)])
+    tally = walk_pages(feed, _START, _END, out_of_window_is_violation=True)
+    assert tally.reviews == ()
+    assert tally.pages_fetched == 1
+    assert tally.reported_total == 0
+
+
+def test_unknown_success_value_fails_loud() -> None:
+    """A third success value is new wire knowledge — surfaced, never guessed at."""
+    feed = Feed([_page((), "A", success=3)])
+    with pytest.raises(SteamResponseError, match="success is 3"):
+        walk_pages(feed, _START, _END, out_of_window_is_violation=True)
+
+
+# --- the windowed path on the wire ---------------------------------------------
+
+
+class NullSink:
+    def emit(self, event: SinkEvent) -> None:
+        pass
+
+
+def _wire_page(reviews: list[dict[str, object]], cursor: str) -> str:
+    return json.dumps(
+        {
+            "success": 1,
+            "cursor": cursor,
+            "query_summary": {"total_reviews": 2, "total_positive": 2, "total_negative": 0},
+            "reviews": reviews,
+        }
+    )
+
+
+def _wire_review(review_id: str, created_at: datetime) -> dict[str, object]:
+    return {
+        "recommendationid": review_id,
+        "language": "english",
+        "review": "good",
+        "timestamp_created": int(created_at.timestamp()),
+        "voted_up": True,
+    }
+
+
+def test_fetch_window_sends_the_ruled_params_and_stamps_provenance() -> None:
+    """The windowed-unfiltered param set reaches the wire on every page —
+    window epochs, date_range_type=include, the unfiltered trio, the off-topic
+    restore flag, the config page size — and the cursor Steam returned goes
+    back verbatim. The result carries the WINDOWED outcome and the verdicts."""
+    requests: list[httpx.Request] = []
+    pages = iter(
+        [
+            _wire_page([_wire_review("a", _START + timedelta(days=1))], "NEXT+/="),
+            _wire_page([_wire_review("b", _START + timedelta(days=2))], "NEXT+/="),
+        ]
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, text=next(pages))
+
+    client = SteamClient(
+        SteamClientConfig(),
+        NullSink(),
+        transport=httpx.MockTransport(handler),
+        sleep=lambda _: None,
+        monotonic=lambda: 100.0,
+    )
+    result = client.fetch_window(440, _START, _END)
+
+    first = requests[0]
+    assert first.url.path == "/appreviews/440"
+    assert first.url.params["filter"] == "recent"
+    assert first.url.params["language"] == "all"
+    assert first.url.params["purchase_type"] == "all"
+    assert first.url.params["review_type"] == "all"
+    assert first.url.params["filter_offtopic_activity"] == "0"
+    assert first.url.params["num_per_page"] == "100"
+    assert first.url.params["start_date"] == str(int(_START.timestamp()))
+    assert first.url.params["end_date"] == str(int(_END.timestamp()))
+    assert first.url.params["date_range_type"] == "include"
+    assert first.url.params["cursor"] == "*"
+    assert requests[1].url.params["cursor"] == "NEXT+/="
+
+    assert result.outcome is PathOutcome.WINDOWED
+    assert result.app_id == 440
+    assert len(result.reviews) == 2
+    assert result.pages_fetched == 2
+    assert result.retries == 0
+    assert result.out_of_window_count == 0
+    assert result.reported_total == 2
+
+
+def test_fetch_window_refuses_naive_and_inverted_windows() -> None:
+    """A naive datetime would silently shift by the machine's zone on its way
+    to epoch seconds; an inverted window is a caller bug — both loud."""
+    client = SteamClient(SteamClientConfig(), NullSink(), transport=httpx.MockTransport(
+        lambda request: httpx.Response(200, text="{}")
+    ))
+    with pytest.raises(ValueError, match="timezone-aware"):
+        client.fetch_window(440, _START.replace(tzinfo=None), _END)
+    with pytest.raises(ValueError, match="after window_end"):
+        client.fetch_window(440, _END, _START)
