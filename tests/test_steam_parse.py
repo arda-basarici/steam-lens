@@ -120,6 +120,20 @@ def test_review_field_failures_name_the_position() -> None:
         parse_review_page(payload, 440)
 
 
+def test_degenerate_later_page_summary_is_no_summary() -> None:
+    """Later pages send query_summary as a num_reviews-only stub — observed on
+    the live wire (2026-07-27), where the donor lore said the field is absent.
+    That's no summary, not shape damage; a half-formed totals block still is."""
+    page = parse_review_page({"success": 1, "query_summary": {"num_reviews": 0}}, 440)
+    assert page.summary is None
+    half_formed: dict[str, object] = {
+        "success": 1,
+        "query_summary": {"num_reviews": 0, "total_reviews": 5},
+    }
+    with pytest.raises(SteamResponseError, match="total_positive"):
+        parse_review_page(half_formed, 440)
+
+
 def test_bool_cannot_pass_as_integer() -> None:
     """``True`` is an ``int`` to Python; the boundary refuses the masquerade."""
     with pytest.raises(SteamResponseError, match="success is True"):

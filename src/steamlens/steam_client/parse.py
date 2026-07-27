@@ -54,9 +54,11 @@ class ReviewPage:
     ``success`` is Steam's own status field (2 is the documented "no result"
     answer, kept verbatim for the walk to judge); ``cursor`` is the next-page
     token (``None`` when Steam omitted it — a stop signal, not an error);
-    ``summary`` is present only on pages that carried a ``query_summary`` — the
-    first page of a walk. Internal to the door: walks fold pages into a
-    ``WindowFetchResult``, which is the record that crosses the seam.
+    ``summary`` is present only on pages whose ``query_summary`` carried the
+    population totals — the first page of a walk; later pages send a
+    degenerate ``num_reviews``-only stub that parses as no summary. Internal
+    to the door: walks fold pages into a ``WindowFetchResult``, which is the
+    record that crosses the seam.
     """
 
     success: int
@@ -117,11 +119,15 @@ def parse_review_page(payload: Mapping[str, object], app_id: int) -> ReviewPage:
     raw_summary = payload.get("query_summary")
     if raw_summary is not None:
         summary_map = _object_field(raw_summary, "review page query_summary")
-        summary = QuerySummary(
-            total_reviews=_int_field(summary_map, "total_reviews", "query_summary"),
-            total_positive=_int_field(summary_map, "total_positive", "query_summary"),
-            total_negative=_int_field(summary_map, "total_negative", "query_summary"),
-        )
+        # Later pages carry a degenerate {"num_reviews": N} stub with no totals
+        # (live-smoke observation 2026-07-27) — that is "no summary", not damage;
+        # a summary that *starts* the totals must carry all three or fail loud.
+        if "total_reviews" in summary_map:
+            summary = QuerySummary(
+                total_reviews=_int_field(summary_map, "total_reviews", "query_summary"),
+                total_positive=_int_field(summary_map, "total_positive", "query_summary"),
+                total_negative=_int_field(summary_map, "total_negative", "query_summary"),
+            )
     reviews: list[Review] = []
     for position, item in enumerate(_list_field(payload, "reviews", optional=True)):
         raw_review = _object_field(item, f"review page reviews[{position}]")
