@@ -9,15 +9,18 @@ cursor fallback) land on top of it. Design record: DESIGN.md's
 (2026-07-27).
 """
 
+from steamlens.steam_client.client import SteamClient
 from steamlens.steam_client.config import SteamClientConfig
 from steamlens.steam_client.errors import (
     SteamClientError,
     SteamResponseError,
     SteamUnavailableError,
 )
+from steamlens.steam_client.identity import identity_verdict, normalize_name
 from steamlens.steam_client.parse import (
     QuerySummary,
     ReviewPage,
+    parse_appdetails,
     parse_histogram,
     parse_review_page,
     review_from_raw,
@@ -25,13 +28,19 @@ from steamlens.steam_client.parse import (
 from steamlens.steam_client.transport import SteamTransport
 
 __all__ = [
+    # the operations surface
+    "SteamClient",
     # the chokepoint
     "SteamTransport",
     # config
     "SteamClientConfig",
+    # the identity guard
+    "identity_verdict",
+    "normalize_name",
     # parsers
     "parse_review_page",
     "parse_histogram",
+    "parse_appdetails",
     "review_from_raw",
     "ReviewPage",
     "QuerySummary",

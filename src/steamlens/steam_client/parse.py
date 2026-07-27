@@ -132,6 +132,27 @@ def parse_review_page(payload: Mapping[str, object], app_id: int) -> ReviewPage:
     return ReviewPage(success=success, cursor=cursor, summary=summary, reviews=tuple(reviews))
 
 
+def parse_appdetails(payload: Mapping[str, object], app_id: int) -> str | None:
+    """The store's current name for ``app_id``, or ``None`` when it has no data.
+
+    The appdetails response is keyed by the app id *as a string*; the entry
+    answers no-data (falsy ``success`` or no ``data`` — a delisted or invalid
+    id) as ``None``, which the identity guard turns into its no-data verdict.
+    A successful entry whose ``name`` is missing or mistyped is shape damage
+    and fails loud instead.
+    """
+    entry = _object_field(payload.get(str(app_id)), f"appdetails[{app_id}]")
+    if not entry.get("success") or "data" not in entry:
+        return None
+    data = _object_field(entry.get("data"), f"appdetails[{app_id}].data")
+    name = data.get("name")
+    if not isinstance(name, str) or not name:
+        raise SteamResponseError(
+            f"appdetails[{app_id}]: name is {name!r}, expected a non-empty string"
+        )
+    return name
+
+
 def parse_histogram(
     payload: Mapping[str, object], app_id: int, fetched_at: datetime
 ) -> HistogramSnapshot:
