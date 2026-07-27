@@ -1,9 +1,11 @@
 """The frozen-corpus reader — raw steam-reviews JSONL into usable ``Review`` records.
 
 M1's review supply is the frozen ``steam-reviews`` corpus on disk, not the live
-API — this module is the offline stand-in for the live door, doing the same job
-the ``steam_client`` shell will do for fetched pages: source-specific parsing at
-the boundary, so the ``Review`` contract never sees a Steam wire format. The
+API — this module is the offline stand-in for the live door: source-specific
+parsing at the boundary, so the ``Review`` contract never sees a Steam wire
+format. The corpus files hold the same Steam review objects the live door
+fetches, so the record parser itself (``review_from_raw``) is the door's —
+imported from ``steam_client.parse``, never a drifting copy. The
 **usable filter** lives here too, because the census ruling defined the survey
 pool at the reader's level: English reviews whose text survives the
 Unicode-honest emptiness test, across the 49 usable games. What this filter
@@ -25,13 +27,12 @@ from __future__ import annotations
 
 import json
 import unicodedata
-from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Final, cast
 
 from steamlens.contracts import Review
+from steamlens.steam_client.parse import review_from_raw
 
 EXCLUDED_APP_IDS: Final = frozenset({730})
 """App ids outside the usable-games set — excluded from every corpus walk.
@@ -85,43 +86,6 @@ class GameReadResult:
     def usable(self) -> int:
         """How many reviews survived both filters — ``len(reviews)``, named."""
         return len(self.reviews)
-
-
-def review_from_raw(raw: Mapping[str, object], app_id: int) -> Review:
-    """One raw Steam review record as its contract, validated at the boundary.
-
-    ``app_id`` comes from the caller (the corpus keys files by app, not rows).
-    Steam's epoch seconds become the timezone-aware ``created_at`` here — the
-    contract never sees the raw number. Raises ``ValueError`` naming the field
-    (and the review id once known) on a missing or mistyped field: the record
-    was drawn from a frozen corpus, so a bad field is damage to investigate,
-    never a row to skip.
-    """
-    review_id = raw.get("recommendationid")
-    if not isinstance(review_id, str) or not review_id:
-        raise ValueError(f"recommendationid is {review_id!r}, expected a non-empty string")
-    language = raw.get("language")
-    if not isinstance(language, str):
-        raise ValueError(f"review {review_id}: language is {language!r}, expected a string")
-    text = raw.get("review")
-    if not isinstance(text, str):
-        raise ValueError(f"review {review_id}: review text is {text!r}, expected a string")
-    timestamp = raw.get("timestamp_created")
-    if isinstance(timestamp, bool) or not isinstance(timestamp, int):
-        raise ValueError(
-            f"review {review_id}: timestamp_created is {timestamp!r}, expected an integer"
-        )
-    voted_up = raw.get("voted_up")
-    if not isinstance(voted_up, bool):
-        raise ValueError(f"review {review_id}: voted_up is {voted_up!r}, expected a boolean")
-    return Review(
-        review_id=review_id,
-        app_id=app_id,
-        created_at=datetime.fromtimestamp(timestamp, tz=UTC),
-        language=language,
-        text=text,
-        voted_up=voted_up,
-    )
 
 
 def read_reviews_file(path: Path) -> GameReadResult:

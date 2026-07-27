@@ -15,6 +15,13 @@ from steamlens.steam_client.errors import (
     SteamResponseError,
     SteamUnavailableError,
 )
+from steamlens.steam_client.parse import (
+    QuerySummary,
+    ReviewPage,
+    parse_histogram,
+    parse_review_page,
+    review_from_raw,
+)
 from steamlens.steam_client.transport import SteamTransport
 
 __all__ = [
@@ -22,6 +29,12 @@ __all__ = [
     "SteamTransport",
     # config
     "SteamClientConfig",
+    # parsers
+    "parse_review_page",
+    "parse_histogram",
+    "review_from_raw",
+    "ReviewPage",
+    "QuerySummary",
     # errors
     "SteamClientError",
     "SteamUnavailableError",
