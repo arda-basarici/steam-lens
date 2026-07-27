@@ -7,14 +7,14 @@ decisions it feeds.
 
 ---
 
-## 2026-07-26 — The drift gate that fired before it was armed: wiring evals into CI caught two live drift vectors on its own construction site
+## 2026-07-26 — The drift gate that fired before it was armed: one drift vector caught on the construction site, and one drift story killed by verification
 
 *The D3 evals-in-CI session — designed, ruled, and built in one day.
 Extraction+eval (M1). Feeds: the M1 post's evaluation-harness section (what
 "evals in CI" means when re-scoring is deterministic, and the exact-digit
-discipline), and its honest-limitations section (toolchain pinning as part of
-reproducibility). Build record: DESIGN.md's "D3 evals-in-CI" entry;
-machinery in `evals/ci_fixture` + `tests/test_eval_gate.py`.*
+discipline), and its honest-limitations section (attribution discipline —
+including for one's own diagnoses). Build record: DESIGN.md's "D3 evals-in-CI"
+entry; machinery in `evals/ci_fixture` + `tests/test_eval_gate.py`.*
 
 The design discussion started from a premise the batch-composition experiments
 had handed over: re-scoring stored labels against pinned references is
@@ -40,9 +40,9 @@ census certification (F1 0.766, descending from journal run
 `certify-20260723T093643Z-4eab554c`) and the judge-agreement read (F1 0.791,
 from `agree-20260723T203011Z-78258f68`) — to the last digit.
 
-The story worth telling is that the gate caught real drift twice *before it
-ever ran in CI*, both catches falling out of the build's own discipline rather
-than luck. First, bytes: the pins embed sha256 digests of committed artifacts
+The story worth telling is what surfaced *before the gate ever ran in CI* —
+one real drift vector, and one drift story that died under verification.
+First, bytes: the pins embed sha256 digests of committed artifacts
 (the gold file, the agreement sample), and working out where those digests
 must match forced the question of whether the bytes on a Windows working copy
 and a Linux CI checkout are even the same. They were not — git's
@@ -57,19 +57,28 @@ pre-normalization bytes — is handled as a single disclosed field exclusion in
 the exporter's verification against that anchor, recorded in the fixture's
 manifest rather than silently skipped.
 
-Second, tooling: the build's repo-wide type-check went red in a file the
-session had never touched, which led to the discovery that the project's CI
-had already been red since 2026-07-25 — two failed runs, one of them on a
-commit that changed only HTML mock documents. The cause: the PyPI `pyright`
-package is a thin wrapper that downloads the *latest* checker binary at run
-time, so a fresh pyright release with stricter tuple-type inference broke a
-committed test with zero code change. This is precisely the gate's thesis —
-undeclared drift fails loud — demonstrated in the gate's own toolchain, with
-the one property the thesis cares about violated: attribution. An innocent
-mocks-only commit wore the failure. The immediate fix was a one-line
-annotation; the durable lesson (parked in the fix log, leaning yes) is that
-the checker itself must be version-pinned like any dependency, because a
-floating gate muddies exactly the drift attribution it exists to provide.
+Second, the story that died: the build's repo-wide type-check went red in a
+file the session had never touched, which led to the discovery that the
+project's CI had already been red since 2026-07-25 — two failed runs, the
+visible one on a commit that changed only HTML mock documents. The session's
+first diagnosis was toolchain drift: the PyPI `pyright` package wraps a
+checker fetched at run time, so a fresh release with stricter inference could
+redden CI with zero code change — a tidy story, precisely the gate's own
+thesis demonstrated in its own toolchain, and it was written into three
+records before Arda asked the load-bearing question: *are we sure the version
+differed between the two runs?* Verification killed it. The failing line did
+not exist at the last green run's commit (`git show a4de682` — clean); it
+entered in the per-aspect journaling commit, authored 2026-07-23 but first
+*pushed* inside the 07-25 three-commit batch whose head was the mocks commit
+— and both runs had installed the identical locked checker wrapper (1.1.411,
+from the runs' own logs). The mundane truth: a strict-mode error met the type
+gate for the first time on push, and because a multi-commit push runs CI once
+at its head, the red run wore an innocent commit's title. The immediate fix
+was the same one-line annotation either way; the durable lessons changed
+completely — a CI failure belongs to the whole push range, not the title
+commit, and a diagnosis that flatters the day's thesis deserves the hardest
+look before it enters the record. The attribution failure the gate exists to
+prevent nearly happened in its own retelling.
 
 One honest self-correction from the same session: the bootstrap re-score was
 estimated at minutes of CPU — enough that a separate parallel CI job was

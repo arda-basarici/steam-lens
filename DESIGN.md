@@ -1343,6 +1343,76 @@ rendering journal rows chronologically per scorer identity on demand, with the
 bands-overlaid trend view deferred to deployment (M3), when re-buys become
 routine and a surface exists to show it on.
 
+**`steam_client` E1 build: the door, three operations, both paths** (ruled
+2026-07-27, five-fork design discussion; executes the standing "donor, not
+template" reframe above). Fork 1, scope: E1 builds **resolve-game (appdetails +
+the donor's identity guard), the histogram snapshot, and the window-fetch
+primitive** (windowed-unfiltered cursor walk, validated, provenance-stamped) —
+deliberately *not* `FetchPlan` execution or `SampleManifest` minting, whose
+producer (`core/sampling`, the policy the sampling study (M2) certifies) doesn't
+exist yet; contracts freeze when their consumers land, the pattern held since the
+contracts records. Post-redirect note: the primitive's consumer is the survey
+draw — the investigator's `fetch_window` is deferred with the investigator
+milestone (M4) itself (the roadmap redirect ruled the same day; its own DESIGN
+entry lands at the RAG-replacement design session — until then the stream TODO's
+top bullet is the standing rule). Fork 2, contracts frozen now: **`GameRef`**
+(app_id, store name, `query_summary` population totals, and the identity-guard
+verdict OK | MISMATCH | NO_DATA absorbed into the record — a MISMATCH `GameRef`
+is an honest answer about what Steam returned; a wrapper record was rejected as
+a layer for one field), **`HistogramSnapshot`** (rollup buckets + the
+age-dependent rollup unit MONTH | WEEK — never hardcoded, per the M0 probe —
+daily last-30, `past_events`, fetched-at for the freshness rule), and
+**`WindowFetchResult`** (the fetched `Review`s + per-window provenance: path
+outcome WINDOWED | FALLBACK_WALKED | SKIPPED_INFEASIBLE, pages, retries, and the
+semantic-validation verdict — the window params are undocumented, so every
+response is checked against the requested window, never trusted). `Review`
+stays unextended: reception metadata (helpful votes, playtime) remains deferred;
+the RAG design session may reopen that deferral as a retrieval signal. Fork 3,
+**the cursor fallback is built now, not stubbed**: it is the same machinery as
+the windowed walk — same pagination, retry GET, seen-cursor and no-cursor
+guards — under timestamp-gated loop control (skip until timestamps enter the
+window, collect until they exit), plus a pure feasibility estimate (histogram
+depth above the window's end vs the rate budget → SKIPPED_INFEASIBLE,
+disclosed, never a silent hole). Deferring to deployment (M3) was rejected: the
+marginal cost is a loop mode, the donor's cursor-walk knowledge is freshest
+now, and the hard part — enumerating the walk's edge cases as tests — is
+exactly what benefits from in-head semantics. The feasibility helper stays
+private to `steam_client` and migrates into `core/sampling` when the plan
+compiler lands (the sampling study will want to certify it). Stop discipline
+everywhere: the walk stops on the window boundary, a repeated cursor, or a
+missing cursor — **short or empty pages inside a window are suspicious, not
+conclusive: retried, never a stop** (the donor's proven-unsafe stopping rule,
+inverted; FIXLOG 2026-07-09). Standing correction reaffirmed here (Arda's
+catch, against the harvest's confident comment): the donor's "80 is the
+community-verified reliable value" for `num_per_page` is a documented
+inaccuracy — FIXLOG 2026-07-07 verified **no batch size is universally safe**
+(the same bug thread reports 80 failing where 100 works) — so page size is a
+non-load-bearing config knob (default 100, matching every probe this project
+ran); safety lives in detect-and-retry plus the window-bounded stops, not in a
+magic constant. A one-request build-time probe checks whether pages >100 are
+honored (halves per-window request cost if so) — a probe, not an assumption.
+Fork 4, verification in two layers plus a gate: parsers test against the real
+probe captures (both rollup units, the tiny-indie edge, real `past_events`, the
+blanked/restored window pair — the real-artifact round-trip precedent); walk
+logic tests against an **injectable transport** with scripted page sequences
+(short page mid-stream continues; short-then-zero retries before concluding;
+repeated cursor stops; `success==2` yields empty-with-query_summary; a page
+straddling the boundary trims; retry exhaustion raises typed). A record/replay
+library (vcrpy) was rejected: a dependency for what one injectable callable
+does, and cassettes rot. The live layer is a gated smoke
+(`STEAMLENS_LIVE_SMOKE=1`, run deliberately, never in CI): resolve through the
+guard, histogram with rollup-unit check, one windowed page with semantic
+validation, the blank/restore check on Borderlands 2, one forced-fallback
+shallow window — pacing active throughout. Fork 5, pacing: **the donor's flat
+floor** — a configurable inter-request delay (default 1.5s ≡ the ~200-req/5-min
+folklore budget) at the top of the retry-GET chokepoint, so every attempt,
+every endpoint, every caller inherits it by construction; the adaptive half is
+the exponential backoff on 429/5xx in the same function. Token bucket rejected
+(bursts buy nothing here; clock-carrying state costs testability);
+unenforced config rejected (the fallback walk is mechanical — an unenforced
+budget is how a polite client becomes impolite). Sleep is injectable like the
+transport: the suite never really sleeps.
+
 ## Scope & non-goals
 
 - In: aspect reports with receipts, narrated live analysis, the event investigator, the
