@@ -123,6 +123,58 @@ class FinishReason(StrEnum):
     OTHER = "other"
 
 
+class IdentityVerdict(StrEnum):
+    """What the identity guard concluded about a resolved game — recorded, never thrown.
+
+    Steam resolves an ``app_id`` to whatever the store currently says it is, so
+    the guard compares the returned name against the caller's expectation and
+    records its conclusion in the ``GameRef`` instead of raising: a ``MISMATCH``
+    is an honest answer about what Steam returned, not an error condition.
+    ``NO_DATA`` means the store had nothing for the id at all (delisted or
+    invalid) — distinct from a mismatch, because there was no name to compare.
+
+    >>> IdentityVerdict.NO_DATA == "no-data"
+    True
+    """
+
+    OK = "ok"
+    MISMATCH = "mismatch"
+    NO_DATA = "no-data"
+
+
+class RollupUnit(StrEnum):
+    """The bucket size of a histogram's rollup series — age-dependent, never assumed.
+
+    Steam rolls a game's review histogram into months or weeks depending on the
+    game's age (the smoke-test probes caught both on real games), so the unit is
+    read from the response and carried on every ``HistogramSnapshot`` rather
+    than hardcoded. The wire values match Steam's own ``rollup_type`` strings.
+    """
+
+    MONTH = "month"
+    WEEK = "week"
+
+
+class PathOutcome(StrEnum):
+    """Which path a window fetch actually took — the per-window provenance verdict.
+
+    The date-window request params are undocumented, so a window fetch can
+    resolve three ways and the result says which: ``WINDOWED`` is the primary
+    path (the window params held); ``FALLBACK_WALKED`` means the plain
+    cursor walk was used instead, timestamp-gated to the window;
+    ``SKIPPED_INFEASIBLE`` means the fallback's feasibility estimate found the
+    walk too deep for the rate budget and the window was skipped — disclosed,
+    never a silent hole in the data.
+
+    >>> PathOutcome.FALLBACK_WALKED == "fallback-walked"
+    True
+    """
+
+    WINDOWED = "windowed"
+    FALLBACK_WALKED = "fallback-walked"
+    SKIPPED_INFEASIBLE = "skipped-infeasible"
+
+
 class StageKind(StrEnum):
     """The kind of a stage-progress event carried over the narration sink.
 

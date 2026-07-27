@@ -17,9 +17,12 @@ from steamlens.contracts.classification import AspectMention, ReviewClassificati
 from steamlens.contracts.enums import (
     AspectSlot,
     FinishReason,
+    IdentityVerdict,
     LlmStage,
     Origin,
+    PathOutcome,
     ReferenceKind,
+    RollupUnit,
     Sentiment,
     StageKind,
 )
@@ -35,6 +38,13 @@ from steamlens.contracts.llm import (
 from steamlens.contracts.ontology import AspectDef, AspectOntology, OntologyVersion
 from steamlens.contracts.provenance import ClassifierVersions, Provenance
 from steamlens.contracts.reviews import Review
+from steamlens.contracts.steam import (
+    GameRef,
+    HistogramBucket,
+    HistogramSnapshot,
+    ReviewEvent,
+    WindowFetchResult,
+)
 from steamlens.contracts.telemetry import MetricEvent, Sink, SinkEvent, StageEvent
 
 __all__ = [
@@ -46,6 +56,9 @@ __all__ = [
     "LlmStage",
     "FinishReason",
     "ReferenceKind",
+    "IdentityVerdict",
+    "RollupUnit",
+    "PathOutcome",
     # provenance
     "Provenance",
     "ClassifierVersions",
@@ -55,6 +68,12 @@ __all__ = [
     "OntologyVersion",
     # reviews
     "Review",
+    # steam door
+    "GameRef",
+    "HistogramBucket",
+    "HistogramSnapshot",
+    "ReviewEvent",
+    "WindowFetchResult",
     # classification
     "AspectMention",
     "ReviewClassification",
