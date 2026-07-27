@@ -71,6 +71,12 @@ hypotheses until their check passes. This is a trust feature first (the uncertai
 discipline extended to the process itself) and a latency solution second (a watchable
 investigation replaces a spinner; minutes become acceptable).
 
+*Redirect 2026-07-27: the story channel changed instruments — the agentic investigation
+loop is deferred with its milestone, and a grounded RAG chat over labeled reviews
+produces the stories instead. The one rule survives translated: chat answers quote
+retrieved reviews and never mint numbers. See "The roadmap redirect" and "The RAG chat
+product frame" under Operational decisions.*
+
 ## The system flow — module boundaries, seams, contracts (settled 2026-07-09)
 
 Settled through the second design panel: four blind proposals (simplicity / contract /
@@ -1413,16 +1419,111 @@ unenforced config rejected (the fallback walk is mechanical — an unenforced
 budget is how a polite client becomes impolite). Sleep is injectable like the
 transport: the suite never really sleeps.
 
+**The roadmap redirect: the investigator deferred, a grounded RAG chat is the story
+channel** (direction ruled 2026-07-27 by Arda mid-session; this entry is the gated
+design session's record, same date). The investigator milestone (M4) — the agentic
+verify-then-explain loop — is **deferred indefinitely**; a RAG chat over the labeled
+reviews takes its milestone slot. Why: the chat monetizes M1's assets directly (the
+labeled envelopes are a metadata-filtered retrieval index most RAG systems lack; the
+calibrated judge machinery extends to groundedness / faithfulness / retrieval-quality
+evals), the evaluation thesis becomes more market-legible ("built and measured a RAG
+system" is understood in one sentence where verify-then-explain must be explained),
+and it fits the Data/ML/AI transition better than the bespoke loop. Cost named openly:
+the verify-then-explain differentiator goes dormant — deferred, not deleted
+(`Origin.INVESTIGATION` stays a harmless enum; round caps, language guard,
+manifest-less fetches sleep). Blast radius verified small: nothing built depends on
+investigation machinery; the exposure is docs + product story. **The two-track rule
+survives translated**: every displayed number still comes from the survey mint alone;
+stories now come from grounded retrieval — the chat quotes retrieved reviews and never
+mints numbers, retrieval counts in provenance stamps are process disclosure rather
+than statistics, and non-survey envelopes are excluded from the mint by construction
+(the same origin-tag wall the import-graph test guards). Roadmap shape: the chat is
+**the new M4**, sequenced after the sampling study (M2) and deployment (M3) — M3
+keeps its already-scoped shape and ships a URL sooner, and the chat interrogates the
+survey sample whose policy M2 defines; its offline prototype + eval can run against
+the 49-game census before deployment exists, so the eval story is never hostage to
+M3. `core/detect` survives as **display-only episode markers**, built at M3: pure
+statistics over the all-language histogram, no explainer. The chat inherits the
+drill-down role in degraded-but-honest form — a spike window's survey coverage is
+structurally thin (the investigator's founding observation), so spike questions get
+thin-evidence-labeled answers, not fabricated explanations; targeted window fetches
+to enrich them would rebuild investigation machinery without its verification loop
+and stay out (a named future reopening at most). The M1 post's roadmap paragraph
+tells the redirect straight — a measured scope call on stated grounds, not a retreat.
+VISION.md stays frozen per doc precedence.
+
+**The RAG chat product frame: type a game name, get the report — then interrogate
+it** (ruled 2026-07-27, product-level design session; architecture rules at the M4
+design session). The report stays the product; the chat is its **interrogation
+channel** inside the report page — never chat-first, never a standalone surface. It
+interrogates *this report's evidence base* (the game's own labeled envelopes), so
+chat coverage equals report coverage by construction — the 49-game census is the
+offline instance of that and the eval population. The design fitness test — every
+downstream choice must serve at least one of the three claims a stock RAG app cannot
+make, or it is commodity weight: (1) **retrieval over self-labeled structure** —
+"why do people hate the grind?" resolves to aspect ∧ sentiment ∧ game ∧ window
+filters before any embedding runs, with a measured classifier (F1 0.766, CI
+published) as the index; (2) **RAG evals on the already-calibrated judge**; (3) **a
+chat that structurally cannot fabricate statistics**. Question scope: **in** —
+aspect why/what (the core), sub-ontology drill-down (the one place semantic search
+earns its keep), time-scoped questions (the timeline made conversational), and
+number questions answered as **mint citations** (the deferral that still helps);
+**refused** — advice and speculation ("should I buy it?"), honestly and
+specifically; **out entirely** — cross-game comparison: it breaks the per-report
+frame, which is the product's identity rather than a v1 limitation, so any return
+is a deliberate future reopening, not a standing promise. The answer contract —
+**claims with receipts**: short prose composed only over what was retrieved; each
+claim pinned to verbatim quotes — expandable, linked, passed through the
+fabricated-quote verifier before display (a claim whose quote does not verify is
+dropped, never shown); numbers appear only as visually distinct mint citations,
+never phrased by the model; every answer carries a one-line provenance stamp
+("grounded in 34 negative 'grind' reviews from this game's sample; 6 quoted"); and
+answers walk a three-state ladder — grounded answer → **thin-evidence answer, named
+as such** ("thin evidence: only 3 reviews in this game's sample touch that") →
+honest refusal ("the sample doesn't cover that"). **No free-composition mode**:
+even "what's the overall vibe?" answers over retrieved reviews plus mint aggregates
+or defers to the verdict panel — the moment one answer type may speak without
+receipts, the differentiator is gone. Leanings recorded for the M4 design session
+(leanings, not rulings): **the chat pool** — the cold path keeps drawing beyond the
+survey in the background (~5k, plain most-recent order, disclosed in provenance;
+never targeted — a steered fill is the investigation track reborn), with
+progressive labeling preferred over a raw tier (census pricing makes labels ~3¢ per
+thousand, so the fork is latency-shaping, not cost — and a raw tier turns most of
+the pool into commodity embed-and-cosine) and on-the-fly embedding as the trailing
+third stage (fetch → label → embed, each trailing the last, all behind the report,
+which opens on the survey alone); **a small local pinned embedder** (MiniLM /
+bge-small class) — pinned weights make the index immortal where an API embedder's
+retirement orphans every stored vector (the D2c instrument caveat, in its worse
+form), CPU-viable on any host, and a 5k pool is ~8 MB of vectors so brute-force
+cosine beside SQLite, no vector DB; **no RAG framework** — the chat is a pipeline
+(classify intent → refuse | defer-to-mint | retrieve → compose → verify → render),
+not a graph: the provider seam already exists, reviews are natural retrieval units
+(no chunking problem), and a framework layer would hide exactly the visible
+engineering the portfolio exists to show; LangGraph is named as the tool for the
+next complexity tier (a real loop — iterative retrieval, or the investigator
+reopened) and is adopted when a loop appears, not before; framework literacy is
+handled as an experiment-lab exercise plus a deliberate paragraph in the M4 post.
+The M4 design docket: the pool-tiering ruling (raw / progressive / lazy) · the
+embedder choice (verify the then-current small-model field, not today's memory) ·
+retrieval mechanics (structured filter ∧ semantic, ranking) · eval design
+(groundedness, faithfulness, retrieval quality on the judge machinery; the census
+is the eval population) · per-question and per-session cost caps · the
+answer-composition prompt · the `Review` reception-metadata deferral (helpful
+votes, playtime) reopened as a candidate retrieval signal (the E1 entry's pointer).
+
 ## Scope & non-goals
 
-- In: aspect reports with receipts, narrated live analysis, the event investigator, the
-  trust panel, Docker/FastAPI/SQLite/CI deployment, the evaluation methodology as a
+- In: aspect reports with receipts, narrated live analysis, the report-interrogation
+  RAG chat (the redirect entries above), display-only episode markers on the timeline,
+  the trust panel, Docker/FastAPI/SQLite/CI deployment, the evaluation methodology as a
   public artifact, the ops story as a public artifact (dashboard + pipeline, per the
   operational decision above).
 - Deliberately out: fake-review verdicts (tombstoned above) · multilingual evaluation
   claims (post-launch experiment, unverified if shipped) · Kubernetes/Terraform/cloud
-  MLOps (zero marginal signal for a portfolio app) · any displayed number sourced from
-  the investigation track.
+  MLOps (zero marginal signal for a portfolio app) · cross-game chat comparison (the
+  product-frame entry above) · the agentic investigator (deferred 2026-07-27, the
+  redirect entry above) · any displayed number sourced from outside the survey mint
+  (the old investigation-track wall, now also covering the chat pool).
 
 ## Open questions / deferred
 

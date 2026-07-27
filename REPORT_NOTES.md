@@ -7,7 +7,170 @@ decisions it feeds.
 
 ---
 
-## 2026-07-26 — The drift gate that fired before it was armed: one drift vector caught on the construction site, and one drift story killed by verification
+## 2026-07-27 — The investigator stood down, and the frame that keeps its replacement from being a tutorial project: three claims a stock RAG app can't make
+
+*The RAG-replacement product design session — the gate that had to run before the
+M1 post ships. The direction itself (the agentic investigator milestone deferred
+indefinitely; a RAG chat over the labeled corpus replaces it as the story channel)
+was ruled by Arda mid-session in the E1 design session and captured then for
+insurance; this session turned the direction into a product frame. Record:
+DESIGN.md's two newest operational entries, "The roadmap redirect" and "The RAG
+chat product frame." Feeds: the M1 post's roadmap paragraph (the redirect told
+straight), and the eventual M4 post end-to-end.*
+
+The session opened on the tension that shaped every ruling after it: RAG is
+simultaneously the most market-legible AI-application pattern there is — job
+postings name it outright — and the most commoditized. A "chatbot over documents"
+reads as a weekend tutorial, and interviewers have seen a hundred; a generic chat
+over Steam reviews would be the first artifact in this portfolio that could
+actively dilute the brand. What resolved the tension was not a feature list but a
+test: three claims a stock RAG app cannot make, adopted as the design's fitness
+criterion — any downstream choice serving none of them is commodity weight. One,
+retrieval over self-labeled structure: "why do people hate the grind?" resolves to
+aspect ∧ sentiment ∧ game ∧ window filters before any embedding runs, with a
+measured classifier as the index (production F1 0.766 with CI, the D2
+certification run). Two, RAG evals — groundedness, faithfulness, retrieval
+quality — riding a judge whose own agreement with human labels is already
+calibrated and published (the D2c machinery). Three, a chat that structurally
+cannot fabricate statistics: the project's two-track rule translated, numbers only
+from the survey mint, quotes never laundered into percentages.
+
+Arda ruled the product's spine in one sentence: **"Type a game name, get the
+report — then interrogate it."** The report stays the product; the chat is its
+interrogation channel, never a standalone chat-first surface — and cross-game
+comparison went out *entirely*, not as a v1 cut but as outside the product's
+identity (the chat interrogates *this report's* evidence base; a cross-game
+index is a different product). The answer contract followed: claims with
+receipts — short prose composed only over retrieved reviews, each claim pinned to
+verbatim quotes that pass the fabricated-quote verifier before display, numbers
+appearing only as visually distinct citations of the precomputed aggregates, a
+one-line provenance stamp on every answer. Arda added the piece that completes
+the ladder: thin evidence gets *named*, not just shrunk — an answer over three
+reviews opens by saying it is thin evidence, giving the contract three explicit
+states (grounded answer → named-thin answer → honest refusal) and no
+free-composition mode anywhere: even "what's the overall vibe?" answers over
+retrieval and mint aggregates or defers to the report's verdict panel. One
+unreceipted answer type and the differentiator is gone.
+
+The feasibility riffs produced the session's best reframing. Arda proposed a
+background chat pool — draw ~1k reviews for the survey, and while the classifier
+labels them, keep drawing to ~5k so the chat opens on a deeper evidence base,
+the extra kept raw as Steam sends them. The fetch arithmetic works trivially (1k
+reviews is ten pages at the built transport's 1.5s pacing floor — roughly 20–30
+seconds; a 5k fill fits inside the classification window). But the census
+receipt reframed the "raw" half: the corpus buy priced labeling at $3.80 for
+135,260 reviews (the C1 census, 2026-07-20) — about three cents per thousand —
+so keeping the extra 4k raw is not a cost decision at all, it is a
+latency-shaping decision, and a raw tier would quietly turn most of the pool
+into the commodity embed-and-cosine pattern the fitness test exists to reject.
+The leaning (ruling reserved for the M4 design session): progressive background
+labeling — the report opens on the survey alone, and fetch → label → embed run
+as trailing stages behind it, nothing user-visible ever waiting. The fill stays
+dumb-chronological by rule: a fill that steers toward spikes is the
+investigation track reborn without its verification loop.
+
+Two tooling calls got made on arguments worth preserving. The embedder leaning
+is small, local, and pinned (the MiniLM/bge-small class) — and the sharpest
+argument came from the project's own scar tissue: the D2c judge ran on a Gemini
+preview that survived a capacity event and carries a named successor, and an API
+embedder's retirement is that incident in worse form, because vectors from
+different models don't compare — retirement orphans the entire stored index.
+Pinned local weights make the index immortal, CPU-viable on any host, and at 5k
+reviews the whole index is ~8 MB — brute-force cosine beside SQLite, no vector
+DB. On frameworks, the LangChain answer was no on the project's own dependency
+test (the provider seam already exists; reviews are natural retrieval units, so
+there is no chunking problem; the framework would hide exactly the visible
+engineering the portfolio exists to show). Arda then clarified he meant
+LangGraph — and the answer sharpened rather than flipped: LangGraph is the
+respectable half of that ecosystem, but the chat as scoped is a pipeline
+(classify intent → refuse | defer | retrieve → compose → verify → render), not a
+graph, and the irony is exact — the thing LangGraph is shaped for, a stateful
+verify-and-loop agent, is precisely what the redirect deferred. It is named in
+the design record as the tool for the next complexity tier, adopted when a real
+loop appears; framework literacy routes to an hours-scale experiment-lab
+exercise plus a deliberate paragraph in the M4 post ("here is what the framework
+would have provided, and why ~200 explicit lines beat it here").
+
+The costs were named rather than buried. The verify-then-explain loop — the
+product's most original idea — goes dormant, deferred not deleted. Its
+statistical half survives: episode detection over the all-language histogram
+ships as display-only markers at deployment, no explainer, and the chat inherits
+the drill-down role in a degraded-but-honest form — a lifetime survey sample
+holds only a dozen-odd reviews from any given spike (the observation that
+founded the investigator in the first place), so spike questions will often
+land in exactly the named-thin-evidence state rather than pretending to explain.
+And the M1 post's roadmap paragraph tells the redirect as what it was: a
+measured scope call on stated grounds — the labeled corpus and calibrated judge
+are assets a RAG system monetizes directly — not a retreat from the harder
+thing.
+
+Figure: a single annotated chat answer as the M4 post's anchor image — claims
+with quote pins, the mint-citation number visually distinct, the provenance
+stamp, and a named-thin-evidence variant beside it (the three-state ladder in
+one frame).
+
+## 2026-07-27 — The live layer paid for itself on its first run: donor lore drifted in a direction nobody predicted, and a cheap probe closed a cost hope cleanly
+
+*The E1 `steam_client` build session — the live Steam door, built in seven
+commits to the five-fork design ruled the same day. Extraction+eval (M1),
+side-track E1. Feeds: the M1 post's methodology/verification section (the
+two-layer verification argument and what each layer can uniquely catch), and
+the eventual deployment-milestone ops story (the live door's trust posture).
+Build record: DESIGN.md's "`steam_client` E1 build" entry; machinery in
+`src/steamlens/steam_client/`; smoke in `tests/test_steam_live_smoke.py`.*
+
+The door's verification was deliberately two-layered, and the design fork that
+ruled it had to defend the second layer: scripted-transport tests and
+real-capture parser tests cover CI (a record/replay library was rejected — one
+injectable callable does the job, and cassettes rot), while a gated live smoke
+(`STEAMLENS_LIVE_SMOKE=1`, never CI) is the only code that touches Steam. On
+its first deliberate run, the smoke failed — and the failure is the argument
+for the layer's existence. The harvested donor lore (mined from the frozen
+steam-reviews fetcher during the design session) said `query_summary` rides
+the first review page only and is absent afterward. The live wire disagreed in
+a direction nobody predicted: later pages *do* carry the field, as a
+degenerate stub — `{"num_reviews": 0}` with none of the population totals —
+and the strict boundary parser, built to refuse rather than half-parse,
+refused it mid-walk exactly as designed. The fix took the same hour: the known
+stub now parses as "no summary" while a half-formed totals block still fails
+loud, and the new wire shape is pinned as a scripted test so CI carries the
+knowledge forward. Two lessons ride this one incident. Harvested knowledge
+drifts in unexpected *directions* — the lore wasn't wrong that later pages
+differ, it was wrong about *how*, and no amount of scripted testing against
+remembered shapes catches the shape nobody remembered — only a live layer
+does. And validation strictness is what converts silent drift into a loud
+finding: a tolerant parser would have shrugged the stub into a `None` and the
+lore would still be wrong in the codebase's collective head.
+
+It was also the second donor-lore correction of the E1 arc: the design session
+had already caught the donor's "80 is the community-verified reliable value"
+page-size comment contradicting the project's own verified record (FIXLOG
+2026-07-07 — no batch size is universally safe; the same bug thread reports 80
+failing where 100 works). Same lesson, two instances, two directions: harvested
+docs are claims to verify against one's own record and the live wire, never
+facts to adopt.
+
+The page-size probe closed the arc's one open cost hope. Fetcher programs are
+reported running `num_per_page=200` (Arda's observation), and an honored 200
+would halve every window's request cost under the flat 1.5s pacing floor. The
+one-shot probe (`probes/page_size_probe.py`, capture
+`probes/captures/page_size_200.json`, run 2026-07-27) asked for 200 and got
+exactly 100 back — clamped at the documented cap. The hope died in one paced
+request; the alternative was baking an unverified 200 into config and
+discovering the truth as a silent under-fetch mid-survey. Page size stays the
+non-load-bearing knob the design ruled it to be, default 100.
+
+The rest of the smoke run (5/5 after the fix, this session) earned its lines
+too: the blank/restore pair reproduced *live* on Borderlands 2's real
+`past_events` window — 0 reviews under a default fetch versus 100 with
+`filter_offtopic_activity=0`, so the data-integrity bug that forces the
+restore flag onto every fetch is a present-tense fact, not 2019-era capture
+archaeology — and the windowed check's cross-check landed exactly: Steam's own
+window-scoped population claim matched the collection to the review
+(`reported_total == collected == 49`).
+
+Figure: the blank/restore pair as a two-bar before/after (0 vs 100 reviews,
+same window, one request flag apart) — the door's trust posture in one image.
 
 *The D3 evals-in-CI session — designed, ruled, and built in one day.
 Extraction+eval (M1). Feeds: the M1 post's evaluation-harness section (what
