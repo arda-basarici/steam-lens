@@ -53,7 +53,7 @@ import random
 import traceback
 import uuid
 from collections.abc import Callable, Mapping, Sequence
-from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -69,7 +69,6 @@ from steamlens.contracts import (
     Review,
     ReviewClassification,
     Sink,
-    StageEvent,
     StageKind,
     TokenUsage,
 )
@@ -83,6 +82,17 @@ from steamlens.core.classify import (
     parse_classify_response,
 )
 from steamlens.core.normalize import build_surface_index
+from steamlens.dispatch import (
+    BatchOutcome,
+    DriftWatch,
+    RunAbort,
+    RunTotals,
+    TeeSink,
+    chunk,
+    code_version,
+    narrate,
+    run_pass,
+)
 from steamlens.evals.gold import load_gold
 from steamlens.evals.judge_gold import assert_gold_text_matches_pool
 from steamlens.evals.judge_sample import load_sample, stored_reviews_matching_pins
@@ -98,16 +108,7 @@ from steamlens.llm_client import (
 from steamlens.llm_client.openai_compat import DEEPSEEK_BASE_URL
 from steamlens.ontology import load_ontology, load_ontology_version
 from steamlens.store import Store
-from steamlens.studies.label_corpus import (
-    MODEL_ID,
-    BatchOutcome,
-    DriftWatch,
-    RunAbort,
-    RunTotals,
-    TeeSink,
-    build_client,
-    code_version,
-)
+from steamlens.studies.label_corpus import MODEL_ID, build_client
 from steamlens.studies.local_corpus import EXCLUDED_APP_IDS
 
 KEY_ENV: Final = "DEEPSEEK_API_KEY"
@@ -115,6 +116,8 @@ KEY_ENV: Final = "DEEPSEEK_API_KEY"
 # requests over texts that all cleared DeepSeek's filter at the census
 # (~1 refusal per 10K requests there), so a handful means systemic trouble.
 REFUSED_LIMIT: Final = 5
+
+_STAGE: Final = "d2d.driver"
 
 Scope = Literal["sample", "gold", "gold-recomposed"]
 
@@ -457,10 +460,6 @@ class ExperimentTotals(RunTotals):
     rebatch_sizes: list[int] = field(default_factory=list[int])
 
 
-def _narrate(sink: Sink, kind: StageKind, message: str) -> None:
-    sink.emit(StageEvent(stage="d2d.driver", kind=kind, message=message))
-
-
 def _write_outcome(
     outcome: BatchOutcome,
     store: Store,
@@ -487,8 +486,8 @@ def _write_outcome(
     """
     if outcome.refusal is not None:
         totals.refused_batches += 1
-        _narrate(
-            sink, StageKind.WARN,
+        narrate(
+            sink, _STAGE, StageKind.WARN,
             f"provider refused a batch ({len(outcome.batch)} reviews): {outcome.refusal}",
         )
         if totals.refused_batches > REFUSED_LIMIT:
@@ -545,69 +544,13 @@ def _write_outcome(
                 review.review_id, versions, run.run_id, failure.reason
             )
             totals.failed_durable += 1
-            _narrate(
-                sink, StageKind.WARN,
+            narrate(
+                sink, _STAGE, StageKind.WARN,
                 f"review {review.review_id} took a durable mark: {failure.reason}",
             )
         else:
             retry.append(review)
     return retry
-
-
-def _chunk(reviews: Sequence[Review], n: int) -> list[tuple[Review, ...]]:
-    return [tuple(reviews[start : start + n]) for start in range(0, len(reviews), n)]
-
-
-def _run_pass(
-    batches: Sequence[tuple[Review, ...]],
-    attempt: str,
-    final: bool,
-    worker: Callable[[tuple[Review, ...]], BatchOutcome],
-    consume: Callable[[BatchOutcome, bool], list[Review]],
-    pool: ThreadPoolExecutor,
-    sink: Sink,
-    *,
-    warmup: bool,
-) -> list[Review]:
-    """One labeling pass over pre-composed batches, consumed as futures finish.
-
-    Callers own composition (the flat scopes chunk at the cell's N, the
-    recomposed scope hands its seeded batches over verbatim). ``warmup``
-    runs the first batch synchronously before the pool opens so the
-    provider's prefix cache is seeded by one completed request — the census
-    driver's cost discipline, kept because the codebook prefix repeats on
-    every request. Ordering is not needed because every write is
-    per-review keyed.
-    """
-    total = len(batches)
-    failed: list[Review] = []
-    done = 0
-    start_at = 0
-    if warmup and batches:
-        failed.extend(consume(worker(batches[0]), final))
-        done += 1
-        _narrate(sink, StageKind.PROGRESS, f"{attempt}: warmup batch 1/{total} consumed")
-        start_at = 1
-    pending: set[Future[BatchOutcome]] = {
-        pool.submit(worker, batch) for batch in batches[start_at:]
-    }
-    try:
-        while pending:
-            completed, pending = wait(pending, return_when=FIRST_COMPLETED)
-            for future in completed:
-                failed.extend(consume(future.result(), final))
-                done += 1
-                if done % 25 == 0 or done == total:
-                    _narrate(
-                        sink, StageKind.PROGRESS, f"{attempt}: batch {done}/{total} consumed"
-                    )
-    except BaseException:
-        # Abort means stop: queued batches must not keep spending behind a
-        # dying run; in-flight requests finish and cache harmlessly.
-        for future in pending:
-            future.cancel()
-        raise
-    return failed
 
 
 def _config_hash(
@@ -672,8 +615,8 @@ def execute_experiment_run(
     ):
         sink = TeeSink(log)
         client = build_client(entry, cfg.budget_usd, cell.batch_size, client_store, sink)
-        _narrate(
-            sink, StageKind.STARTED,
+        narrate(
+            sink, _STAGE, StageKind.STARTED,
             f"run {run_id} · code {code_version()} · cell {cell.name} · "
             f"{versions.model_version} (wire {MODEL_ID}) · N={cell.batch_size} · "
             f"{cell.prompt_version} · workers {cfg.max_workers} · "
@@ -701,7 +644,7 @@ def execute_experiment_run(
                 if cfg.limit is not None:
                     pending = pending[: cfg.limit]
                 selected = len(pending)
-                batches = _chunk(pending, cell.batch_size)
+                batches = chunk(pending, cell.batch_size)
                 unit = "reviews"
             run = Provenance(
                 run_id=run_id,
@@ -710,8 +653,8 @@ def execute_experiment_run(
                 config_hash=_config_hash(cfg, stamp.version, stamp.content_hash,
                                          scope_descriptor),
             )
-            _narrate(
-                sink, StageKind.PROGRESS,
+            narrate(
+                sink, _STAGE, StageKind.PROGRESS,
                 f"selection: {selected} {unit} to label under {versions.model_version}/"
                 f"{versions.prompt_version}/{versions.ontology_version} "
                 f"({already_settled} of {in_scope} already settled"
@@ -736,16 +679,17 @@ def execute_experiment_run(
                 # that is not one-gold-among-nine-fresh-fillers under its triple.
                 single_attempt = cell.batch_size == 1 or cell.scope == "gold-recomposed"
                 with ThreadPoolExecutor(max_workers=cfg.max_workers) as pool:
-                    failed = _run_pass(
-                        batches, "initial", single_attempt,
-                        worker, consume, pool, sink, warmup=True,
+                    failed = run_pass(
+                        batches, "initial", worker,
+                        lambda o: consume(o, single_attempt), pool, sink,
+                        stage=_STAGE, warmup=True, progress_every=25,
                     )
                     if failed:
-                        rebatch_chunks = _chunk(tuple(failed), cell.batch_size)
+                        rebatch_chunks = chunk(failed, cell.batch_size)
                         remainder: tuple[Review, ...] = ()
                         if len(rebatch_chunks[-1]) < cell.batch_size:
                             remainder = rebatch_chunks.pop()
-                        totals.rebatch_sizes = [len(chunk) for chunk in rebatch_chunks]
+                        totals.rebatch_sizes = [len(batch) for batch in rebatch_chunks]
                         totals.rebatched = sum(totals.rebatch_sizes)
                         for review in remainder:
                             driver_store.labels.record_failure(
@@ -754,22 +698,23 @@ def execute_experiment_run(
                                 "an off-size request",
                             )
                             totals.failed_durable += 1
-                            _narrate(
-                                sink, StageKind.WARN,
+                            narrate(
+                                sink, _STAGE, StageKind.WARN,
                                 f"review {review.review_id} took a durable mark: "
                                 f"sub-N rebatch remainder ({len(remainder)} rows "
                                 f"below N={cell.batch_size})",
                             )
                         if rebatch_chunks:
-                            _narrate(
-                                sink, StageKind.PROGRESS,
+                            narrate(
+                                sink, _STAGE, StageKind.PROGRESS,
                                 f"rebatch: {totals.rebatched} failed rows retried at "
                                 f"exactly N={cell.batch_size} — the final, "
                                 "condition-pure attempt",
                             )
-                            _run_pass(
-                                rebatch_chunks, "rebatch", True,
-                                worker, consume, pool, sink, warmup=False,
+                            run_pass(
+                                rebatch_chunks, "rebatch", worker,
+                                lambda o: consume(o, True), pool, sink,
+                                stage=_STAGE, warmup=False, progress_every=25,
                             )
         except KeyboardInterrupt:
             aborted = "keyboard interrupt"
@@ -826,8 +771,8 @@ def execute_experiment_run(
             json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
         )
         outcome_kind = StageKind.WARN if aborted else StageKind.DONE
-        _narrate(
-            sink, outcome_kind,
+        narrate(
+            sink, _STAGE, outcome_kind,
             (f"ABORTED: {aborted}" if aborted else "run complete")
             + f" · labeled {totals.labeled}/{selected} (empty {totals.empty_envelopes}, "
             f"failed durable {totals.failed_durable}) · ${run_cost:.4f} this run · "

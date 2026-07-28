@@ -28,17 +28,14 @@ import argparse
 import hashlib
 import json
 import os
-import subprocess
-import sys
-import threading
 import traceback
 import uuid
-from collections.abc import Callable, Iterator, Mapping
-from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
-from dataclasses import dataclass, field
+from collections.abc import Mapping
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Final, TextIO
+from typing import Final
 
 from steamlens.contracts import (
     AspectOntology,
@@ -50,8 +47,6 @@ from steamlens.contracts import (
     Review,
     ReviewClassification,
     Sink,
-    SinkEvent,
-    StageEvent,
     StageKind,
     TokenUsage,
 )
@@ -63,6 +58,17 @@ from steamlens.core.classify import (
     parse_classify_response,
 )
 from steamlens.core.normalize import build_surface_index
+from steamlens.dispatch import (
+    BatchOutcome,
+    DriftWatch,
+    RunAbort,
+    RunTotals,
+    TeeSink,
+    chunk,
+    code_version,
+    narrate,
+    run_pass,
+)
 from steamlens.llm_client import (
     AtCapacityError,
     GenerationIncompleteError,
@@ -112,9 +118,7 @@ _REFUSED_BATCH_LIMIT: Final = 20
 
 _EPOCH: Final = datetime.fromtimestamp(0, tz=UTC)
 
-
-class RunAbort(Exception):
-    """A condition the design says stops the run loudly; always resume-clean."""
+_STAGE: Final = "c1.driver"
 
 
 @dataclass(frozen=True, slots=True)
@@ -137,92 +141,6 @@ class RunConfig:
     budget_usd: float
     limit: int | None
     expected_supply: int
-
-
-@dataclass(slots=True)
-class RunTotals:
-    """The run's accumulating counters — one place, narrated and manifested."""
-
-    batches: int = 0
-    labeled: int = 0
-    empty_envelopes: int = 0
-    salvaged: int = 0
-    repairs: int = 0
-    unattributable: int = 0
-    rebatched: int = 0
-    isolated: int = 0
-    failed_durable: int = 0
-    refused_batches: int = 0
-    prompt_tokens: int = 0
-    output_tokens: int = 0
-    thinking_tokens: int = 0
-    model_versions_seen: set[str] = field(default_factory=set[str])
-
-
-@dataclass(frozen=True, slots=True)
-class BatchOutcome:
-    """One dispatched batch's full account, carried from worker to writer.
-
-    ``refusal`` is set when the provider rejected the whole request (a content
-    filter, typically) — the parse then carries every idx as failed with the
-    refusal as reason, no tokens were reported, and ``model_version`` is the
-    empty string (nothing served the call, so the drift watch skips it).
-    """
-
-    batch: tuple[Review, ...]
-    parse: BatchParseResult
-    model_version: str
-    finish: str
-    usage: TokenUsage
-    refusal: str | None = None
-
-
-class TeeSink:
-    """Narration to the console and a tail-able run log; metrics to the log only.
-
-    Stage events are the human story — both surfaces get them. Metric events
-    (six per model call) would drown a console at census scale, so they land
-    only in the log file, greppable after the fact. The file is line-buffered
-    so a second-pane ``tail`` follows the run live. ``emit`` is called from
-    the client's worker threads, so each surface takes exactly one write per
-    event under a lock — without it, lines interleave mid-line in the very
-    file that exists to be tailed and grepped.
-    """
-
-    def __init__(self, log: TextIO) -> None:
-        self._log = log
-        self._lock = threading.Lock()
-
-    def emit(self, event: SinkEvent) -> None:
-        stamp = datetime.now(UTC).strftime("%H:%M:%S")
-        if isinstance(event, StageEvent):
-            line = f"[{stamp}] {event.stage} {event.kind.value}: {event.message}\n"
-            with self._lock:
-                sys.stdout.write(line)
-                self._log.write(line)
-        else:
-            line = f"[{stamp}] metric {event.stage} {event.name}={event.value} {event.unit}\n"
-            with self._lock:
-                self._log.write(line)
-
-
-def code_version() -> str:
-    """The repo's short commit sha, ``+dirty`` when the tree has changes.
-
-    Provenance is a design pillar — a run that cannot state what code produced
-    it refuses to start, so a failed ``git`` call raises rather than stamping
-    ``unknown``.
-    """
-    repo = Path(__file__).resolve().parents[3]
-    sha = subprocess.run(
-        ["git", "rev-parse", "--short", "HEAD"],
-        cwd=repo, capture_output=True, text=True, check=True,
-    ).stdout.strip()
-    status = subprocess.run(
-        ["git", "status", "--porcelain"],
-        cwd=repo, capture_output=True, text=True, check=True,
-    ).stdout.strip()
-    return f"{sha}+dirty" if status else sha
 
 
 def _config_hash(cfg: RunConfig, ontology_version: str, ontology_content_hash: str) -> str:
@@ -278,10 +196,6 @@ def build_client(
     )
 
 
-def _narrate(sink: Sink, kind: StageKind, message: str, *, stage: str = "c1.driver") -> None:
-    sink.emit(StageEvent(stage=stage, kind=kind, message=message))
-
-
 def ingest_corpus(cfg: RunConfig, store: Store, sink: Sink) -> None:
     """Walk the usable games into the reviews table, then assert the ruled supply.
 
@@ -303,11 +217,10 @@ def ingest_corpus(cfg: RunConfig, store: Store, sink: Sink) -> None:
         non_english += result.non_english
         empty += result.empty
         usable += result.usable
-    _narrate(
-        sink, StageKind.DONE,
+    narrate(
+        sink, "c1.ingest", StageKind.DONE,
         f"ingest: {len(files)} games · {total:,} on disk → {non_english:,} non-English "
         f"+ {empty:,} empty dropped → {usable:,} usable ({inserted:,} newly inserted)",
-        stage="c1.ingest",
     )
     count = store.reviews.count(excluding_app_ids=EXCLUDED_APP_IDS)
     if count != cfg.expected_supply:
@@ -367,29 +280,6 @@ def classify_batch(
     )
 
 
-class DriftWatch:
-    """Holds the first provider-reported model version; a change aborts the run.
-
-    A silent provider roll mid-census would split the pool's "one annotator"
-    claim, so the change is a stop-and-rule event — resume is free, and the
-    envelopes already written carry their true build in the spend ledger.
-    """
-
-    def __init__(self) -> None:
-        self._first: str | None = None
-
-    def check(self, reported: str) -> None:
-        if self._first is None:
-            self._first = reported
-            return
-        if reported != self._first:
-            raise RunAbort(
-                f"model version drift: run started under {self._first!r}, provider now "
-                f"reports {reported!r} — stopping so the pool keeps one annotator; "
-                f"per-call versions are in the spend ledger"
-            )
-
-
 def _write_outcome(
     outcome: BatchOutcome,
     store: Store,
@@ -410,8 +300,8 @@ def _write_outcome(
     """
     if outcome.refusal is not None:
         totals.refused_batches += 1
-        _narrate(
-            sink, StageKind.WARN,
+        narrate(
+            sink, _STAGE, StageKind.WARN,
             f"provider refused a batch ({attempt}, {len(outcome.batch)} reviews): "
             f"{outcome.refusal}",
         )
@@ -457,70 +347,13 @@ def _write_outcome(
                 review.review_id, versions, run.run_id, failure.reason
             )
             totals.failed_durable += 1
-            _narrate(
-                sink, StageKind.WARN,
+            narrate(
+                sink, _STAGE, StageKind.WARN,
                 f"review {review.review_id} unclassifiable even alone: {failure.reason}",
             )
         else:
             retry.append(review)
     return retry
-
-
-def _chunk(reviews: tuple[Review, ...], n: int) -> Iterator[tuple[Review, ...]]:
-    for start in range(0, len(reviews), n):
-        yield reviews[start : start + n]
-
-
-def _run_pass(
-    reviews: tuple[Review, ...],
-    batch_size: int,
-    attempt: str,
-    worker: Callable[[tuple[Review, ...]], BatchOutcome],
-    consume: Callable[[BatchOutcome, str], list[Review]],
-    pool: ThreadPoolExecutor,
-    sink: Sink,
-    *,
-    warmup: bool,
-) -> list[Review]:
-    """One labeling pass: chunk, dispatch, consume as completed on this thread.
-
-    ``warmup`` runs the first batch synchronously before the pool opens, so
-    the provider's prefix cache is seeded by one completed request instead of
-    ``max_workers`` concurrent cold misses — the pilot's cost-per-review then
-    measures steady-state behavior. Consumption happens as futures finish;
-    total ordering is not needed because every write is per-review keyed.
-    """
-    batches = list(_chunk(reviews, batch_size))
-    total = len(batches)
-    failed: list[Review] = []
-    done = 0
-    start_at = 0
-    if warmup and batches:
-        failed.extend(consume(worker(batches[0]), attempt))
-        done += 1
-        _narrate(sink, StageKind.PROGRESS, f"{attempt}: warmup batch 1/{total} consumed")
-        start_at = 1
-    pending: set[Future[BatchOutcome]] = {
-        pool.submit(worker, batch) for batch in batches[start_at:]
-    }
-    try:
-        while pending:
-            completed, pending = wait(pending, return_when=FIRST_COMPLETED)
-            for future in completed:
-                failed.extend(consume(future.result(), attempt))
-                done += 1
-                if done % 10 == 0 or done == total:
-                    _narrate(
-                        sink, StageKind.PROGRESS, f"{attempt}: batch {done}/{total} consumed"
-                    )
-    except BaseException:
-        # Abort means stop: queued batches must not keep dispatching (and
-        # spending) behind a dying run. In-flight requests finish and cache
-        # harmlessly; cancellation only stops what never started.
-        for future in pending:
-            future.cancel()
-        raise
-    return failed
 
 
 def execute_run(cfg: RunConfig, entry: ProviderEntry, started: datetime | None = None) -> int:
@@ -565,8 +398,8 @@ def execute_run(cfg: RunConfig, entry: ProviderEntry, started: datetime | None =
         sink = TeeSink(log)
         client = build_client(entry, cfg.budget_usd, cfg.n, client_store, sink)
         lifetime = driver_store.spend_ledger.cost_since(_EPOCH)
-        _narrate(
-            sink, StageKind.STARTED,
+        narrate(
+            sink, _STAGE, StageKind.STARTED,
             f"run {run_id} · code {run.code_version} · {MODEL_ID} · N={cfg.n} · "
             f"workers {cfg.max_workers} · ontology {stamp.version} · "
             f"budget ${cfg.budget_usd:.2f} this run · ledger holds ${lifetime:.4f} to date",
@@ -581,8 +414,8 @@ def execute_run(cfg: RunConfig, entry: ProviderEntry, started: datetime | None =
             if cfg.limit is not None:
                 pending = pending[: cfg.limit]
             selected = len(pending)
-            _narrate(
-                sink, StageKind.PROGRESS,
+            narrate(
+                sink, _STAGE, StageKind.PROGRESS,
                 f"selection: {selected:,} to label under {versions.model_version}/"
                 f"{versions.prompt_version}/{versions.ontology_version} "
                 f"({already_labeled:,} of {supply:,} already settled)",
@@ -599,28 +432,32 @@ def execute_run(cfg: RunConfig, entry: ProviderEntry, started: datetime | None =
                     )
 
                 with ThreadPoolExecutor(max_workers=cfg.max_workers) as pool:
-                    failed = _run_pass(
-                        pending, cfg.n, "initial", worker, consume, pool, sink, warmup=True
+                    failed = run_pass(
+                        chunk(pending, cfg.n), "initial", worker,
+                        lambda o: consume(o, "initial"), pool, sink,
+                        stage=_STAGE, warmup=True,
                     )
                     if failed:
-                        _narrate(
-                            sink, StageKind.PROGRESS,
+                        narrate(
+                            sink, _STAGE, StageKind.PROGRESS,
                             f"rebatch: {len(failed)} failed rows retried at N={cfg.n}",
                         )
                         totals.rebatched = len(failed)
-                        failed = _run_pass(
-                            tuple(failed), cfg.n, "rebatch", worker, consume, pool, sink,
-                            warmup=False,
+                        failed = run_pass(
+                            chunk(failed, cfg.n), "rebatch", worker,
+                            lambda o: consume(o, "rebatch"), pool, sink,
+                            stage=_STAGE, warmup=False,
                         )
                     if failed:
-                        _narrate(
-                            sink, StageKind.PROGRESS,
+                        narrate(
+                            sink, _STAGE, StageKind.PROGRESS,
                             f"isolate: {len(failed)} rows alone at N=1",
                         )
                         totals.isolated = len(failed)
-                        _run_pass(
-                            tuple(failed), 1, "isolate", worker, consume, pool, sink,
-                            warmup=False,
+                        run_pass(
+                            chunk(failed, 1), "isolate", worker,
+                            lambda o: consume(o, "isolate"), pool, sink,
+                            stage=_STAGE, warmup=False,
                         )
         except KeyboardInterrupt:
             aborted = "keyboard interrupt"
@@ -676,8 +513,8 @@ def execute_run(cfg: RunConfig, entry: ProviderEntry, started: datetime | None =
             json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
         )
         outcome_kind = StageKind.WARN if aborted else StageKind.DONE
-        _narrate(
-            sink, outcome_kind,
+        narrate(
+            sink, _STAGE, outcome_kind,
             (f"ABORTED: {aborted}" if aborted else "run complete")
             + f" · labeled {totals.labeled:,}/{selected:,} (empty {totals.empty_envelopes:,}, "
             f"failed durable {totals.failed_durable}) · ${run_cost:.4f} this run · "

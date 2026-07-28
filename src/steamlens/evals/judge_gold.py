@@ -40,16 +40,17 @@ from pathlib import Path
 from steamlens.contracts import ClassifierVersions, Provenance, StageKind
 from steamlens.core.classify import PROMPT_VERSION
 from steamlens.core.normalize import build_surface_index
+from steamlens.dispatch import DriftWatch, RunAbort, TeeSink, code_version, narrate
 from steamlens.evals.gold import GoldRecord, load_gold
 from steamlens.evals.judge_dispatch import (
     JUDGE_MODEL_ID,
     JUDGE_RPM,
+    JUDGE_STAGE,
     KEY_ENV,
     JudgeItem,
     JudgeTotals,
     build_judge_client,
     dispatch_items,
-    narrate,
 )
 from steamlens.llm_client import (
     AtCapacityError,
@@ -59,7 +60,6 @@ from steamlens.llm_client import (
 )
 from steamlens.ontology import load_ontology, load_ontology_version
 from steamlens.store import Store
-from steamlens.studies.label_corpus import DriftWatch, RunAbort, TeeSink, code_version
 from steamlens.studies.local_corpus import read_reviews_file
 
 
@@ -224,7 +224,7 @@ def execute_judge_run(
         sink = TeeSink(log)
         client = build_judge_client(entry, cfg.budget_usd, client_store, sink, rpm=cfg.rpm)
         narrate(
-            sink, StageKind.STARTED,
+            sink, JUDGE_STAGE, StageKind.STARTED,
             f"run {run_id} · code {run.code_version} · {JUDGE_MODEL_ID} · single-review "
             f"· workers {cfg.max_workers} · ontology {stamp.version} · "
             f"gold {len(gold_records)} reviews ({gold_sha256[:12]}…) · "
@@ -234,7 +234,7 @@ def execute_judge_run(
             backfilled = backfill_gold_reviews(gold_records, cfg.corpus_dir, driver_store)
             if backfilled:
                 narrate(
-                    sink, StageKind.PROGRESS,
+                    sink, JUDGE_STAGE, StageKind.PROGRESS,
                     f"backfilled {backfilled} out-of-scope gold reviews into the snapshot",
                 )
             assert_gold_text_matches_pool(gold_records, driver_store)
@@ -244,7 +244,7 @@ def execute_judge_run(
                 pending = pending[: cfg.limit]
             selected = len(pending)
             narrate(
-                sink, StageKind.PROGRESS,
+                sink, JUDGE_STAGE, StageKind.PROGRESS,
                 f"selection: {selected} to judge under {versions.model_version}/"
                 f"{versions.prompt_version}/{versions.ontology_version} "
                 f"({already_settled} of {len(gold_records)} already settled"
@@ -305,7 +305,7 @@ def execute_judge_run(
         )
         outcome_kind = StageKind.WARN if aborted else StageKind.DONE
         narrate(
-            sink, outcome_kind,
+            sink, JUDGE_STAGE, outcome_kind,
             (f"ABORTED: {aborted}" if aborted else "run complete")
             + f" · judged {totals.labeled}/{selected} (empty {totals.empty_envelopes}, "
             f"failed durable {totals.failed_durable}) · ${run_cost:.4f} this run · "

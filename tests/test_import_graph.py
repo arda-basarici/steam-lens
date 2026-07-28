@@ -25,6 +25,7 @@ _LAYER_RANK: dict[str, int] = {
     "llm_client": 2,
     "store": 2,
     "ontology": 2,  # the artifact-loading shell; core receives the loaded record
+    "dispatch": 3,  # generic run machinery the entry shells compose
     "pipeline": 3,
     "serve": 4,
     "studies": 4,

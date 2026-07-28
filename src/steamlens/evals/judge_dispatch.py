@@ -33,7 +33,6 @@ from steamlens.contracts import (
     Provenance,
     ReviewClassification,
     Sink,
-    StageEvent,
     StageKind,
     TokenUsage,
 )
@@ -44,6 +43,7 @@ from steamlens.core.classify import (
     build_classify_prompt,
     parse_classify_response,
 )
+from steamlens.dispatch import DriftWatch, RunAbort, narrate
 from steamlens.llm_client import (
     GenerationIncompleteError,
     LlmClient,
@@ -54,7 +54,9 @@ from steamlens.llm_client import (
     Route,
 )
 from steamlens.store import Store
-from steamlens.studies.label_corpus import DriftWatch, RunAbort
+
+JUDGE_STAGE: Final = "judge.driver"
+"""The judge runs' narration stage — one vocabulary across both dispatch shells."""
 
 JUDGE_MODEL_ID: Final = "gemini-3-flash-preview"
 """The requested model id — the judge triple's ``model_version`` (keys are
@@ -176,11 +178,6 @@ def build_judge_client(
     )
 
 
-def narrate(sink: Sink, kind: StageKind, message: str) -> None:
-    """One judge-driver stage event onto the run's sink."""
-    sink.emit(StageEvent(stage="judge.driver", kind=kind, message=message))
-
-
 def judge_review(
     client: LlmClient,
     ontology: AspectOntology,
@@ -249,7 +246,7 @@ def _write_outcome(
     if outcome.refusal is not None:
         totals.refused += 1
         narrate(
-            sink, StageKind.WARN,
+            sink, JUDGE_STAGE, StageKind.WARN,
             f"provider refused review {outcome.item.review_id}: {outcome.refusal}",
         )
         if totals.refused > REFUSED_LIMIT:
@@ -285,7 +282,7 @@ def _write_outcome(
         )
         totals.failed_durable += 1
         narrate(
-            sink, StageKind.WARN,
+            sink, JUDGE_STAGE, StageKind.WARN,
             f"review {outcome.item.review_id} took a durable mark: {failure.reason}",
         )
 
@@ -326,7 +323,7 @@ def dispatch_items(
         _write_outcome(outcome, store, versions, run, totals, drift, sink)
         done += 1
         if done % 25 == 0 or done == total:
-            narrate(sink, StageKind.PROGRESS, f"judged {done}/{total}")
+            narrate(sink, JUDGE_STAGE, StageKind.PROGRESS, f"judged {done}/{total}")
 
     consume(worker(pending[0]))
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
