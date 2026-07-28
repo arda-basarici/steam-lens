@@ -151,5 +151,7 @@ def test_forced_fallback_walks_a_shallow_window(transport: SteamTransport) -> No
     tally = walk_pages(fetch_page, window_start, window_end, out_of_window_is_violation=False)
     print(f"fallback: {len(tally.reviews)} reviews over {tally.pages_fetched} pages")
     assert tally.reviews
-    assert tally.out_of_window == 0
+    # window_end is "now", so the newest-first stream has no approach phase to
+    # skip — a claim only a live run can make about the fallback's real cost
+    assert tally.pages_fetched <= 25
     assert all(window_start <= r.created_at <= window_end for r in tally.reviews)

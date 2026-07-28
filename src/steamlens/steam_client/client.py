@@ -14,6 +14,7 @@ from __future__ import annotations
 import time
 from collections.abc import Callable
 from datetime import UTC, datetime
+from types import TracebackType
 from typing import Final
 
 import httpx
@@ -86,6 +87,21 @@ class SteamClient:
             config, sink, transport=transport, sleep=sleep, monotonic=monotonic
         )
         self._now = now
+
+    def close(self) -> None:
+        """Release the transport's pooled connections; unusable afterwards."""
+        self._transport.close()
+
+    def __enter__(self) -> SteamClient:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
+        self.close()
 
     def resolve_game(self, app_id: int, expected_name: str) -> GameRef:
         """What the store says ``app_id`` is — guard verdict and totals included.

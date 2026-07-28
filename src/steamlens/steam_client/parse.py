@@ -142,12 +142,16 @@ def parse_appdetails(payload: Mapping[str, object], app_id: int) -> str | None:
     """The store's current name for ``app_id``, or ``None`` when it has no data.
 
     The appdetails response is keyed by the app id *as a string*; the entry
-    answers no-data (falsy ``success`` or no ``data`` — a delisted or invalid
-    id) as ``None``, which the identity guard turns into its no-data verdict.
-    A successful entry whose ``name`` is missing or mistyped is shape damage
-    and fails loud instead.
+    answers no-data (falsy ``success``, no ``data``, or a JSON-null entry —
+    a delisted or invalid id) as ``None``, which the identity guard turns
+    into its no-data verdict. A *missing* key is different — the response
+    doesn't answer the id at all — and fails loud, as does a successful
+    entry whose ``name`` is missing or mistyped.
     """
-    entry = _object_field(payload.get(str(app_id)), f"appdetails[{app_id}]")
+    key = str(app_id)
+    if key in payload and payload[key] is None:
+        return None  # null is success:false's natural neighbor — no data, calmly
+    entry = _object_field(payload.get(key), f"appdetails[{app_id}]")
     if not entry.get("success") or "data" not in entry:
         return None
     data = _object_field(entry.get("data"), f"appdetails[{app_id}].data")

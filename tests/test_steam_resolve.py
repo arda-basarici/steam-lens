@@ -157,6 +157,13 @@ def test_appdetails_no_data_is_none() -> None:
     assert parse_appdetails({"440": {"success": True}}, 440) is None
 
 
+def test_appdetails_null_entry_is_no_data_not_damage() -> None:
+    """A JSON-null under our key is success:false's natural neighbor — the id
+    resolved to nothing, which is the guard's calm no-data verdict, while a
+    *missing* key stays loud (the response didn't answer the id at all)."""
+    assert parse_appdetails({"440": None}, 440) is None
+
+
 def test_appdetails_missing_entry_fails_loud() -> None:
     """A response without our app id's key is shape damage, not no-data."""
     with pytest.raises(SteamResponseError, match=r"appdetails\[440\]"):

@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import time
 from collections.abc import Callable, Mapping
+from types import TracebackType
 from typing import cast
 
 import httpx
@@ -68,6 +69,21 @@ class SteamTransport:
     def retries_spent(self) -> int:
         """Cumulative retries this transport has spent since construction."""
         return self._retries_spent
+
+    def close(self) -> None:
+        """Release the pooled connections; the transport is unusable afterwards."""
+        self._http.close()
+
+    def __enter__(self) -> SteamTransport:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
+        self.close()
 
     def get_json(self, url: str, params: Mapping[str, str | int]) -> dict[str, object]:
         """One paced, retried GET, returning the response body as a JSON object.
