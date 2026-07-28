@@ -114,7 +114,10 @@ class WindowFetchResult:
     there, not a violation. ``reported_total`` is Steam's own count for the
     windowed query from the first page's ``query_summary`` — captured even when
     the fetch returns nothing; ``None`` on the fallback path, whose unwindowed
-    query summarizes the whole game, not the window.
+    query summarizes the whole game, not the window. On ``SKIPPED_INFEASIBLE``
+    it is kept as evidence of the *failed windowed attempt*, unverified: the
+    query carried window params Steam demonstrably did not fully honor, so
+    the number may describe more than the window.
     """
 
     app_id: int

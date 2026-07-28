@@ -122,3 +122,24 @@ def test_missing_field_rejected_with_location(tmp_path: Path) -> None:
     broken = _MINIMAL.replace('definition = "Fighting systems."\n', "")
     with pytest.raises(OntologyValidationError, match="aspect 'combat': 'definition'"):
         load_ontology(_artifact(tmp_path, broken))
+
+
+def test_non_snake_case_label_rejected(tmp_path: Path) -> None:
+    broken = _MINIMAL.replace('label = "combat"', 'label = "Combat Systems"')
+    with pytest.raises(OntologyValidationError, match="'Combat Systems' is not snake_case"):
+        load_ontology(_artifact(tmp_path, broken))
+
+
+def test_bare_string_where_a_list_is_required_rejected(tmp_path: Path) -> None:
+    """A string-list field that is not a list is caught by the structural pass —
+    and reported alongside any other structural problems, not alone."""
+    broken = _MINIMAL.replace('aliases = ["fighting"]', 'aliases = "fighting"')
+    with pytest.raises(OntologyValidationError, match="aspect 'combat': 'aliases'"):
+        load_ontology(_artifact(tmp_path, broken))
+
+
+def test_empty_aspects_array_rejected(tmp_path: Path) -> None:
+    marker = "[[aspects]]"
+    broken = _MINIMAL[: _MINIMAL.index(marker)] + "aspects = []\n"
+    with pytest.raises(OntologyValidationError, match="non-empty array of tables"):
+        load_ontology(_artifact(tmp_path, broken))

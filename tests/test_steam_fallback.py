@@ -199,6 +199,8 @@ def test_unaffordable_fallback_is_a_disclosed_skip() -> None:
     assert result.reviews == ()
     assert result.out_of_window_count == 1
     assert result.pages_fetched == 1
+    # kept as evidence of the failed windowed attempt, unverified by contract
+    assert result.reported_total == 50
     assert len(h.requests) == 2  # windowed page + histogram, nothing more
     warns = [e for e in h.sink.events if isinstance(e, StageEvent)]
     assert any("window skipped" in w.message for w in warns)

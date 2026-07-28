@@ -47,7 +47,10 @@ def load_ontology(path: Path | None = None) -> AspectOntology:
     shadowing another aspect's label (both judged under the runtime lookup's
     own ``core.normalize.match_key`` — one gate, one key, so an admitted
     artifact cannot collide later at index build), an undeclared category,
-    or backticked prose referencing a label that is not pinned.
+    backticked prose referencing a label that is not pinned, or an aspect
+    with no aliases or no examples — a codebook rule, not a schema accident:
+    every pinned aspect must teach at least one surface variant and one
+    worked example.
 
     >>> ontology = load_ontology()
     >>> any(aspect.label == "gameplay" for aspect in ontology.aspects)

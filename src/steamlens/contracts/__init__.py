@@ -1,6 +1,9 @@
 """The plain-data spine — every record that crosses a module seam.
 
-Frozen, slotted dataclasses (and the sink ``Protocol``) only. This package
+What the package admits: frozen, slotted dataclasses; closed ``StrEnum``
+vocabularies (whose values are wire format); unions over them; and the
+narrow structural protocols a shell binds an implementation to (the sink,
+the response archive, the spend ledger). This package
 imports nothing outside itself, so it sits at the base of the dependency law:
 everything may import ``contracts``, ``contracts`` imports no other layer. Raw
 external data is validated into these records at the shells, never here — once
