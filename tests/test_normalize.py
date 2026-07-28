@@ -46,6 +46,16 @@ def test_surface_variants_fold_to_one_label() -> None:
     assert resolved == {NormalizedAspect("voice_acting", AspectSlot.PINNED)}
 
 
+def test_invisible_and_fullwidth_variants_fold_to_one_label() -> None:
+    """Review text carries zero-width, soft-hyphen, and full-width characters
+    routinely — without the NFKC/format-char fold they'd mint a candidate
+    visually identical to the pinned label, a split nobody can see."""
+    index = build_surface_index(_ontology(_aspect("combat")))
+    variants = ["com​bat", "com­bat", "ｃｏｍｂａｔ"]
+    resolved = {normalize_label(v, index) for v in variants}
+    assert resolved == {NormalizedAspect("combat", AspectSlot.PINNED)}
+
+
 def test_miss_becomes_candidate_in_normal_form() -> None:
     """An unknown phrase lands in the candidate stratum, countable across reviews."""
     index = build_surface_index(_ontology(_aspect("combat")))
@@ -65,7 +75,7 @@ def test_candidate_keeps_reviewer_wording() -> None:
 def test_empty_label_rejected() -> None:
     """A phrase that canonicalizes to nothing is a parser bug, not a candidate."""
     index = build_surface_index(_ontology(_aspect("combat")))
-    for raw in ("", "   ", "_-_"):
+    for raw in ("", "   ", "_-_", "​", "​­"):  # incl. invisible-only
         with pytest.raises(ValueError, match="empty after canonicalization"):
             normalize_label(raw, index)
 

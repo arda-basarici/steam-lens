@@ -266,7 +266,10 @@ def test_missing_duplicate_and_stray_idxs_all_reported() -> None:
     assert result.parsed == ()
     assert set(result.failures) == {
         IdxFailure(0, "duplicate entries for this idx — all discarded"),
-        IdxFailure(7, "idx was never in the input batch"),
+        # stray idxs are unattributable by contract: no input position exists
+        # to charge, so the value rides in the reason and ``idx is not None``
+        # genuinely means "a review you sent failed"
+        IdxFailure(None, "idx 7 was never in the input batch"),
         IdxFailure(1, "no entry in the response"),
     }
 
@@ -285,6 +288,45 @@ def test_unparseable_response_fails_every_idx() -> None:
         result = parse_classify_response(bad, ["a", "b"], _INDEX)
         assert result.parsed == ()
         assert [failure.idx for failure in result.failures] == [0, 1]
+
+
+def test_blank_evidence_reads_as_absence_without_a_repair() -> None:
+    """Constrained decoding fills an optional field with "" — that means "no
+    quote", not a fabrication: folded to None with no repair record, and a
+    blank-then-real pair must keep the real quote through the collapse."""
+    response = _respond(
+        [
+            {
+                "idx": 0,
+                "aspects": [
+                    {"aspect": "combat", "sentiment": "positive", "evidence": ""},
+                    {"aspect": "combat", "sentiment": "positive", "evidence": "the fights"},
+                ],
+            }
+        ]
+    )
+    result = parse_classify_response(response, ["I liked the fights a lot"], _INDEX)
+    assert result.repairs == ()
+    (parsed,) = result.parsed
+    assert parsed.mentions == (
+        _mention("combat", AspectSlot.PINNED, Sentiment.POSITIVE, "the fights"),
+    )
+
+
+def test_non_object_entry_is_unattributable_and_others_salvage() -> None:
+    """The wire-undisciplined shapes a real model produces: a bare string entry
+    counts as unattributable (idx None — the run report's ``unattributable``
+    total consumes exactly this), a wrong-typed ``aspects`` fails its idx, and
+    the well-formed neighbor still salvages — nothing dropped silently."""
+    response = json.dumps(
+        ["nonsense", {"idx": 0, "aspects": "combat"}, {"idx": 1, "aspects": []}]
+    )
+    result = parse_classify_response(response, ["a", "b"], _INDEX)
+    assert result.parsed == (ParsedReview(1, ()),)
+    reasons = {failure.idx: failure.reason for failure in result.failures}
+    assert len(result.failures) == 2
+    assert "entry is str" in reasons[None]
+    assert "'aspects'" in reasons[0]
 
 
 def test_boolean_idx_is_refused_not_misattributed() -> None:
@@ -327,11 +369,17 @@ def test_fence_wrapped_response_decodes() -> None:
 
 
 def test_prose_wrapped_array_without_fence_decodes() -> None:
-    """Prose around a bare array still yields the outermost [...] slice; a
-    prose-wrapped object root parses no rows (its reviews land in failures)."""
+    """Prose around a bare array still salvages — including a bracket in the
+    trailing prose ("[1]"-style citations), which used to defeat the
+    end-guessing slice and lose the whole paid batch; a prose-wrapped object
+    root parses no rows (its reviews land in failures)."""
     inner = _respond([{"idx": 0, "aspects": []}])
     result = parse_classify_response(f"Sure! {inner} Hope this helps.", ["a"], _INDEX)
     assert result.parsed == (ParsedReview(0, ()),)
+    trailing = parse_classify_response(
+        f"Sure! {inner} Hope this helps [1].", ["a"], _INDEX
+    )
+    assert trailing.parsed == (ParsedReview(0, ()),)
     object_root = 'Sure! {"reviews": []} Hope this helps.'
     assert parse_classify_response(object_root, ["a"], _INDEX).parsed == ()
 

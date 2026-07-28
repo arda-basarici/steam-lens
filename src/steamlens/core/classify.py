@@ -265,12 +265,18 @@ def _decode_response(response_text: str) -> object:
                 return json.loads(block)
             except json.JSONDecodeError:
                 continue
-        start, end = response_text.find("["), response_text.rfind("]")
-        if 0 <= start < end:
+        # Decode one JSON value forward from each "[" — raw_decode ignores
+        # whatever follows, so a bracket in trailing prose ("Hope this helps
+        # [1]") cannot defeat the salvage the way an end-guessing slice could.
+        decoder = json.JSONDecoder()
+        start = response_text.find("[")
+        while start >= 0:
             try:
-                return json.loads(response_text[start : end + 1])
+                value, _ = decoder.raw_decode(response_text, start)
             except json.JSONDecodeError:
-                pass
+                start = response_text.find("[", start + 1)
+            else:
+                return value
         raise
 
 
@@ -422,7 +428,10 @@ def _collect_rows(
             failures.append(IdxFailure(None, f"entry idx is {idx!r}, expected an integer"))
             continue
         if idx not in expected:
-            failures.append(IdxFailure(idx, "idx was never in the input batch"))
+            # Unattributable by contract: a row answering an idx never sent has
+            # no input position to charge — the value rides in the reason, so
+            # ``idx is not None`` genuinely means "a review you sent failed".
+            failures.append(IdxFailure(None, f"idx {idx} was never in the input batch"))
             continue
         if idx in duplicated:
             continue
@@ -471,6 +480,12 @@ def _parse_row(
         evidence = mention_row.get("evidence")
         if evidence is not None and not isinstance(evidence, str):
             raise _RowError(f"'evidence' is {evidence!r}, expected a string or absent")
+        if isinstance(evidence, str) and not evidence.strip():
+            # A blank quote means "no quote" (constrained decoding fills optional
+            # fields with "") — folded to absence WITHOUT a repair record, so it
+            # can't pollute the fabricated-quote signal or beat a real quote in
+            # the collapse fold ("" passes the substring check vacuously).
+            evidence = None
         if isinstance(evidence, str) and evidence not in review_text:
             repairs.append(EvidenceRepair(idx, resolved.aspect, evidence))
             evidence = None

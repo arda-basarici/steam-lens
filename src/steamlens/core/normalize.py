@@ -20,6 +20,7 @@ snake_case pinned namespace.
 from __future__ import annotations
 
 import re
+import unicodedata
 from collections.abc import Mapping
 from dataclasses import dataclass
 
@@ -109,8 +110,17 @@ def match_key(text: str) -> str:
     Public because the ontology loader validates alias ownership and label
     shadowing under this exact key — one gate, one key: an artifact the
     loader admits cannot collide again at index build.
+
+    NFKC folds compatibility forms (full-width ``ｃｏｍｂａｔ`` reads as
+    ``combat``) and format characters (zero-width joiners, soft hyphens) are
+    dropped — review-derived phrases carry them routinely, and without the
+    fold they mint a candidate visually identical to a pinned label, an
+    invisible split the recoverable-miss argument doesn't cover. Lookup-key
+    only: stored candidate normal forms are untouched.
     """
-    return _WHITESPACE_RE.sub(" ", _SEPARATORS_RE.sub(" ", text.casefold())).strip()
+    folded = unicodedata.normalize("NFKC", text)
+    visible = "".join(ch for ch in folded if unicodedata.category(ch) != "Cf")
+    return _WHITESPACE_RE.sub(" ", _SEPARATORS_RE.sub(" ", visible.casefold())).strip()
 
 
 def _candidate_form(text: str) -> str:
