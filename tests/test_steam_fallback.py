@@ -15,13 +15,13 @@ from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 
 import httpx
+from fakes import CollectingSink
 
 from steamlens.contracts import (
     HistogramBucket,
     HistogramSnapshot,
     PathOutcome,
     RollupUnit,
-    SinkEvent,
     StageEvent,
 )
 from steamlens.steam_client import SteamClient, SteamClientConfig
@@ -78,14 +78,6 @@ def test_estimate_is_zero_for_a_window_reaching_the_present() -> None:
 # --- the path decision on the wire ---------------------------------------------
 
 
-class RecordingSink:
-    def __init__(self) -> None:
-        self.events: list[SinkEvent] = []
-
-    def emit(self, event: SinkEvent) -> None:
-        self.events.append(event)
-
-
 def _wire_review(review_id: str, created_at: datetime) -> dict[str, object]:
     return {
         "recommendationid": review_id,
@@ -133,7 +125,7 @@ def _histogram_body(above_count: int) -> str:
 class Harness:
     def __init__(self, script: list[str]) -> None:
         self.requests: list[httpx.Request] = []
-        self.sink = RecordingSink()
+        self.sink = CollectingSink()
         feed: Iterator[str] = iter(script)
 
         def handler(request: httpx.Request) -> httpx.Response:

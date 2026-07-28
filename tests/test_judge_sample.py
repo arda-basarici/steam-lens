@@ -11,13 +11,12 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
-from test_judge_gold import FakeGemini
+from fakes import FakeGemini, seed_reviews
 
-from steamlens.contracts import ClassifierVersions, Origin, Review
+from steamlens.contracts import ClassifierVersions, Origin
 from steamlens.core.classify import PROMPT_VERSION
 from steamlens.evals.judge_dispatch import JUDGE_MODEL_ID
 from steamlens.evals.judge_sample import (
@@ -30,21 +29,6 @@ from steamlens.store import Store
 
 _ONTOLOGY_PATH = Path("src/steamlens/ontology/v1.toml")
 _STAMP = load_ontology_version(_ONTOLOGY_PATH)
-
-
-def _seed_reviews(db_path: Path, rows: list[tuple[str, str]]) -> None:
-    with Store(db_path) as store:
-        store.reviews.put_many(
-            Review(
-                review_id=rid,
-                app_id=440,
-                created_at=datetime(2026, 6, 1, tzinfo=UTC),
-                language="english",
-                text=text,
-                voted_up=True,
-            )
-            for rid, text in rows
-        )
 
 
 def _sample_file(
@@ -97,7 +81,7 @@ def test_happy_path_prompts_stored_text_singly(tmp_path: Path) -> None:
     """Three sampled reviews: one request each, prompted from the store's text,
     envelopes landing under the judge triple with survey origin."""
     rows = [("001", "gameplay shines here"), ("002", "nothing aspecty"), ("003", "quiet")]
-    _seed_reviews(tmp_path / "pool.sqlite3", rows)
+    seed_reviews(tmp_path / "pool.sqlite3", rows)
     _sample_file(tmp_path, rows)
     provider = FakeGemini()
     assert execute_sample_run(_config(tmp_path), provider.entry()) == 0
@@ -122,7 +106,7 @@ def test_happy_path_prompts_stored_text_singly(tmp_path: Path) -> None:
 def test_drifted_text_refuses_to_dispatch(tmp_path: Path) -> None:
     """A stored text that no longer hashes to its minted pin aborts before any request."""
     rows = [("001", "original text"), ("002", "still fine")]
-    _seed_reviews(tmp_path / "pool.sqlite3", rows)
+    seed_reviews(tmp_path / "pool.sqlite3", rows)
     _sample_file(tmp_path, rows, break_hash_for="001")
     provider = FakeGemini()
     assert execute_sample_run(_config(tmp_path), provider.entry()) == 1
@@ -133,7 +117,7 @@ def test_drifted_text_refuses_to_dispatch(tmp_path: Path) -> None:
 def test_missing_review_refuses_to_dispatch(tmp_path: Path) -> None:
     """A sampled id absent from the store aborts — the frame no longer exists."""
     rows = [("001", "present"), ("ghost", "never ingested")]
-    _seed_reviews(tmp_path / "pool.sqlite3", rows[:1])
+    seed_reviews(tmp_path / "pool.sqlite3", rows[:1])
     _sample_file(tmp_path, rows)
     provider = FakeGemini()
     assert execute_sample_run(_config(tmp_path), provider.entry()) == 1
@@ -144,7 +128,7 @@ def test_missing_review_refuses_to_dispatch(tmp_path: Path) -> None:
 def test_resume_never_rejudges(tmp_path: Path) -> None:
     """A second run over a settled sample selects nothing and dispatches nothing."""
     rows = [("001", "review one"), ("002", "review two")]
-    _seed_reviews(tmp_path / "pool.sqlite3", rows)
+    seed_reviews(tmp_path / "pool.sqlite3", rows)
     _sample_file(tmp_path, rows)
     assert execute_sample_run(_config(tmp_path), FakeGemini().entry()) == 0
     second = FakeGemini()
@@ -195,7 +179,7 @@ def test_limit_caps_the_dispatch(tmp_path: Path) -> None:
     """--limit is the dial that caps the first live spend — one dispatch, and
     the manifest discloses the cap."""
     rows = [("001", "review one"), ("002", "review two"), ("003", "review three")]
-    _seed_reviews(tmp_path / "pool.sqlite3", rows)
+    seed_reviews(tmp_path / "pool.sqlite3", rows)
     _sample_file(tmp_path, rows)
     provider = FakeGemini()
     assert execute_sample_run(_config(tmp_path, limit=1), provider.entry()) == 0

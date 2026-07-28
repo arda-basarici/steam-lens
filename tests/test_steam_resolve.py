@@ -15,8 +15,9 @@ from collections.abc import Iterator
 
 import httpx
 import pytest
+from fakes import NullSink
 
-from steamlens.contracts import IdentityVerdict, SinkEvent
+from steamlens.contracts import IdentityVerdict
 from steamlens.steam_client import (
     SteamClient,
     SteamClientConfig,
@@ -25,11 +26,6 @@ from steamlens.steam_client import (
     normalize_name,
     parse_appdetails,
 )
-
-
-class NullSink:
-    def emit(self, event: SinkEvent) -> None:
-        pass
 
 
 class Harness:

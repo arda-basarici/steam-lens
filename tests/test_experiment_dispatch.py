@@ -16,17 +16,15 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 from datetime import UTC, datetime
 from pathlib import Path
 
-from test_label_corpus import FakeProvider
+from fakes import FakeProvider, prompt_batch, seed_reviews
 
 from steamlens.contracts import (
     ClassifierVersions,
     Origin,
     Provenance,
-    Review,
     ReviewClassification,
 )
 from steamlens.core.classify import (
@@ -49,29 +47,11 @@ from steamlens.store import Store
 
 _ONTOLOGY_PATH = Path("src/steamlens/ontology/v1.toml")
 _STAMP = load_ontology_version(_ONTOLOGY_PATH)
-_REVIEWS_BLOCK = re.compile(r"<reviews>\n(.*)\n</reviews>", re.DOTALL)
 
 
 def _batch_size(prompt: str) -> int:
     """How many reviews one dispatched prompt carried, read off its data channel."""
-    match = _REVIEWS_BLOCK.search(prompt)
-    assert match, "prompt carries no <reviews> data channel"
-    return len(json.loads(match.group(1)))
-
-
-def _seed_reviews(db_path: Path, rows: list[tuple[str, str]], *, app_id: int = 440) -> None:
-    with Store(db_path) as store:
-        store.reviews.put_many(
-            Review(
-                review_id=rid,
-                app_id=app_id,
-                created_at=datetime(2026, 6, 1, tzinfo=UTC),
-                language="english",
-                text=text,
-                voted_up=True,
-            )
-            for rid, text in rows
-        )
+    return len(prompt_batch(prompt))
 
 
 def _sample_file(tmp_path: Path, rows: list[tuple[str, str]]) -> Path:
@@ -162,7 +142,7 @@ def test_sample_cell_prompts_singly_under_tagged_triple(tmp_path: Path) -> None:
     """full-n1-sample: one request per review, full render, envelopes under the
     tagged triple only — production's untagged triple stays untouched."""
     rows = [("001", "gameplay shines here"), ("002", "nothing aspecty"), ("003", "quiet")]
-    _seed_reviews(tmp_path / "pool.sqlite3", rows)
+    seed_reviews(tmp_path / "pool.sqlite3", rows)
     _sample_file(tmp_path, rows)
     provider = FakeProvider()
     assert execute_experiment_run(_config(tmp_path, "full-n1-sample"), provider.entry()) == 0
@@ -187,7 +167,7 @@ def test_sample_cell_prompts_singly_under_tagged_triple(tmp_path: Path) -> None:
 def test_compact_cell_batches_at_ten_under_its_own_pin(tmp_path: Path) -> None:
     """compact-n10-sample: 12 reviews → batches of 10+2, compact render, compact pin."""
     rows = [(f"{i:03d}", f"review number {i}") for i in range(12)]
-    _seed_reviews(tmp_path / "pool.sqlite3", rows)
+    seed_reviews(tmp_path / "pool.sqlite3", rows)
     _sample_file(tmp_path, rows)
     provider = FakeProvider()
     assert execute_experiment_run(
@@ -214,7 +194,7 @@ def test_n10_failures_rebatch_at_exactly_n_and_the_remainder_marks(tmp_path: Pat
     rows += [(f"x{i:02d}", f"FAIL alpha {i}") for i in range(6)]
     rows += [(f"b{i:02d}", f"review number {10 + i}") for i in range(4)]
     rows += [(f"y{i:02d}", f"FAIL beta {i}") for i in range(6)]
-    _seed_reviews(tmp_path / "pool.sqlite3", rows)
+    seed_reviews(tmp_path / "pool.sqlite3", rows)
     _sample_file(tmp_path, rows)
     provider = FakeProvider()
     assert execute_experiment_run(
@@ -239,7 +219,7 @@ def test_n10_failures_rebatch_at_exactly_n_and_the_remainder_marks(tmp_path: Pat
 def test_n1_failure_marks_on_first_attempt(tmp_path: Path) -> None:
     """At N=1 a failure is already the isolate case: one request, straight to its mark."""
     rows = [("001", "FAIL solo")]
-    _seed_reviews(tmp_path / "pool.sqlite3", rows)
+    seed_reviews(tmp_path / "pool.sqlite3", rows)
     _sample_file(tmp_path, rows)
     provider = FakeProvider()
     assert execute_experiment_run(_config(tmp_path, "full-n1-sample"), provider.entry()) == 0
@@ -254,7 +234,7 @@ def test_limit_caps_the_dispatch(tmp_path: Path) -> None:
     """--limit is the pilot dial that caps the first live spend of a cell —
     one dispatch, and the manifest discloses the cap."""
     rows = [("001", "review one"), ("002", "review two"), ("003", "review three")]
-    _seed_reviews(tmp_path / "pool.sqlite3", rows)
+    seed_reviews(tmp_path / "pool.sqlite3", rows)
     _sample_file(tmp_path, rows)
     provider = FakeProvider()
     assert execute_experiment_run(
@@ -271,7 +251,7 @@ def test_limit_caps_the_dispatch(tmp_path: Path) -> None:
 def test_resume_never_rebuys(tmp_path: Path) -> None:
     """A second run over a settled cell selects nothing and dispatches nothing."""
     rows = [("001", "review one"), ("002", "review two")]
-    _seed_reviews(tmp_path / "pool.sqlite3", rows)
+    seed_reviews(tmp_path / "pool.sqlite3", rows)
     _sample_file(tmp_path, rows)
     assert execute_experiment_run(
         _config(tmp_path, "full-n1-sample"), FakeProvider().entry()
@@ -285,7 +265,7 @@ def test_gold_scope_excludes_cs2_and_prompts_stored_text(tmp_path: Path) -> None
     """full-n1-gold: only in-scope gold reviews dispatch; the excluded game's row
     is neither prompted nor required to exist in the store."""
     in_scope = [("001", "gameplay is tight"), ("002", "soundtrack slaps")]
-    _seed_reviews(tmp_path / "pool.sqlite3", in_scope)
+    seed_reviews(tmp_path / "pool.sqlite3", in_scope)
     _gold_file(
         tmp_path,
         [(rid, "440", text) for rid, text in in_scope]
@@ -310,8 +290,8 @@ def test_recomposed_composition_is_seeded_same_game_and_fresh(tmp_path: Path) ->
     never reused across batches, and the whole composition regenerable byte-for-byte."""
     gold = [("g01", "gameplay is tight"), ("g02", "soundtrack slaps")]
     fillers = [(f"f{i:02d}", f"filler review {i}") for i in range(18)]
-    _seed_reviews(tmp_path / "pool.sqlite3", gold + fillers)
-    _seed_reviews(tmp_path / "pool.sqlite3", [("x01", "other game")], app_id=570)
+    seed_reviews(tmp_path / "pool.sqlite3", gold + fillers)
+    seed_reviews(tmp_path / "pool.sqlite3", [("x01", "other game")], app_id=570)
     _gold_file(tmp_path, [(rid, "440", text) for rid, text in gold])
     cfg = _config(tmp_path, "full-n10-gold-recomposed")
 
@@ -334,11 +314,11 @@ def test_recomposed_composition_is_seeded_same_game_and_fresh(tmp_path: Path) ->
 
 def test_recomposed_tops_up_cross_game_when_short(tmp_path: Path) -> None:
     """A game too small for nine same-game fillers tops up from the corpus, disclosed."""
-    _seed_reviews(tmp_path / "pool.sqlite3", [("g01", "gameplay is tight")])
-    _seed_reviews(
+    seed_reviews(tmp_path / "pool.sqlite3", [("g01", "gameplay is tight")])
+    seed_reviews(
         tmp_path / "pool.sqlite3", [(f"f{i}", f"same game {i}") for i in range(5)]
     )
-    _seed_reviews(
+    seed_reviews(
         tmp_path / "pool.sqlite3",
         [(f"x{i}", f"other game {i}") for i in range(10)],
         app_id=570,
@@ -362,7 +342,7 @@ def test_recomposed_dispatch_lands_batch_and_resumes(tmp_path: Path) -> None:
     gold and filler envelopes both land — and a second run selects nothing."""
     gold = [("g01", "gameplay is tight")]
     fillers = [(f"f{i:02d}", f"filler review {i}") for i in range(9)]
-    _seed_reviews(tmp_path / "pool.sqlite3", gold + fillers)
+    seed_reviews(tmp_path / "pool.sqlite3", gold + fillers)
     _gold_file(tmp_path, [("g01", "440", "gameplay is tight")])
     provider = FakeProvider()
     assert execute_experiment_run(
@@ -397,7 +377,7 @@ def test_recomposed_resume_skips_a_settled_filler(tmp_path: Path) -> None:
     (fillers settled, the gold member not), and the manifest discloses it."""
     gold = [("g01", "gameplay is tight")]
     fillers = [(f"f{i:02d}", f"filler review {i}") for i in range(9)]
-    _seed_reviews(tmp_path / "pool.sqlite3", gold + fillers)
+    seed_reviews(tmp_path / "pool.sqlite3", gold + fillers)
     _gold_file(tmp_path, [("g01", "440", "gameplay is tight")])
     tagged = cell_versions(CELLS["full-n10-gold-recomposed"], _STAMP.version)
     prior = Provenance(
@@ -433,7 +413,7 @@ def test_recomposed_resume_skips_a_settled_filler(tmp_path: Path) -> None:
 
 def test_gold_text_mismatch_refuses_to_dispatch(tmp_path: Path) -> None:
     """A gold text diverging from the stored review beyond edges aborts pre-spend."""
-    _seed_reviews(tmp_path / "pool.sqlite3", [("001", "what the store holds")])
+    seed_reviews(tmp_path / "pool.sqlite3", [("001", "what the store holds")])
     _gold_file(tmp_path, [("001", "440", "what gold claims instead")])
     provider = FakeProvider()
     assert execute_experiment_run(_config(tmp_path, "full-n1-gold"), provider.entry()) == 1

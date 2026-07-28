@@ -13,8 +13,9 @@ from collections.abc import Iterator
 
 import httpx
 import pytest
+from fakes import CollectingSink
 
-from steamlens.contracts import SinkEvent, StageEvent, StageKind
+from steamlens.contracts import StageEvent, StageKind
 from steamlens.steam_client import (
     SteamClientConfig,
     SteamResponseError,
@@ -23,14 +24,6 @@ from steamlens.steam_client import (
 )
 
 _URL = "https://store.steampowered.com/appreviews/440"
-
-
-class RecordingSink:
-    def __init__(self) -> None:
-        self.events: list[SinkEvent] = []
-
-    def emit(self, event: SinkEvent) -> None:
-        self.events.append(event)
 
 
 class Harness:
@@ -43,7 +36,7 @@ class Harness:
 
     def __init__(self, script: list[httpx.Response | Exception]) -> None:
         self.sleeps: list[float] = []
-        self.sink = RecordingSink()
+        self.sink = CollectingSink()
         self.requests: list[httpx.Request] = []
         feed: Iterator[httpx.Response | Exception] = iter(script)
 

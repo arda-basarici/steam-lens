@@ -13,98 +13,22 @@ stays pure over cached responses, exactly as the registry contract requires.
 from __future__ import annotations
 
 import json
-import re
-import threading
 from datetime import UTC, datetime
 from pathlib import Path
 
+from fakes import FakeProvider
+
 from steamlens.contracts import (
     ClassifierVersions,
-    FinishReason,
-    LlmResponse,
     OntologyVersion,
     Provenance,
-    TokenUsage,
 )
 from steamlens.core.classify import PROMPT_VERSION
 from steamlens.dispatch import RunTotals
 from steamlens.dispatch.census_arm import MODEL_ID
-from steamlens.llm_client import ProviderEntry, ProviderPayload, ProviderPermanentError
 from steamlens.ontology import load_ontology_version
 from steamlens.store import Store
 from steamlens.studies.label_corpus import RunConfig, build_manifest, execute_run
-
-_REVIEWS_BLOCK = re.compile(r"<reviews>\n(.*)\n</reviews>", re.DOTALL)
-
-
-class FakeProvider:
-    """A scripted DeepSeek stand-in: answers per review text, records dispatches.
-
-    ``send`` extracts the batch from the prompt's data channel and answers one
-    row per idx — empty aspects by default, a ``gameplay`` mention when the
-    review text asks for one, and *no row at all* for texts carrying ``FAIL``
-    (the driver's re-batch path runs on missing idxs). ``model_version`` for
-    each call comes from ``version_for`` so drift is scriptable per call.
-    """
-
-    def __init__(self, version_for: list[str] | None = None) -> None:
-        self.prompts: list[str] = []
-        self._versions = version_for or []
-        self._lock = threading.Lock()
-
-    def entry(self) -> ProviderEntry:
-        return ProviderEntry(build_payload=self._build, send=self._send, parse=self._parse)
-
-    def dispatched_texts(self) -> list[str]:
-        """Every review text sent to the provider, in dispatch order, flattened."""
-        texts: list[str] = []
-        for prompt in self.prompts:
-            texts.extend(text for _, text in self._batch(prompt))
-        return texts
-
-    @staticmethod
-    def _batch(prompt: str) -> list[tuple[int, str]]:
-        match = _REVIEWS_BLOCK.search(prompt)
-        assert match, "prompt carries no <reviews> data channel"
-        rows = json.loads(match.group(1))
-        return [(int(row["idx"]), str(row["text"])) for row in rows]
-
-    def _build(
-        self, *, model: str, prompt: str, max_output_tokens: int, params: dict[str, object]
-    ) -> ProviderPayload:
-        return {"model": model, "prompt": prompt}
-
-    def _send(self, *, model: str, payload: ProviderPayload) -> str:
-        with self._lock:
-            call_index = len(self.prompts)
-            self.prompts.append(str(payload["prompt"]))
-        if "REFUSE" in str(payload["prompt"]):
-            raise ProviderPermanentError("HTTP 400: Content Exists Risk")
-        version = (
-            self._versions[call_index] if call_index < len(self._versions) else MODEL_ID
-        )
-        answers = [
-            {"idx": idx, "aspects": self._aspects_for(text)}
-            for idx, text in self._batch(str(payload["prompt"]))
-            if "FAIL" not in text
-        ]
-        return json.dumps({"model_version": version, "answers": answers})
-
-    @staticmethod
-    def _aspects_for(text: str) -> list[dict[str, str]]:
-        if "gameplay" in text:
-            return [{"aspect": "gameplay", "sentiment": "positive"}]
-        return []
-
-    @staticmethod
-    def _parse(raw: str) -> LlmResponse:
-        body = json.loads(raw)
-        return LlmResponse(
-            text=json.dumps(body["answers"]),
-            model_version=str(body["model_version"]),
-            finish_reason=FinishReason.STOP,
-            usage=TokenUsage(prompt_tokens=100, output_tokens=20, thinking_tokens=0),
-        )
 
 
 def _corpus(tmp_path: Path, texts: list[str]) -> Path:

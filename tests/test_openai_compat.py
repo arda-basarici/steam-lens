@@ -15,12 +15,12 @@ from collections.abc import Callable
 
 import httpx
 import pytest
+from fakes import NullSink
 
 from steamlens.contracts import (
     FinishReason,
     LlmRequest,
     LlmStage,
-    SinkEvent,
 )
 from steamlens.llm_client import (
     InMemoryResponseArchive,
@@ -39,11 +39,6 @@ from steamlens.llm_client.openai_compat import build_payload, parse_response
 
 _KEY = "test-key-123"
 _BASE = "https://compat.example/v1"
-
-
-class NullSink:
-    def emit(self, event: SinkEvent) -> None:
-        pass
 
 
 def _wire(

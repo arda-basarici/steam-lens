@@ -17,6 +17,7 @@ from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
+from fakes import NullSink
 
 from steamlens.contracts import (
     AspectMention,
@@ -35,7 +36,6 @@ from steamlens.contracts import (
     Review,
     ReviewClassification,
     Sentiment,
-    SinkEvent,
     SpendLedger,
     SpendRecord,
     TokenUsage,
@@ -260,11 +260,6 @@ class _ScriptedProvider:
         )
 
 
-class _NullSink:
-    def emit(self, event: SinkEvent) -> None:
-        pass
-
-
 def _client_config() -> LlmClientConfig:
     return LlmClientConfig(
         routes={LlmStage.CLASSIFY: Route(provider="scripted", model="m", max_output_tokens=64)},
@@ -289,7 +284,7 @@ def test_bought_response_survives_a_restart(tmp_path: Path) -> None:
             _client_config(),
             store.responses,
             store.spend_ledger,
-            _NullSink(),
+            NullSink(),
             registry={"scripted": first.entry()},
         )
         assert client.complete(request).text == "labeled"
@@ -301,7 +296,7 @@ def test_bought_response_survives_a_restart(tmp_path: Path) -> None:
             _client_config(),
             store.responses,
             store.spend_ledger,
-            _NullSink(),
+            NullSink(),
             registry={"scripted": second.entry()},
         )
         assert client.complete(request).text == "labeled"

@@ -17,8 +17,9 @@ from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
+from fakes import CollectingSink, NullSink
 
-from steamlens.contracts import PathOutcome, Review, SinkEvent, StageEvent, StageKind
+from steamlens.contracts import PathOutcome, Review, StageEvent, StageKind
 from steamlens.steam_client import (
     QuerySummary,
     ReviewPage,
@@ -206,19 +207,6 @@ def test_unknown_success_value_fails_loud() -> None:
 
 
 # --- the windowed path on the wire ---------------------------------------------
-
-
-class NullSink:
-    def emit(self, event: SinkEvent) -> None:
-        pass
-
-
-class CollectingSink:
-    def __init__(self) -> None:
-        self.events: list[SinkEvent] = []
-
-    def emit(self, event: SinkEvent) -> None:
-        self.events.append(event)
 
 
 def _wire_page(reviews: list[dict[str, object]], cursor: str) -> str:

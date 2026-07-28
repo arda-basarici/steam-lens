@@ -14,16 +14,13 @@ over divergent text.
 from __future__ import annotations
 
 import json
-import re
-import threading
 from pathlib import Path
+
+from fakes import FakeGemini
 
 from steamlens.contracts import (
     ClassifierVersions,
-    FinishReason,
-    LlmResponse,
     Origin,
-    TokenUsage,
 )
 from steamlens.core.classify import PROMPT_VERSION
 from steamlens.evals.judge_gold import (
@@ -31,90 +28,11 @@ from steamlens.evals.judge_gold import (
     JudgeRunConfig,
     execute_judge_run,
 )
-from steamlens.llm_client import ProviderEntry, ProviderPayload, ProviderPermanentError
 from steamlens.ontology import load_ontology_version
 from steamlens.store import Store
 
 _ONTOLOGY_PATH = Path("src/steamlens/ontology/v1.toml")
 _STAMP = load_ontology_version(_ONTOLOGY_PATH)
-_REVIEWS_BLOCK = re.compile(r"<reviews>\n(.*)\n</reviews>", re.DOTALL)
-
-
-class FakeGemini:
-    """A scripted judge-provider stand-in: answers per review text, records dispatches.
-
-    Text markers script the failure shapes: ``REFUSE`` raises the
-    request-level rejection, ``SAFETYBLOCK`` answers a Gemini-shaped
-    generation refusal (``REFUSAL`` finish, empty body), ``MALFORMED``
-    answers non-JSON. ``version_for`` scripts the reported model version per
-    call so drift is testable.
-    """
-
-    def __init__(self, version_for: list[str] | None = None) -> None:
-        self.prompts: list[str] = []
-        self._versions = version_for or []
-        self._lock = threading.Lock()
-
-    def entry(self) -> ProviderEntry:
-        return ProviderEntry(build_payload=self._build, send=self._send, parse=self._parse)
-
-    @staticmethod
-    def batch(prompt: str) -> list[tuple[int, str]]:
-        match = _REVIEWS_BLOCK.search(prompt)
-        assert match, "prompt carries no <reviews> data channel"
-        rows = json.loads(match.group(1))
-        return [(int(row["idx"]), str(row["text"])) for row in rows]
-
-    def _build(
-        self, *, model: str, prompt: str, max_output_tokens: int, params: dict[str, object]
-    ) -> ProviderPayload:
-        return {"model": model, "prompt": prompt}
-
-    def _send(self, *, model: str, payload: ProviderPayload) -> str:
-        prompt = str(payload["prompt"])
-        with self._lock:
-            call_index = len(self.prompts)
-            self.prompts.append(prompt)
-        if "REFUSE" in prompt:
-            raise ProviderPermanentError("gemini HTTP 400: blocked request")
-        version = (
-            self._versions[call_index] if call_index < len(self._versions) else JUDGE_MODEL_ID
-        )
-        if "SAFETYBLOCK" in prompt:
-            return json.dumps({"model_version": version, "finish": "refusal", "answers": None})
-        if "MALFORMED" in prompt:
-            return json.dumps({"model_version": version, "finish": "stop", "answers": "oops"})
-        answers = [
-            {"idx": idx, "aspects": self._aspects_for(text)}
-            for idx, text in self.batch(prompt)
-        ]
-        return json.dumps({"model_version": version, "finish": "stop", "answers": answers})
-
-    @staticmethod
-    def _aspects_for(text: str) -> list[dict[str, str]]:
-        if "gameplay" in text:
-            return [{"aspect": "gameplay", "sentiment": "positive"}]
-        return []
-
-    @staticmethod
-    def _parse(raw: str) -> LlmResponse:
-        body = json.loads(raw)
-        if body["finish"] == "refusal":
-            return LlmResponse(
-                text="",
-                model_version=str(body["model_version"]),
-                finish_reason=FinishReason.REFUSAL,
-                usage=TokenUsage(prompt_tokens=100, output_tokens=0, thinking_tokens=0),
-            )
-        text = "not json at all" if body["answers"] == "oops" else json.dumps(body["answers"])
-        return LlmResponse(
-            text=text,
-            model_version=str(body["model_version"]),
-            finish_reason=FinishReason.STOP,
-            usage=TokenUsage(prompt_tokens=100, output_tokens=20, thinking_tokens=0),
-        )
-
-
 def _corpus(tmp_path: Path, texts_by_app: dict[int, list[tuple[str, str]]]) -> Path:
     """Corpus fixture files: ``{app_id: [(review_id, text), ...]}``."""
     corpus = tmp_path / "corpus"

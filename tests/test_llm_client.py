@@ -16,6 +16,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 
 import pytest
+from fakes import CollectingSink
 
 import steamlens.llm_client.client as client_module
 from steamlens.contracts import (
@@ -23,7 +24,6 @@ from steamlens.contracts import (
     LlmRequest,
     LlmResponse,
     LlmStage,
-    SinkEvent,
     StageEvent,
     StageKind,
     TokenUsage,
@@ -102,16 +102,6 @@ class FakeProvider:
             finish_reason=FinishReason(data["finish"]),
             usage=TokenUsage(prompt_tokens=u[0], output_tokens=u[1], thinking_tokens=u[2]),
         )
-
-
-class CollectingSink:
-    """Satisfies ``Sink`` structurally; keeps every event for assertions."""
-
-    def __init__(self) -> None:
-        self.events: list[SinkEvent] = []
-
-    def emit(self, event: SinkEvent) -> None:
-        self.events.append(event)
 
 
 def _config(
