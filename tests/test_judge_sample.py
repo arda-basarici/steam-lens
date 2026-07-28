@@ -164,3 +164,40 @@ def test_loader_rejects_duplicates_and_bad_hashes(tmp_path: Path) -> None:
     )
     with pytest.raises(ValueError, match="hex"):
         load_sample(path)
+
+
+@pytest.mark.parametrize(
+    ("bad_line", "expected"),
+    [
+        ("not json", "malformed record"),
+        (json.dumps({"app_id": 440}), "malformed record"),
+        (json.dumps({"review_id": "", "app_id": 440, "text_sha256": "a" * 64}), "review_id"),
+    ],
+)
+def test_loader_names_the_malformed_line(tmp_path: Path, bad_line: str, expected: str) -> None:
+    """Every documented boundary check fires with the line number attached —
+    a truncated or hand-edited artifact names its bad line, never a stack."""
+    path = tmp_path / "sample.jsonl"
+    good = json.dumps({"review_id": "001", "app_id": 440, "text_sha256": "a" * 64})
+    path.write_text(good + "\n" + bad_line + "\n", encoding="utf-8")
+    with pytest.raises(ValueError, match=rf"line 2.*{expected}|{expected}.*line 2"):
+        load_sample(path)
+
+
+def test_loader_refuses_an_empty_file(tmp_path: Path) -> None:
+    path = tmp_path / "sample.jsonl"
+    path.write_text("\n\n", encoding="utf-8")
+    with pytest.raises(ValueError):
+        load_sample(path)
+
+
+def test_limit_caps_the_dispatch(tmp_path: Path) -> None:
+    """--limit is the dial that caps the first live spend — one dispatch, and
+    the manifest discloses the cap."""
+    rows = [("001", "review one"), ("002", "review two"), ("003", "review three")]
+    _seed_reviews(tmp_path / "pool.sqlite3", rows)
+    _sample_file(tmp_path, rows)
+    provider = FakeGemini()
+    assert execute_sample_run(_config(tmp_path, limit=1), provider.entry()) == 0
+    assert len(provider.prompts) == 1
+    assert _manifest(tmp_path)["limit"] == 1

@@ -117,6 +117,11 @@ REFUSED_LIMIT: Final = 5
 
 Scope = Literal["sample", "gold", "gold-recomposed"]
 
+DEFAULT_FILLERS_SEED: Final = 20260725
+"""The registered composition seed — reproducibility-critical (it determines
+batch composition and rides the config hash), so the dataclass default and
+the CLI default both read this one constant."""
+
 FILLERS_PER_GOLD: Final = 9
 """The recomposed cell's batch arithmetic: one gold review + nine fresh census
 neighbors = the census's N=10. Fillers draw same-game by preference — a
@@ -218,7 +223,7 @@ class ExperimentRunConfig:
     max_workers: int
     budget_usd: float
     limit: int | None
-    fillers_seed: int = 20260725
+    fillers_seed: int = DEFAULT_FILLERS_SEED
 
 
 def scope_reviews(
@@ -856,9 +861,9 @@ def main() -> None:
     parser.add_argument("--limit", type=int, default=None,
                         help="label only the first K selected units (the pilot dial; "
                              "reviews for flat scopes, batches for the recomposed one)")
-    parser.add_argument("--fillers-seed", type=int, default=20260725,
-                        help="the recomposed scope's filler-draw seed (default: 20260725; "
-                             "rides the config hash)")
+    parser.add_argument("--fillers-seed", type=int, default=DEFAULT_FILLERS_SEED,
+                        help="the recomposed scope's filler-draw seed (default: "
+                             f"{DEFAULT_FILLERS_SEED}; rides the config hash)")
     args = parser.parse_args()
 
     key = os.environ.get(KEY_ENV)

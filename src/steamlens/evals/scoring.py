@@ -31,10 +31,14 @@ class ReviewTally:
     ``tp``/``fp``/``fn`` count pinned-label matches, unmatched predictions, and
     unmatched gold; ``sentiment_correct`` counts matched pairs whose predicted
     sentiment agrees with gold (denominator: ``tp``). ``pred_zero`` is an
-    *honest* zero — the model parsed and said "no pinned aspects"; a parse
-    failure scores as zero predictions per the protocol but sets
-    ``parse_failed`` instead, so the zero-share diagnostic never credits a
-    crash as a considered zero. The candidate tuples carry each side's
+    *honest* zero — the model parsed and emitted no mention of any kind,
+    pinned or candidate; a parse failure scores as zero predictions per the
+    protocol but sets ``parse_failed`` instead, so the zero-share diagnostic
+    never credits a crash as a considered zero. The two zero-shares are
+    deliberately asymmetric: ``gold_zero`` is pinned-only (gold's candidates
+    are excluded from the scored stratum by the protocol), while a candidate
+    emission from the model is a considered non-silence and so blocks
+    ``pred_zero``. The candidate tuples carry each side's
     candidate normal forms for the diagnostics, unscored.
 
     The aspect tuples decorate the counts with *identity* — which pinned

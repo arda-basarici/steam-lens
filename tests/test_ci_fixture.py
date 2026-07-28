@@ -11,6 +11,7 @@ rebuilt store reproduces to the digit, which is the CI gate's entire premise.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import replace
 from datetime import UTC, datetime
@@ -222,7 +223,21 @@ def test_ignore_config_hash_forgives_that_field_only() -> None:
     assert run_discrepancies(reference, also_drifted, ignore_config_hash=True) != ()
 
 
-def test_fixture_rows_rebuild_the_exact_envelopes(tmp_path: Path) -> None:
+def _write_manifest(fixture_dir: Path) -> None:
+    """The digest manifest over the three row files, as the exporter would write it."""
+    names = [REVIEWS_FILE, RUNS_FILE, ENVELOPES_FILE]
+    digests = {
+        name: hashlib.sha256((fixture_dir / name).read_bytes()).hexdigest()
+        for name in names
+    }
+    (fixture_dir / MANIFEST_FILE).write_text(
+        json.dumps({"sha256": digests}), encoding="utf-8"
+    )
+
+
+def _fixture_rows(
+    tmp_path: Path,
+) -> tuple[tuple[Review, ...], tuple[ReviewClassification, ...]]:
     run = Provenance(
         run_id="c1-test", code_version="sha-t", created_at=_NOON, config_hash="cfg"
     )
@@ -240,6 +255,12 @@ def test_fixture_rows_rebuild_the_exact_envelopes(tmp_path: Path) -> None:
     _write_lf(tmp_path / REVIEWS_FILE, [json.dumps(review_to_row(r)) for r in reviews])
     _write_lf(tmp_path / RUNS_FILE, [json.dumps(provenance_to_row(run))])
     _write_lf(tmp_path / ENVELOPES_FILE, [json.dumps(envelope_to_row(e)) for e in envelopes])
+    _write_manifest(tmp_path)
+    return reviews, envelopes
+
+
+def test_fixture_rows_rebuild_the_exact_envelopes(tmp_path: Path) -> None:
+    reviews, envelopes = _fixture_rows(tmp_path)
 
     with Store(":memory:") as store:
         counts = load_fixture_into(store, tmp_path)
@@ -247,6 +268,21 @@ def test_fixture_rows_rebuild_the_exact_envelopes(tmp_path: Path) -> None:
         for envelope in envelopes:
             assert store.labels.get(envelope.review_id, envelope.versions) == envelope
         assert store.reviews.get("r1") == reviews[0]
+
+
+def test_corrupt_fixture_bytes_name_themselves_before_any_comparison(
+    tmp_path: Path,
+) -> None:
+    """A truncated or edited fixture must fail as data corruption naming the
+    file — not surface later as a pinned-digit mismatch pointing at the code."""
+    _fixture_rows(tmp_path)
+    with (tmp_path / ENVELOPES_FILE).open("a", encoding="utf-8") as handle:
+        handle.write("\n")
+    with (
+        Store(":memory:") as store,
+        pytest.raises(ValueError, match=rf"{ENVELOPES_FILE}.*corruption"),
+    ):
+        load_fixture_into(store, tmp_path)
 
 
 def test_an_envelope_referencing_an_unknown_run_is_loud() -> None:

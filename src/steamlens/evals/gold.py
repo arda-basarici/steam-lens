@@ -45,8 +45,12 @@ class GoldRecord:
 
     ``text`` rides along because the bake-off runner prompts from gold records
     directly — same text-alone horizon as the assist run. The ontology pins are
-    the provenance handshake: a scorer should refuse to pair gold against
-    predictions made under a different ontology content hash.
+    *mint* provenance — what the adjudicator annotated under — not a scoring
+    handshake: scoring deliberately re-resolves gold's raw aspect strings
+    under the pool's ontology, which is sound while the surface index is
+    unchanged across versions (true for v1/v2 — aliases byte-identical — and
+    the CI eval gate pins the scoring ontology's content hash, so a version
+    that moved the index fails the gate rather than shifting numbers quietly).
     """
 
     review_id: str

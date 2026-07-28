@@ -250,6 +250,24 @@ def test_n1_failure_marks_on_first_attempt(tmp_path: Path) -> None:
         assert store.labels.get_failure("001", tagged) is not None
 
 
+def test_limit_caps_the_dispatch(tmp_path: Path) -> None:
+    """--limit is the pilot dial that caps the first live spend of a cell —
+    one dispatch, and the manifest discloses the cap."""
+    rows = [("001", "review one"), ("002", "review two"), ("003", "review three")]
+    _seed_reviews(tmp_path / "pool.sqlite3", rows)
+    _sample_file(tmp_path, rows)
+    provider = FakeProvider()
+    assert execute_experiment_run(
+        _config(tmp_path, "full-n1-sample", limit=1), provider.entry()
+    ) == 0
+    assert len(provider.prompts) == 1
+    manifest = _manifest(tmp_path)
+    assert manifest["limit"] == 1
+    reviews = manifest["reviews"]
+    assert isinstance(reviews, dict)
+    assert reviews["selected"] == 1
+
+
 def test_resume_never_rebuys(tmp_path: Path) -> None:
     """A second run over a settled cell selects nothing and dispatches nothing."""
     rows = [("001", "review one"), ("002", "review two")]

@@ -22,7 +22,7 @@ from collections.abc import Mapping
 
 from steamlens.contracts import AspectAggregate, ClassifierVersions
 from steamlens.core.aggregate import MentionRow, aggregate
-from steamlens.store.store import Store
+from steamlens.store import Store
 
 
 def census_manifest_id(versions: ClassifierVersions, sample_sizes: Mapping[int, int]) -> str:

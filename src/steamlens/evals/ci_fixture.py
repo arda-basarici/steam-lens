@@ -54,8 +54,7 @@ from steamlens.evals.gold import load_gold
 from steamlens.evals.judge_dispatch import JUDGE_MODEL_ID
 from steamlens.evals.judge_sample import load_sample
 from steamlens.ontology import load_ontology_version
-from steamlens.store.convert import parse_utc_isoformat, utc_isoformat
-from steamlens.store.store import Store
+from steamlens.store import Store, parse_utc_isoformat, utc_isoformat
 from steamlens.studies.local_corpus import EXCLUDED_APP_IDS
 
 FIXTURE_DIR: Final = Path("eval/ci")
@@ -332,14 +331,37 @@ def envelope_from_row(
     )
 
 
+def verify_fixture_digests(fixture_dir: Path) -> None:
+    """Re-hash every file the manifest names; refuse a fixture whose bytes moved.
+
+    Without this check, a truncated, hand-edited, or partially committed
+    fixture presents to CI as a pinned-digit mismatch — a message that points
+    at the code when the cause is the data. Corruption must name itself.
+    Raises ``ValueError`` naming the first file whose bytes differ.
+    """
+    manifest = json.loads((fixture_dir / MANIFEST_FILE).read_text(encoding="utf-8"))
+    recorded = cast(dict[str, str], manifest["sha256"])
+    for name, expected in recorded.items():
+        actual = hashlib.sha256((fixture_dir / name).read_bytes()).hexdigest()
+        if actual != expected:
+            raise ValueError(
+                f"fixture file {name} does not match its manifest sha256 — the "
+                "fixture's bytes moved (truncated, edited, or partially "
+                "committed); this is data corruption, not metric drift"
+            )
+
+
 def load_fixture_into(store: Store, fixture_dir: Path) -> tuple[int, int, int]:
     """Rebuild the fixture's rows in ``store`` through the real writer surfaces.
 
     Order follows the store's own foreign keys — reviews, then run stamps, then
     envelopes — so the gate exercises the exact write discipline production
     uses (a fixture that only a special loader could ingest would be testing
-    the loader). Returns (reviews, runs, envelopes) counts for narration.
+    the loader). The digests are verified first (``verify_fixture_digests``),
+    so every consumer of the fixture inherits the corruption check. Returns
+    (reviews, runs, envelopes) counts for narration.
     """
+    verify_fixture_digests(fixture_dir)
     reviews = [review_from_row(row) for row in _read_jsonl(fixture_dir / REVIEWS_FILE)]
     store.reviews.put_many(reviews)
     runs = {

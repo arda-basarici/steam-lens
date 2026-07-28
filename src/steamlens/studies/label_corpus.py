@@ -29,6 +29,8 @@ import hashlib
 import json
 import os
 import subprocess
+import sys
+import threading
 import traceback
 import uuid
 from collections.abc import Callable, Iterator, Mapping
@@ -180,22 +182,27 @@ class TeeSink:
     Stage events are the human story — both surfaces get them. Metric events
     (six per model call) would drown a console at census scale, so they land
     only in the log file, greppable after the fact. The file is line-buffered
-    so a second-pane ``tail`` follows the run live.
+    so a second-pane ``tail`` follows the run live. ``emit`` is called from
+    the client's worker threads, so each surface takes exactly one write per
+    event under a lock — without it, lines interleave mid-line in the very
+    file that exists to be tailed and grepped.
     """
 
     def __init__(self, log: TextIO) -> None:
         self._log = log
+        self._lock = threading.Lock()
 
     def emit(self, event: SinkEvent) -> None:
         stamp = datetime.now(UTC).strftime("%H:%M:%S")
         if isinstance(event, StageEvent):
-            line = f"[{stamp}] {event.stage} {event.kind.value}: {event.message}"
-            print(line)
-            self._log.write(line + "\n")
+            line = f"[{stamp}] {event.stage} {event.kind.value}: {event.message}\n"
+            with self._lock:
+                sys.stdout.write(line)
+                self._log.write(line)
         else:
-            self._log.write(
-                f"[{stamp}] metric {event.stage} {event.name}={event.value} {event.unit}\n"
-            )
+            line = f"[{stamp}] metric {event.stage} {event.name}={event.value} {event.unit}\n"
+            with self._lock:
+                self._log.write(line)
 
 
 def code_version() -> str:

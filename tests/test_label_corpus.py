@@ -302,7 +302,10 @@ def test_abort_cancels_the_queued_batches(tmp_path: Path) -> None:
     provider = FakeProvider(version_for=[MODEL_ID, "deepseek-v4-flash-0921"])
     cfg = _config(tmp_path, supply=30, n=1, max_workers=1)
     assert execute_run(cfg, provider.entry()) == 1
-    assert len(provider.prompts) <= 6  # in-motion slack only; 30 without the fix
+    # A slack bound, not a measurement: the worker thread can run a few calls
+    # ahead of the aborting consumer (nothing synchronizes that window), so
+    # the claim is only that the queue never dispatches — 30 without the fix.
+    assert len(provider.prompts) <= 15
 
 
 def test_supply_mismatch_refuses_before_any_dispatch(tmp_path: Path) -> None:

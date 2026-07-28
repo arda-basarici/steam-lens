@@ -307,9 +307,13 @@ def dispatch_items(
     The first request runs synchronously before the pool opens — one completed
     call seeds the provider's prefix cache (the ~7K codebook prefix repeats on
     every request) and sets the drift watch's baseline before concurrency.
+    An empty ``pending`` is a no-op (the guard the sibling engine already
+    carries — a resume that selected nothing must not IndexError on warmup).
     Abort means stop: queued requests are cancelled; in-flight ones finish and
     cache harmlessly.
     """
+    if not pending:
+        return
     total = len(pending)
     done = 0
 

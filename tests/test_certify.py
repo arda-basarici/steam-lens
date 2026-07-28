@@ -21,6 +21,8 @@ from steamlens.contracts import (
     AspectMention,
     AspectSlot,
     ClassifierVersions,
+    EvalMetric,
+    EvalRun,
     Origin,
     Provenance,
     ReferenceKind,
@@ -30,7 +32,12 @@ from steamlens.contracts import (
 )
 from steamlens.core.normalize import build_surface_index
 from steamlens.evals import load_gold
-from steamlens.evals.certify import JUDGE_SCORER, certify_pool, pool_tallies
+from steamlens.evals.certify import (
+    JUDGE_SCORER,
+    certify_pool,
+    pool_tallies,
+    render_eval_run,
+)
 from steamlens.ontology import load_ontology, load_ontology_version
 from steamlens.store import Store
 
@@ -308,3 +315,41 @@ class TestCertifyPool:
             assert store.eval_runs.get(eval_run.run.run_id) == eval_run
         finally:
             store.close()
+
+
+def test_render_eval_run_shows_identity_intervals_and_bare_diagnostics() -> None:
+    """The block the certification numbers are read and quoted from: run and
+    scorer identity, truncated hashes, the scored/reference split, and the
+    interval asymmetry — a bootstrapped metric renders [low–high], a point
+    diagnostic renders bare."""
+    eval_run = EvalRun(
+        run=Provenance(
+            run_id="certify-x", code_version="sha-abc",
+            created_at=datetime(2026, 7, 23, 12, 0, tzinfo=UTC), config_hash="cfg",
+        ),
+        versions=ClassifierVersions(
+            model_version="deepseek-v4-flash", prompt_version="classify-v1",
+            ontology_version="v2",
+        ),
+        ontology_content_hash="a" * 64,
+        reference_kind=ReferenceKind.GOLD_FILE,
+        reference_id="eval/gold/gold.jsonl",
+        reference_sha256="b" * 64,
+        n_reference_reviews=250,
+        n_scored_reviews=245,
+        seed=7,
+        n_resamples=10_000,
+        scorer="census-vs-gold/1",
+        metrics=(
+            EvalMetric(metric="f1", value=0.766, ci_low=0.713, ci_high=0.811),
+            EvalMetric(metric="zero_share_pred", value=0.49),
+        ),
+    )
+    text = render_eval_run(eval_run)
+    assert "eval run certify-x · scorer census-vs-gold/1 · code sha-abc" in text
+    assert "aaaaaaaaaaaa…" in text and "bbbbbbbbbbbb…" in text
+    assert "scored 245/250 reviews" in text
+    assert "10,000 resamples" in text
+    assert "  f1: 0.766 [0.713–0.811]" in text
+    assert "  zero_share_pred: 0.490" in text
+    assert "0.490 [" not in text  # a diagnostic never dresses as certified

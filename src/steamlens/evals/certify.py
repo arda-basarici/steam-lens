@@ -40,7 +40,7 @@ from steamlens.evals.gold import GoldRecord, load_gold
 from steamlens.evals.judge_dispatch import JUDGE_MODEL_ID
 from steamlens.evals.scoring import ReviewTally, bootstrap_ci, score, tally_review
 from steamlens.ontology import load_ontology, load_ontology_version
-from steamlens.store.store import Store
+from steamlens.store import Store
 from steamlens.studies.label_corpus import MODEL_ID, code_version
 from steamlens.studies.local_corpus import EXCLUDED_APP_IDS
 
@@ -100,11 +100,21 @@ def pool_tallies(
         envelope = store.labels.get(record.review_id, versions)
         if envelope is not None:
             pred_pairs = [(m.aspect, m.sentiment) for m in envelope.mentions]
-            tallies.append(tally_review(gold_pairs, pred_pairs, index))
+            parse_failed = False
         elif store.labels.get_failure(record.review_id, versions) is not None:
-            tallies.append(tally_review(gold_pairs, [], index, parse_failed=True))
+            pred_pairs = []
+            parse_failed = True
         else:
             unaccounted.append(record.review_id)
+            continue
+        try:
+            tallies.append(
+                tally_review(gold_pairs, pred_pairs, index, parse_failed=parse_failed)
+            )
+        except ValueError as exc:
+            # tally_review knows the collision, only this loop knows the review —
+            # attribute it here so a 250-record gold file names its bad line
+            raise ValueError(f"gold review {record.review_id}: {exc}") from exc
     if unaccounted:
         raise ValueError(
             f"{len(unaccounted)} in-scope gold reviews have neither an envelope nor "

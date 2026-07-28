@@ -53,7 +53,7 @@ from steamlens.evals.judge_dispatch import JUDGE_MODEL_ID
 from steamlens.evals.judge_sample import SampledReview, load_sample
 from steamlens.evals.scoring import ReviewTally, bootstrap_ci, tally_review
 from steamlens.ontology import load_ontology, load_ontology_version
-from steamlens.store.store import Store
+from steamlens.store import Store
 from steamlens.studies.label_corpus import MODEL_ID, code_version
 
 AGREEMENT_SCORER: Final = "judge-vs-production/1"
