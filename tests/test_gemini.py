@@ -199,6 +199,14 @@ def test_send_raises_permanent_for_a_rejection_without_leaking_the_key() -> None
     assert _KEY not in str(excinfo.value)
 
 
+def test_send_types_a_redirect_as_permanent() -> None:
+    """httpx does not follow redirects, so a 3xx body is an HTML page, not a
+    completion — it must name itself instead of arriving as a parse failure."""
+    entry = _entry(lambda _: httpx.Response(302, text="<html>moved</html>"))
+    with pytest.raises(ProviderPermanentError, match="302"):
+        entry.send(model="m", payload={})
+
+
 def test_send_raises_transient_on_transport_failure() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectTimeout("boom")

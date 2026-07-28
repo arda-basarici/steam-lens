@@ -190,6 +190,17 @@ def test_route_to_missing_model_spec_fails_in_config() -> None:
         )
 
 
+def test_model_spec_rejects_nonpositive_rates_and_negative_prices() -> None:
+    """rpm=0 would divide pacing by zero mid-run and a negative rate silently
+    disables it — a misconfiguration must be a startup failure."""
+    with pytest.raises(LlmConfigError, match="rpm"):
+        ModelSpec(rpm=0, rpd=None, input_usd_per_1m=1.0, output_usd_per_1m=1.0)
+    with pytest.raises(LlmConfigError, match="rpd"):
+        ModelSpec(rpm=60, rpd=0, input_usd_per_1m=1.0, output_usd_per_1m=1.0)
+    with pytest.raises(LlmConfigError, match="prices"):
+        ModelSpec(rpm=60, rpd=None, input_usd_per_1m=-1.0, output_usd_per_1m=1.0)
+
+
 def test_unrouted_stage_raises() -> None:
     """A request for a stage the dial doesn't serve fails typed, not with a KeyError."""
     client, _, _ = _client(FakeProvider(), _config())

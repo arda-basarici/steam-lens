@@ -233,6 +233,14 @@ def test_send_raises_permanent_for_a_rejection_without_leaking_the_key() -> None
     assert _BASE in str(excinfo.value)
 
 
+def test_send_types_a_redirect_as_permanent() -> None:
+    """A mistyped or http:// base_url answers with a redirect page — it must
+    name itself (status + base URL) instead of arriving as a parse failure."""
+    entry = _entry(lambda _: httpx.Response(301, text="<html>moved</html>"))
+    with pytest.raises(ProviderPermanentError, match="301"):
+        entry.send(model="m", payload={})
+
+
 def test_send_raises_transient_on_transport_failure() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectTimeout("boom")

@@ -135,7 +135,7 @@ def gemini_entry(
             raise ProviderTransientError(f"gemini transport failure: {exc!r}") from exc
         if resp.status_code in _TRANSIENT_STATUSES:
             raise ProviderTransientError(f"gemini HTTP {resp.status_code}: {resp.text[:200]}")
-        if resp.is_error:
+        if not resp.is_success:  # 3xx included: a redirect body is not a completion
             raise ProviderPermanentError(f"gemini HTTP {resp.status_code}: {resp.text[:500]}")
         return resp.text
 

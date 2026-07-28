@@ -188,7 +188,7 @@ def openai_compat_entry(
             raise ProviderTransientError(
                 f"openai-compat ({base_url}) HTTP {resp.status_code}: {resp.text[:200]}"
             )
-        if resp.is_error:
+        if not resp.is_success:  # 3xx included: a redirect body is not a completion
             raise ProviderPermanentError(
                 f"openai-compat ({base_url}) HTTP {resp.status_code}: {resp.text[:500]}"
             )

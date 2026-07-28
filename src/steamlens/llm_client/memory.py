@@ -1,7 +1,8 @@
-"""In-memory bindings of the persistence protocols — B3's own response archive and ledger.
+"""In-memory bindings of the persistence protocols — the test and offline pair.
 
-These are the implementations the client's commits run on; the durable SQLite
-pair lands with the store and binds in the same constructor slots. Deliberately
+The durable SQLite pair (``store.SqliteResponseArchive``/``SqliteSpendLedger``)
+binds in the same constructor slots and is what every real run uses; these
+bindings serve tests and offline work. Deliberately
 not thread-safe on their own: the client serializes every archive and ledger
 touch under its one lock, so implementations stay dumb — a discipline the
 SQLite pair inherits. Lifetime is the process; a run that must never re-pay

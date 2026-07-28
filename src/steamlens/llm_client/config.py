@@ -36,6 +36,17 @@ class ModelSpec:
     input_usd_per_1m: float
     output_usd_per_1m: float
 
+    def __post_init__(self) -> None:
+        # A misconfiguration is a startup failure, never a surprise mid-run:
+        # rpm=0 would divide pacing by zero after a reservation is booked,
+        # and a negative value silently disables pacing.
+        if self.rpm <= 0:
+            raise LlmConfigError(f"rpm must be positive, got {self.rpm}")
+        if self.rpd is not None and self.rpd <= 0:
+            raise LlmConfigError(f"rpd must be positive when set, got {self.rpd}")
+        if self.input_usd_per_1m < 0 or self.output_usd_per_1m < 0:
+            raise LlmConfigError("token prices must be non-negative")
+
 
 @dataclass(frozen=True, slots=True)
 class Route:

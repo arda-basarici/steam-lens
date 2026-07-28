@@ -4,7 +4,8 @@ The public surface: ``LlmClient.complete`` over the contracts' stage-keyed
 request, dialed by ``LlmClientConfig`` (routes, model envelopes, prices, the
 budget cap), served by provider *functions* registered in ``registry``, with
 typed failures in ``errors`` and in-memory cache/ledger bindings in ``memory``
-until the durable pair lands with the store. Design record: DESIGN.md's two
+for tests and offline runs (real runs bind the store's durable
+archive/ledger pair in the same slots). Design record: DESIGN.md's two
 ``llm_client`` operational-decisions entries (2026-07-13).
 """
 
@@ -23,13 +24,11 @@ from steamlens.llm_client.gemini import gemini_entry
 from steamlens.llm_client.memory import InMemoryResponseArchive, InMemorySpendLedger
 from steamlens.llm_client.openai_compat import openai_compat_entry
 from steamlens.llm_client.registry import (
-    PROVIDERS,
     BuildPayload,
     ParseResponse,
     ProviderEntry,
     ProviderPayload,
     SendRequest,
-    register_provider,
 )
 
 __all__ = [
@@ -45,8 +44,6 @@ __all__ = [
     "BuildPayload",
     "SendRequest",
     "ParseResponse",
-    "PROVIDERS",
-    "register_provider",
     # adapters
     "gemini_entry",
     "openai_compat_entry",

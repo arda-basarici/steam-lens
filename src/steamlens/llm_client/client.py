@@ -49,7 +49,7 @@ from steamlens.llm_client.errors import (
     LlmUnavailableError,
     ProviderTransientError,
 )
-from steamlens.llm_client.registry import PROVIDERS, ProviderEntry
+from steamlens.llm_client.registry import ProviderEntry
 
 # Six attempts at base 2s: ~30s expected / ~60s worst-case patience per request
 # under full jitter — matching the Gemini SDK's own retry ceiling (≤60s max
@@ -110,9 +110,10 @@ class LlmClient:
 
     Construction validates the dial against the registry — an unknown provider
     name is a startup failure (``LlmConfigError``), never a surprise mid-run.
-    ``registry``, ``now``, ``sleep``, and ``rng`` are injection seams: tests bind
-    a fake provider, a fixed clock, a recording sleep, and a seeded RNG; real
-    composition leaves the defaults.
+    ``registry`` is required: providers are composed explicitly by the calling
+    shell (there is no global default to fall back to). ``now``, ``sleep``,
+    and ``rng`` are injection seams: tests bind a fixed clock, a recording
+    sleep, and a seeded RNG; real composition leaves the defaults.
     """
 
     def __init__(
@@ -122,23 +123,22 @@ class LlmClient:
         ledger: SpendLedger,
         sink: Sink,
         *,
-        registry: Mapping[str, ProviderEntry] | None = None,
+        registry: Mapping[str, ProviderEntry],
         now: Callable[[], datetime] = _utc_now,
         sleep: Callable[[float], None] = time.sleep,
         rng: random.Random | None = None,
     ) -> None:
-        resolved = PROVIDERS if registry is None else registry
         for stage, route in config.routes.items():
-            if route.provider not in resolved:
+            if route.provider not in registry:
                 raise LlmConfigError(
                     f"stage {stage!r} routes to unknown provider {route.provider!r}; "
-                    f"registered: {sorted(resolved)}"
+                    f"registered: {sorted(registry)}"
                 )
         self._config = config
         self._archive = archive
         self._ledger = ledger
         self._sink = sink
-        self._registry = dict(resolved)
+        self._registry = dict(registry)
         self._now = now
         self._sleep = sleep
         self._rng = rng if rng is not None else random.Random()

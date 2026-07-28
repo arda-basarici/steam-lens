@@ -7,9 +7,11 @@ sending, and the cache key is a hash of the built payload, so payload building
 must be callable apart from both. State a vendor genuinely needs (an API key,
 a base URL) binds by closure when its entry is constructed.
 
-The module-level ``PROVIDERS`` dict is the default registry adapters register
-into at import time; the client takes a registry as a constructor argument so
-tests inject fakes without touching global state.
+There is deliberately no module-level default registry: a provider is a
+``ProviderEntry`` built by an adapter factory (which needs a credential the
+module cannot have at import time) and handed to the client by the composing
+shell — explicit composition, no global state. A registry is just the mapping
+the client is constructed with.
 """
 
 from __future__ import annotations
@@ -76,15 +78,3 @@ class ProviderEntry:
     build_payload: BuildPayload
     send: SendRequest
     parse: ParseResponse
-
-
-PROVIDERS: dict[str, ProviderEntry] = {}
-"""The default registry. Adapters register at import time; the client snapshots
-whichever registry it is constructed with."""
-
-
-def register_provider(name: str, entry: ProviderEntry) -> None:
-    """Register vendor ``name`` in the default registry; a name collision fails loud."""
-    if name in PROVIDERS:
-        raise ValueError(f"provider {name!r} is already registered")
-    PROVIDERS[name] = entry
