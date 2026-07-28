@@ -35,6 +35,7 @@ from steamlens.contracts import (
     ClassifierVersions,
     LlmRequest,
     LlmStage,
+    OntologyVersion,
     Origin,
     Provenance,
     Review,
@@ -130,6 +131,69 @@ def _config_hash(cfg: RunConfig, ontology_version: str, ontology_content_hash: s
         "limit": cfg.limit,
         "expected_supply": cfg.expected_supply,
     })
+
+
+def build_manifest(
+    cfg: RunConfig,
+    run: Provenance,
+    stamp: OntologyVersion,
+    totals: RunTotals,
+    *,
+    supply: int,
+    already_settled: int,
+    selected: int,
+    finished: datetime,
+    run_cost: float,
+    ledger_lifetime: float,
+    aborted: str | None,
+) -> dict[str, object]:
+    """The run's manifest as pure data assembly — its honesty claims unit-assertable.
+
+    The claims: an aborted run still stamps its true counts, tokens, and
+    spend (``aborted`` discloses, never suppresses), and ``started_at`` is
+    ``run.created_at`` — one clock, the same instant the run id was minted
+    from and the ledger's run-cost window opened at.
+    """
+    return {
+        "run_id": run.run_id,
+        "code_version": run.code_version,
+        "config_hash": run.config_hash,
+        "model": MODEL_ID,
+        "model_versions_seen": sorted(totals.model_versions_seen),
+        "prompt_version": PROMPT_VERSION,
+        "ontology_version": stamp.version,
+        "ontology_content_hash": stamp.content_hash,
+        "ontology_override": None if cfg.ontology_path is None else str(cfg.ontology_path),
+        "n": cfg.n,
+        "max_workers": cfg.max_workers,
+        "budget_usd": cfg.budget_usd,
+        "limit": cfg.limit,
+        "started_at": run.created_at.isoformat(),
+        "finished_at": finished.isoformat(),
+        "reviews": {
+            "supply": supply,
+            "already_settled": already_settled,
+            "selected": selected,
+            "labeled": totals.labeled,
+            "empty_envelopes": totals.empty_envelopes,
+            "salvaged_from_partial_batches": totals.salvaged,
+            "evidence_repairs": totals.repairs,
+            "unattributable_rows": totals.unattributable,
+            "rebatched": totals.rebatched,
+            "isolated": totals.isolated,
+            "failed_durable": totals.failed_durable,
+            "refused_batches": totals.refused_batches,
+        },
+        "requests": totals.batches,
+        "tokens": {
+            "prompt": totals.prompt_tokens,
+            "output": totals.output_tokens,
+            "thinking": totals.thinking_tokens,
+        },
+        "cost_usd_run": run_cost,
+        "cost_usd_ledger_lifetime": ledger_lifetime,
+        "aborted": aborted,
+    }
 
 
 def ingest_corpus(cfg: RunConfig, store: Store, sink: Sink) -> None:
@@ -398,47 +462,16 @@ def execute_run(cfg: RunConfig, entry: ProviderEntry, started: datetime | None =
             traceback.print_exc()
 
         run_cost = driver_store.spend_ledger.cost_since(started)
-        finished = datetime.now(UTC)
-        manifest: dict[str, object] = {
-            "run_id": run_id,
-            "code_version": run.code_version,
-            "config_hash": run.config_hash,
-            "model": MODEL_ID,
-            "model_versions_seen": sorted(totals.model_versions_seen),
-            "prompt_version": PROMPT_VERSION,
-            "ontology_version": stamp.version,
-            "ontology_content_hash": stamp.content_hash,
-            "ontology_override": None if cfg.ontology_path is None else str(cfg.ontology_path),
-            "n": cfg.n,
-            "max_workers": cfg.max_workers,
-            "budget_usd": cfg.budget_usd,
-            "limit": cfg.limit,
-            "started_at": started.isoformat(),
-            "finished_at": finished.isoformat(),
-            "reviews": {
-                "supply": supply,
-                "already_settled": already_labeled,
-                "selected": selected,
-                "labeled": totals.labeled,
-                "empty_envelopes": totals.empty_envelopes,
-                "salvaged_from_partial_batches": totals.salvaged,
-                "evidence_repairs": totals.repairs,
-                "unattributable_rows": totals.unattributable,
-                "rebatched": totals.rebatched,
-                "isolated": totals.isolated,
-                "failed_durable": totals.failed_durable,
-                "refused_batches": totals.refused_batches,
-            },
-            "requests": totals.batches,
-            "tokens": {
-                "prompt": totals.prompt_tokens,
-                "output": totals.output_tokens,
-                "thinking": totals.thinking_tokens,
-            },
-            "cost_usd_run": run_cost,
-            "cost_usd_ledger_lifetime": driver_store.spend_ledger.cost_since(_EPOCH),
-            "aborted": aborted,
-        }
+        manifest = build_manifest(
+            cfg, run, stamp, totals,
+            supply=supply,
+            already_settled=already_labeled,
+            selected=selected,
+            finished=datetime.now(UTC),
+            run_cost=run_cost,
+            ledger_lifetime=driver_store.spend_ledger.cost_since(_EPOCH),
+            aborted=aborted,
+        )
         manifest_path = write_manifest(run_dir, manifest)
         outcome_kind = StageKind.WARN if aborted else StageKind.DONE
         narrate(

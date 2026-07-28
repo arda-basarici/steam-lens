@@ -15,20 +15,24 @@ from __future__ import annotations
 import json
 import re
 import threading
+from datetime import UTC, datetime
 from pathlib import Path
 
 from steamlens.contracts import (
     ClassifierVersions,
     FinishReason,
     LlmResponse,
+    OntologyVersion,
+    Provenance,
     TokenUsage,
 )
 from steamlens.core.classify import PROMPT_VERSION
+from steamlens.dispatch import RunTotals
 from steamlens.dispatch.census_arm import MODEL_ID
 from steamlens.llm_client import ProviderEntry, ProviderPayload, ProviderPermanentError
 from steamlens.ontology import load_ontology_version
 from steamlens.store import Store
-from steamlens.studies.label_corpus import RunConfig, execute_run
+from steamlens.studies.label_corpus import RunConfig, build_manifest, execute_run
 
 _REVIEWS_BLOCK = re.compile(r"<reviews>\n(.*)\n</reviews>", re.DOTALL)
 
@@ -319,3 +323,40 @@ def test_supply_mismatch_refuses_before_any_dispatch(tmp_path: Path) -> None:
         next((tmp_path / "runs").glob("*/manifest.json")).read_text(encoding="utf-8")
     )
     assert "supply assertion failed" in str(manifest["aborted"])
+
+
+def test_manifest_stamps_true_counts_even_when_aborted(tmp_path: Path) -> None:
+    """The manifest's honesty claims, on the pure builder: an aborted run still
+    stamps its real counts, tokens, and spend; started_at is the run's minted
+    instant; the token block reconciles against RunTotals field for field."""
+    started = datetime(2026, 7, 28, 12, 0, tzinfo=UTC)
+    totals = RunTotals(
+        batches=7, labeled=61, empty_envelopes=30, salvaged=2, repairs=1,
+        rebatched=5, isolated=1, failed_durable=1, refused_batches=1,
+        prompt_tokens=51_000, output_tokens=9_000, thinking_tokens=0,
+        model_versions_seen={"deepseek-v4-flash-0921"},
+    )
+    manifest = build_manifest(
+        _config(tmp_path, supply=70),
+        Provenance(run_id="c1-test", code_version="abc1234",
+                   created_at=started, config_hash="cfg"),
+        OntologyVersion(version="v1", content_hash="hash"),
+        totals,
+        supply=70,
+        already_settled=0,
+        selected=70,
+        finished=datetime(2026, 7, 28, 12, 30, tzinfo=UTC),
+        run_cost=0.0123,
+        ledger_lifetime=4.56,
+        aborted="model version drift: …",
+    )
+    reviews = manifest["reviews"]
+    assert isinstance(reviews, dict)
+    assert (reviews["labeled"], reviews["failed_durable"]) == (61, 1)
+    tokens = manifest["tokens"]
+    assert isinstance(tokens, dict)
+    assert tokens == {"prompt": 51_000, "output": 9_000, "thinking": 0}
+    assert manifest["cost_usd_run"] == 0.0123
+    assert manifest["started_at"] == started.isoformat()
+    assert manifest["aborted"] == "model version drift: …"
+    assert manifest["model_versions_seen"] == ["deepseek-v4-flash-0921"]
