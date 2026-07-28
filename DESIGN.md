@@ -87,9 +87,14 @@ the module map itself lives in ARCHITECTURE.md.
 **Four strata, one import law.** Plain-data contracts (import nothing) → pure core
 transforms → effect shells (Steam client, LLM client, store, narration sinks) →
 orchestrator and entry shells (pipeline runners, serving, CLI, study drivers). Core
-never imports a shell; nothing imports the eval harness; a CI import-graph test
-asserts the whole table. All four blind proposals converged on this skeleton
-independently.
+never imports a shell; the entry shells — the eval harness and the study drivers —
+are import-forbidden to everything; a CI import-graph test asserts the whole table
+and refuses to fail open (a package must declare its rank to exist, relative imports
+are banned). All four blind proposals converged on this skeleton independently. The
+build later inserted a generic run-machinery stratum between the doors and the entry
+shells, after the full-base review (2026-07-27) showed the shells sharing that
+machinery by reaching into each other's interiors instead — the as-built graph lives
+in ARCHITECTURE.
 
 **The sampling policy is core code, executed by shells.** A pure plan compiler turns
 histogram + policy into a fetch plan; the Steam client executes plans against the live
@@ -240,7 +245,9 @@ include+disclose again); **promotion is offline and gated**, bumping the ontolog
 version, so every displayed number always knows which vocabulary produced it. The
 aspect-normalization step this adds to core was a planned possibility, now real code
 and part of the eval surface; the gold set and judge calibrate against the pinned
-core, with honestly weaker claims on the tail.
+core, with honestly weaker claims on the tail. The v1 codebook's ratification record
+— the pruning criterion, every per-aspect ruling, and the reopen conditions — is the
+repo's `ONTOLOGY_PRUNING.md` ledger (ratified 2026-07-15).
 
 **`llm_client`: the seam design** (settled 2026-07-13, five-fork design discussion).
 The one door is a single generic entry point — `complete()` over a stage-keyed request —

@@ -1,208 +1,216 @@
 # ARCHITECTURE — steam-lens
 
-How it's built and why that structure — a narrative snapshot, edited in place, growing
-with the build. Decisions and their rationale → DESIGN (cited by name); the pitch →
-README.
+How it's built and why that structure — a narrative snapshot, edited in place.
+Decisions and their rationale → [DESIGN.md](DESIGN.md) (cited by name); the pitch →
+[README.md](README.md).
 
-*Pre-build snapshot · last updated 2026-07-09 · no modules exist yet — the module map
-below was settled by the system-flow design panel (2026-07-09; decisions + reasoning
-in DESIGN: the system flow); sections fill in as milestones land (M0–M4).*
+*Snapshot of the build in progress · last updated 2026-07-28 · the extraction+eval
+milestone (M1) is built and review-hardened; the sampling study (M2), deployment (M3),
+and the chat milestone (M4) exist here only as declared ranks and recorded triggers.*
 
-## Design shape (intended)
+---
 
-The two-track engine from DESIGN, as a one-directional flow:
+## Design shape
 
-    steam_client (sampler boundary)
-    ├──► survey track:  fixed sample ─► per-review classify ─► aggregate ─► numbers
-    ├──► investigation: signals ─► hypotheses ─► targeted window fetch ─► verify ─► stories
-    └──► histogram / totals (all languages, counting only)
+Five ranks, imports strictly downward, enforced by a CI test (below). The entry shells
+at the top compose everything; nothing composes them.
 
-    llm_client (provider seam) ◄── classify · synthesize · investigate
-    aggregates + stories ─► report composer ─► FastAPI (REST + SSE) ─► frontend
-    SQLite ◄── report cache · precompute store
+```
+  studies · evals            (4)  entry shells — import-forbidden to all other code
+        │
+        ▼
+  dispatch                   (3)  generic run machinery the entry shells compose
+        │
+        ▼
+  corpus · steam_client ·    (2)  the doors and loaders: frozen snapshot, live Steam,
+  llm_client · store ·            LLM providers, SQLite, the ontology artifact
+  ontology
+        │
+        ▼
+  core                       (1)  pure transforms: normalize · classify · aggregate
+        │
+        ▼
+  contracts                  (0)  the plain-data spine; imports nothing
+```
+
+The data flow those ranks carry today — the extraction+eval engine end to end:
+
+```
+  corpus files (frozen steam-reviews snapshot, on disk)
+        │
+        ▼
+  corpus/ reader ──► studies/label_corpus ──► core/classify prompt/parse
+        │                                          │
+        │                                          ▼
+        │                                    llm_client (CLASSIFY route)
+        │                                          │
+        ▼                                          ▼
+  store: reviews table          label pool · response archive · spend ledger
+        │
+        ▼
+  core/aggregate (survey-origin ∩ pinned version) ──► per-game aspect aggregates
+        │
+        ▼
+  eval/gold artifact ──► evals: certify · judge calibration · agreement ·
+                         registered experiments ──► eval-run journal + CI gate
+```
 
 The rules, stated once:
 
-- **The two-track rule.** Displayed numbers come only from the survey track;
-  investigation fetches never feed a percentage (DESIGN: the survey/investigation
-  split). Enforcement is **defense-in-depth plus auditability** — distinct container
-  types at the sampler seam, the store's membership join with an origin predicate, the
-  CI import-graph test, origin tags on every label — never claimed "impossible"
-  (DESIGN: the system flow).
-- **Numbers in prose are grounded like quotes.** Report composition verifies every
-  numeral in LLM-phrased narrative against the aggregates/events the claim cites —
-  quote grounding's sibling, covering the gap where a phrasing model writes "roughly
-  40%" over a 27% aggregate (DESIGN: the system flow).
-- **One door to Steam.** All review access goes through the sampler module — windowed
-  primary, documented fallback, path-reporting provenance (DESIGN: one sampler module
-  owns all review access).
-- **One door to the LLM.** All model calls go through the provider-agnostic client;
-  concurrency is a config value (DESIGN: the tier deferral, made safe).
-- **Functional core, effects at the shell.** Classification, aggregation, detection,
-  and verification are pure transforms over plain data; Steam I/O, LLM I/O, SQLite, and
-  streaming live at the edges.
-- **Narration is an output with rules.** The stream labels hypotheses until their check
-  passes — the honesty discipline applies to the process view, not just the report.
+- **The dependency law fails closed.** The import-graph test asserts the rank table on
+  every build — and refuses to fail open: every package under `src` must declare a rank
+  to exist, relative imports are banned wholesale, and the entry shells (`evals`,
+  `studies`) are import-forbidden to everything. A misplaced import is a red build,
+  never a review finding.
+- **The two-track rule.** Every envelope carries an `Origin` tag and the number mint
+  folds survey-origin members under the pinned version only — the only door to a
+  displayed number. Today every label is survey-origin; a distinct eval origin is
+  parked with its trigger (DESIGN's parked decisions) for when anything non-census
+  nears the fold. The investigator track is deferred whole (DESIGN: the roadmap
+  redirect) — no investigation machinery exists in this tree.
+- **One door to Steam.** All live access goes through `steam_client`: one paced,
+  retried GET chokepoint under every operation, identity guarded, provenance-reporting
+  (DESIGN: one sampler module owns all review access).
+- **One door to models.** All LLM calls go through `llm_client`: per-stage routing,
+  an atomic budget reserve before dispatch, typed failures, and the content-keyed
+  response archive — a bought response is never re-paid (DESIGN: the tier deferral,
+  made safe).
+- **Functional core, effects at the shell.** `core` is pure transforms over
+  `contracts` records; every I/O lives at rank 2; the entry shells only compose.
+- **Narration is a seam, not a habit.** Producers depend on the one-method `Sink`
+  protocol from `contracts`; each running context binds its own sink (the drivers'
+  tee'd log, ad-hoc collectors in tests). Observability is structural, not retrofitted.
+
+### The life of a run
+
+Every dispatch run — census, judge, experiment cell — is regenerable from its manifest,
+and resumable by construction:
+
+```
+  RunConfig (the resolved dial)
+        │
+        ├── mint_run_id · code_version · config_hash   (dispatch/stamp)
+        ▼
+  Provenance record ──► runs/<run_id>/ opened by dispatch/run_context:
+        │                 run.log (line-buffered, tee'd to console — tail it live)
+        │                 two Store connections (client writes on worker threads,
+        │                 driver writes on the main thread; WAL carries coordination)
+        ▼
+  resume-clean selection (an envelope or durable failure mark closes a review)
+        ▼
+  batch passes ──► LLM door ──► envelopes + archived responses + ledger rows
+        ▼
+  build_manifest ──► runs/<run_id>/manifest.json   (true counts even when aborted)
+```
+
+The eval side closes the provenance loop in CI: the committed `eval/ci/` fixture holds
+the runs of record, and the gate regenerates their scores on every build — an
+exact-digit mismatch fails; the deliberate-change path is a scorer-string bump plus
+pin re-export (DESIGN: the evals-in-CI gate).
 
 ## Module responsibilities
 
-The committed map (settled 2026-07-09, panel-deliberated; not yet code — modules land
-milestone by milestone). Four strata, imports strictly downward:
+One line per module; field detail and contracts live in the docstrings (pdoc renders
+the reference — regen script committed, output never hand-edited).
 
-    steamlens/
-      contracts        — the plain-data spine: every cross-seam record; imports nothing
-      core/            — pure transforms over plain data; no I/O imports, ever
-        sampling       — plan compiler: histogram + policy → fetch plan (the same code the
-                         sampling study certifies and the runtime executes — DESIGN: policy is core)
-        classify       — classification prompt build + strict response parse (the LLM call stays in the shell)
-        aggregate      — manifest + label pool + version pin → aspect aggregates; the only
-                         number mint; folds survey-origin members only
-        detect         — granularity-aware event detection over histogram buckets (rollup unit is data)
-        investigate    — hypothesis generation + verification verdicts (the loop itself is a shell)
-        compose        — report assembly: quote grounding, numeric grounding, trust panel,
-                         marked-window membership derived here at read time from fresh past_events
-      shells:
-        steam_client   — the one door to Steam: executes fetch plans; windowed primary with
-                         per-window cursor fallback under a feasibility bound, semantic window
-                         validation, per-window provenance, past_events capture, always unfiltered
-        llm_client     — the one door to models: per-stage routing table, concurrency as config,
-                         atomic budget counter + spend ledger, judge-route refusals,
-                         content-keyed response archive
-        store          — SQLite (WAL): reviews, manifests + membership, the label pool,
-                         events + investigation rounds, report cache, spend ledger, eval runs
-        pipeline/      — stage compositions + the survey/investigation/report runners + the
-                         narration sink protocol; all narration emission lives here, never in core
-        serve/         — FastAPI REST + the SSE sink + static frontend; translates typed errors
-                         into the honest at-capacity state
-        evals/         — the eval harness, first-class: gold set (versioned files in the repo),
-                         judge calibration, metrics (incl. fabricated-quote and numeric-grounding
-                         rates), run manifests, the CI entry point
-        studies/       — thin offline drivers: corpus labeling (M1), the resampling study (M2)
+| module | single job |
+| --- | --- |
+| `contracts/` | the frozen-dataclass records crossing every seam (review · classification envelope + mention · aggregate · ontology + version stamp · provenance two-layer · LLM request/response · Steam door records · eval run/metric) + the enums + the `Sink` narration protocol |
+| `core/normalize` | two-slot label resolution: surface index over the pinned vocabulary, conservative match keys, candidates preserved in reviewer wording |
+| `core/classify` | the versioned classify prompt build + strict response parse with per-idx salvage — the LLM call itself stays in the shell |
+| `core/aggregate` | the number mint: label pool + scope → per-game aspect aggregates, raw tallies only |
+| `ontology/` | the artifact loader + the versioned TOML codebooks (`v1` — gold's identity pin and packaged default; `v2` — the current codebook, pinned by explicit path) |
+| `corpus/` | the frozen-snapshot reader beside the live door: usable filter, drop arithmetic, the door's own record parser (imported, never forked) |
+| `steam_client/` | the live door: paced/retried transport chokepoint · wire parsers · identity guard · the shared walk engine with cursor fallback · feasibility estimate · the three-operation client |
+| `llm_client/` | the model door: stage routing + budget/pacing config · the client (reserve, retries, cache/ledger composition) · Gemini and OpenAI-compat adapters · typed failures · in-memory bindings for rigs |
+| `store/` | SQLite (WAL): schema + gated migrations · review/label/archive/ledger/eval-run surfaces · row converters + the published timestamp codec |
+| `dispatch/` | generic run machinery, study-blind: tee'd narration sink + the one stage emitter · RunAbort + the drift watch · run/config/code stamps · the run-shell context · the chunk/pass batch engine — plus `census_arm`, the production annotator as a citable instrument |
+| `studies/` | offline entry shells: the census labeling driver (`label_corpus`) and the aggregate minter (`aggregate_corpus`) |
+| `evals/` | the certification harness: gold loader · pure scoring + bootstrap · the certify shell · the judge instrument + its two dispatch shells · the agreement scorer · the registered-experiments driver · the CI fixture exporter/gate |
 
-    Dependency law: entry shells (serve, studies, cli) → pipeline → clients/store →
-    contracts; core imports only contracts; nothing imports evals. A CI import-graph
-    test asserts this table — it doubles as a two-track wall.
+Declared ahead of their milestones, rank reserved but no code: `pipeline` and `serve`
+(deployment, M3 — report composition and the web runtime), `cli`, `core/sampling` (the
+sampling study, M2), `core/detect` (display-only episode markers at M3), and the chat
+milestone's retrieval modules (M4 — DESIGN: the RAG chat product frame).
 
-### The contracts surface — the M1 records
+## Structural stories
 
-The first records to freeze under DESIGN's *rules now, fields later* (contract modeling):
-their consumers all land at M1. All are `@dataclass(frozen=True, slots=True)` — immutable,
-hashable, closed-shape; validation lives in the shells (a pydantic parser at each ingest
-point → a clean contract), never in core. Field detail is authoritative in the code
-docstrings once A1 lands; the shapes below are the build spec.
+### The law is executable architecture, and it grew teeth after paying for it
 
-- `Review` — one cleaned review: `review_id` (Steam recommendationid), `app_id`,
-  `created_at`, `language`, `text`, `voted_up` (the reviewer's overall verdict).
-  Reception metadata (helpful votes, playtime) deferred until detection/weighting needs it.
-- `ReviewClassification` — the per-review envelope: `review_id`, `origin`, `versions`
-  (the content-cache key), `run` (provenance), `mentions: tuple[AspectMention, ...]`
-  (possibly empty — a recorded "processed, found nothing" the flat alternative can't
-  express; DESIGN: contract modeling).
-- `AspectMention` — one aspect atom: `aspect`, `slot` (PINNED | CANDIDATE), `sentiment`
-  (POSITIVE | NEGATIVE | MIXED | NEUTRAL — *per aspect*, distinct from the review's
-  `voted_up`), `evidence: str | None` (a supporting span; encouraged, not required — a
-  mandatory quote would induce fabrication and corrupt the fabricated-quote metric).
-- `AspectAggregate` — the minted number: `aspect`, `slot`, `reviews_with_aspect`,
-  per-sentiment counts, `sample_size`, `versions`, `manifest_id`. Raw counts only; the
-  evidence floor is a compose-time presentation rule, not baked in.
-- `AspectOntology` / `OntologyVersion` — the loaded pinned vocabulary (`version`,
-  `aspects: tuple[AspectDef, ...]`, where a def carries label + definition + example
-  synonyms, feeding both the classify prompt and the gold-set instructions) and its cheap
-  stamp (`version` + `content_hash`).
-- `Provenance` / `ClassifierVersions` — the two-layer stamp: a universal run record
-  (`run_id`, `code_version`, `created_at`, `config_hash`) orthogonal to the content-cache
-  key (`model_version`, `prompt_version`, `ontology_version`).
-- Enums (`StrEnum`): `Origin` (SURVEY | INVESTIGATION), `AspectSlot`, `Sentiment`.
+The rank table began as documentation with a test; the full-base review (2026-07-27)
+found the test blessing exactly the erosion it existed to stop — two entry shells
+shared a rank, so `evals` imported eight names from the census driver's interior with a
+green build, and unranked packages or relative imports were simply invisible. The
+architecture pass inverted that: the shared machinery moved down into `dispatch`, the
+misfiled reader moved to `corpus`, and only then was the law tightened to match —
+entry shells import-forbidden, rank declaration a precondition of existence, relative
+imports banned. Order mattered: the law locks the shape that should exist, not the one
+that happened to.
 
-Deferred until their consumers land: `SampleManifest` member/minter machinery (Phase C),
-`DetectedEvent` + investigation records (the investigator, M4), `ReportDocument`
-(deployment, M3).
+### Drivers are composition roots; the machinery exists once
 
-**The narration/telemetry sink — one seam, many shells.** `Sink` is a `Protocol` in
-contracts with a single `emit(event)`; `SinkEvent` is a closed union of `StageEvent`
-(stage · kind STARTED|PROGRESS|DONE|WARN · message — the human story) and `MetricEvent`
-(stage · name · value · unit — tokens, cost, latency, quota). Implementations live in
-shells: M1 ships `ConsoleSink` (the studies driver) plus a structured-log sink; `SSESink`
-lands with `serve` (M3). Defining the protocol at the foundation is what makes
-observability structural instead of retrofitted.
+Four dispatch drivers (census, two judge shells, the experiment cells) once carried
+private copies of the same run shell, batch engine, and stage emitter — and the copies
+had measurably drifted. Now `dispatch` owns each mechanism once: `run_context` opens
+the run directory, the tee'd log, and the deliberate two-connection store split (the
+two-writer reasoning stated once, there); one `run_pass` engine dispatches
+pre-composed batches and consumes outcomes as futures finish; the stamps mint identity.
+What deliberately did **not** unify is policy: each driver keeps its own abort ladder,
+manifest payload, retry semantics (the census's isolate pass vs the cells'
+condition-purity), and outcome writer — a shared `Driver` framework was declined
+because it would turn those real differences into callback plumbing.
 
-## Runtime & deployment topology
+### Two instrument blocks name the annotators
 
-One container, few wires — the module map above is the real communication diagram:
+The production model's identity (`dispatch/census_arm`) and the judge's
+(`evals/judge_dispatch`) are symmetric instrument blocks: model id, provider, prices,
+generation config, and the client builder in one citable place each. Certification and
+the agreement read import "the production model under judgment" as an instrument —
+not a constant fished out of the labeling driver — and the D2d cells re-dispatch the
+same instrument under controlled conditions without touching the driver that bought
+the census.
 
-    Browser ── REST (reports) + SSE (narration) ──► FastAPI app (one process, one container)
-                                                     ├── serves the static frontend
-                                                     ├── SQLite file, in-process (WAL)
-                                                     ├──► Steam store API   (steam_client's door)
-                                                     └──► LLM provider APIs (llm_client's door)
-    GitHub Actions ── lint · tests · import-graph test · image build · eval soft-gate ──► repo/registry
+### Certification consumes the system, never the reverse
 
-Deferred to the deployment milestone's (M3) design, plugging into these interfaces
-without refactor: the host (VPS vs HF), the SQLite file's durable home (Litestream is
-the noted candidate), the deploy pipeline's concrete shape, keep-alive.
+`evals` sits at the top rank and is import-forbidden: the harness reads the same label
+pool, the same ontology artifacts, and the same scoring core the production path uses,
+and nothing in the production path can reach back into it. Gold is provider-neutral by
+construction (minted before the bake-off chose the labeler), the judge is a second
+annotator rather than a verifier (DESIGN: the judge design), and the CI gate re-scores
+the committed runs of record to exact digits — so a quiet change to any scoring input
+is a red build, not a drifted number.
 
-## The life of a request (the cold path, stage by stage)
+### The label pool never pays twice
 
-The committed flow for a cold (uncached) analysis — each stage names its module, what
-crosses the seam, what lands in the store, and which guards are active at exactly that
-point. Narration accompanies every stage over SSE; offline runs get the same lines on a
-console sink.
-
-| # | Stage | Module | Consumes → produces | Persists | Guards active here |
-|---|-------|--------|---------------------|----------|--------------------|
-| 1 | Resolve game | `serve` → `steam_client` | query → `GameRef` (appid, population totals, score) | `games` | input validation at the web edge |
-| 2 | Cache check | `serve` + `store` | `GameRef` → fresh `ReportDocument` or miss | `reports` (read) | freshness rule; cache age disclosed in the trust panel |
-| 3 | Histogram fetch | `steam_client` | appid → `HistogramSnapshot` (buckets + rollup unit + daily last-30 + `past_events`) | `histograms` | always unfiltered; shape validation at ingest |
-| 4 | Event detection | `core/detect` | snapshot → `DetectedEvent[]` (bucket-aligned, unit carried, Valve-overlap flag) | `events` | granularity-aware thresholds per rollup unit; localization honesty (a month-resolution event is only month-accurate) |
-| 5 | Plan compilation | `core/sampling` | histogram + policy → `FetchPlan` (windows + quotas) | (inside the manifest) | the same pure code the sampling study (M2) certifies — policy is never reimplemented in a shell |
-| 6 | Survey draw | `steam_client` | `FetchPlan` → reviews + `SampleManifest` (the only minter) | `reviews`, `sample_manifests`, `sample_members` | windowed primary with semantic validation (returned timestamps ∈ requested window); per-window cursor fallback under a feasibility bound (estimated depth vs the rate budget → skip-and-disclose); per-window provenance |
-| 7 | Classification | `pipeline` loop → `core/classify` + `llm_client` (CLASSIFY) | reviews → one `ReviewClassification` per review (zero-or-more `AspectMention`), origin=survey, keyed (review, model, prompt, ontology versions) | label pool; content-keyed cache — bought labels never re-paid | atomic budget counter (reserve before dispatch); English-first filter; review text in a delimited data channel, output parsed against a closed schema |
-| 8 | Aggregation | `core/aggregate` | manifest + label pool + version pin → `AspectAggregate[]` | `aggregates` | folds manifest members ∩ origin=survey ∩ pinned version only — the number mint's one door; evidence floor |
-| 9 | Investigation (the investigator milestone, M4) | see the loop below | events + survey signals → explained / withheld / unexplained | `investigation_rounds` | round cap, per-query budget, language guard, manifest-less types |
-| 10 | Compose + phrase | `core/compose` + `llm_client` (PHRASE) | aggregates + events + manifest → `ReportDocument` | `reports` (cache write) | quote grounding; numeric grounding (every numeral in prose matches a cited value); unreferenced claims refused; marked-window membership derived here at read time from the freshest `past_events`; the marked-share floor; weak evidence greyed, never dropped |
-| 11 | Serve | `serve` | report → REST; narration → SSE | — | typed at-capacity errors become the honest degraded state; quotes rendered as text, never HTML |
-
-**The investigation loop, one round** (hard-capped per query): signals → ranked
-hypothesis (`core/investigate`, narrated as a hypothesis by type) → targeted
-`fetch_window` (manifest-less by construction, same rate bucket as the survey) →
-window reviews classified with origin=investigation (never foldable) → verification
-(`core/investigate`; counts stay scoped — "62 of 80 fetched from this window", a
-`WindowEvidence` value with no path into an aggregate) → verdict, where a *finding*
-narration event is constructible only from a verified conclusion and the language
-guard yields "explanation withheld" with its stated reason.
-
-**The offline runs — same core, different shells** (DESIGN: the system flow; this is
-the offline/runtime unification made concrete):
-
-    corpus labeling (M1) ──► corpus source (local_corpus manifests) ──► the same classify stages ──► label pool
-    eval runs (M1)       ──► gold set (versioned files) + judge stage ──► metrics ──► EvalRunManifest
-    resampling study (M2)──► the same plan compiler over the corpus ──► simulated manifests
-                             ──► re-fold stored labels with the same aggregate ──► policy + interval method + tolerance
-    CI (prompt/config changes) ──► eval suite ──► run manifest + trend vs tolerance bands
-                             (metric drift annotates — the soft gate; harness errors fail)
-
-*Eval-run provenance detail (config + model + prompt version + gold-set version → the
-measured numbers the docs cite) gets its own diagram when the first artifacts exist at
-the extraction+eval milestone (M1).*
+Resume is not a feature bolted onto the drivers; it falls out of three seams. The
+response archive is content-keyed (model · prompt · ontology · text), so a relaunched
+run's identical request is answered from disk; the selection query treats an envelope
+or a durable failure mark as closing a review under its versions triple, so a
+relaunch selects only what never settled; and the spend ledger journals every paid
+call, so cost claims are read from the record, not inferred. The census was bought
+once under this shape and every eval dispatch since has inherited it.
 
 ## Toolchain & layout
 
-Python **3.13** (the deploy interpreter is pinned in the M3 image, so the host's system
-Python is moot — the dev env sets the version); `src/steamlens/` **src-layout** (forces a
-real editable install, catching packaging bugs the flat layout hides). **uv** for resolve
-+ lock (reproducible by construction); **ruff** for lint + format; **pyright `--strict`**
-as the type gate — chosen over mypy for editor parity, since Pylance runs the same engine,
-so CI and the editor never disagree; **pytest** with `--doctest-modules` (doctests double
-as caller-contract examples); **pdoc** for the generated API reference (regen script
-committed, output never hand-edited). CI (GitHub Actions) runs lint · pyright · pytest ·
-the import-graph test on every change; the image build and eval soft-gate join per the
-topology above.
+Python **3.13**, `src/steamlens/` **src-layout** (forces a real editable install);
+**uv** for resolve + lock. Gates on every change: **ruff check** (lint only — code is
+hand-formatted to house style; the formatter is deliberately unused), **pyright
+`--strict`** (editor parity with Pylance), **pytest** with `--doctest-modules`, the
+import-graph law, and the exact-digit eval gate over the committed fixture. **pdoc**
+renders the API reference from docstrings; the regen script is committed, the output
+is generated only.
 
 ## Deliberately not done (restraint)
 
-- No job queue / worker infrastructure until the narrated cold path proves it needs one
-  (SSE from a single service is the starting shape; revisit if host request timeouts
-  force background jobs).
-- No Kubernetes/Terraform/cloud MLOps — per DESIGN's non-goals.
-- No hand-maintained API reference — docstrings + pdoc from day one; the rendered
-  reference is generated, never edited.
+- **No driver framework.** The shared machinery is functions and one context manager,
+  not a base class — revisit only if a third batch-labeling driver makes the per-driver
+  policy itself start duplicating.
+- **No `pipeline/` package yet.** Stage composition lives in the entry shells; the
+  reserved rank fills when the web runtime (deployment, M3) needs the same
+  compositions the offline drivers use.
+- **No investigation machinery.** The investigator was deferred whole at the roadmap
+  redirect (DESIGN); `core/detect` returns at M3 as display-only episode markers, and
+  the chat milestone (M4) gets its own architecture pass when it approaches.
+- **No job queue / worker infrastructure.** A single narrated process is the starting
+  shape; revisit if the deployed cold path hits host request timeouts (M3).
+- **No hand-maintained API reference.** Docstrings + pdoc from day one.
