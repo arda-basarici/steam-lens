@@ -68,6 +68,7 @@ from steamlens.contracts import (
     Provenance,
     Review,
     ReviewClassification,
+    Sink,
     StageEvent,
     StageKind,
     TokenUsage,
@@ -456,7 +457,7 @@ class ExperimentTotals(RunTotals):
     rebatch_sizes: list[int] = field(default_factory=list[int])
 
 
-def _narrate(sink: TeeSink, kind: StageKind, message: str) -> None:
+def _narrate(sink: Sink, kind: StageKind, message: str) -> None:
     sink.emit(StageEvent(stage="d2d.driver", kind=kind, message=message))
 
 
@@ -468,7 +469,7 @@ def _write_outcome(
     final: bool,
     totals: ExperimentTotals,
     drift: DriftWatch,
-    sink: TeeSink,
+    sink: Sink,
     *,
     skip_settled: bool,
 ) -> list[Review]:
@@ -564,7 +565,7 @@ def _run_pass(
     worker: Callable[[tuple[Review, ...]], BatchOutcome],
     consume: Callable[[BatchOutcome, bool], list[Review]],
     pool: ThreadPoolExecutor,
-    sink: TeeSink,
+    sink: Sink,
     *,
     warmup: bool,
 ) -> list[Review]:

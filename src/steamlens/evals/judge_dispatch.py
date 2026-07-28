@@ -32,6 +32,7 @@ from steamlens.contracts import (
     Origin,
     Provenance,
     ReviewClassification,
+    Sink,
     StageEvent,
     StageKind,
     TokenUsage,
@@ -53,7 +54,7 @@ from steamlens.llm_client import (
     Route,
 )
 from steamlens.store import Store
-from steamlens.studies.label_corpus import DriftWatch, RunAbort, TeeSink
+from steamlens.studies.label_corpus import DriftWatch, RunAbort
 
 JUDGE_MODEL_ID: Final = "gemini-3-flash-preview"
 """The requested model id — the judge triple's ``model_version`` (keys are
@@ -139,7 +140,7 @@ class JudgeOutcome:
 
 
 def build_judge_client(
-    entry: ProviderEntry, budget_usd: float, client_store: Store, sink: TeeSink,
+    entry: ProviderEntry, budget_usd: float, client_store: Store, sink: Sink,
     *, rpm: int = JUDGE_RPM,
 ) -> LlmClient:
     """The judge-route client over the *client's* store connection.
@@ -175,7 +176,7 @@ def build_judge_client(
     )
 
 
-def narrate(sink: TeeSink, kind: StageKind, message: str) -> None:
+def narrate(sink: Sink, kind: StageKind, message: str) -> None:
     """One judge-driver stage event onto the run's sink."""
     sink.emit(StageEvent(stage="judge.driver", kind=kind, message=message))
 
@@ -237,7 +238,7 @@ def _write_outcome(
     run: Provenance,
     totals: JudgeTotals,
     drift: DriftWatch,
-    sink: TeeSink,
+    sink: Sink,
 ) -> None:
     """Consume one outcome on the main thread: envelope in, or the durable mark.
 
@@ -300,7 +301,7 @@ def dispatch_items(
     run: Provenance,
     totals: JudgeTotals,
     drift: DriftWatch,
-    sink: TeeSink,
+    sink: Sink,
 ) -> None:
     """Single pass over the pending items, consumed as futures finish.
 

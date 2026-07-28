@@ -49,6 +49,7 @@ from steamlens.contracts import (
     Provenance,
     Review,
     ReviewClassification,
+    Sink,
     SinkEvent,
     StageEvent,
     StageKind,
@@ -242,7 +243,7 @@ def _config_hash(cfg: RunConfig, ontology_version: str, ontology_content_hash: s
 
 
 def build_client(
-    entry: ProviderEntry, budget_usd: float, n: int, client_store: Store, sink: TeeSink
+    entry: ProviderEntry, budget_usd: float, n: int, client_store: Store, sink: Sink
 ) -> LlmClient:
     """The dispatch-config client over the *client's* store connection."""
     config = LlmClientConfig(
@@ -277,11 +278,11 @@ def build_client(
     )
 
 
-def _narrate(sink: TeeSink, kind: StageKind, message: str, *, stage: str = "c1.driver") -> None:
+def _narrate(sink: Sink, kind: StageKind, message: str, *, stage: str = "c1.driver") -> None:
     sink.emit(StageEvent(stage=stage, kind=kind, message=message))
 
 
-def ingest_corpus(cfg: RunConfig, store: Store, sink: TeeSink) -> None:
+def ingest_corpus(cfg: RunConfig, store: Store, sink: Sink) -> None:
     """Walk the usable games into the reviews table, then assert the ruled supply.
 
     Idempotent on every start (ingest skips ids already present). The supply
@@ -397,7 +398,7 @@ def _write_outcome(
     attempt: str,
     totals: RunTotals,
     drift: DriftWatch,
-    sink: TeeSink,
+    sink: Sink,
 ) -> list[Review]:
     """Consume one outcome on the main thread: envelopes in, failures forward.
 
@@ -477,7 +478,7 @@ def _run_pass(
     worker: Callable[[tuple[Review, ...]], BatchOutcome],
     consume: Callable[[BatchOutcome, str], list[Review]],
     pool: ThreadPoolExecutor,
-    sink: TeeSink,
+    sink: Sink,
     *,
     warmup: bool,
 ) -> list[Review]:
