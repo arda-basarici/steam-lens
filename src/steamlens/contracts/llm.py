@@ -111,7 +111,15 @@ class ResponseArchive(Protocol):
         ...
 
     def put(self, key: str, raw_response: str) -> None:
-        """Store ``raw_response`` under ``key``, replacing any previous value."""
+        """Store ``raw_response`` under ``key``.
+
+        Conflict behavior is the binding's call, matched to its role: a
+        disposable cache may replace, but a durable provenance binding must
+        never silently destroy an archived body — it treats a differing
+        second write as an error. Callers get conflict-free behavior by
+        construction (the client puts only after a ``get`` miss, under its
+        one lock).
+        """
         ...
 
 

@@ -95,7 +95,12 @@ def ledger(request: pytest.FixtureRequest, tmp_path: Path) -> Iterator[SpendLedg
 
 
 class TestResponseArchiveContract:
-    """The protocol's whole behavior: miss is None, hits round-trip, put replaces."""
+    """The shared protocol behavior: miss is None, hits round-trip.
+
+    Conflict behavior deliberately splits by binding role and is tested per
+    binding below: the in-memory cache replaces, the durable provenance
+    archive keeps its first write and fails loud on a differing body.
+    """
 
     def test_miss_returns_none(self, cache: ResponseArchive) -> None:
         assert cache.get("absent") is None
@@ -104,10 +109,28 @@ class TestResponseArchiveContract:
         cache.put("key", '{"raw": "body"}')
         assert cache.get("key") == '{"raw": "body"}'
 
-    def test_put_replaces_previous_value(self, cache: ResponseArchive) -> None:
-        cache.put("key", "first")
-        cache.put("key", "second")
-        assert cache.get("key") == "second"
+
+def test_in_memory_cache_put_replaces_previous_value() -> None:
+    """The cache role: a second write wins — replacement is correct for a
+    disposable binding."""
+    cache = InMemoryResponseArchive()
+    cache.put("key", "first")
+    cache.put("key", "second")
+    assert cache.get("key") == "second"
+
+
+def test_durable_archive_keeps_first_write_and_refuses_a_different_body(
+    tmp_path: Path,
+) -> None:
+    """The provenance role: an identical re-put is a safe no-op, a differing
+    body fails loud — archived provider output is never silently destroyed."""
+    with Store(tmp_path / "steamlens.sqlite3") as store:
+        store.responses.put("key", "the bought body")
+        store.responses.put("key", "the bought body")  # crash-replay shape: no-op
+        assert store.responses.get("key") == "the bought body"
+        with pytest.raises(StoreError, match="refusing to overwrite"):
+            store.responses.put("key", "a different body")
+        assert store.responses.get("key") == "the bought body"
 
 
 class TestSpendLedgerContract:

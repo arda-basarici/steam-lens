@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import sqlite3
 
+from steamlens.store.errors import StoreError
+
 
 class SqliteResponseArchive:
     """Table-backed ``ResponseArchive`` — satisfies the protocol structurally.
@@ -33,9 +35,24 @@ class SqliteResponseArchive:
         return None if row is None else str(row[0])
 
     def put(self, key: str, raw_response: str) -> None:
-        """Store ``raw_response`` under ``key``, replacing any previous value."""
+        """Archive ``raw_response`` under ``key`` — the first write wins, forever.
+
+        This binding is the provenance record of unreproducible provider
+        output, so a *differing* second write raises ``StoreError`` instead
+        of silently destroying the archived body — the same fail-loud rule
+        every other durable conflict in the store follows. An identical
+        re-put is a no-op, so a caller re-offering the same body (a crash
+        between put and journal) stays safe.
+        """
+        existing = self.get(key)
+        if existing is not None:
+            if existing != raw_response:
+                raise StoreError(
+                    f"archive key {key!r} already holds a different body — "
+                    "refusing to overwrite the provenance record"
+                )
+            return
         self._conn.execute(
-            "INSERT INTO classify_cache (key, raw_response) VALUES (?, ?) "
-            "ON CONFLICT (key) DO UPDATE SET raw_response = excluded.raw_response",
+            "INSERT INTO classify_cache (key, raw_response) VALUES (?, ?)",
             (key, raw_response),
         )
