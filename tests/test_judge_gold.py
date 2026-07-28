@@ -18,9 +18,6 @@ import re
 import threading
 from pathlib import Path
 
-import pytest
-
-import steamlens.evals.judge_dispatch as judge_dispatch
 from steamlens.contracts import (
     ClassifierVersions,
     FinishReason,
@@ -41,12 +38,6 @@ from steamlens.store import Store
 _ONTOLOGY_PATH = Path("src/steamlens/ontology/v1.toml")
 _STAMP = load_ontology_version(_ONTOLOGY_PATH)
 _REVIEWS_BLOCK = re.compile(r"<reviews>\n(.*)\n</reviews>", re.DOTALL)
-
-
-@pytest.fixture(autouse=True)
-def unthrottled_client(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The live RPM backstop is real pacing — pointless seconds in a fake-provider rig."""
-    monkeypatch.setattr(judge_dispatch, "_RPM", 100_000)
 
 
 class FakeGemini:
@@ -182,6 +173,8 @@ def _config(tmp_path: Path, **overrides: object) -> JudgeRunConfig:
         "max_workers": 2,
         "budget_usd": 1.0,
         "limit": None,
+        # the live RPM backstop is real pacing — pointless seconds under a fake provider
+        "rpm": 100_000,
     }
     defaults.update(overrides)
     return JudgeRunConfig(**defaults)  # type: ignore[arg-type]

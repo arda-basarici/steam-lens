@@ -68,8 +68,10 @@ KEY_ENV: Final = "GEMINI_API_KEY"
 # dense review's answer, and nothing batched ever grows it.
 _MAX_OUTPUT_TOKENS: Final = 2_048
 # Paid-tier politeness backstop; single-review requests take minutes at this
-# pace, so the worker pool, not pacing, is the real throttle.
-_RPM: Final = 60
+# pace, so the worker pool, not pacing, is the real throttle. Public because
+# it is the shells' default for their configs' rpm dial — tests raise it so a
+# fake-provider run isn't paced by live politeness.
+JUDGE_RPM: Final = 60
 _INPUT_USD_PER_1M: Final = 0.50
 _OUTPUT_USD_PER_1M: Final = 3.00
 # Every text this engine dispatches labeled cleanly at scale before (gold
@@ -137,9 +139,14 @@ class JudgeOutcome:
 
 
 def build_judge_client(
-    entry: ProviderEntry, budget_usd: float, client_store: Store, sink: TeeSink
+    entry: ProviderEntry, budget_usd: float, client_store: Store, sink: TeeSink,
+    *, rpm: int = JUDGE_RPM,
 ) -> LlmClient:
-    """The judge-route client over the *client's* store connection."""
+    """The judge-route client over the *client's* store connection.
+
+    ``rpm`` is the pacing backstop, injected so test rigs can lift it instead
+    of patching a module private — the live default is ``JUDGE_RPM``.
+    """
     config = LlmClientConfig(
         routes={
             LlmStage.JUDGE: Route(
@@ -151,7 +158,7 @@ def build_judge_client(
         },
         models={
             JUDGE_MODEL_ID: ModelSpec(
-                rpm=_RPM,
+                rpm=rpm,
                 rpd=None,
                 input_usd_per_1m=_INPUT_USD_PER_1M,
                 output_usd_per_1m=_OUTPUT_USD_PER_1M,

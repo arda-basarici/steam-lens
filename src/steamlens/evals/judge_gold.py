@@ -43,6 +43,7 @@ from steamlens.core.normalize import build_surface_index
 from steamlens.evals.gold import GoldRecord, load_gold
 from steamlens.evals.judge_dispatch import (
     JUDGE_MODEL_ID,
+    JUDGE_RPM,
     KEY_ENV,
     JudgeItem,
     JudgeTotals,
@@ -70,7 +71,8 @@ class JudgeRunConfig:
     judge must annotate under the same v2 artifact the census pinned by path,
     and an accidental fall-through to packaged v1 would mint a whole envelope
     set under the wrong contract. ``limit`` is the pilot dial — judge the
-    first K gold reviews to smoke the path before the full dispatch.
+    first K gold reviews to smoke the path before the full dispatch. ``rpm``
+    is the client's pacing backstop — live default, lifted by test rigs.
     """
 
     gold_path: Path
@@ -81,6 +83,7 @@ class JudgeRunConfig:
     max_workers: int
     budget_usd: float
     limit: int | None
+    rpm: int = JUDGE_RPM
 
 
 def backfill_gold_reviews(
@@ -219,7 +222,7 @@ def execute_judge_run(
         Store(cfg.db_path) as driver_store,
     ):
         sink = TeeSink(log)
-        client = build_judge_client(entry, cfg.budget_usd, client_store, sink)
+        client = build_judge_client(entry, cfg.budget_usd, client_store, sink, rpm=cfg.rpm)
         narrate(
             sink, StageKind.STARTED,
             f"run {run_id} · code {run.code_version} · {JUDGE_MODEL_ID} · single-review "

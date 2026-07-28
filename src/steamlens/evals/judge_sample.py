@@ -39,6 +39,7 @@ from steamlens.core.classify import PROMPT_VERSION
 from steamlens.core.normalize import build_surface_index
 from steamlens.evals.judge_dispatch import (
     JUDGE_MODEL_ID,
+    JUDGE_RPM,
     KEY_ENV,
     JudgeItem,
     JudgeTotals,
@@ -72,7 +73,8 @@ class SampleRunConfig:
 
     ``ontology_path`` is required and explicit for the same reason as the
     calibration shell's: the judge must annotate under the census's v2
-    artifact, pinned by path. ``limit`` is the pilot dial.
+    artifact, pinned by path. ``limit`` is the pilot dial. ``rpm`` is the
+    client's pacing backstop — live default, lifted by test rigs.
     """
 
     sample_path: Path
@@ -82,6 +84,7 @@ class SampleRunConfig:
     max_workers: int
     budget_usd: float
     limit: int | None
+    rpm: int = JUDGE_RPM
 
 
 def load_sample(path: Path) -> tuple[SampledReview, ...]:
@@ -227,7 +230,7 @@ def execute_sample_run(
         Store(cfg.db_path) as driver_store,
     ):
         sink = TeeSink(log)
-        client = build_judge_client(entry, cfg.budget_usd, client_store, sink)
+        client = build_judge_client(entry, cfg.budget_usd, client_store, sink, rpm=cfg.rpm)
         narrate(
             sink, StageKind.STARTED,
             f"run {run_id} · code {run.code_version} · {JUDGE_MODEL_ID} · single-review "
