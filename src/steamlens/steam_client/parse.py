@@ -11,7 +11,7 @@ captures byte-for-byte. A payload that fails its shape check raises
 
 ``review_from_raw`` lives here because the wire format is the door's knowledge:
 the frozen corpus files hold the same Steam review objects on disk, so the
-offline reader (``studies.local_corpus``) imports this parser rather than
+offline reader (``corpus.local``) imports this parser rather than
 keeping a drifting copy.
 """
 

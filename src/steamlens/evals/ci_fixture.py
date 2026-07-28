@@ -48,6 +48,7 @@ from steamlens.contracts import (
     Sentiment,
 )
 from steamlens.core.classify import PROMPT_VERSION
+from steamlens.corpus import EXCLUDED_APP_IDS
 from steamlens.evals.agreement import agreement_pool
 from steamlens.evals.certify import certify_pool, render_eval_run
 from steamlens.evals.gold import load_gold
@@ -55,7 +56,6 @@ from steamlens.evals.judge_dispatch import JUDGE_MODEL_ID
 from steamlens.evals.judge_sample import load_sample
 from steamlens.ontology import load_ontology_version
 from steamlens.store import Store, parse_utc_isoformat, utc_isoformat
-from steamlens.studies.local_corpus import EXCLUDED_APP_IDS
 
 FIXTURE_DIR: Final = Path("eval/ci")
 """Where the committed fixture lives, relative to the repo root — the exporter's

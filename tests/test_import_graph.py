@@ -21,6 +21,7 @@ SRC = Path(__file__).resolve().parent.parent / "src" / PKG
 _LAYER_RANK: dict[str, int] = {
     "contracts": 0,
     "core": 1,
+    "corpus": 2,  # the frozen-snapshot reader, beside the live door
     "steam_client": 2,
     "llm_client": 2,
     "store": 2,

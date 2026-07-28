@@ -36,6 +36,7 @@ from steamlens.contracts import (
 )
 from steamlens.core.classify import PROMPT_VERSION
 from steamlens.core.normalize import build_surface_index
+from steamlens.corpus import EXCLUDED_APP_IDS
 from steamlens.dispatch import code_version
 from steamlens.dispatch.census_arm import MODEL_ID
 from steamlens.evals.gold import GoldRecord, load_gold
@@ -43,7 +44,6 @@ from steamlens.evals.judge_dispatch import JUDGE_MODEL_ID
 from steamlens.evals.scoring import ReviewTally, bootstrap_ci, score, tally_review
 from steamlens.ontology import load_ontology, load_ontology_version
 from steamlens.store import Store
-from steamlens.studies.local_corpus import EXCLUDED_APP_IDS
 
 SCORER: Final = "census-vs-gold/1"
 """The scoring procedure's identity, stamped on every run this shell mints.

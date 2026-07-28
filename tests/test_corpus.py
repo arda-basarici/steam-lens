@@ -1,25 +1,24 @@
-"""Local-corpus reader tests — the usable filter's claims and the boundary's teeth.
+"""Corpus reader tests — the usable filter's claims and the boundary's teeth.
 
-Unit tests exercise the pure predicate and the record conversion directly;
-file-level tests write tiny JSONL fixtures under ``tmp_path`` so the drop
-arithmetic, the fail-loud lines, and the excluded-game walk are proven on real
-files rather than mocks.
+Unit tests exercise the pure predicate directly; file-level tests write tiny
+JSONL fixtures under ``tmp_path`` so the drop arithmetic, the fail-loud lines,
+and the excluded-game walk are proven on real files rather than mocks. The
+record conversion itself (``review_from_raw``) is the Steam door's parser and
+is tested at the door (``test_steam_parse``).
 """
 
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
-from steamlens.studies import (
+from steamlens.corpus import (
     EXCLUDED_APP_IDS,
     corpus_review_files,
     has_content,
     read_reviews_file,
-    review_from_raw,
 )
 
 
@@ -51,35 +50,7 @@ def test_has_content_rejects_invisible_text() -> None:
     """Whitespace, controls, and format characters alone are emptiness."""
     assert not has_content("")
     assert not has_content(" \t\n ")
-    assert not has_content("​﻿")  # zero-width space, control, BOM
-
-
-def test_review_from_raw_maps_fields() -> None:
-    """The conversion: id verbatim, epoch to aware UTC, verdict preserved."""
-    review = review_from_raw(_raw(voted_up=False), app_id=440)
-    assert review.review_id == "227797385"
-    assert review.app_id == 440
-    assert review.created_at == datetime.fromtimestamp(1_781_279_000, tz=UTC)
-    assert review.created_at.tzinfo is not None
-    assert review.language == "english"
-    assert review.voted_up is False
-
-
-@pytest.mark.parametrize(
-    ("overrides", "match"),
-    [
-        ({"recommendationid": None}, "recommendationid"),
-        ({"recommendationid": ""}, "recommendationid"),
-        ({"timestamp_created": "1781279000"}, "timestamp_created"),
-        ({"timestamp_created": True}, "timestamp_created"),  # bool is not an epoch
-        ({"voted_up": 1}, "voted_up"),
-        ({"review": None}, "review text"),
-    ],
-)
-def test_review_from_raw_fails_loud(overrides: dict[str, object], match: str) -> None:
-    """A mistyped field in a frozen-corpus record is damage, not a skippable row."""
-    with pytest.raises(ValueError, match=match):
-        review_from_raw(_raw(**overrides), app_id=440)
+    assert not has_content("​﻿")  # zero-width space, control, BOM
 
 
 def test_read_reviews_file_counts_reconcile(tmp_path: Path) -> None:

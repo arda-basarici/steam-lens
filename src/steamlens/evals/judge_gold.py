@@ -40,6 +40,7 @@ from pathlib import Path
 from steamlens.contracts import ClassifierVersions, Provenance, StageKind
 from steamlens.core.classify import PROMPT_VERSION
 from steamlens.core.normalize import build_surface_index
+from steamlens.corpus import read_reviews_file
 from steamlens.dispatch import DriftWatch, RunAbort, TeeSink, code_version, narrate
 from steamlens.evals.gold import GoldRecord, load_gold
 from steamlens.evals.judge_dispatch import (
@@ -60,7 +61,6 @@ from steamlens.llm_client import (
 )
 from steamlens.ontology import load_ontology, load_ontology_version
 from steamlens.store import Store
-from steamlens.studies.local_corpus import read_reviews_file
 
 
 @dataclass(frozen=True, slots=True)

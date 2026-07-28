@@ -58,6 +58,7 @@ from steamlens.core.classify import (
     parse_classify_response,
 )
 from steamlens.core.normalize import build_surface_index
+from steamlens.corpus import EXCLUDED_APP_IDS, corpus_review_files, read_reviews_file
 from steamlens.dispatch import (
     BatchOutcome,
     DriftWatch,
@@ -82,11 +83,6 @@ from steamlens.llm_client import (
 from steamlens.llm_client.openai_compat import DEEPSEEK_BASE_URL
 from steamlens.ontology import load_ontology, load_ontology_version
 from steamlens.store import Store
-from steamlens.studies.local_corpus import (
-    EXCLUDED_APP_IDS,
-    corpus_review_files,
-    read_reviews_file,
-)
 
 RULED_CENSUS_SUPPLY: Final = 135_260
 """The census-slice ruling's usable-pool size — the default ingest assertion."""

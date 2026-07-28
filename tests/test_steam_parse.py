@@ -24,6 +24,7 @@ from steamlens.steam_client import (
     SteamResponseError,
     parse_histogram,
     parse_review_page,
+    review_from_raw,
 )
 
 _CAPTURES = Path(__file__).resolve().parent.parent / "probes" / "captures"
@@ -158,3 +159,46 @@ def test_histogram_missing_bucket_series_fails_loud() -> None:
     }
     with pytest.raises(SteamResponseError, match="expected a list"):
         parse_histogram(payload, 440, _FETCHED_AT)
+
+
+# --- review_from_raw: one review object across the boundary ---------------------
+
+
+def _raw_review(**overrides: object) -> dict[str, object]:
+    record: dict[str, object] = {
+        "recommendationid": "227797385",
+        "language": "english",
+        "review": "Great gunplay, terrible servers.",
+        "timestamp_created": 1_781_279_000,
+        "voted_up": True,
+    }
+    record.update(overrides)
+    return record
+
+
+def test_review_from_raw_maps_fields() -> None:
+    """The conversion: id verbatim, epoch to aware UTC, verdict preserved."""
+    review = review_from_raw(_raw_review(voted_up=False), app_id=440)
+    assert review.review_id == "227797385"
+    assert review.app_id == 440
+    assert review.created_at == datetime.fromtimestamp(1_781_279_000, tz=UTC)
+    assert review.created_at.tzinfo is not None
+    assert review.language == "english"
+    assert review.voted_up is False
+
+
+@pytest.mark.parametrize(
+    ("overrides", "match"),
+    [
+        ({"recommendationid": None}, "recommendationid"),
+        ({"recommendationid": ""}, "recommendationid"),
+        ({"timestamp_created": "1781279000"}, "timestamp_created"),
+        ({"timestamp_created": True}, "timestamp_created"),  # bool is not an epoch
+        ({"voted_up": 1}, "voted_up"),
+        ({"review": None}, "review text"),
+    ],
+)
+def test_review_from_raw_fails_loud(overrides: dict[str, object], match: str) -> None:
+    """A mistyped field in a frozen-corpus record is damage, not a skippable row."""
+    with pytest.raises(ValueError, match=match):
+        review_from_raw(_raw_review(**overrides), app_id=440)

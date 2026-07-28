@@ -82,6 +82,7 @@ from steamlens.core.classify import (
     parse_classify_response,
 )
 from steamlens.core.normalize import build_surface_index
+from steamlens.corpus import EXCLUDED_APP_IDS
 from steamlens.dispatch import (
     BatchOutcome,
     DriftWatch,
@@ -109,7 +110,6 @@ from steamlens.llm_client import (
 from steamlens.llm_client.openai_compat import DEEPSEEK_BASE_URL
 from steamlens.ontology import load_ontology, load_ontology_version
 from steamlens.store import Store
-from steamlens.studies.local_corpus import EXCLUDED_APP_IDS
 
 # The judge's scale of breaker, not the census's: cell runs are ≤ ~1,250
 # requests over texts that all cleared DeepSeek's filter at the census

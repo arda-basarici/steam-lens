@@ -70,7 +70,7 @@ from steamlens.evals.judge_sample import load_sample  # noqa: E402
 from steamlens.ontology import load_ontology, load_ontology_version  # noqa: E402
 from steamlens.store.store import Store  # noqa: E402
 from steamlens.dispatch.census_arm import MODEL_ID  # noqa: E402
-from steamlens.studies.local_corpus import EXCLUDED_APP_IDS  # noqa: E402
+from steamlens.corpus import EXCLUDED_APP_IDS  # noqa: E402
 
 _GOLD_PATH = _REPO / "eval" / "gold" / "gold.jsonl"
 _SAMPLE_PATH = _REPO / "eval" / "agreement" / "sample.jsonl"
