@@ -287,6 +287,33 @@ def test_unparseable_response_fails_every_idx() -> None:
         assert [failure.idx for failure in result.failures] == [0, 1]
 
 
+def test_boolean_idx_is_refused_not_misattributed() -> None:
+    """The Python trap: ``True`` is an ``int`` and ``True in range(2)`` holds, so
+    without the bool guard a ``"idx": true`` row would silently label review 1.
+    It must fail as unattributable instead, leaving review 1 to its honest
+    no-entry failure."""
+    response = _respond([{"idx": 0, "aspects": []}, {"idx": True, "aspects": []}])
+    result = parse_classify_response(response, ["a", "b"], _INDEX)
+    assert [parsed.idx for parsed in result.parsed] == [0]
+    assert set(result.failures) == {
+        IdxFailure(None, "entry idx is True, expected an integer"),
+        IdxFailure(1, "no entry in the response"),
+    }
+
+
+def test_broken_fence_before_a_good_one_still_decodes() -> None:
+    """The docstring's claim is "the first fenced block that DECODES", not "the
+    only fenced block": an undecodable fence ahead of the real payload is
+    skipped, not fatal."""
+    inner = _respond([{"idx": 0, "aspects": [{"aspect": "combat", "sentiment": "positive"}]}])
+    wrapped = f"```\n[not json,\n```\nand the corrected payload:\n```\n{inner}\n```\n"
+    result = parse_classify_response(wrapped, ["a"], _INDEX)
+    assert result.parsed == (
+        ParsedReview(0, (_mention("combat", AspectSlot.PINNED, Sentiment.POSITIVE, None),)),
+    )
+    assert result.failures == ()
+
+
 def test_fence_wrapped_response_decodes() -> None:
     """A prompt-json candidate narrating around a fenced array (Groq 70B live,
     2026-07-19) decodes to the same result as the bare payload."""
