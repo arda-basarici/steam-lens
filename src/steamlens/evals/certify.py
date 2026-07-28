@@ -22,6 +22,7 @@ import hashlib
 import json
 import uuid
 from collections.abc import Callable, Collection, Mapping, Sequence
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Final
@@ -141,25 +142,33 @@ def _pinned_quiet_share(tallies: Sequence[ReviewTally]) -> float:
     return sum(t.fp == 0 and t.tp == 0 for t in tallies) / len(tallies)
 
 
-_SLICE_ROWS: Final[
-    tuple[tuple[str, Callable[[ReviewTally], bool], str,
-                Callable[[Sequence[ReviewTally]], float]], ...]
-] = (
-    ("zero_mention", lambda t: t.gold_zero,
-     "zero_mention_agreement", _pinned_quiet_share),
-    ("multi_mention", lambda t: t.tp + t.fn >= 2,
-     "f1_multi_mention", lambda t: score(t).f1),
-    ("candidate_emitting", lambda t: bool(t.gold_candidates),
-     "f1_candidate_emitting", lambda t: score(t).f1),
-)
-"""Each slice: (slice name, membership by tally, stat row name, statistic).
+@dataclass(frozen=True, slots=True)
+class SliceSpec:
+    """One item-type slice of the calibration protocol's remainder.
 
-Membership reads the *reference* side (gold in a certification, the judge in
-the agreement read) — the slices describe item types of the measuring stick,
-per the calibration protocol. The zero-mention slice's statistic is
-quiet-agreement (the annotator also found no pinned aspect — F1 is undefined
-where the reference is empty); the mention-carrying slices reuse F1.
-"""
+    ``member`` reads the *reference* side (gold in a certification, the judge
+    in the agreement read) — the slices describe item types of the measuring
+    stick. ``statistic`` is the slice's stat row: quiet-agreement for the
+    zero-mention slice (the annotator also found no pinned aspect — F1 is
+    undefined where the reference is empty); the mention-carrying slices
+    reuse F1. ``name`` keys the journaled ``n_<name>`` denominator row,
+    ``stat_name`` the statistic row.
+    """
+
+    name: str
+    member: Callable[[ReviewTally], bool]
+    stat_name: str
+    statistic: Callable[[Sequence[ReviewTally]], float]
+
+
+_SLICE_ROWS: Final[tuple[SliceSpec, ...]] = (
+    SliceSpec("zero_mention", lambda t: t.gold_zero,
+              "zero_mention_agreement", _pinned_quiet_share),
+    SliceSpec("multi_mention", lambda t: t.tp + t.fn >= 2,
+              "f1_multi_mention", lambda t: score(t).f1),
+    SliceSpec("candidate_emitting", lambda t: bool(t.gold_candidates),
+              "f1_candidate_emitting", lambda t: score(t).f1),
+)
 
 
 def slice_metrics(
@@ -173,14 +182,15 @@ def slice_metrics(
     run's seed.
     """
     rows: list[EvalMetric] = []
-    for slice_name, member, stat_name, statistic in _SLICE_ROWS:
-        members = [t for t in tallies if member(t)]
-        rows.append(EvalMetric(metric=f"n_{slice_name}", value=float(len(members))))
+    for spec in _SLICE_ROWS:
+        members = [t for t in tallies if spec.member(t)]
+        rows.append(EvalMetric(metric=f"n_{spec.name}", value=float(len(members))))
         if members:
-            ci = bootstrap_ci(members, statistic, n_resamples=n_resamples, seed=seed)
+            ci = bootstrap_ci(members, spec.statistic, n_resamples=n_resamples, seed=seed)
             rows.append(
                 EvalMetric(
-                    metric=stat_name, value=statistic(members), ci_low=ci.low, ci_high=ci.high
+                    metric=spec.stat_name, value=spec.statistic(members),
+                    ci_low=ci.low, ci_high=ci.high,
                 )
             )
     return tuple(rows)
