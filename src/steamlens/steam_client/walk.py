@@ -10,7 +10,13 @@ short pages mid-stream routinely — so short pages simply continue, and empty
 pages retry the same cursor a bounded number of times before the walk
 concludes the stream is really dry. The stops that ARE trusted: timestamps
 exiting the window on the old side, a repeated cursor, a missing cursor, and
-Steam's own "no result" answer (``success == 2``).
+Steam's own "no result" answer (``success == 2``). A strict walk additionally
+stops at the end of the first page carrying any out-of-window review — one
+violation already refutes the window params, and descending further would pay
+the very approach the feasibility gate exists to refuse. The empty-page
+exhaustion stop is the one stop the module itself distrusts, so the tally
+discloses it (``stopped_on_empty_pages``) instead of letting a possibly
+truncated walk read as a trusted one.
 
 Every review is judged against the window by zone: newer than the window,
 inside it, or older. The two paths differ only in what "newer" means —
@@ -47,14 +53,19 @@ class WalkTally:
     ``pages_fetched`` counts every successful page request, same-cursor
     retries included (they are real, paced requests); ``out_of_window`` is the
     semantic-validation count (always zero when the walk judges out-of-window
-    reviews expected — the fallback's skip phase); ``reported_total`` is the
-    first page's ``query_summary`` total, captured even from an empty answer.
+    reviews expected — the fallback's skip phase), scoped to the first
+    violating page since a strict walk stops there rather than censusing the
+    rest; ``reported_total`` is the first page's ``query_summary`` total,
+    captured even from an empty answer. ``stopped_on_empty_pages`` names the
+    one untrusted stop — the empty-page retry budget ran dry — so the caller
+    can disclose a possibly truncated collection instead of trusting it.
     """
 
     reviews: tuple[Review, ...]
     pages_fetched: int
     out_of_window: int
     reported_total: int | None
+    stopped_on_empty_pages: bool
 
 
 def walk_pages(
@@ -69,9 +80,11 @@ def walk_pages(
 
     ``fetch_page`` binds the endpoint and params (the two paths differ there);
     ``out_of_window_is_violation`` is the one judgment fork: the windowed path
-    counts any out-of-window timestamp as a params violation, the fallback
-    path treats out-of-window reviews as its expected approach and boundary
-    phases (the trim is the mechanism, not a defect). Raises
+    counts any out-of-window timestamp as a params violation and stops at the
+    end of the first violating page (the count is evidence, not a census —
+    one violation is all the dirty verdict needs), the fallback path treats
+    out-of-window reviews as its expected approach and boundary phases (the
+    trim is the mechanism, not a defect). Raises
     ``SteamResponseError`` on a ``success`` value that is neither 1 nor the
     documented no-result 2 — new wire knowledge, surfaced rather than guessed
     at.
@@ -83,6 +96,7 @@ def walk_pages(
     out_of_window = 0
     reported_total: int | None = None
     empty_retries_left = _EMPTY_PAGE_RETRIES
+    stopped_on_empty_pages = False
 
     while True:
         page = fetch_page(cursor)
@@ -99,6 +113,7 @@ def walk_pages(
             if empty_retries_left > 0:
                 empty_retries_left -= 1
                 continue  # re-ask the same cursor — suspicious, not conclusive
+            stopped_on_empty_pages = True
             break
         empty_retries_left = _EMPTY_PAGE_RETRIES
 
@@ -115,6 +130,8 @@ def walk_pages(
                 collected.append(review)
         if past_the_window:
             break  # the newest-first stream has descended below the window
+        if out_of_window_is_violation and out_of_window:
+            break  # first dirty page: the params are refuted — stop paying the descent
         if page.cursor is None or page.cursor in seen_cursors:
             break
         seen_cursors.add(page.cursor)
@@ -125,4 +142,5 @@ def walk_pages(
         pages_fetched=pages_fetched,
         out_of_window=out_of_window,
         reported_total=reported_total,
+        stopped_on_empty_pages=stopped_on_empty_pages,
     )

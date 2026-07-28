@@ -18,7 +18,7 @@ from datetime import UTC, datetime, timedelta
 import httpx
 import pytest
 
-from steamlens.contracts import PathOutcome, Review, SinkEvent
+from steamlens.contracts import PathOutcome, Review, SinkEvent, StageEvent, StageKind
 from steamlens.steam_client import (
     QuerySummary,
     ReviewPage,
@@ -104,6 +104,28 @@ def test_empty_pages_retry_the_same_cursor_before_concluding() -> None:
     tally = walk_pages(feed, _START, _END, out_of_window_is_violation=True)
     assert tally.reviews == ()
     assert feed.asked == ["*", "*", "*"]
+    assert tally.stopped_on_empty_pages  # the one stop the engine distrusts, disclosed
+
+
+def test_empty_page_retry_budget_resets_per_stretch() -> None:
+    """The budget is per suspicious stretch, not per walk: a page that yields
+    reviews hands the next stretch a fresh budget — without the reset the walk
+    would conclude one page early and silently truncate the window."""
+    feed = Feed(
+        [
+            _page(_in_window(3), "A"),
+            _page((), "A"),
+            _page(_in_window(2, offset_hours=5), "B"),
+            _page((), "B"),
+            _page((), "B"),
+            _page((), "B"),
+        ]
+    )
+    tally = walk_pages(feed, _START, _END, out_of_window_is_violation=True)
+    assert len(tally.reviews) == 5
+    assert tally.pages_fetched == 6
+    assert feed.asked == ["*", "A", "A", "B", "B", "B"]
+    assert tally.stopped_on_empty_pages
 
 
 def test_repeated_cursor_stops() -> None:
@@ -125,6 +147,7 @@ def test_missing_cursor_stops() -> None:
     tally = walk_pages(feed, _START, _END, out_of_window_is_violation=True)
     assert len(tally.reviews) == 30
     assert tally.pages_fetched == 1
+    assert not tally.stopped_on_empty_pages  # a trusted stop reads as one
 
 
 def test_boundary_page_trims_and_stops() -> None:
@@ -139,15 +162,18 @@ def test_boundary_page_trims_and_stops() -> None:
     assert feed.asked == ["*"]
 
 
-def test_newer_than_window_counts_and_continues() -> None:
+def test_dirty_page_stops_the_strict_walk() -> None:
     """A too-new review on the windowed path is a params violation — counted,
-    trimmed, and the walk keeps descending toward the window."""
+    trimmed, and the walk stops at that page's end instead of descending: one
+    violation already refutes the params, and the descent it would otherwise
+    pay is exactly what the feasibility gate exists to refuse."""
     mixed = (_review(_END + timedelta(days=3)),) + _in_window(2)
-    feed = Feed([_page(mixed, "A"), _page((), "A"), _page((), "A"), _page((), "A")])
+    feed = Feed([_page(mixed, "A"), _page((), "A")])
     tally = walk_pages(feed, _START, _END, out_of_window_is_violation=True)
     assert len(tally.reviews) == 2
     assert tally.out_of_window == 1
-    assert tally.pages_fetched == 4
+    assert tally.pages_fetched == 1
+    assert feed.asked == ["*"]
 
 
 def test_fallback_judgment_skips_without_counting() -> None:
@@ -185,6 +211,14 @@ def test_unknown_success_value_fails_loud() -> None:
 class NullSink:
     def emit(self, event: SinkEvent) -> None:
         pass
+
+
+class CollectingSink:
+    def __init__(self) -> None:
+        self.events: list[SinkEvent] = []
+
+    def emit(self, event: SinkEvent) -> None:
+        self.events.append(event)
 
 
 def _wire_page(reviews: list[dict[str, object]], cursor: str) -> str:
@@ -255,6 +289,38 @@ def test_fetch_window_sends_the_ruled_params_and_stamps_provenance() -> None:
     assert result.retries == 0
     assert result.out_of_window_count == 0
     assert result.reported_total == 2
+
+
+def test_windowed_truncation_is_warn_narrated() -> None:
+    """A clean windowed walk that ended on empty-page exhaustion, short of
+    Steam's own window total, still returns WINDOWED — but both suspicions
+    reach the sink, so a possibly truncated collection is never silently
+    trusted complete."""
+    pages = iter(
+        [_wire_page([_wire_review("a", _START + timedelta(days=1))], "A")]
+        + [_wire_page([], "A")] * 3
+    )
+    sink = CollectingSink()
+    client = SteamClient(
+        SteamClientConfig(),
+        sink,
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(200, text=next(pages))
+        ),
+        sleep=lambda _: None,
+        monotonic=lambda: 100.0,
+    )
+    result = client.fetch_window(440, _START, _END)
+
+    assert result.outcome is PathOutcome.WINDOWED
+    assert len(result.reviews) == 1
+    warns = [
+        e.message
+        for e in sink.events
+        if isinstance(e, StageEvent) and e.kind is StageKind.WARN
+    ]
+    assert any("empty-page exhaustion" in message for message in warns)
+    assert any("collected 1 of Steam's reported 2" in message for message in warns)
 
 
 def test_fetch_window_refuses_naive_and_inverted_windows() -> None:

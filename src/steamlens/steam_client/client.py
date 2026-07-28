@@ -143,9 +143,17 @@ class SteamClient:
         returns as ``WINDOWED`` with the violation count (zero) as its
         semantic-validation verdict.
 
+        A clean windowed walk that ended on empty-page exhaustion, or that
+        collected fewer reviews than Steam's own window total, is still
+        returned as ``WINDOWED`` but WARN-narrated — trusted with disclosure,
+        never silently assumed complete. (The fallback's summary describes the
+        whole game, so only the exhaustion check applies there.)
+
         A dirty verdict — any out-of-window review — means the window params
         were not honored, so the windowed collection cannot be trusted
-        complete. The client then fetches the histogram (one more paced
+        complete; the strict walk stops at the end of its first dirty page
+        rather than paying the full descent the feasibility gate exists to
+        refuse. The client then fetches the histogram (one more paced
         request), prices the plain-cursor approach with the feasibility
         estimate, and either walks the fallback (same engine, timestamp-gated;
         returns ``FALLBACK_WALKED``, whose ``reported_total`` is ``None``
@@ -173,6 +181,7 @@ class SteamClient:
 
         windowed = self._walk(url, windowed_params, app_id, window_start, window_end, strict=True)
         if windowed.out_of_window == 0:
+            self._disclose_windowed_trust(app_id, windowed)
             return self._result(
                 app_id, window_start, window_end, PathOutcome.WINDOWED, windowed,
                 retries=self._transport.retries_spent - retries_before,
@@ -194,6 +203,7 @@ class SteamClient:
                 pages_fetched=windowed.pages_fetched,
                 out_of_window=windowed.out_of_window,
                 reported_total=windowed.reported_total,
+                stopped_on_empty_pages=windowed.stopped_on_empty_pages,
             )
             return self._result(
                 app_id, window_start, window_end, PathOutcome.SKIPPED_INFEASIBLE, skipped,
@@ -206,11 +216,17 @@ class SteamClient:
             "num_per_page": self._config.num_per_page,
         }
         fallback = self._walk(url, plain_params, app_id, window_start, window_end, strict=False)
+        if fallback.stopped_on_empty_pages:
+            self._warn(
+                f"fallback walk for app {app_id} ended on empty-page exhaustion — "
+                "the collection may be truncated, not proven complete"
+            )
         merged = WalkTally(
             reviews=fallback.reviews,
             pages_fetched=windowed.pages_fetched + fallback.pages_fetched,
             out_of_window=0,
             reported_total=None,
+            stopped_on_empty_pages=fallback.stopped_on_empty_pages,
         )
         return self._result(
             app_id, window_start, window_end, PathOutcome.FALLBACK_WALKED, merged,
@@ -259,6 +275,25 @@ class SteamClient:
             reported_total=tally.reported_total,
             reviews=tally.reviews,
         )
+
+    def _disclose_windowed_trust(self, app_id: int, tally: WalkTally) -> None:
+        """WARN when a clean windowed walk is not beyond suspicion.
+
+        An empty-page exhaustion stop or a shortfall against Steam's own
+        window total means the collection may be truncated; both checks are
+        windowed-only — the fallback's unwindowed summary describes the whole
+        game and supports neither.
+        """
+        if tally.stopped_on_empty_pages:
+            self._warn(
+                f"windowed walk for app {app_id} ended on empty-page exhaustion — "
+                "the collection may be truncated, not proven complete"
+            )
+        if tally.reported_total is not None and len(tally.reviews) < tally.reported_total:
+            self._warn(
+                f"windowed walk for app {app_id} collected {len(tally.reviews)} of "
+                f"Steam's reported {tally.reported_total} for the window"
+            )
 
     def _warn(self, message: str) -> None:
         self._sink.emit(StageEvent(stage="steam.fetch", kind=StageKind.WARN, message=message))

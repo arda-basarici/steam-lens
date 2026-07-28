@@ -107,7 +107,9 @@ class WindowFetchResult:
     request cost. ``out_of_window_count`` is the semantic-validation verdict as
     a measurement: how many returned reviews fell outside the requested window
     on the windowed path (trimmed from ``reviews``, counted here — nonzero
-    means the undocumented window params were not honored). On the fallback
+    means the undocumented window params were not honored; the count is
+    evidence from the walk's first violating page, not a census, because a
+    strict walk stops paying once the params are refuted). On the fallback
     path it is zero by construction, since timestamp gating *is* the mechanism
     there, not a violation. ``reported_total`` is Steam's own count for the
     windowed query from the first page's ``query_summary`` — captured even when
