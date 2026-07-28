@@ -100,10 +100,15 @@ def parse_response(raw: str) -> LlmResponse:
     reasoning 0. ``model`` is the provider-reported resolved name; an empty
     string records that the provider did not report one. A null ``content``
     (some vendors' filtered-response shape) reads as empty text; a body with
-    no choices normalizes to a refusal with no text; a body that is not a
-    JSON object at all fails loud.
+    no choices normalizes to a refusal with no text. A body that is not JSON
+    at all, or not a JSON object, raises ``ProviderPermanentError`` — a shape
+    violation a temperature-0 retry would only re-earn, and typing it keeps
+    the failure inside the ``LlmError`` family drivers isolate batches on.
     """
-    parsed: object = json.loads(raw)
+    try:
+        parsed: object = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ProviderPermanentError(f"openai-compat body is not JSON: {raw[:200]!r}") from exc
     if not isinstance(parsed, dict):
         raise ProviderPermanentError(
             f"openai-compat body is not a JSON object: {type(parsed).__name__}"

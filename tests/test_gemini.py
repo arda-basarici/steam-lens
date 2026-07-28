@@ -158,6 +158,18 @@ def test_parse_treats_a_blocked_request_as_a_refusal() -> None:
     assert response.usage.prompt_tokens == 7
 
 
+def test_parse_types_a_non_json_body_as_permanent() -> None:
+    """An HTML interstitial (proxy/CDN error page) must stay inside the LlmError
+    family so drivers can isolate the batch instead of dying on a raw ValueError."""
+    with pytest.raises(ProviderPermanentError, match="not JSON"):
+        parse_response("<html>Service Unavailable</html>")
+
+
+def test_parse_types_a_non_object_body_as_permanent() -> None:
+    with pytest.raises(ProviderPermanentError, match="not a JSON object"):
+        parse_response("[1, 2]")
+
+
 # --- send ----------------------------------------------------------------------
 
 

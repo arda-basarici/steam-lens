@@ -80,9 +80,15 @@ def parse_response(raw: str) -> LlmResponse:
     provider-reported resolved version; an empty string records that the
     provider did not report one. A body with no candidates is a request blocked
     outright (``promptFeedback`` carries Gemini's reason) and normalizes to a
-    refusal with no text; a body that is not a JSON object at all fails loud.
+    refusal with no text. A body that is not JSON at all, or not a JSON
+    object, raises ``ProviderPermanentError`` — a shape violation a
+    temperature-0 retry would only re-earn, and typing it keeps the failure
+    inside the ``LlmError`` family drivers isolate batches on.
     """
-    parsed: object = json.loads(raw)
+    try:
+        parsed: object = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ProviderPermanentError(f"gemini body is not JSON: {raw[:200]!r}") from exc
     if not isinstance(parsed, dict):
         raise ProviderPermanentError(
             f"gemini body is not a JSON object: {type(parsed).__name__}"
