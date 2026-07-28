@@ -72,10 +72,15 @@ def load_ontology_version(path: Path | None = None) -> OntologyVersion:
     The hash is computed over the file exactly as stored, so any edit — even
     one that leaves the version label untouched — produces a different stamp.
     This is the value to persist when a stale-content cache hit must be
-    detectable (see ``OntologyVersion``).
+    detectable (see ``OntologyVersion``). A missing or blank ``version`` key
+    raises ``OntologyValidationError`` — the stamp feeds cache keys and
+    journaled provenance, and an empty label there is silent corruption.
     """
     raw = _artifact_bytes(path)
-    version = _str_field(tomllib.loads(raw.decode("utf-8")), "version", "top level", [])
+    problems: list[str] = []
+    version = _str_field(tomllib.loads(raw.decode("utf-8")), "version", "top level", problems)
+    if problems:
+        raise OntologyValidationError(_render(problems))
     return OntologyVersion(version=version, content_hash=hashlib.sha256(raw).hexdigest())
 
 

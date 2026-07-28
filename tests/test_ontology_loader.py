@@ -63,6 +63,13 @@ def test_version_stamp_matches_and_hashes(tmp_path: Path) -> None:
     assert load_ontology_version(touched).content_hash != stamp.content_hash
 
 
+def test_version_stamp_refuses_a_missing_version(tmp_path: Path) -> None:
+    """The stamp feeds cache keys and journaled provenance — a blank label must not mint."""
+    broken = _MINIMAL.replace('version = "test"\n', "")
+    with pytest.raises(OntologyValidationError, match="'version' must be a non-empty string"):
+        load_ontology_version(_artifact(tmp_path, broken))
+
+
 def test_minimal_artifact_loads(tmp_path: Path) -> None:
     ontology = load_ontology(_artifact(tmp_path, _MINIMAL))
     assert [a.label for a in ontology.aspects] == ["combat", "ai_behavior"]
