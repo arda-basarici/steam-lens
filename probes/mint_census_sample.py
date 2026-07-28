@@ -53,7 +53,7 @@ import sqlite3  # noqa: E402
 
 from steamlens.contracts import ClassifierVersions  # noqa: E402
 from steamlens.core.classify import PROMPT_VERSION  # noqa: E402
-from steamlens.studies.label_corpus import MODEL_ID  # noqa: E402
+from steamlens.dispatch.census_arm import MODEL_ID  # noqa: E402
 
 _DB = _REPO / "data" / "steamlens.sqlite3"
 _APP_NAMES = _REPO / "data" / "app_names.json"

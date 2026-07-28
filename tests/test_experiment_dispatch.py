@@ -35,6 +35,7 @@ from steamlens.core.classify import (
     build_classify_prompt,
     build_classify_prompt_compact,
 )
+from steamlens.dispatch.census_arm import MODEL_ID
 from steamlens.evals.experiment_dispatch import (
     CELLS,
     ExperimentRunConfig,
@@ -45,7 +46,6 @@ from steamlens.evals.experiment_dispatch import (
 )
 from steamlens.ontology import load_ontology_version
 from steamlens.store import Store
-from steamlens.studies.label_corpus import MODEL_ID
 
 _ONTOLOGY_PATH = Path("src/steamlens/ontology/v1.toml")
 _STAMP = load_ontology_version(_ONTOLOGY_PATH)

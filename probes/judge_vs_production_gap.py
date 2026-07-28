@@ -35,7 +35,7 @@ from steamlens.evals.certify import pool_tallies  # noqa: E402
 from steamlens.evals.judge_gold import JUDGE_MODEL_ID  # noqa: E402
 from steamlens.ontology import load_ontology  # noqa: E402
 from steamlens.store.store import Store  # noqa: E402
-from steamlens.studies.label_corpus import MODEL_ID  # noqa: E402
+from steamlens.dispatch.census_arm import MODEL_ID  # noqa: E402
 
 _GOLD_PATH = _REPO / "eval" / "gold" / "gold.jsonl"
 _DB = _REPO / "data" / "steamlens.sqlite3"

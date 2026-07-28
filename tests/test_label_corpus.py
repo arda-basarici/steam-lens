@@ -24,10 +24,11 @@ from steamlens.contracts import (
     TokenUsage,
 )
 from steamlens.core.classify import PROMPT_VERSION
+from steamlens.dispatch.census_arm import MODEL_ID
 from steamlens.llm_client import ProviderEntry, ProviderPayload, ProviderPermanentError
 from steamlens.ontology import load_ontology_version
 from steamlens.store import Store
-from steamlens.studies.label_corpus import MODEL_ID, RunConfig, execute_run
+from steamlens.studies.label_corpus import RunConfig, execute_run
 
 _REVIEWS_BLOCK = re.compile(r"<reviews>\n(.*)\n</reviews>", re.DOTALL)
 

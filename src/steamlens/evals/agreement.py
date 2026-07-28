@@ -48,13 +48,14 @@ from steamlens.contracts import (
 )
 from steamlens.core.classify import PROMPT_VERSION
 from steamlens.core.normalize import build_surface_index
+from steamlens.dispatch import code_version
+from steamlens.dispatch.census_arm import MODEL_ID
 from steamlens.evals.certify import certification_metrics, render_eval_run
 from steamlens.evals.judge_dispatch import JUDGE_MODEL_ID
 from steamlens.evals.judge_sample import SampledReview, load_sample
 from steamlens.evals.scoring import ReviewTally, bootstrap_ci, tally_review
 from steamlens.ontology import load_ontology, load_ontology_version
 from steamlens.store import Store
-from steamlens.studies.label_corpus import MODEL_ID, code_version
 
 AGREEMENT_SCORER: Final = "judge-vs-production/1"
 """The agreement procedure's identity: certify's pairing semantics with the

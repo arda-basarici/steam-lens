@@ -69,16 +69,14 @@ from steamlens.dispatch import (
     narrate,
     run_pass,
 )
+from steamlens.dispatch.census_arm import KEY_ENV, MODEL_ID, build_client
 from steamlens.llm_client import (
     AtCapacityError,
     GenerationIncompleteError,
     LlmClient,
-    LlmClientConfig,
     LlmUnavailableError,
-    ModelSpec,
     ProviderEntry,
     ProviderPermanentError,
-    Route,
     openai_compat_entry,
 )
 from steamlens.llm_client.openai_compat import DEEPSEEK_BASE_URL
@@ -93,22 +91,6 @@ from steamlens.studies.local_corpus import (
 RULED_CENSUS_SUPPLY: Final = 135_260
 """The census-slice ruling's usable-pool size — the default ingest assertion."""
 
-MODEL_ID: Final = "deepseek-v4-flash"
-"""The requested model id — the label key's ``model_version`` (keys are
-contracts; the provider-reported version is journaled per call instead)."""
-
-_PROVIDER: Final = "deepseek"
-_KEY_ENV: Final = "DEEPSEEK_API_KEY"
-# The bake-off's measured output sizing: the base holds one worst-case dense
-# review, the per-review term covers dense batches, the cap is DeepSeek's.
-_OUTPUT_BASE: Final = 2_048
-_OUTPUT_PER_REVIEW: Final = 200
-_OUTPUT_CAP: Final = 8_192
-# Politeness backstop only — DeepSeek's envelope is concurrency-based (no rpm);
-# high enough that the worker pool, not pacing, is the real throttle.
-_RPM: Final = 600
-_INPUT_USD_PER_1M: Final = 0.14
-_OUTPUT_USD_PER_1M: Final = 0.28
 # The refusal circuit breaker: per-batch provider refusals feed the failure
 # sweep (a content-filter rejection is a property of one batch's text), but a
 # systemic 4xx — a revoked key, a broken payload — must abort loud, never
@@ -158,42 +140,6 @@ def _config_hash(cfg: RunConfig, ontology_version: str, ontology_content_hash: s
     }
     canonical = json.dumps(resolved, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
-
-
-def build_client(
-    entry: ProviderEntry, budget_usd: float, n: int, client_store: Store, sink: Sink
-) -> LlmClient:
-    """The dispatch-config client over the *client's* store connection."""
-    config = LlmClientConfig(
-        routes={
-            LlmStage.CLASSIFY: Route(
-                provider=_PROVIDER,
-                model=MODEL_ID,
-                max_output_tokens=min(_OUTPUT_CAP, _OUTPUT_BASE + _OUTPUT_PER_REVIEW * n),
-                params={
-                    "temperature": 0,
-                    "response_format": {"type": "json_object"},
-                    "thinking": {"type": "disabled"},
-                },
-            )
-        },
-        models={
-            MODEL_ID: ModelSpec(
-                rpm=_RPM,
-                rpd=None,
-                input_usd_per_1m=_INPUT_USD_PER_1M,
-                output_usd_per_1m=_OUTPUT_USD_PER_1M,
-            )
-        },
-        budget_usd=budget_usd,
-    )
-    return LlmClient(
-        config,
-        client_store.responses,
-        client_store.spend_ledger,
-        sink,
-        registry={_PROVIDER: entry},
-    )
 
 
 def ingest_corpus(cfg: RunConfig, store: Store, sink: Sink) -> None:
@@ -547,9 +493,9 @@ def main() -> None:
                         help="ingest assertion (default: the ruled census supply)")
     args = parser.parse_args()
 
-    key = os.environ.get(_KEY_ENV)
+    key = os.environ.get(KEY_ENV)
     if not key:
-        raise SystemExit(f"missing {_KEY_ENV} in the environment — set it and rerun")
+        raise SystemExit(f"missing {KEY_ENV} in the environment — set it and rerun")
     cfg = RunConfig(
         corpus_dir=args.corpus,
         db_path=args.db,

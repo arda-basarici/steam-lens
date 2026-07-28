@@ -93,6 +93,7 @@ from steamlens.dispatch import (
     narrate,
     run_pass,
 )
+from steamlens.dispatch.census_arm import KEY_ENV, MODEL_ID, build_client
 from steamlens.evals.gold import load_gold
 from steamlens.evals.judge_gold import assert_gold_text_matches_pool
 from steamlens.evals.judge_sample import load_sample, stored_reviews_matching_pins
@@ -108,10 +109,8 @@ from steamlens.llm_client import (
 from steamlens.llm_client.openai_compat import DEEPSEEK_BASE_URL
 from steamlens.ontology import load_ontology, load_ontology_version
 from steamlens.store import Store
-from steamlens.studies.label_corpus import MODEL_ID, build_client
 from steamlens.studies.local_corpus import EXCLUDED_APP_IDS
 
-KEY_ENV: Final = "DEEPSEEK_API_KEY"
 # The judge's scale of breaker, not the census's: cell runs are ≤ ~1,250
 # requests over texts that all cleared DeepSeek's filter at the census
 # (~1 refusal per 10K requests there), so a handful means systemic trouble.

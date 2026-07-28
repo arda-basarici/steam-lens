@@ -39,7 +39,7 @@ from steamlens.contracts import AspectAggregate, AspectSlot, ClassifierVersions 
 from steamlens.core.classify import PROMPT_VERSION  # noqa: E402
 from steamlens.store.store import Store  # noqa: E402
 from steamlens.studies.aggregate_corpus import mint_census_aggregates  # noqa: E402
-from steamlens.studies.label_corpus import MODEL_ID  # noqa: E402
+from steamlens.dispatch.census_arm import MODEL_ID  # noqa: E402
 
 _DB = _REPO / "data" / "steamlens.sqlite3"
 _RUNS_DIR = _REPO / "data" / "runs"
