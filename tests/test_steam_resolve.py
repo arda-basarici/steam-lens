@@ -113,6 +113,31 @@ def test_unrelated_game_is_a_mismatch() -> None:
     assert identity_verdict("Portal", "Dota 2") is IdentityVerdict.MISMATCH
 
 
+@pytest.mark.parametrize(
+    ("expected", "actual"),
+    [
+        ("Fallout 3", "Fallout 4"),
+        ("Borderlands 2", "Borderlands 3"),
+        ("Dark Souls II", "Dark Souls III"),
+        ("Sid Meier's Civilization V", "Sid Meier's Civilization VI"),
+        ("Counter-Strike", "Counter-Strike 2"),
+        ("Left 4 Dead", "Left 4 Dead 2"),
+        ("Portal", "Portal 2"),
+    ],
+)
+def test_franchise_sibling_is_a_mismatch(expected: str, actual: str) -> None:
+    """The likeliest wrong-id resolution is a series neighbor — near-identical
+    names that sail past the ratio (Civ V/VI reaches 0.966) or extend the
+    expectation like an edition would. The numeral gate refuses them all."""
+    assert identity_verdict(expected, actual) is IdentityVerdict.MISMATCH
+
+
+def test_roman_and_arabic_numerals_compare_equal() -> None:
+    """Notation is decoration, the number is identity: "II" folds to 2, so a
+    store answer in the other notation is still the same game."""
+    assert identity_verdict("Half-Life 2", "Half-Life II") is IdentityVerdict.OK
+
+
 def test_no_store_answer_is_its_own_verdict() -> None:
     """No data ≠ mismatch: there was no name to compare."""
     assert identity_verdict("Portal", None) is IdentityVerdict.NO_DATA
