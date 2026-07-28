@@ -105,10 +105,9 @@ def _lab_capture_tallies(
             [(str(m["aspect"]), Sentiment(str(m["sentiment"]))) for m in row["mentions"]],
             bool(row["failed"]),
         )
-    excluded = {str(app_id) for app_id in EXCLUDED_APP_IDS}
     tallies: list[ReviewTally] = []
     for record in gold_records:
-        if record.app_id in excluded:
+        if record.app_id in EXCLUDED_APP_IDS:
             continue
         gold_pairs = [(m.aspect, m.sentiment) for m in record.mentions]
         pairs, failed = predictions.get(record.review_id, ([], True))

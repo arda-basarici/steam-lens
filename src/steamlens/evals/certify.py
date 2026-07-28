@@ -91,11 +91,10 @@ def pool_tallies(
     the pool or the scope reasoning is broken, and a silent skip would
     quietly shrink the denominator of a certification.
     """
-    excluded = {str(app_id) for app_id in excluded_app_ids}
     tallies: list[ReviewTally] = []
     unaccounted: list[str] = []
     for record in gold_records:
-        if record.app_id in excluded:
+        if record.app_id in excluded_app_ids:
             continue
         gold_pairs = [(m.aspect, m.sentiment) for m in record.mentions]
         envelope = store.labels.get(record.review_id, versions)

@@ -266,9 +266,8 @@ def scope_reviews(
 
 def _in_scope_gold_rows(gold_path: Path, store: Store) -> tuple[Review, ...]:
     """The in-scope gold reviews' stored rows, gold-file order, handshaken."""
-    excluded = {str(app_id) for app_id in EXCLUDED_APP_IDS}
     in_scope = tuple(
-        record for record in load_gold(gold_path) if record.app_id not in excluded
+        record for record in load_gold(gold_path) if record.app_id not in EXCLUDED_APP_IDS
     )
     assert_gold_text_matches_pool(in_scope, store)
     rows: list[Review] = []

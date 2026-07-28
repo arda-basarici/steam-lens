@@ -108,7 +108,7 @@ def backfill_gold_reviews(
     missing: dict[int, set[str]] = {}
     for record in gold_records:
         if store.reviews.get(record.review_id) is None:
-            missing.setdefault(int(record.app_id), set()).add(record.review_id)
+            missing.setdefault(record.app_id, set()).add(record.review_id)
     backfilled = 0
     for app_id, wanted in sorted(missing.items()):
         result = read_reviews_file(corpus_dir / f"{app_id}_reviews.jsonl")

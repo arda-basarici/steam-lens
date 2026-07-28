@@ -54,7 +54,7 @@ class GoldRecord:
     """
 
     review_id: str
-    app_id: str
+    app_id: int
     text: str
     mentions: tuple[GoldMention, ...]
     instructions_version: str
@@ -105,7 +105,7 @@ def _parse_record(line: str, lineno: int) -> GoldRecord:
         )
     return GoldRecord(
         review_id=review_id,
-        app_id=_required_str(data, "app_id", lineno),
+        app_id=_required_app_id(data, lineno),
         text=_required_str(data, "text", lineno),
         mentions=mentions,
         instructions_version=_required_str(data, "instructions_version", lineno),
@@ -138,3 +138,19 @@ def _required_str(data: dict[str, object], field: str, lineno: int) -> str:
     if not isinstance(value, str) or not value:
         raise ValueError(f"gold line {lineno}: field {field!r} missing or not a non-empty string")
     return value
+
+
+def _required_app_id(data: dict[str, object], lineno: int) -> int:
+    """The record's app id as the ``int`` every scope consumer speaks.
+
+    The artifact stores it as a digit string; parsing here — the boundary —
+    is what lets ``Review.app_id`` comparisons and the ``EXCLUDED_APP_IDS``
+    scope test run on one type with no per-consumer ``str()`` dance. Rejects
+    anything non-digit (``"730 "``, ``"730.0"``) loudly: a malformed id that
+    merely failed a string comparison would silently move a review across
+    the scope line instead of erroring.
+    """
+    value = data.get("app_id")
+    if not isinstance(value, str) or not value.isdigit():
+        raise ValueError(f"gold line {lineno}: field 'app_id' missing or not a digit string")
+    return int(value)

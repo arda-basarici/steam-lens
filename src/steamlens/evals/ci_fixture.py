@@ -384,8 +384,9 @@ def gate_review_ids(gold_path: Path, sample_path: Path) -> tuple[tuple[str, ...]
     skipped, never scored), so the fixture carries exactly what the re-score
     reads and nothing that would dress it as bigger than it is.
     """
-    excluded = {str(app_id) for app_id in EXCLUDED_APP_IDS}
-    gold_ids = tuple(r.review_id for r in load_gold(gold_path) if r.app_id not in excluded)
+    gold_ids = tuple(
+        r.review_id for r in load_gold(gold_path) if r.app_id not in EXCLUDED_APP_IDS
+    )
     sample_ids = tuple(s.review_id for s in load_sample(sample_path))
     return gold_ids, sample_ids
 

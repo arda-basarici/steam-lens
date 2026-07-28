@@ -66,8 +66,17 @@ def test_load_gold_round_trips_a_valid_record(tmp_path: Path) -> None:
     records = load_gold(_write_gold(tmp_path, [_gold_line(mentions=[mention])]))
     assert len(records) == 1
     assert records[0].review_id == "r1"
+    assert records[0].app_id == 10  # parsed to the int every scope consumer speaks
     assert records[0].mentions[0].aspect == "combat"
     assert records[0].mentions[0].sentiment is Sentiment.POSITIVE
+
+
+def test_load_gold_rejects_a_non_digit_app_id(tmp_path: Path) -> None:
+    """A malformed app id must error, not silently fail a scope comparison."""
+    line = _gold_line()
+    line["app_id"] = "730.0"
+    with pytest.raises(ValueError, match="app_id"):
+        load_gold(_write_gold(tmp_path, [line]))
 
 
 def test_load_gold_accepts_an_absent_evidence_as_none(tmp_path: Path) -> None:
