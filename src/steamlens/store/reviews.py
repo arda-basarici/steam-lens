@@ -37,7 +37,7 @@ def _exclusion_clause(
     return f"{prefix} {column} NOT IN ({placeholders})", ordered
 
 
-def _review_from_row(row: Any) -> Review:
+def _review_from_row(row: tuple[Any, ...]) -> Review:
     """One ``reviews`` row (in ``_REVIEW_COLUMNS`` order) back as its contract.
 
     The datetime parse is the read boundary — a naive or mangled timestamp

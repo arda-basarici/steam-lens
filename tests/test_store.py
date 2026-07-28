@@ -215,6 +215,10 @@ class TestSchemaGate:
         conn.close()
         with pytest.raises(SchemaVersionError, match=rf"v{SCHEMA_VERSION + 1}.*v{SCHEMA_VERSION}"):
             Store(path)
+        # the rejected file must be left unlocked: the constructor closed its
+        # connection on failure, so the operator's next move (repair/move/delete)
+        # is not blocked by a leaked handle (a real lock on Windows)
+        path.unlink()
 
     def test_naive_datetime_is_rejected_at_the_boundary(self, tmp_path: Path) -> None:
         naive = datetime(2026, 7, 14, 12, 0)

@@ -29,7 +29,7 @@ from steamlens.store.convert import parse_enum, parse_utc_isoformat, utc_isoform
 from steamlens.store.errors import StoreError
 
 
-def _mention_from_row(row: Any, *, context: str) -> AspectMention:
+def _mention_from_row(row: tuple[Any, ...], *, context: str) -> AspectMention:
     return AspectMention(
         aspect=str(row[0]),
         slot=parse_enum(AspectSlot, str(row[1]), context=f"{context}.slot"),

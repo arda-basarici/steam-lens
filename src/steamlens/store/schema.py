@@ -155,6 +155,9 @@ _STEP_2: tuple[str, ...] = (
         UNIQUE (run_id, metric)
     )
     """,
+    # No reader yet by design: this index serves the cross-run metric-trend
+    # reads the milestone write-ups will want (one metric across many runs);
+    # today every query filters by run_id, which UNIQUE (run_id, metric) covers.
     "CREATE INDEX idx_eval_metrics_metric ON eval_metrics (metric)",
 )
 
@@ -197,8 +200,16 @@ def apply_migrations(conn: sqlite3.Connection) -> None:
         )
     if current == SCHEMA_VERSION:
         return
-    conn.execute("BEGIN")
+    # IMMEDIATE takes the write lock up front (so busy_timeout applies), and the
+    # version is re-read inside it: two connections racing a behind file both
+    # pass the check above, but only one applies the steps — the loser re-reads,
+    # sees the file current, and no-ops instead of re-creating tables.
+    conn.execute("BEGIN IMMEDIATE")
     try:
+        current = int(conn.execute("PRAGMA user_version").fetchone()[0])
+        if current == SCHEMA_VERSION:
+            conn.execute("COMMIT")
+            return
         for version in range(current + 1, SCHEMA_VERSION + 1):
             for statement in MIGRATION_STEPS[version - 1]:
                 conn.execute(statement)

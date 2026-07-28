@@ -11,6 +11,11 @@ Reads go the other way and trust nothing: a stored file is raw external data
 (hand-edited, half-migrated, written by other code), so values re-enter the
 contracts through the parsers below, which raise ``StoreDataError`` naming the
 offending value instead of letting a corrupt row cross into the pipeline.
+
+The timestamp pair (``utc_isoformat``/``parse_utc_isoformat``) is published on
+the package surface with one deliberate outside caller: the CI fixture
+exporter, whose JSONL must normalize timestamps exactly as the store's tables
+do or the rebuild would not reproduce the pinned digits.
 """
 
 from __future__ import annotations
