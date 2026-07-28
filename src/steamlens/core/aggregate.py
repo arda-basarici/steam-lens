@@ -79,7 +79,10 @@ def aggregate(
     mention whose ``app_id`` is absent from ``game_sample_sizes`` (the mention
     stream and the denominator map disagree on the game set), and a group whose
     distinct-review count exceeds its game's ``sample_size`` (a numerator larger
-    than its denominator — mentions leaking in from outside the counted sample).
+    than its denominator). The second check is per-group by design — a
+    coherence assertion on each minted number, not a census of out-of-sample
+    leakage; the sole production caller derives both inputs from the same
+    filter, so a cross-group leak has no reachable source.
 
     Output is sorted by ``(app_id, slot, aspect)`` so the same inputs always
     produce the identical tuple, regardless of the row stream's order.

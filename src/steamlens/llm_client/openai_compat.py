@@ -71,6 +71,13 @@ def build_payload(
     keeps generation knobs as siblings of ``messages``, not nested under a
     config object. The route's typed fields land as ``model`` and
     ``max_tokens``; a params key claiming any reserved body key fails loud.
+    Honesty note on the ceiling: on this wire ``max_tokens`` bounds the
+    *answer*, and vendors that bill reasoning outside completion (observed
+    live on OpenRouter) can exceed it — so the client's worst-case reserve is
+    a true worst case only where thinking is disabled or counted inside the
+    cap. Before dialing a reasoning model on a compat route, revisit the
+    reserve design (a multiplier or a per-route reserve distinct from the
+    wire ceiling).
     Unlike Gemini, ``model`` rides in the body — which also puts it inside the
     payload the cache key hashes, harmlessly (the key already pairs payload
     with model).
