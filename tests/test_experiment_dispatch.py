@@ -419,3 +419,38 @@ def test_gold_text_mismatch_refuses_to_dispatch(tmp_path: Path) -> None:
     assert execute_experiment_run(_config(tmp_path, "full-n1-gold"), provider.entry()) == 1
     assert provider.prompts == []
     assert "001" in str(_manifest(tmp_path)["aborted"])
+
+
+def test_refusal_circuit_breaker_aborts_a_cell_run(tmp_path: Path) -> None:
+    """Mass refusals mean a broken request, not toxic text — the cell run aborts
+    loud. Ported from the census driver's regression: the cell driver's breaker
+    is its own copy of that proven path, so it carries its own test."""
+    rows = [(f"{i:03d}", f"REFUSE everything {i}") for i in range(10)]
+    seed_reviews(tmp_path / "pool.sqlite3", rows)
+    _sample_file(tmp_path, rows)
+    provider = FakeProvider()
+    assert execute_experiment_run(
+        _config(tmp_path, "full-n1-sample", max_workers=1), provider.entry()
+    ) == 1
+    assert "circuit breaker" in str(_manifest(tmp_path)["aborted"])
+
+
+def test_abort_cancels_the_queued_cell_batches(tmp_path: Path) -> None:
+    """After an abort, queued cell batches never dispatch — abort means stop.
+
+    The census's 11-minute keep-buying incident, replayed through the cell
+    driver's composition of the shared pass engine: the second response
+    reports a drifted model version, the run aborts, and the provider must
+    have seen only the requests already in motion — not the 30 queued.
+    """
+    rows = [(f"{i:03d}", f"review number {i}") for i in range(30)]
+    seed_reviews(tmp_path / "pool.sqlite3", rows)
+    _sample_file(tmp_path, rows)
+    provider = FakeProvider(version_for=[MODEL_ID, "deepseek-v4-flash-0921"])
+    assert execute_experiment_run(
+        _config(tmp_path, "full-n1-sample", max_workers=1), provider.entry()
+    ) == 1
+    # The census test's slack bound, same reasoning: the worker can run a few
+    # calls ahead of the aborting consumer — the claim is only that the queue
+    # never dispatches (30 without cancellation).
+    assert len(provider.prompts) <= 15
