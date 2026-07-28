@@ -21,11 +21,18 @@ full-N=1 with the census itself). Containment follows: production's folds
 and certification filter on the untagged triple, so cell labels can never
 leak into a displayed number.
 
-The retry policy is condition-pure: a failed row in an N=10 cell re-batches
-once at N=10 and then takes its durable mark — never the census driver's
-N=1 isolate pass, which would smuggle the other condition's labels into the
-cell. N=1 cells mark on first failure (the judge precedent: a temperature-0
-retry replays the identical cached response). A refused batch's
+The retry policy is condition-pure: a failed row in a flat N=10 cell
+re-batches once at exactly N — a sub-N remainder takes durable marks
+instead of dispatching the off-size request an N=10 label must never come
+from, and the manifest lists every dispatched rebatch size so the purity is
+auditable, not asserted. Never the census driver's N=1 isolate pass, which
+would smuggle the other condition's labels into the cell. N=1 cells mark on
+first failure (the judge precedent: a temperature-0 retry replays the
+identical cached response). The recomposed cell is single-attempt for the
+same reason seen from the other side: its condition IS the batch
+composition, and a re-chunked retry would dispatch batches that are not
+one-gold-among-nine-fresh-fillers under the very triple that promises they
+are. A refused batch's
 innocent-neighbor cost is accepted eyes-open: every text this driver
 dispatches was already labeled cleanly by this very model at census scale,
 so refusals are ~absent by construction and a run hitting the breaker means
@@ -47,7 +54,7 @@ import traceback
 import uuid
 from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Final, Literal
@@ -112,10 +119,15 @@ Scope = Literal["sample", "gold", "gold-recomposed"]
 
 FILLERS_PER_GOLD: Final = 9
 """The recomposed cell's batch arithmetic: one gold review + nine fresh census
-neighbors = the census's N=10. Same-game fillers by preference — the census
-dispatched in ingest order, so a gold review's original neighbors were
-overwhelmingly same-game; a cross-game draw would swap the condition under
-test for a new one."""
+neighbors = the census's N=10. Fillers draw same-game by preference — a
+premise measured FALSE after the buy (2026-07-27, the full-base review): the
+census's ``ORDER BY review_id`` batches gave a review a mean 1.08 same-game
+neighbors of 9 (~12%), not the overwhelmingly-same-game neighborhoods this
+draw assumed, so the cell holds N and freshness constant while *installing*
+an all-same-game neighbor structure the census never had. The composition
+stays as registered — the run is bought and its null read stands as bought —
+but any recomposed-vs-census interpretation carries that structure change as
+a named confound (DESIGN's D2d executed entry, the corrected residue)."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -269,9 +281,9 @@ def recomposed_batches(
     stable inputs (the gold file's order, the reviews table's id→app map,
     ``fillers_seed``), so a resume re-forms identical batches and
     already-bought responses replay from the content-keyed cache. Fillers
-    prefer the gold review's own game (the census dispatched in ingest
-    order, so a gold review's original neighbors were overwhelmingly
-    same-game) and are never reused across batches; a game too small to
+    prefer the gold review's own game (a premise since measured false — the
+    census's real batches were ~12% same-game; see ``FILLERS_PER_GOLD``)
+    and are never reused across batches; a game too small to
     supply its gold tops up from the remaining corpus, seeded, with the
     crossover count disclosed in the descriptor. Raises ``RunAbort`` when
     the corpus cannot supply enough distinct fillers at all.
@@ -430,10 +442,13 @@ class ExperimentTotals(RunTotals):
     ``skipped_settled`` counts writes skipped because the member was already
     settled under the cell's triple — legitimate only for recomposed batches
     re-formed across a resume (fillers don't drive selection), disclosed in
-    the manifest rather than silently absorbed.
+    the manifest rather than silently absorbed. ``rebatch_sizes`` lists every
+    dispatched rebatch request's size so a run record proves — not asserts —
+    that no label was bought at an off-size N.
     """
 
     skipped_settled: int = 0
+    rebatch_sizes: list[int] = field(default_factory=list[int])
 
 
 def _narrate(sink: TeeSink, kind: StageKind, message: str) -> None:
@@ -710,23 +725,46 @@ def execute_experiment_run(
                         sink, skip_settled=skip_settled,
                     )
 
-                single_attempt = cell.batch_size == 1
+                # The recomposed cell never retries: its condition IS the batch
+                # composition, and any re-chunked retry would dispatch a batch
+                # that is not one-gold-among-nine-fresh-fillers under its triple.
+                single_attempt = cell.batch_size == 1 or cell.scope == "gold-recomposed"
                 with ThreadPoolExecutor(max_workers=cfg.max_workers) as pool:
                     failed = _run_pass(
                         batches, "initial", single_attempt,
                         worker, consume, pool, sink, warmup=True,
                     )
                     if failed:
-                        _narrate(
-                            sink, StageKind.PROGRESS,
-                            f"rebatch: {len(failed)} failed rows retried at "
-                            f"N={cell.batch_size} — the final, condition-pure attempt",
-                        )
-                        totals.rebatched = len(failed)
-                        _run_pass(
-                            _chunk(tuple(failed), cell.batch_size), "rebatch", True,
-                            worker, consume, pool, sink, warmup=False,
-                        )
+                        rebatch_chunks = _chunk(tuple(failed), cell.batch_size)
+                        remainder: tuple[Review, ...] = ()
+                        if len(rebatch_chunks[-1]) < cell.batch_size:
+                            remainder = rebatch_chunks.pop()
+                        totals.rebatch_sizes = [len(chunk) for chunk in rebatch_chunks]
+                        totals.rebatched = sum(totals.rebatch_sizes)
+                        for review in remainder:
+                            driver_store.labels.record_failure(
+                                review.review_id, versions, run.run_id,
+                                "sub-N rebatch remainder — durable mark, never "
+                                "an off-size request",
+                            )
+                            totals.failed_durable += 1
+                            _narrate(
+                                sink, StageKind.WARN,
+                                f"review {review.review_id} took a durable mark: "
+                                f"sub-N rebatch remainder ({len(remainder)} rows "
+                                f"below N={cell.batch_size})",
+                            )
+                        if rebatch_chunks:
+                            _narrate(
+                                sink, StageKind.PROGRESS,
+                                f"rebatch: {totals.rebatched} failed rows retried at "
+                                f"exactly N={cell.batch_size} — the final, "
+                                "condition-pure attempt",
+                            )
+                            _run_pass(
+                                rebatch_chunks, "rebatch", True,
+                                worker, consume, pool, sink, warmup=False,
+                            )
         except KeyboardInterrupt:
             aborted = "keyboard interrupt"
         except (RunAbort, LlmUnavailableError, AtCapacityError) as exc:
@@ -764,6 +802,7 @@ def execute_experiment_run(
                 "evidence_repairs": totals.repairs,
                 "unattributable_rows": totals.unattributable,
                 "rebatched": totals.rebatched,
+                "rebatch_sizes": totals.rebatch_sizes,
                 "failed_durable": totals.failed_durable,
                 "refused_batches": totals.refused_batches,
                 "skipped_settled": totals.skipped_settled,

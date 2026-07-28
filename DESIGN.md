@@ -1278,9 +1278,15 @@ belongs to *when* the labels were bought, not to batch size or company. Verdict:
 **batch composition is acquitted; the census-vs-lab −0.033 is buy-time variance of
 the served model** (non-monotone timeline — lab 07-18 0.799, census 07-19 0.766,
 today 0.791 — so serving-state variance, not steady drift; temperature 0
-throughout). Named residue, eyes open: the recomposition drew *random* same-game
-neighbors while the census's true batches were *consecutive* ingest-order neighbors
-— that alternative is untested, and n=245 bounds the gold-side power. **The
+throughout). Named residue, eyes open — **corrected 2026-07-27 at the full-base review**: the
+recomposition's same-game premise was measured false after the buy. The census's
+`ORDER BY review_id` batches gave a review a mean 1.08 same-game neighbors of 9
+(~12% same-game; 16% corpus-wide baseline), so the recomposed cell did not
+reproduce the census's neighbor structure — it *installed* an all-same-game
+structure the census never had. The cell still holds N and freshness constant and
+its null read stands as bought, but any recomposed-vs-census interpretation
+carries that structure change as a confound; the census's true structure
+(mixed-game, id-adjacent) is untested, and n=245 bounds the gold-side power. **The
 matrix-read interaction that briefly read as confirming the leaner-codebook
 hypothesis (+0.023 [+0.003, +0.044]) is a day artifact** — its full-codebook penalty
 compared a 07-19 buy against a same-day buy while the compact cells were both

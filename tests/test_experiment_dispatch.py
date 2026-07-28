@@ -5,9 +5,11 @@ proven by the census driver's tests; these cover what the experiment driver
 owns: the closed cell registry's identities (the ruled ``@nK`` tag
 convention), containment (cell envelopes never touch production's untagged
 triple), the render matching the cell's prompt pin, the condition-pure
-retry policy (an N=10 failure re-batches at N=10 and takes its mark — the
+retry policy (an N=10 failure re-batches once at exactly N, the sub-N
+remainder takes durable marks, the recomposed cell never retries — the
 isolate pass deliberately does not exist), the gold scope's CS2 exclusion
-and text handshake, and resume-clean selection.
+and text handshake, resume-clean selection, and the settled-filler skip a
+re-formed recomposed batch depends on.
 """
 
 from __future__ import annotations
@@ -20,7 +22,13 @@ from pathlib import Path
 
 from test_label_corpus import FakeProvider
 
-from steamlens.contracts import ClassifierVersions, Origin, Review
+from steamlens.contracts import (
+    ClassifierVersions,
+    Origin,
+    Provenance,
+    Review,
+    ReviewClassification,
+)
 from steamlens.core.classify import (
     COMPACT_PROMPT_VERSION,
     PROMPT_VERSION,
@@ -193,16 +201,19 @@ def test_compact_cell_batches_at_ten_under_its_own_pin(tmp_path: Path) -> None:
         assert all(store.labels.get(rid, tagged) is not None for rid, _ in rows)
 
 
-def test_n10_failures_rebatch_at_n_never_isolate(tmp_path: Path) -> None:
-    """Condition purity: failed rows retry once at the cell's N (a 2-row batch,
-    never two solo requests) and then take durable marks — no isolate pass."""
-    # The two FAIL rows sit inside the first batch of ten, so the rebatch's
-    # 2-row composition differs from every initial prompt — a tail-batch
-    # placement would re-form an identical prompt and the content-keyed cache
-    # would answer it without a dispatch, hiding the very pass under test.
-    rows = [(f"{i:03d}", f"review number {i}") for i in range(8)]
-    rows += [("900", "FAIL alpha"), ("901", "FAIL beta")]
-    rows += [("010", "review number 10"), ("011", "review number 11")]
+def test_n10_failures_rebatch_at_exactly_n_and_the_remainder_marks(tmp_path: Path) -> None:
+    """Condition purity: failed rows retry once at exactly the cell's N — a
+    full ten-row rebatch, never an off-size request under the @n10 tag — and
+    the sub-N remainder goes straight to durable marks, with every dispatched
+    rebatch size disclosed in the manifest."""
+    # Twelve FAIL rows split across the two initial batches: the rebatch
+    # re-chunks them into one full N=10 request (a composition no initial
+    # prompt had, so the content-keyed cache cannot answer it) plus a 2-row
+    # remainder that must never be dispatched.
+    rows = [(f"a{i:02d}", f"review number {i}") for i in range(4)]
+    rows += [(f"x{i:02d}", f"FAIL alpha {i}") for i in range(6)]
+    rows += [(f"b{i:02d}", f"review number {10 + i}") for i in range(4)]
+    rows += [(f"y{i:02d}", f"FAIL beta {i}") for i in range(6)]
     _seed_reviews(tmp_path / "pool.sqlite3", rows)
     _sample_file(tmp_path, rows)
     provider = FakeProvider()
@@ -211,17 +222,18 @@ def test_n10_failures_rebatch_at_n_never_isolate(tmp_path: Path) -> None:
     ) == 0
 
     batch_sizes = sorted(_batch_size(p) for p in provider.prompts)
-    assert batch_sizes == [2, 2, 10]  # initial 10+2, then ONE rebatch of the 2 failures
+    assert batch_sizes == [10, 10, 10]  # initial 10+10, then ONE full-N rebatch
     tagged = cell_versions(CELLS["compact-n10-sample"], _STAMP.version)
+    failed_ids = [rid for rid, text in rows if "FAIL" in text]
     with Store(tmp_path / "pool.sqlite3") as store:
-        assert store.labels.get_failure("900", tagged) is not None
-        assert store.labels.get_failure("901", tagged) is not None
+        assert all(store.labels.get_failure(rid, tagged) is not None for rid in failed_ids)
     manifest = _manifest(tmp_path)
     reviews = manifest["reviews"]
     assert isinstance(reviews, dict)
-    assert reviews["labeled"] == 10
-    assert reviews["rebatched"] == 2
-    assert reviews["failed_durable"] == 2
+    assert reviews["labeled"] == 8
+    assert reviews["rebatched"] == 10
+    assert reviews["rebatch_sizes"] == [10]
+    assert reviews["failed_durable"] == 12  # 10 retried + the 2-row remainder
 
 
 def test_n1_failure_marks_on_first_attempt(tmp_path: Path) -> None:
@@ -358,6 +370,47 @@ def test_recomposed_dispatch_lands_batch_and_resumes(tmp_path: Path) -> None:
         _config(tmp_path, "full-n10-gold-recomposed"), second.entry()
     ) == 0
     assert second.prompts == []
+
+
+def test_recomposed_resume_skips_a_settled_filler(tmp_path: Path) -> None:
+    """The skip_settled guard, exercised: a re-formed batch containing an
+    already-settled filler skips that write instead of crashing on the
+    duplicate-write guard — the exact state an aborted run leaves behind
+    (fillers settled, the gold member not), and the manifest discloses it."""
+    gold = [("g01", "gameplay is tight")]
+    fillers = [(f"f{i:02d}", f"filler review {i}") for i in range(9)]
+    _seed_reviews(tmp_path / "pool.sqlite3", gold + fillers)
+    _gold_file(tmp_path, [("g01", "440", "gameplay is tight")])
+    tagged = cell_versions(CELLS["full-n10-gold-recomposed"], _STAMP.version)
+    prior = Provenance(
+        run_id="prior-aborted-run",
+        code_version="test",
+        created_at=datetime(2026, 7, 1, tzinfo=UTC),
+        config_hash="prior",
+    )
+    with Store(tmp_path / "pool.sqlite3") as store:
+        store.labels.record_run(prior)
+        store.labels.put(
+            ReviewClassification(
+                review_id="f00", origin=Origin.SURVEY, versions=tagged,
+                run=prior, mentions=(),
+            )
+        )
+
+    provider = FakeProvider()
+    assert execute_experiment_run(
+        _config(tmp_path, "full-n10-gold-recomposed"), provider.entry()
+    ) == 0
+
+    assert [_batch_size(p) for p in provider.prompts] == [10]  # the batch re-forms whole
+    with Store(tmp_path / "pool.sqlite3") as store:
+        assert store.labels.get("g01", tagged) is not None
+    manifest = _manifest(tmp_path)
+    assert manifest["aborted"] is None
+    reviews = manifest["reviews"]
+    assert isinstance(reviews, dict)
+    assert reviews["labeled"] == 9  # the settled filler is skipped, not re-written
+    assert reviews["skipped_settled"] == 1
 
 
 def test_gold_text_mismatch_refuses_to_dispatch(tmp_path: Path) -> None:
