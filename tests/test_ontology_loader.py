@@ -95,6 +95,15 @@ def test_alias_shadowing_a_label_rejected(tmp_path: Path) -> None:
         load_ontology(_artifact(tmp_path, broken))
 
 
+def test_alias_shadowing_under_the_match_key_rejected(tmp_path: Path) -> None:
+    """One gate, one key: "ai-behavior" and the label ``ai_behavior`` unify under
+    the runtime match key, so the collision must fail at load — not later, at
+    index build, in whichever process first constructs the lookup."""
+    broken = _MINIMAL.replace('aliases = ["fighting"]', 'aliases = ["ai-behavior"]')
+    with pytest.raises(OntologyValidationError, match="shadows the label 'ai_behavior'"):
+        load_ontology(_artifact(tmp_path, broken))
+
+
 def test_undeclared_category_rejected(tmp_path: Path) -> None:
     broken = _MINIMAL.replace(
         'label = "combat"\ncategory = "play"', 'label = "combat"\ncategory = "combat_stuff"'

@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import cast
 
 from steamlens.contracts import AspectDef, AspectOntology, OntologyVersion
+from steamlens.core.normalize import match_key
 
 _LABEL_RE = re.compile(r"[a-z][a-z0-9_]*")
 _BACKTICK_REF_RE = re.compile(r"`([^`]+)`")
@@ -43,8 +44,10 @@ def load_ontology(path: Path | None = None) -> AspectOntology:
     ``OntologyValidationError`` (with all violations, not just the first) if
     the artifact is structurally malformed or breaks a codebook invariant:
     duplicate or non-snake_case labels, an alias claimed by two aspects or
-    shadowing another aspect's label, an undeclared category, or backticked
-    prose referencing a label that is not pinned.
+    shadowing another aspect's label (both judged under the runtime lookup's
+    own ``core.normalize.match_key`` — one gate, one key, so an admitted
+    artifact cannot collide later at index build), an undeclared category,
+    or backticked prose referencing a label that is not pinned.
 
     >>> ontology = load_ontology()
     >>> any(aspect.label == "gameplay" for aspect in ontology.aspects)
@@ -156,6 +159,9 @@ def _semantic_problems(
                 problems.append(f"duplicate label '{aspect.label}'")
             seen.add(aspect.label)
 
+    # Alias checks share the runtime lookup's match key (one gate, one key):
+    # a collision the index build would catch must already fail this gate.
+    label_by_key = {match_key(label): label for label in labels}
     alias_owner: dict[str, str] = {}
     for aspect in aspects:
         if not _LABEL_RE.fullmatch(aspect.label):
@@ -163,13 +169,14 @@ def _semantic_problems(
         if aspect.category not in categories:
             problems.append(f"aspect '{aspect.label}': undeclared category '{aspect.category}'")
         for alias in aspect.aliases:
-            key = alias.casefold()
+            key = match_key(alias)
             owner = alias_owner.setdefault(key, aspect.label)
             if owner != aspect.label:
                 problems.append(f"alias '{alias}' claimed by both '{owner}' and '{aspect.label}'")
-            if key in labels and key != aspect.label:
+            shadowed = label_by_key.get(key)
+            if shadowed is not None and shadowed != aspect.label:
                 problems.append(
-                    f"aspect '{aspect.label}': alias '{alias}' shadows the label '{key}'"
+                    f"aspect '{aspect.label}': alias '{alias}' shadows the label '{shadowed}'"
                 )
 
     for aspect in aspects:

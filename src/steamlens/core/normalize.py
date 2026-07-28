@@ -53,17 +53,18 @@ def build_surface_index(ontology: AspectOntology) -> Mapping[str, str]:
     left to its first consumer.
 
     Raises ``ValueError`` (listing every collision) if two aspects' surface
-    forms canonicalize to the same key. The loader's alias checks compare
-    surfaces casefolded but verbatim; the match key here is stronger (``_``/
-    ``-`` unify to spaces), so an artifact the loader admits can still collide
-    under lookup — and a collision would silently route mentions to whichever
+    forms canonicalize to the same key. The ontology loader validates alias
+    ownership and label shadowing under this same ``match_key`` (one gate,
+    one key), so a loader-admitted artifact cannot collide here; this check
+    stays as the second line of defense for ontologies constructed around
+    the loader — a collision would silently route mentions to whichever
     aspect indexed first.
     """
     index: dict[str, str] = {}
     collisions: list[str] = []
     for aspect in ontology.aspects:
         for surface in (aspect.label, *aspect.aliases):
-            key = _match_key(surface)
+            key = match_key(surface)
             owner = index.setdefault(key, aspect.label)
             if owner != aspect.label:
                 collisions.append(
@@ -93,7 +94,7 @@ def normalize_label(raw: str, index: Mapping[str, str]) -> NormalizedAspect:
     >>> normalize_label("Ship  Building", index)
     NormalizedAspect(aspect='ship building', slot=<AspectSlot.CANDIDATE: 'candidate'>)
     """
-    key = _match_key(raw)
+    key = match_key(raw)
     if not key:
         raise ValueError(f"aspect label is empty after canonicalization: {raw!r}")
     pinned = index.get(key)
@@ -102,8 +103,13 @@ def normalize_label(raw: str, index: Mapping[str, str]) -> NormalizedAspect:
     return NormalizedAspect(aspect=_candidate_form(raw), slot=AspectSlot.CANDIDATE)
 
 
-def _match_key(text: str) -> str:
-    """The form all surface variants collapse to for pinned-vocabulary lookup."""
+def match_key(text: str) -> str:
+    """The form all surface variants collapse to for pinned-vocabulary lookup.
+
+    Public because the ontology loader validates alias ownership and label
+    shadowing under this exact key — one gate, one key: an artifact the
+    loader admits cannot collide again at index build.
+    """
     return _WHITESPACE_RE.sub(" ", _SEPARATORS_RE.sub(" ", text.casefold())).strip()
 
 
