@@ -9,12 +9,8 @@ relaunches and pays only for what never completed). Design record: DESIGN.md's
 C1 labeling driver entry (2026-07-19); the dispatch config itself was frozen at
 the C0.5 certification ruling.
 
-Two ``Store`` instances open the one database file on purpose: the client's
-cache/ledger writes happen on worker threads over the first connection, all
-label-pool writes happen on the main thread over the second. Transactions are
-connection-scoped, so this split is what makes a worker's mid-call cache write
-unable to land inside (and be rolled back with) an envelope transaction — the
-store's WAL + busy-timeout provisioning carries the two-writer coordination.
+The run's shell — the tee'd log and the deliberate two-``Store`` split — is
+``dispatch.run_shell``'s contract; the two-writer reasoning lives there once.
 
 The run aborts loud — never warn-and-continue — on: a supply count that
 contradicts the ruled census, a mid-run change in the provider-reported model
@@ -25,11 +21,8 @@ client's retries, and the budget cap. Every abort is resume-clean.
 from __future__ import annotations
 
 import argparse
-import hashlib
-import json
 import os
 import traceback
-import uuid
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -64,11 +57,14 @@ from steamlens.dispatch import (
     DriftWatch,
     RunAbort,
     RunTotals,
-    TeeSink,
     chunk,
     code_version,
+    config_hash,
+    mint_run_id,
     narrate,
+    run_context,
     run_pass,
+    write_manifest,
 )
 from steamlens.dispatch.census_arm import KEY_ENV, MODEL_ID, build_client
 from steamlens.llm_client import (
@@ -123,7 +119,7 @@ class RunConfig:
 
 def _config_hash(cfg: RunConfig, ontology_version: str, ontology_content_hash: str) -> str:
     """A fingerprint of the decision-relevant config — checkable, never trusted."""
-    resolved = {
+    return config_hash({
         "model": MODEL_ID,
         "prompt_version": PROMPT_VERSION,
         "ontology_version": ontology_version,
@@ -133,9 +129,7 @@ def _config_hash(cfg: RunConfig, ontology_version: str, ontology_content_hash: s
         "budget_usd": cfg.budget_usd,
         "limit": cfg.limit,
         "expected_supply": cfg.expected_supply,
-    }
-    canonical = json.dumps(resolved, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    })
 
 
 def ingest_corpus(cfg: RunConfig, store: Store, sink: Sink) -> None:
@@ -308,9 +302,8 @@ def execute_run(cfg: RunConfig, entry: ProviderEntry, started: datetime | None =
     with a fake provider; production passes the DeepSeek entry.
     """
     started = started if started is not None else datetime.now(UTC)
-    run_id = f"c1-{started:%Y%m%dT%H%M%SZ}-{uuid.uuid4().hex[:8]}"
+    run_id = mint_run_id("c1", started)
     run_dir = cfg.runs_dir / run_id
-    run_dir.mkdir(parents=True, exist_ok=True)
 
     stamp = load_ontology_version(cfg.ontology_path)
     ontology = load_ontology(cfg.ontology_path)
@@ -332,12 +325,7 @@ def execute_run(cfg: RunConfig, entry: ProviderEntry, started: datetime | None =
     aborted: str | None = None
     selected = already_labeled = supply = 0
 
-    with (
-        (run_dir / "run.log").open("a", encoding="utf-8", buffering=1) as log,
-        Store(cfg.db_path) as client_store,
-        Store(cfg.db_path) as driver_store,
-    ):
-        sink = TeeSink(log)
+    with run_context(cfg.runs_dir, run_id, cfg.db_path) as (sink, client_store, driver_store):
         client = build_client(entry, cfg.budget_usd, cfg.n, client_store, sink)
         lifetime = driver_store.spend_ledger.cost_since(_EPOCH)
         narrate(
@@ -451,16 +439,14 @@ def execute_run(cfg: RunConfig, entry: ProviderEntry, started: datetime | None =
             "cost_usd_ledger_lifetime": driver_store.spend_ledger.cost_since(_EPOCH),
             "aborted": aborted,
         }
-        (run_dir / "manifest.json").write_text(
-            json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
+        manifest_path = write_manifest(run_dir, manifest)
         outcome_kind = StageKind.WARN if aborted else StageKind.DONE
         narrate(
             sink, _STAGE, outcome_kind,
             (f"ABORTED: {aborted}" if aborted else "run complete")
             + f" · labeled {totals.labeled:,}/{selected:,} (empty {totals.empty_envelopes:,}, "
             f"failed durable {totals.failed_durable}) · ${run_cost:.4f} this run · "
-            f"manifest {run_dir / 'manifest.json'}",
+            f"manifest {manifest_path}",
         )
     return 1 if aborted else 0
 

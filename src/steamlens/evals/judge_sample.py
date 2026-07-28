@@ -29,7 +29,6 @@ import hashlib
 import json
 import os
 import traceback
-import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -37,7 +36,16 @@ from pathlib import Path
 from steamlens.contracts import ClassifierVersions, Provenance, Review, StageKind
 from steamlens.core.classify import PROMPT_VERSION
 from steamlens.core.normalize import build_surface_index
-from steamlens.dispatch import DriftWatch, RunAbort, TeeSink, code_version, narrate
+from steamlens.dispatch import (
+    DriftWatch,
+    RunAbort,
+    code_version,
+    config_hash,
+    mint_run_id,
+    narrate,
+    run_context,
+    write_manifest,
+)
 from steamlens.evals.judge_dispatch import (
     JUDGE_MODEL_ID,
     JUDGE_RPM,
@@ -172,7 +180,7 @@ def pending_sample(
 def _config_hash(cfg: SampleRunConfig, ontology_version: str, ontology_content_hash: str,
                  sample_sha256: str) -> str:
     """A fingerprint of the decision-relevant config — checkable, never trusted."""
-    resolved = {
+    return config_hash({
         "model": JUDGE_MODEL_ID,
         "prompt_version": PROMPT_VERSION,
         "ontology_version": ontology_version,
@@ -182,9 +190,7 @@ def _config_hash(cfg: SampleRunConfig, ontology_version: str, ontology_content_h
         "max_workers": cfg.max_workers,
         "budget_usd": cfg.budget_usd,
         "limit": cfg.limit,
-    }
-    canonical = json.dumps(resolved, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    })
 
 
 def execute_sample_run(
@@ -198,9 +204,8 @@ def execute_sample_run(
     the run finished or aborted.
     """
     started = started if started is not None else datetime.now(UTC)
-    run_id = f"judge-sample-{started:%Y%m%dT%H%M%SZ}-{uuid.uuid4().hex[:8]}"
+    run_id = mint_run_id("judge-sample", started)
     run_dir = cfg.runs_dir / run_id
-    run_dir.mkdir(parents=True, exist_ok=True)
 
     stamp = load_ontology_version(cfg.ontology_path)
     ontology = load_ontology(cfg.ontology_path)
@@ -224,12 +229,7 @@ def execute_sample_run(
     aborted: str | None = None
     selected = 0
 
-    with (
-        (run_dir / "run.log").open("a", encoding="utf-8", buffering=1) as log,
-        Store(cfg.db_path) as client_store,
-        Store(cfg.db_path) as driver_store,
-    ):
-        sink = TeeSink(log)
+    with run_context(cfg.runs_dir, run_id, cfg.db_path) as (sink, client_store, driver_store):
         client = build_judge_client(entry, cfg.budget_usd, client_store, sink, rpm=cfg.rpm)
         narrate(
             sink, JUDGE_STAGE, StageKind.STARTED,
@@ -304,16 +304,14 @@ def execute_sample_run(
             "cost_usd_run": run_cost,
             "aborted": aborted,
         }
-        (run_dir / "manifest.json").write_text(
-            json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
+        manifest_path = write_manifest(run_dir, manifest)
         outcome_kind = StageKind.WARN if aborted else StageKind.DONE
         narrate(
             sink, JUDGE_STAGE, outcome_kind,
             (f"ABORTED: {aborted}" if aborted else "run complete")
             + f" · judged {totals.labeled}/{selected} (empty {totals.empty_envelopes}, "
             f"failed durable {totals.failed_durable}) · ${run_cost:.4f} this run · "
-            f"manifest {run_dir / 'manifest.json'}",
+            f"manifest {manifest_path}",
         )
     return 1 if aborted else 0
 

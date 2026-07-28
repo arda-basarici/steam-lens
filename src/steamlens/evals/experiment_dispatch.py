@@ -47,11 +47,9 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import json
 import os
 import random
 import traceback
-import uuid
 from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
@@ -88,11 +86,14 @@ from steamlens.dispatch import (
     DriftWatch,
     RunAbort,
     RunTotals,
-    TeeSink,
     chunk,
     code_version,
+    config_hash,
+    mint_run_id,
     narrate,
+    run_context,
     run_pass,
+    write_manifest,
 )
 from steamlens.dispatch.census_arm import KEY_ENV, MODEL_ID, build_client
 from steamlens.evals.gold import load_gold
@@ -559,7 +560,7 @@ def _config_hash(
     scope_descriptor: Mapping[str, object],
 ) -> str:
     """A fingerprint of the decision-relevant config — checkable, never trusted."""
-    resolved = {
+    return config_hash({
         "cell": cfg.cell.name,
         "annotator_model_version": annotator_model_version(cfg.cell.batch_size),
         "wire_model": MODEL_ID,
@@ -571,9 +572,7 @@ def _config_hash(
         "max_workers": cfg.max_workers,
         "budget_usd": cfg.budget_usd,
         "limit": cfg.limit,
-    }
-    canonical = json.dumps(resolved, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    })
 
 
 def execute_experiment_run(
@@ -591,9 +590,8 @@ def execute_experiment_run(
     """
     started = started if started is not None else datetime.now(UTC)
     cell = cfg.cell
-    run_id = f"d2d-{cell.name}-{started:%Y%m%dT%H%M%SZ}-{uuid.uuid4().hex[:8]}"
+    run_id = mint_run_id(f"d2d-{cell.name}", started)
     run_dir = cfg.runs_dir / run_id
-    run_dir.mkdir(parents=True, exist_ok=True)
 
     stamp = load_ontology_version(cfg.ontology_path)
     ontology = load_ontology(cfg.ontology_path)
@@ -607,12 +605,7 @@ def execute_experiment_run(
     selected = in_scope = already_settled = 0
     scope_descriptor: dict[str, object] = {"scope": cell.scope}
 
-    with (
-        (run_dir / "run.log").open("a", encoding="utf-8", buffering=1) as log,
-        Store(cfg.db_path) as client_store,
-        Store(cfg.db_path) as driver_store,
-    ):
-        sink = TeeSink(log)
+    with run_context(cfg.runs_dir, run_id, cfg.db_path) as (sink, client_store, driver_store):
         client = build_client(entry, cfg.budget_usd, cell.batch_size, client_store, sink)
         narrate(
             sink, _STAGE, StageKind.STARTED,
@@ -766,16 +759,14 @@ def execute_experiment_run(
             "cost_usd_run": run_cost,
             "aborted": aborted,
         }
-        (run_dir / "manifest.json").write_text(
-            json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
+        manifest_path = write_manifest(run_dir, manifest)
         outcome_kind = StageKind.WARN if aborted else StageKind.DONE
         narrate(
             sink, _STAGE, outcome_kind,
             (f"ABORTED: {aborted}" if aborted else "run complete")
             + f" · labeled {totals.labeled}/{selected} (empty {totals.empty_envelopes}, "
             f"failed durable {totals.failed_durable}) · ${run_cost:.4f} this run · "
-            f"manifest {run_dir / 'manifest.json'}",
+            f"manifest {manifest_path}",
         )
     return 1 if aborted else 0
 
