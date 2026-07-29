@@ -4,11 +4,13 @@ What is being built and why — the decisions and their reasoning, as a narrativ
 snapshot of the current design, edited in place as decisions evolve. **This document is
 the living source of truth for decisions from the vision phase onward**; `VISION.md` is
 the fixed vision-phase snapshot (2026-07-07) and is not updated as the design moves.
-How it's built → ARCHITECTURE; the pitch → README.
+How it's built → ARCHITECTURE; the pitch → README. The chronological journey lives in
+the stream's session log; executed experiments appear here as conclusions with
+citations to their runs of record.
 
-*System flow settled 2026-07-09 via the second design panel (4 blind proposals × 4
-adversarial critics); the module map lives in ARCHITECTURE.md. Operational decisions
-below are dated per entry.*
+*Living snapshot · last updated 2026-07-29.*
+
+---
 
 ## Objective
 
@@ -45,7 +47,9 @@ from the start: the product's entire input is attacker-controlled text.
 
 **Evals gate softly.** The harness runs in CI on prompt/model changes with tolerance
 bands and trend reporting; a hard build-fail on a noisy LLM metric was rejected because
-a red-X-then-override history is worse than no gate.
+a red-X-then-override history is worse than no gate. (As built, the CI gate re-scores
+stored output deterministically, where exact-digit failure *is* honest — see the
+evals-in-CI decision; tolerance bands became the label re-buy rule.)
 
 ## The two-track engine — adaptive curiosity without corrupted statistics
 
@@ -74,15 +78,14 @@ investigation replaces a spinner; minutes become acceptable).
 *Redirect 2026-07-27: the story channel changed instruments — the agentic investigation
 loop is deferred with its milestone, and a grounded RAG chat over labeled reviews
 produces the stories instead. The one rule survives translated: chat answers quote
-retrieved reviews and never mint numbers. See "The roadmap redirect" and "The RAG chat
-product frame" under Operational decisions.*
+retrieved reviews and never mint numbers. See "The redirect & the product frame".*
 
-## The system flow — module boundaries, seams, contracts (settled 2026-07-09)
+## The system flow — module boundaries, seams, contracts
 
-Settled through the second design panel: four blind proposals (simplicity / contract /
-risk / practitioner-canon framings), four adversarial critics, synthesis arbitrated by
-Arda; raw material in the private panel archive. The decisions and their reasoning;
-the module map itself lives in ARCHITECTURE.md.
+Settled 2026-07-09 through the second design panel: four blind proposals (simplicity /
+contract / risk / practitioner-canon framings), four adversarial critics, synthesis
+arbitrated by Arda; raw material in the private panel archive. The decisions and their
+reasoning; the module map itself lives in ARCHITECTURE.md.
 
 **Four strata, one import law.** Plain-data contracts (import nothing) → pure core
 transforms → effect shells (Steam client, LLM client, store, narration sinks) →
@@ -153,6 +156,34 @@ files with content hashes; one spend-ledger table powering the caps, the M1 cost
 table, and the ops dashboard; classify-call caching keyed on content (review-text hash
 + prompt + model + ontology versions); the gold set as versioned files in the repo.
 
+### The contracts
+
+**Frozen dataclasses, validated at the shell** (2026-07-09, the M1 foundation). The
+plain-data spine is `@dataclass(frozen=True, slots=True)` — immutable, hashable,
+closed-shape, importing nothing; validation lives in the shells, where a pydantic
+parser turns raw external JSON (Steam payloads, LLM responses) into a clean contract,
+so *trust no raw data* and *plain data crossing the seam* are both honored and pydantic
+never reaches core.
+
+**The classification envelope.** One review yields one `ReviewClassification` —
+recording *that* it was classified, under which versions, with zero-or-more aspect
+mentions — rather than a flat mention list. Under a flat shape the probe's
+46%-yield-nothing reviews make an empty result indistinguishable from an unprocessed
+one, which breaks resume/caching (empty reviews re-paid every run) and honest
+denominators ("46% yield zero" is only statable if *processed* counts separately from
+*produced mentions*).
+
+**Dual sentiment.** The reviewer's overall verdict (`voted_up`) and per-aspect
+sentiment are separate fields, because they dissociate constantly ("refunded it, but
+the soundtrack is gorgeous") and both are needed to say things like "70% of negative
+reviews still praise the art."
+
+**Provenance is two-layer.** A universal run stamp (run id, code sha, config hash)
+orthogonal to the content-cache key (model + prompt + ontology versions). The
+narration/telemetry **sink is a Protocol in contracts**, so every shell inherits one
+emission contract and the ops-story observability is structural from the first commit
+rather than retrofitted.
+
 ## Data access — a narrow, buggy, sufficient API
 
 *Verified data shapes from the smoke-test milestone (M0, 2026-07-09) live in
@@ -178,15 +209,14 @@ trust panel discloses the count per window and links the timeline event. Excludi
 would re-apply, by hand, the blunt blanking the unfiltered fetch exists to avoid — the
 probe's marked window split ~50/50, thousands of legitimate reviews inside — and
 per-review classification absorbs bomb reviews into the aspects they actually complain
-about, while the investigation track owns the bomb *story*. Two amendments the
-adversarial round forced: (1) **membership is derived at read time** from the freshest
+about, while the story track owns the bomb *story*. Two amendments the adversarial
+round forced: (1) **membership is derived at read time** from the freshest
 `past_events` snapshot — Valve marks windows retroactively, so a fetch-time stamp goes
 stale exactly when it matters; (2) a **marked-share floor** — past a threshold
-(provisional now; tuned at the sampling study, gated on the corpus off-topic probe) the
-report degrades honestly rather than presenting a bomb-dominated sample at full
-confidence, mirroring the language guard's precedent. The exclude-counterfactual stays
-computable offline but is never displayed: at 500-review sample scale the delta is
-noise inside the interval.
+(provisional now; tuned at the sampling study) the report degrades honestly rather
+than presenting a bomb-dominated sample at full confidence. The exclude-counterfactual
+stays computable offline but is never displayed: at 500-review sample scale the delta
+is noise inside the interval.
 
 **English-first, all-language counts.** Extraction reads English — the language the
 gold set can verify; an unevaluated multilingual layer would contradict the project's
@@ -205,1449 +235,745 @@ the review-bombing subtype only. *(Tombstone: fake-review detection — cut 2026
 no ground truth exists, the claim is unfalsifiable, and an unvalidatable accusation
 makes every other claim less trustworthy.)*
 
-## Operational decisions
+### The door as built (`steam_client`)
 
-**The tier deferral, made safe.** Free vs. cheap-paid LLM tier is decided at the
-extraction+eval milestone's (M1) exit from the measured cost/quality table rather than
-guessed now. Deferral is safe because
-four things are built regardless: the provider-agnostic client seam, a concurrency-
-capable classify stage (parallelism as config, not architecture), narrated progress,
-and enforced budget caps with an honest at-capacity state. The vision's latency wording
-is conditional by design.
+**Donor, not template.** The module is a fresh build to the windowed-unfiltered
+sampler contract, *not* a copy of the prior steam-reviews fetcher — that file is a
+**donor reference** whose paid-for Steam-API knowledge (the retry/backoff GET, the
+identity guard against wrong-appid pulls, endpoint quirks) is deliberately harvested,
+while everything structural is rebuilt to this project's bar. Importing the frozen
+repo, rewriting from scratch, and a naive file copy were each rejected — the last
+because the frozen default-walk loop *is* the proven-unsafe blanking path, and its
+silence on logs/cost/latency is exactly the observability gap this project treats as
+a deliverable.
 
-**`steam_client`: donor, not template** (reframed 2026-07-09). The module is a fresh
-build to the windowed-unfiltered sampler contract, *not* a copy of the prior
-steam-reviews fetcher — that file is a **donor reference** whose paid-for Steam-API
-knowledge (the retry/backoff GET, the identity guard against wrong-appid pulls, endpoint
-quirks — `success==2` for no-reviews, the cursor-loop guard, edition-prefix name
-matching) is deliberately harvested, while everything structural is rebuilt to this
-project's bar. Three alternatives rejected: importing the frozen repo (a portfolio repo
-must run standalone); rewriting from scratch (the API-quirk knowledge is paid for); and a
-naive file copy — the frozen default-walk loop *is* the proven-unsafe blanking path (the
-M1 entry probe showed a plain filtered walk silently skips Valve-marked windows), and its
-silence on structured logs / cost / latency is exactly the observability gap this project
-treats as a deliverable. Net: harvest the bones, rebuild the sampling brain, instrument
-it. The reframe corrected an earlier "copy-and-adapt" shorthand that anchored on the old
-code as the baseline.
+**Three operations, both paths** (ruled 2026-07-27, five-fork design discussion).
+The build scope is resolve-game (appdetails + the donor's identity guard), the
+histogram snapshot, and the window-fetch primitive — deliberately *not* `FetchPlan`
+execution or `SampleManifest` minting, whose producer (`core/sampling`, the policy
+the sampling study certifies) doesn't exist yet. Three contracts froze with their
+consumer: `GameRef` (identity-guard verdict absorbed into the record — a MISMATCH
+`GameRef` is an honest answer about what Steam returned), `HistogramSnapshot`
+(rollup unit never hardcoded, per the M0 probe), and `WindowFetchResult` (per-window
+provenance: path outcome, pages, retries, and a semantic-validation verdict — the
+window params are undocumented, so every response is checked against the requested
+window, never trusted).
 
-**The aspect ontology: hybrid with a fixed core** (decided 2026-07-09, on the week-1
-probe's evidence — `probes/FINDINGS.md` §6). Open extraction over 5 genre-diverse
-games showed a flat, game-specific vocabulary (top-15 grouped labels cover only 28%
-of mentions; half of all mentions are single-game vocabulary), so a fixed set would
-flatten exactly the specificity the product sells, while pure open stays dominated
-(normalization cost AND a blurred eval anchor). The working shape: the vocabulary is
-a **versioned design-time artifact** (fixed core seeded from the probe's cross-game
-groups, built/revised offline by a strong model, human-gated); runtime extraction is
-**two-slot** — classify into the pinned vocabulary, or emit a free-form candidate
-when nothing honestly fits; recurring candidates are counted and displayed as a
-**disclosed emergent stratum** (real survey numbers, honestly marked uncalibrated —
-include+disclose again); **promotion is offline and gated**, bumping the ontology
-version, so every displayed number always knows which vocabulary produced it. The
-aspect-normalization step this adds to core was a planned possibility, now real code
-and part of the eval surface; the gold set and judge calibrate against the pinned
-core, with honestly weaker claims on the tail. The v1 codebook's ratification record
-— the pruning criterion, every per-aspect ruling, and the reopen conditions — is the
-repo's `ONTOLOGY_PRUNING.md` ledger (ratified 2026-07-15).
+**The cursor fallback is built, not stubbed.** It is the same machinery as the
+windowed walk under timestamp-gated loop control, plus a pure feasibility estimate
+(SKIPPED_INFEASIBLE, disclosed, never a silent hole). Stop discipline everywhere:
+the walk stops on the window boundary, a repeated cursor, or a missing cursor —
+**short or empty pages inside a window are suspicious, not conclusive: retried,
+never a stop** (the donor's proven-unsafe stopping rule, inverted). Standing
+correction on the donor's confident comment: **no page size is universally safe**
+(FIXLOG 2026-07-07) — page size is a non-load-bearing config knob (default 100;
+a live probe showed >100 clamps to 100), and safety lives in detect-and-retry plus
+the window-bounded stops, not in a magic constant.
 
-**`llm_client`: the seam design** (settled 2026-07-13, five-fork design discussion).
-The one door is a single generic entry point — `complete()` over a stage-keyed request —
-never per-stage methods: the per-stage routing table stays *data* (stage → provider,
-model, params), so retargeting a stage at the M1-exit tier decision is a config edit.
-The request/response records live in contracts; the response carries everything guards,
-ledger, and provenance need (token usage *split* including thinking tokens, normalized
-finish reason, resolved model version) — downstream can only record what crosses the
-seam, so the probe's sticker-price lesson is a required field, not a footnote. Each
-route carries an opaque provider-params block passed to the adapter untranslated,
-dodging the lowest-common-denominator squeeze without widening the seam. Providers are
-registered *functions* (a dict registry, constructor-injectable for tests), speaking
-raw HTTP via httpx; the aspect-vocab probe script is the Gemini adapter's donor
-reference. Rejected: an aggregator library (litellm — a large fast-moving dependency
-that normalizes away exactly the provider-specific fields the earned guards watch, and
-whose own budget/rate features would sit ambiguously beside ours) and per-provider
-SDKs (vendor retry machinery overlaps ours — double-retry against a 20-requests/day
-quota; an SDK may still slot *inside* one adapter later without touching the seam).
-Config is validated against the registry at construction — an unknown provider fails
-at startup, never mid-run.
+**Politeness is inherited by construction.** A configurable inter-request delay
+(default 1.5s ≡ the ~200-req/5-min folklore budget) sits at the top of the one
+retry-GET chokepoint, so every attempt, every endpoint, every caller inherits it;
+adaptive backoff on 429/5xx lives in the same function. A token bucket was rejected
+(bursts buy nothing; clock-carrying state costs testability). Verification is two
+layers plus a gate: parsers against real probe captures, walk logic against an
+injectable transport with scripted page sequences, and a deliberate live smoke
+(`STEAMLENS_LIVE_SMOKE=1`, never in CI).
 
-**`llm_client`: concurrency, persistence, errors** (same discussion). One code path,
-concurrency-shaped, dialed to sequential: the client is synchronous (asyncio rejected —
+---
+
+## The labeling engine
+
+How a review becomes a labeled envelope and then a number: the provider seam that
+buys model output, the classify stage that turns it into contracts, the store that
+makes both durable, and the two consumers — the census dispatch that bought the pool
+and the aggregate mint that folds it.
+
+### The provider seam (`llm_client`)
+
+**One generic door, routing as data** (settled 2026-07-13, five-fork design
+discussion). The client exposes a single `complete()` over a stage-keyed request —
+never per-stage methods: the per-stage routing table (stage → provider, model, params)
+stays *data*, so retargeting a stage is a config edit. Each route carries an opaque
+provider-params block passed to the adapter untranslated, dodging the
+lowest-common-denominator squeeze without widening the seam; the one field lifted out
+of it is `max_output_tokens`, because the budget reservation must price it. The
+response carries everything downstream needs — the token-usage split (thinking tokens
+included), normalized finish reason, resolved model version — since guards, ledger,
+and provenance can only record what crosses the seam.
+
+**Raw HTTP through registered functions; no aggregator, no SDKs.** Providers are
+registered functions (a dict registry, constructor-injectable for tests) speaking
+httpx. litellm was rejected — a large fast-moving dependency that normalizes away
+exactly the provider-specific fields the earned guards watch; per-provider SDKs were
+rejected because vendor retry machinery overlaps ours (double-retry against tight
+quotas), though an SDK may still slot *inside* one adapter later without touching the
+seam. Config validates against the registry at construction — an unknown provider
+fails at startup, never mid-run.
+
+**Synchronous, concurrency-shaped, dialed to sequential.** asyncio was rejected:
 coloring spreads to every caller while the throughput ceiling is the provider quota,
-5–15 RPM free-tier, and the self-hosted column is GPU-serial; sync composes with M3's
-async serve via standard thread offloading), its one stateful bundle (budget, pacer,
-ledger appends) is lock-guarded and hammer-tested from commit one, and the worker pool
-lives in the *caller* with `max_workers` as config defaulting to 1 — the paid-tier flip
-is a route edit plus a number, zero code. Persistence: `ResponseArchive` and
-`SpendLedger` are protocols in contracts (the `Sink` precedent — defined at the base,
-implemented in shells, bound at composition); B3's own commits run on in-memory
-implementations, the SQLite pair lands with the store (two small tables added to B5's
-scope; the first corpus-labeling run requires the durable pair — the cache's whole job
-is cross-run "bought labels never re-paid"). The RPM pacer stays in-memory (losing it
-costs at worst a brief 429), while daily-quota and cost tracking are *derived by ledger
-query*, so they survive restarts because the record is the counter. The cache stores
-raw responses keyed by a content hash of (request payload + model) — which resolves the
-parked `raw_label` question: pre-normalization phrases live in the cached raw
-responses, normalization stays re-runnable over bought labels, no extra field on
-`AspectMention`. Errors are typed in the client's public surface (contracts stays a
-data spine): transients are retried inside with bounded backoff+jitter and surface as
-`LlmUnavailableError` only when exhausted; `AtCapacityError` (our own reserve refusing
-— budget cap or daily headroom) is never retried and is deliberately distinct — one is
-the world failing, the other is us keeping a promise, and only the latter becomes the
-honest at-capacity state; truncation (`GenerationIncompleteError`) is not retried
-(temperature-0 classify re-truncates identically) and carries the normalized reason for
-the caller to decide. Guards are placed once: adapters normalize finish reason and the
-usage split, the client enforces and accounts above them, provider-independent. Open:
-whether the module map's "judge-route refusals" phrase meant handling refusals on the
-judge route or routing refused generations to the judge — settles at the judge's design
-(D2); the typed-refusal mechanism serves either reading.
+and sync composes with M3's async serve via standard thread offloading. The one
+stateful bundle (budget, pacer, ledger appends) is lock-guarded and hammer-tested;
+the worker pool lives in the *caller* with `max_workers` as config defaulting to 1 —
+a throughput flip is a route edit plus a number, zero code.
 
-**`llm_client`: the build-time refinements** (2026-07-13, three forks ruled at the
-client-core build; the code docstrings carry the detail). Token prices are *data in the
-config's per-model table* alongside rpm/rpd (free tier is honest zeros; the paid flip
-stays a number edit) — not computed in adapters, not deferred. "Reserve before
-dispatch" means an atomic worst-case reservation (pessimistic prompt estimate + the
-route's full output ceiling, priced) settled to the actual cost on completion —
-overshoot impossible by construction, and daily-quota admission counts ledger rows
-*plus in-flight calls*, since the ledger alone lags dispatch by exactly the racing
-window. Rate and quota limits key by *model*, never by route, so two stages sharing a
-model share one real quota pool instead of each believing it owns the whole one.
-Consequence of the reservation: `max_output_tokens` is the one field lifted out of the
-opaque provider-params block into the typed route — the estimator must price it. The
-hammer tests pin the exact-admission property (cap of N admits exactly N under racing
-threads — overshoot catches a racy check, undershoot catches a leaked reservation).
+**Budgets reserve before dispatch.** An atomic worst-case reservation (pessimistic
+prompt estimate + the route's full output ceiling, priced) settles to actual cost on
+completion — overshoot impossible by construction — and daily-quota admission counts
+ledger rows *plus in-flight calls*, since the ledger alone lags dispatch by exactly
+the racing window. Rate and quota limits key by *model*, never by route, so two
+stages sharing a model share one real quota pool. Token prices are data in the
+per-model config table (free tier is honest zeros; a paid flip is a number edit).
+The hammer tests pin the exact-admission property; finer build detail lives in the
+module docstrings.
 
-**`core/classify`: the prompt** (settled 2026-07-13, six-fork design discussion, forks
-1–5). The prompt is a versioned artifact (file + content hash + changelog, per the ops
-conventions) rendering the codebook **full-fidelity** — every field, all aspects,
-category-grouped — so the machine annotator reads the same instructions the human
-annotator reads at gold labeling, keeping the agreement number clean of instruction
-gaps; the compact rendering (decision surface only: definition + label_when +
-do_not_label_when) is pre-registered twice — as the cost fallback if the M1-exit table
-demands it, and as the first prompt *experiment* once the judge exists (D2), because
-"does a leaner rule set beat a muddier context" is measurable, not arguable.
-Classification is **batch-native with size as config**: the builder takes idx-tagged
-review tuples, the parser returns per-idx envelopes, one prompt version serves every
-batch size (the template never changes, only the data channel grows), and N rides in
-the run's config hash. The never-re-paid promise lives in the *label pool*, not the
-response cache — the driver selects only reviews lacking labels under the current
-version key before composing batches, so batch composition varies freely across runs;
-gold-set evals run at the production batch size (certify what ships), and batch-size
-contamination (N=1 vs production-N agreement) is a registered D2 experiment. **The
-model emits label strings only**: pinned-vs-candidate resolution belongs to
-`core/normalize`'s deterministic surface index, never to the model's self-declaration —
-the prompt teaches the two-slot *behavior* (never force-fit; the reviewer's own words
-when nothing fits), code decides the slot. Output shape is enforced twice: Gemini
-`responseSchema` rides in the route's opaque provider-params block (constrained
-decoding kills the malformed-syntax class server-side; the aspect field stays a *free
-string* — an enum of the pinned labels there would structurally forbid candidates,
-silently — while sentiment is a closed enum), and the prompt still states the shape in
-one line (provider-portable, and models track formats they understand). **Three
-synthetic few-shot examples** demonstrate the edge behavior the codebook's per-aspect
-examples can't: the zero-aspect review, a multi-label review with dissociated
-sentiments (one evidence quote present, one honestly omitted), a candidate emission.
-Synthetic so gold-set disjointness is structural rather than remembered; mid-tail
-labels so the frequency thumb stays off the aspects reports will headline; a sarcasm
-example deliberately omitted (one example teaches over-reading irony, not sarcasm —
-that stays a measured model property), kept as a future option.
+**Errors are typed, and the two capacity states never blur.** Transients retry
+inside with bounded backoff and surface as `LlmUnavailableError` only when exhausted.
+`AtCapacityError` — our own reserve refusing — is never retried and is deliberately
+distinct: one is the world failing, the other is us keeping a promise, and only the
+latter becomes the honest at-capacity state. Truncation is not retried (temperature-0
+re-truncates identically) and carries its normalized reason for the caller to decide.
 
-**`core/classify`: parse and failure policy** (same discussion, fork 6). The parse is
-pure and **salvages per idx**: every valid entry becomes an envelope, every failed idx
-lands in a typed failure report — one bad row costs one review, never the batch, and
-the report is data the driver must handle, not a log line. Evidence failing the
-verbatim-substring check is **repaired, not fatal** — the mention survives with
-evidence=None and the repair is counted through the sink (the label may be right while
-the quote is sloppy; a rising repair rate is the early smell of what the
-fabricated-quote metric measures properly at D2). Retry is **re-batching, not
-corrective prompting**: at temperature 0 an identical request re-buys the identical
-wrong answer (and our cache would return it without even spending), so the retry must
-vary the request — and failed reviews re-entering the driver's unlabeled-selection loop
-regroup into fresh batches, which *is* the variation, for free. One round, then the
-review is marked unclassifiable-under-this-version and disclosed in the run report —
-the include-and-disclose spirit, applied to our own failures. Truncation stays the
-client's typed error, answered operationally (batch size and the route's output ceiling
-are sized together, conservatively — the reservation prices the full ceiling). All
-failure classes are instrumented from the first call; the policy dials (retry rounds,
-batch-halving, corrective prompting if ever) reopen on pilot numbers, not guesses.
+### The classify stage (`core/classify`)
 
-**`store`: scope and schema lifecycle** (settled 2026-07-14, six-fork design
-discussion, forks 1–2). B5 lands only the tables with a landed or next-task consumer:
-the durable `ResponseArchive` + `SpendLedger` pair (binding into the client's existing
-constructor slots), `reviews`, and the label pool. The `aggregates` and `eval_runs`
-tables named in the module map are deferred to their consumers (C2, D2) per *rules now,
-fields later* — a table's first consumer forces its real design, and pre-building
-`eval_runs` would guess at exactly what D2's run-manifest design exists to decide (the
-pre-built-M4-contract critique, replayed). Schema lifecycle is a hand-rolled
-ordered-steps **migration runner with exactly one step** — the full initial schema as a
-reviewable constant, stamped via `PRAGMA user_version`; a file stamped newer than the
-code fails loud with both numbers. Alembic was rejected (SQLAlchemy machinery on a raw
-`sqlite3` store — infrastructure without a driving need), but so was a bare
-create-if-missing: the runner's machinery costs ~ten lines more and means the first
-real migration slots into standing structure instead of a reshape. The **freeze rule**
-scopes the discipline to when it pays: until the first file holds paid data (C1), the
-step list may be rewritten freely — schema churn during C2/D2 design edits step 1,
-files are disposable; after C1, steps freeze append-only. Steps are **additive by
-default** (`ADD COLUMN` with a default, `CREATE TABLE` — never transforming existing
-rows); a data-rewriting step is a design smell requiring a stated reason. Underneath
-sits the two-versionings distinction the discussion sharpened: the schema version
-protects bought data from *our storage* changing; the content-version keys
-(`ClassifierVersions`) protect correctness from *the question* changing — orthogonal
-axes, never converted into each other (old-version labels aren't migrated, they
-coexist under their own key, which is what makes the pool accretive).
+**The prompt renders the codebook full-fidelity** (settled 2026-07-13, six-fork
+design discussion). A versioned artifact (file + content hash + changelog) carrying
+every field, all aspects, category-grouped — so the machine annotator reads the same
+instructions the human annotator reads at gold labeling, keeping the agreement number
+clean of instruction gaps. The compact decision-surface rendering was pre-registered
+as an experiment and later **closed on measured evidence** — a confirmed recall loss
+at both gold and census scale (see the codebook section).
 
-**`store`: shape, schema, validation, tests** (same discussion, forks 3–6). One
-`Store` class owns the file — connection, pragmas (WAL, foreign keys, busy timeout),
-the migration runner — and the surfaces are small tenant classes handed that
-connection, exposed as attributes (`responses`, `spend_ledger`, `reviews`,
-`labels`); composition wires `store.responses` straight into the client's slot,
-so the client never learns SQLite exists. The store adds **no locking of its own**: the
-client already serializes every archive/ledger touch under its one lock (the discipline
-the in-memory pair documents and the SQLite pair inherits); WAL + busy-timeout is the
-safety net, not the concurrency design. The label pool is **normalized, never a JSON
-blob** — the load-bearing queries (C2's origin ∩ version fold, the two-track wall's
-origin predicate, denominator counts) all reach *inside* the envelope, and a blob would
-make each one a scan-and-parse in Python. Four tables: `runs` (provenance normalized —
-one C1 run stamps thousands of envelopes with identical values, `run_id` determines the
-rest), `classifications` (UNIQUE on review_id + the versions triple; **origin
-deliberately outside the key** — same review under same versions is the same answer
-regardless of track, bought once, origin recording how it entered; the
-investigation-labeled-then-surveyed edge is C2's membership-join question, its columns
-already present), `mentions`, and `classification_failures` — separate from envelopes
-because an empty-mentions envelope means "processed, found nothing" while a failure is
-precisely not-an-envelope, and a durable failure mark is what stops the driver's
-selection loop from re-buying the same failure every run (keyed by the same triple, so
-a prompt bump correctly reopens failed reviews). Representation: datetimes as ISO-8601
-text **normalized to UTC at write** — string order is chronological order only under a
-single shared offset, so mixed-offset writes would silently corrupt every windowed
-query (a build-time refinement: the design said "sortable as strings", the build made
-it true); enums by value, the token split as three integers, cost as REAL. **Validation is asymmetric by design**: writes take frozen
-contracts trusted by construction (structural constraints only — NOT NULL, FK, UNIQUE);
-reads treat the file as raw external data and validate by *reconstruction* — enum
-constructors plus a naive-timestamp-rejecting datetime parse, failing loud with the
-offending row; pydantic stays at the JSON ingest points per contract modeling. No
-value-set CHECK constraints (they duplicate the read parse and turn every enum addition
-into a migration, against the additive rule). Write semantics follow each contract's
-own docstring: cache `put` upserts, ledger `append` is insert-only, envelope/failure
-inserts fail loud on UNIQUE violation — a duplicate envelope means the driver's
-unlabeled-selection is broken, and `OR REPLACE` would hide exactly that bug. Tests:
-one **protocol-compliance suite parametrized over the in-memory and SQLite pairs**
-(substitutability is the claim the client's existing tests need, and it retroactively
-deepens B3's coverage), contract round-trips (`==` on frozen dataclasses, including
-empty mentions and `evidence=None`), runner behaviors, and the selection-query edges
-C1's correctness hangs on — all against real SQLite files in `tmp_path`, no mocks. The
-thread-hammer is deliberately *not* re-run against the SQLite pair (the client's lock
-is the tested serializer; the store never sees concurrency by design), but one
-end-to-end smoke binds the durable pair into a real client instance to pin the
-constructor-slot substitution.
+**Batch-native with size as config.** The builder takes idx-tagged review tuples,
+the parser returns per-idx envelopes, one prompt version serves every batch size, and
+N rides in the run's config hash. Gold-set evals run at the production batch size —
+certify what ships. The never-re-paid promise lives in the *label pool*, not the
+response archive: the driver selects only reviews lacking labels under the current
+version key, so batch composition varies freely across runs.
 
-**The post ships with the milestone.** Every milestone's public artifact ships when the
-milestone does, imperfect — the standing counterweight to a known over-investment
-pattern.
+**The model emits label strings only.** Pinned-vs-candidate resolution belongs to
+`core/normalize`'s deterministic surface index, never to the model's
+self-declaration — the prompt teaches the two-slot *behavior* (never force-fit; the
+reviewer's own words when nothing fits), code decides the slot. Output shape is
+enforced twice: a provider-side response schema (sentiment a closed enum; the aspect
+field deliberately a *free string* — an enum of pinned labels would structurally
+forbid candidates, silently) and one provider-portable shape line in the prompt.
+Three synthetic few-shot examples cover the edge behavior — the zero-aspect review,
+dissociated sentiments, a candidate emission — synthetic so gold disjointness is
+structural, mid-tail so the frequency thumb stays off the headline aspects.
+
+**The parse is pure and salvages per idx.** Every valid entry becomes an envelope;
+every failed idx lands in a typed failure report the driver must handle — one bad row
+costs one review, never the batch. Evidence failing the verbatim-substring check is
+**repaired, not fatal**: the mention survives with evidence=None and the repair is
+counted through the sink (a rising repair rate is the early smell of what the
+fabricated-quote metric measures properly).
+
+**Retry is re-batching, not corrective prompting.** At temperature 0 an identical
+request re-buys the identical wrong answer — and the archive would return it without
+even spending — so the retry must vary the request; failed reviews re-entering the
+driver's selection loop regroup into fresh batches, which *is* the variation, for
+free. One round, then the review is marked unclassifiable-under-this-version and
+disclosed in the run report — include-and-disclose applied to our own failures.
+
+### The store
+
+**Tables land with their first consumer** (settled 2026-07-14, six-fork design
+discussion) — the *rules now, fields later* principle applied to schema: pre-building
+`eval_runs` would have guessed at exactly what the eval-journal design existed to
+decide. Schema lifecycle is a hand-rolled ordered-steps **migration runner** stamped
+via `PRAGMA user_version`; Alembic was rejected (SQLAlchemy machinery on a raw
+`sqlite3` store), but so was bare create-if-missing — the runner costs ~ten lines
+more and means the first real migration slots into standing structure. The **freeze
+rule** scopes the discipline to when it pays: steps froze append-only the moment the
+first file held paid data, and steps are **additive by default** — a data-rewriting
+step is a design smell requiring a stated reason.
+
+**Two versionings, never converted into each other.** The schema version protects
+bought data from *our storage* changing; the content-version keys protect correctness
+from *the question* changing — old-version labels aren't migrated, they coexist under
+their own key, which is what makes the pool accretive.
+
+**Validation is asymmetric by design.** Writes take frozen contracts trusted by
+construction (structural constraints only — NOT NULL, FK, UNIQUE); reads treat the
+file as raw external data and validate by *reconstruction* — enum constructors plus a
+naive-timestamp-rejecting datetime parse, failing loud with the offending row.
+Datetimes are ISO-8601 text **normalized to UTC at write**: string order is
+chronological order only under a single shared offset. The label pool is
+**normalized, never a JSON blob** — the load-bearing queries (the origin ∩ version
+fold, the two-track wall's origin predicate, denominator counts) all reach *inside*
+the envelope. Write semantics follow each contract: archive `put` upserts, ledger
+`append` is insert-only, envelope inserts **fail loud on UNIQUE violation** — a
+duplicate envelope means the driver's selection is broken, and `OR REPLACE` would
+hide exactly that bug. Table shapes and the test strategy live in ARCHITECTURE and
+the module docstrings.
+
+### The response archive — raw provenance, not a cache
+
+The store of bought provider responses is named `ResponseArchive` (renamed from
+`ClassifyCache`, 2026-07-21) because it is a durable, content-addressed record of
+*unreproducible* raw provider output — an LLM reply can't be regenerated, and the
+archive is its only durable copy, so "clear it to reclaim space" must read as the
+data loss it is. Re-pay-avoidance (the `get` before dispatch that lets a run resume
+without re-buying) is a *free consequence* of a permanent content-addressed store,
+not a second design goal. The seam stays text-only: raw is a *forensic* affordance
+(reading a model's discarded reasoning trace during disagreement investigation),
+never an input to a metric — retrieval is by reconstructing the content-hash key on
+demand, sound because version pinning makes the recompute exact. Splitting a
+disposable cache from the archive was rejected (identical bytes under an identical
+key — structure with no operational teeth), as was carrying raw bytes on every
+response.
+
+### The census dispatch (`studies/`)
+
+**A thin entry shell over the seams** (settled 2026-07-19, seven-fork design
+discussion). The driver composes corpus reader → store ingest → selection → batch →
+classify → client → label pool, narrating through the sink. Resume needs no
+checkpoint ledger by construction: `unlabeled_under` *is* the checkpoint, batch
+composition is deterministic over the remaining set, and the content-keyed archive
+makes a re-formed batch whose response was already bought free — crash anywhere,
+relaunch, pay only for what never completed.
+
+**The label key's `model_version` is the requested id, never the response's
+self-report.** Keys are contracts, observations are evidence: the reported string
+journals per call in the spend ledger, and a mid-run change from the first-seen value
+**aborts loud** rather than warn-and-continue — a silent provider model roll is
+exactly the event that would split the pool's "one annotator" claim, and resume makes
+the abort cheap.
+
+**Failure policy: the three-pass sweep, then a durable mark.** Initial batches →
+failed idxs re-batched at production N → survivors isolated at N=1 → still-failing
+reviews marked durably (excluded from future selection under this versions triple).
+Amended on live census evidence (2026-07-20): a provider's *permanent* rejection —
+DeepSeek's content filter refused one review's Tiananmen line — fails the batch's
+rows into that same sweep, so innocent co-batched reviews label on isolation and only
+the trigger review takes a durable mark carrying the refusal verbatim. The pool
+honestly records "the annotator refused this text" — an instrument-limitation
+footnote the milestone post carries: a Chinese-hosted annotator imposes its content
+policy on the census. Two guards from the same incident: a circuit breaker still
+aborts on systemic refusals (a revoked key must surface as an abort, never as
+thousands of quiet marks), and an aborting run cancels its queued batches — abort
+means stop by construction.
+
+**Budget caps sit below the balance.** The invocation cap is set deliberately under
+the provider balance so our clean `AtCapacityError` always fires before the
+provider's insufficient-balance error; the driver narrates the ledger's lifetime
+total at startup, and a pilot slice gates the full buy on measured cost-per-review.
+Ingest asserts the ruled census size (135,260) and fails loud before any money
+moves — the slice ruling became a runtime check. Concurrency topology (two store
+connections, worker pool shape) is structural detail: ARCHITECTURE.
+
+### The number mint (`core/aggregate`)
+
+**A pure fold with persistence pushed to the shell** (settled 2026-07-20, five
+decisions). Survey-origin, version-pinned envelopes → `AspectAggregate` records; the
+core stores nothing, because the fold is cheap and fully reproducible
+(keep-vs-regenerate: regenerate the cheap middle). Persistence is taken deliberately
+only when a number is *published* — a snapshot stamped with full provenance, a
+frozen citable artifact rather than a live cache, so staleness is a non-issue.
+
+**The grain is per game.** A number is minted per `(app_id, aspect, slot)` — every
+consumer lives at the per-game grain, a global fold blends incomparable populations
+and can never be re-split, and per-game rows always roll back up. Per-game is also
+the only grain honest about thin games: a small title's few mentions show *as* thin
+instead of dissolving into a large pile. `app_id` joined the contract as a
+first-class field — hiding the game inside `manifest_id` fails the
+references-carry-their-meaning rule.
+
+**Candidates fold exactly like pinned — no fuzzy merge, singletons kept.**
+Candidates group by their exact stored string; `grind`/`grinding` stay distinct,
+because a false merge silently corrupts two aspects at once while a false miss lands
+recoverably in the candidate stratum for human-gated alias promotion (an offline
+loop: new ontology version + cheap deterministic re-normalize, no LLM re-buy). No
+floor at mint: the contract keeps the number a raw tally and the floor a display
+rule, so C2 has exactly one job — count everything, honestly — and every policy
+question lives downstream in one place.
+
+**The denominator is the per-game survey envelope count, empties included.**
+Dropping the ~46% empty-mentions envelopes would inflate every share — this is
+exactly why the empty envelope is a first-class contract state. Only survey-origin,
+version-matching labels fold, pinned **v2 by explicit path**: the packaged ontology
+default stays v1 (gold's identity pin), so every pool consumer pins v2 explicitly —
+flipping the default is a deliberate later step that must rework the runner's
+gold-pin check, never a side effect.
+
+> **Outcome.** The census is bought and settled (2026-07-20): 135,259 envelopes + 1
+> durable content-filter refusal = 135,260 exact under
+> `deepseek-v4-flash / classify-v1 / v2`, true cost $3.80 all-in, Drive-backed with
+> a hash manifest. The mint verified on the real pool: 49 games, 170,532 mentions,
+> the reviews_with_aspect invariant holding wholesale.
+
+---
+
+## Choosing the labeler — measured, not reputed
+
+**The tier rule: per stage, not global.** The provider seam routes each stage
+independently, and the small-vs-frontier gap is stage-dependent — near-zero for
+phrasing, modest-and-measurable for classification, largest for agentic reasoning.
+The judge is exempt from cost optimization entirely: always a stronger model than
+the one it grades, low volume, API. Deferring each tier choice to its stage's design
+point is safe because four things are built regardless: the provider-agnostic seam,
+a concurrency-capable classify stage, narrated progress, and enforced budget caps
+with an honest at-capacity state.
+
+**The bake-off protocol: frozen metrics, recorded judgment** (2026-07-17, six-fork
+design discussion). The survey labeler is chosen by measurement against the gold
+set, not by reputation, with the metrics frozen *before* any run so the ruling can't
+metric-shop:
+
+| Rule | Why |
+|---|---|
+| Primary: mention-level P/R/F1, paired by label within review, pinned-slot only | the known failure mode (over-extraction) is directional — F1 alone would blur it |
+| Sentiment: flat accuracy on matched pairs only | polarity errors never double-punish detection errors |
+| One gate: >2% unrecoverable parse failures disqualifies | dropped reviews at survey scale are missing-data bias no metric repairs; below the gate a failed review scores as zero predictions, never excluded |
+| Candidate-slot mentions unscored on both sides | n=11 in gold can't support a metric; slot discipline is already priced in |
+| Parity: `classify-v1` verbatim, no per-model tuning; structured output deliberately non-parity | tuned prompts would measure our effort; the native output mechanism is part of the product being bought |
+
+Bootstrap CIs resample over *reviews* (mentions within a review aren't independent);
+every run lands as captures + a manifest, and the comparison table regenerates from
+captures + gold — one source of truth. Lineage: the gold-assist model is banned from
+the pool (INSTRUCTIONS §8). A standing no-buy exit was live: the recorded outcome
+could have been "nobody is buyable, escalate tiers" — never buy-the-least-bad.
+
+**Batch size is part of the product, not a parity constant** (amended 2026-07-18).
+The bake-off's N becomes production's default and certify-what-ships means measuring
+each candidate at its deployable shape; a disclosed N-probe set the dilution ceiling
+on two structurally different candidates before any scored run. The campaign's
+operational lessons (envelope exits, the three-stage retry that preserves the gate's
+semantics at a fraction of the requests) live as comments on their candidates in
+`probes/bakeoff_runner.py` and in the session log.
+
+**Paired reads, not interval eyeballing** (2026-07-19). Every run scores the same
+250 gold reviews, so run-vs-run gaps are paired — `paired_bootstrap_ci` resamples
+one set of review indices and scores both runs on it. The correction cut both ways
+on the same day: one gap with heavily overlapping individual CIs was **real** under
+pairing, a second was **indistinguishable** — eyeballing would have called both
+wrong. **N froze at 10 on quality's call alone**: the v4-flash ladder peaked at n10
+two-sided, and true cache-adjusted cost is N-independent in practice, which closed
+the amendment's honesty rider — the free-tier pressure that motivated maximizing N
+never bound the paid winner.
+
+**The ruling: DeepSeek v4-flash at N=10 labels the survey** (Arda's ruling,
+2026-07-19). The honest sentence: Gemini 3 Flash is measurably better at matched N
+(+0.034 F1, paired CI excludes zero), the gap closes to indistinguishable against
+v4-flash's frozen N, and it costs ~12× more — v4-flash wins on cost-effectiveness
+with zero parse failures across its ladder. Not claimed: "as good as the leader."
+**Single-labeler discipline**: a free-Gemini-with-DeepSeek-fallback hybrid was
+rejected — a mixed-labeler pool breaks measurement integrity (two error profiles
+inside every aggregate; the judge calibrates against one labeler). Reopen
+conditions, recorded with the ruling: a prompt change (re-certifies quality *and* N
+on gold — exercised at the v2 codebook certification), provider repricing or
+deprecation (the `deepseek-chat` five-day retirement is the named precedent), and
+survey-scale anomalies surfacing through the eval harness — tier escalation is the
+recorded fallback, never quiet tolerance.
+
+**The slice ruling: census of the usable pool** (Arda's ruling, 2026-07-19). The
+survey labels **every English-nonempty corpus review — 135,260 across 49 games**.
+This deliberately reopened and superseded the earlier "full corpus is never
+labeled" ruling on its collapsed premises: the labelable pool measured 135K, not
+the 298K headline, and the cost base was v4-flash's true ~$3–6, not Gemini's ~$25 —
+census costs 2.9× the sampled alternative and buys no shortfall policy, zero
+sampling error against the corpus, and a sampling study never capped by today's
+choice. **No pre-filtering beyond usable**: "no aspects" is the certified
+classifier's own verdict and a measured quantity (gold zero-share 49.2%); a
+usefulness heuristic would be an unvalidated second classifier standing in front of
+the certified one. Instrument lesson recorded: 100-review/game probes cannot
+resolve mention rates under ~1% — tail pins are only visible at the n≈1,200–1,900
+the census provides anyway.
+
+---
+
+## The codebook
+
+**Hybrid with a fixed core** (decided 2026-07-09 on the week-1 probe's evidence,
+`probes/FINDINGS.md` §6). Open extraction showed a flat, game-specific vocabulary —
+top-15 grouped labels cover only 28% of mentions; half of all mentions are
+single-game vocabulary — so a fixed set would flatten exactly the specificity the
+product sells, while pure open stays dominated (normalization cost and a blurred
+eval anchor). The shape: the vocabulary is a **versioned design-time artifact**
+(human-gated, built offline); runtime extraction is **two-slot** — classify into
+the pinned vocabulary or emit a free-form candidate; recurring candidates are
+displayed as a **disclosed emergent stratum** (real numbers, honestly marked
+uncalibrated); **promotion is offline and gated**, bumping the ontology version, so
+every displayed number knows which vocabulary produced it. The v1 ratification
+record — the pruning criterion, every per-aspect ruling, reopen conditions — is the
+repo's `ONTOLOGY_PRUNING.md` (ratified 2026-07-15; 55 → 51 pins).
+
+**The v2 wording batch** (Arda's ruling, 2026-07-19 — the sanctioned reopen under
+the labeler ruling's prompt-change condition). The gold ledger's routing rulings
+postdate classify-v1's frozen wording, so the labeler had never seen the semantics
+gold grades it against — and the survey pool is the durable asset every downstream
+consumer folds, so it gets bought at aligned semantics. The distillation was one
+shot by design (wording never iterated against gold F1): a triage interview over
+the 33-ruling gold ledger settled what rides vs what stays gold-process-only,
+landing in `src/steamlens/ontology/v2.toml` — same 51 pins, aliases byte-identical,
+every example freshly constructed so no gold span reaches the machine's contract.
+
+> **Outcome.** v2 vs the frozen v1 baseline on gold: precision **+0.066
+> [+0.039, +0.098]** (real), recall −0.030 (borderline), F1 +0.020 — the honest
+> sentence is *not-worse-and-leaning-better with a confirmed precision gain*. The
+> mention-economy diagnostic explains the shape: the baseline over-mints, v2 lands
+> on gold's economy — the ruling batch is precision-lifting deletion, working as
+> designed. The N-peak reproduced under new wording. Captures:
+> `probes/captures/bakeoff/deepseek-v4-flash-v2*/`.
+
+**The compact rendering is closed.** The decision-surface-only render
+(`classify-v1-compact`, a first-class versioned variant) was rejected for dispatch
+at the v2 certification — confirmed recall loss, token savings immaterial under
+prefix caching — and the census-scale experiment closed it: drift-clean, compact
+measures **−0.018 F1 real vs full** (the judge-referenced same-day read, 2026-07-25).
+It remains a versioned artifact; reopening requires new evidence, not new hope.
+
+**The codebook-overfit disclosure** (Arda's ruling, 2026-07-21). Gold was
+blind-labeled before any model output — the safe direction — but the v2
+distillation was tuned *on* gold's 250 reviews, so every v2-on-gold number is
+**development-grade**: the instrument was refined against the set it is scored on.
+Standing mitigation: a fresh human holdout (~100–150 reviews, random + stratified,
+labeled under **frozen** v2 inside M1); hard cases feed v3 notes, never back-edits
+to v2 — a back-edit would restart the contamination clock. Until the holdout lands,
+every published v2-on-gold number carries the disclosure.
+
+---
+
+## The eval harness
+
+**The scoring core is library code.** The gold-pairing metrics outlive any one
+study — the bake-off, certification, and CI all score through
+`src/steamlens/evals/` (imports anything, nothing imports it), while runners and
+table generators stay `probes/` scripts. Both sides of every comparison resolve
+pinned-vs-candidate through `core/normalize`'s surface index — one resolution
+authority, so the scorer and the candidates can never disagree about what "pinned"
+means.
+
+**The certified object is the pool, not the configuration** (settled 2026-07-23).
+The bake-off certified model + prompt + codebook on lab-composed batches; the
+certification of record scores the bought envelopes themselves — the labels every
+displayed number folds — against gold through the same frozen scorer. Scope rule:
+gold predates the census scope and holds 5 out-of-scope reviews; certification
+scores the 245-review intersection, with the narrowing stored on the run row, never
+buried in prose — skipped, not counted as failures, which would fabricate a penalty
+for reviews the model never saw.
+
+**One journal, name-keyed metrics, a generalized reference** (settled 2026-07-23).
+`eval_runs` holds the regenerability set — versions triple, ontology content hash,
+reference id + sha256, counts, seed, resamples, scorer identity — and
+`eval_metrics` holds name-keyed child rows, because the metric family grows: a new
+metric is new rows, never a migration on minted runs. The reference is generalized
+past gold: a `reference_kind` tag (closed contract enum: `gold-file`,
+`pool-labels`) lets judge-vs-production agreement runs share the journal — every
+run kind answers the same sentence, *this label set, scored against that pinned
+reference, by this scorer*. The accepted cost, eyes open: one flat table quietly
+holding a sum type. For pool-label references the pinning property survives by
+digest over the canonically-serialized label set — same tamper-evidence as a file
+hash. Rejected: production labels in fields named gold (dishonest naming), and a
+sibling agreement table (a duplicated journal surface for a two-column difference).
+
+> **Outcome.** The production census labels certify at **F1 0.766 [0.713–0.811]**
+> against gold on the 245-review intersection (run
+> `certify-20260728T184100Z-5f3f4652`, scorer `census-vs-gold/2`) — the number
+> every M1 claim rides on. The −0.033 gap to the lab arm was chased to ground by
+> the registered experiments below: buy-time variance, not batch composition.
+
+**The fabricated-quote metric decomposes honestly** (settled 2026-07-23). The parse
+already enforces the verbatim check at write time — bad quotes are nulled before
+storage — so the stored pool holds zero fabricated quotes *by construction*, and the
+metric splits into: the **invariant audit** (every stored span re-checked as a
+verbatim substring of its review — **0 violations over 163,842 spans**: "zero,
+verified," not "zero, assumed"), the **attempted-fabrication rate** (write-time
+repair counts: ~2.9% of attempted quotes — the model-quality diagnostic the cleaned
+pool can no longer show), and the standing spine caveat that verbatim passes a quote
+read upside-down — misattribution stays the human audit. Audits stay out of the
+eval-run journal (`eval_runs` means "scored against a measuring stick"; an audit has
+none) and render as regenerable health reports; per-game health carries no
+thresholds — inventing cutoffs before seeing the distribution tunes alarms to
+nothing.
+
+**The misattribution audit sample is minted, awaiting the human pass.** Unit: the
+claim — one evidence-carrying mention in its review; metric: the share whose
+verbatim-true quote is attached to the wrong aspect or an uncarried sentiment.
+The draw is a seeded systematic pass over the sorted frame — implicit proportional
+stratification, self-weighting, so the audited rate estimates the population rate
+with no reweighting. 100 primary + 10 ordered reserves in
+`eval/audits/misattribution/`; the rate+CI scorer builds after the audit.
+
+**The numeric-grounding checker is deferred to its first consumer.** Its input
+contract — what a numeric claim *is* — is undiscoverable until composed prose
+exists (M3's composer at the earliest); building it now would freeze a guessed
+seam. Recorded so the metric list stays honest: classification agreement
+(journaled), fabricated-quote (decomposed above), numeric grounding (deferred, with
+this reason).
+
+**A statistic says "undefined", never 0.0** (ruled 2026-07-28, six-fork design
+discussion). The scoring core's empty-denominator convention (0.0, honest for a
+reported point value with its `n` beside it) silently corrupts a bootstrap
+distribution — an undefined resample contributes 0.0 as if it were measured
+badness, dragging the interval's lower tail. The fix lives in the core's types:
+ratios return `float | None`, F1 is None iff a component is (P=0 and R=0 both
+*defined* still gives 0.0 — the correct measured-badness limit), the bootstrap
+loops drop undefined draws on an unchanged RNG stream and **raise past a 1%
+undefined share** — above the floor the slice is too sparse for the statistic and
+the honest output is no number, not a wide one. A headline statistic undefined on
+the full frame raises loud; an undefined slice statistic skips its row while its
+`n` still journals ("no stat row" always means "nothing scoreable there").
+
+**Evals-in-CI: a deterministic re-score pinned to the runs of record** (ruled
+2026-07-26). The premise that shapes everything: CI produces no fresh model
+output — re-scoring stored envelopes against pinned references under a fixed seed
+is deterministic and free — so the gate catches *code/scorer/artifact* drift, never
+model drift, which only enters at a label re-buy. Both runs of record regenerate in
+CI from a committed, diffable JSONL fixture rebuilt through the real writer
+surfaces, so CI's read path is production's. **Exact-digit mismatch fails; harness
+errors fail; nothing merely annotates** — in a deterministic re-score a digit
+mismatch is an unintended behavior change or an undeclared semantics change, and
+both demand in-PR action. The escape hatch is the scorer-identity discipline: a
+deliberate semantics change bumps the scorer string and re-exports the pins in the
+same commit — a path exercised once already (the undefined-statistics fix bumped
+all three scorers to /2, minted fresh anchors digit-identical to the /1 runs, and
+retired the exporter's two disclosed relaxations, so verification now lands on full
+identity). Byte-hashed artifacts are held at LF by `.gitattributes` and the
+exporter refuses a CRLF working copy — a platform-varying hash can never gate a
+Linux checkout. **Tolerance bands exit CI entirely** and become the **re-buy
+decision rule**: a recertification after any label re-buy reads against a band
+floored at the measured ~0.03 buy-time variance — tighter would alarm on the
+instrument's own noise. Trend stays M1-minimal: the journal *is* the trend store;
+a rendered trend view waits for deployment, when re-buys become routine.
+
+---
+
+## The judge
+
+**No gold-entangled model as an instrument** (ruled 2026-07-21). The gold ledger's
+§8 ban on the gold-assist model extends to every instrument whose calibration rides
+on gold: the assist model's reference row is *self-agreement* — it drafted what
+gold was adjudicated from — so a same-family judge would inherit self-agreement as
+apparent validity. The judge is also a different family from the labeler: a
+labeler-family judge would import self-preference into the agreement metrics.
+
+**A second annotator, not a verifier** (settled 2026-07-23, four-fork design
+discussion). The judge never sees production's answer: it labels the review fresh
+under the same frozen artifacts, and agreement is computed mechanically afterwards.
+Verifier-shaped judging was rejected — showing the prediction anchors the judge
+toward endorsing it, leniency in exactly the direction a self-certification can't
+afford. The re-labeler also makes infrastructure reuse total: a judge run is an
+envelope set under its own versions triple, so calibration and the census-sample
+read are the existing scorer pointed at different pairs. Riders: **single-review
+dispatch, temperature 0** — the instrument must not inherit a variable it exists to
+measure. Standing caveat: two models can share blind spots, so agreement is an
+optimistic bound — mitigated by the cross-family pick, backstopped by the human
+holdout.
+
+**The calibration rule was pre-registered** so the number can't be rationalized
+after the fact — the paired Δ(judge − production) on shared gold:
+
+| Verdict | Reading | Consequence |
+|---|---|---|
+| pass — significantly above production | the judge is a valid quality reader | census-sample verdicts are reference-grade |
+| marginal — indistinguishable | the judge is a disagreement flagger | the sample reports agreement rates, never "judge-corrected quality" |
+| fail — significantly below | reported as a finding | certification stands on the mechanical layers |
+
+Frontier escalation is proposed only from marginal/fail, never auto-fired. Refusal
+routing resolved both ways at once: labeler-refused reviews are *not* patched by the
+judge (a substitute label is a different annotator's triple that can't quietly join
+the displayed numbers, and patching would launder the content-policy footnote out of
+the record); the judge's own refusals take durable marks, with agreement computed
+over the mutually-labeled intersection and refusal counts disclosed — an instrument
+that declines to read didn't read wrong.
+
+**The build amendments** (2026-07-23; model and routing picks Arda's). The generic
+"Gemini flash" resolved to `gemini-3-flash-preview` on assembled evidence — the only
+flash candidate consistently above production's certified F1, where a weaker judge
+near-guarantees a demoted instrument — with two caveats recorded: selection optimism
+(the same gold measures the pick and the calibration) and preview-id retirement risk,
+mitigated by running calibration and the census sample close together. Routing is
+direct Gemini API for instrument continuity with the bake-off's measured
+generation config. Gold's out-of-scope reviews are **backfilled honestly** (true
+metadata from corpus files, never fabricated rows, scoped out of every labeling
+run's selection); a **text handshake** guards instrument identity — an envelope must
+never claim text the judge never read.
+
+> **Outcome.** Calibration **PASS** (2026-07-23): judge F1 0.816 vs gold, paired
+> Δ **+0.050 [+0.019, +0.083]** over production on the shared reviews — census-
+> sample verdicts are reference-grade; frontier escalation moot. Instrument caveats
+> on record: the preview id survived a load-shedding capacity event and has a named
+> successor, so a re-run may need recalibration; the Batch API cost lever carries a
+> stuck-jobs strike.
+
+**The census-sample read: reviews, n=1,000, sync** (ruled + built 2026-07-23). The
+frame is reviews, not mentions — the judge's unit of work is a review, and a
+mention frame would overweight multi-mention reviews with no clean review-level
+interpretation; zero-mention reviews stay in ("both instruments say no aspects" is
+agreement worth measuring). n=1,000 roughly halves gold's interval; the Batch API's
+50% saving doesn't pay for its job-submit/poll/download build at this scale. The
+sample pins text by sha256, not by copy — the dispatch refuses a store whose text no
+longer hashes to its pin. Everything instrument-defining lives once in a shared
+dispatch engine consumed by two thin shells (gold calibration, census sample), so
+the two runs cannot drift apart.
+
+> **Outcome.** Judge-vs-production agreement **F1 0.791 [0.772–0.810]** on
+> 1,000/1,000 (run of record `agree-20260728T184121Z-7c975c95`, scorer
+> `judge-vs-production/2`) — between production-vs-gold 0.766 and judge-vs-gold
+> 0.816, so no quality cliff outside gold. Per-aspect agreement rows journaled with
+> CIs at a judge-n floor of 30; the top-disagreement exemplars seed the human
+> adjudication sheet (open: decides whether `updates` 0.611 is production
+> under-detecting or the judge over-finding).
+
+**The registered experiments closed the census-vs-lab gap** (designed, executed,
+and self-refuted 2026-07-25). Two arms rode existing references — the judge never
+ran again, gold is gold: a contamination isolation (production's model at N=1
+against both references, plus a registered contingent that fired) and a compact-
+codebook 2×2. Experiment envelopes stay in the pool with the batch condition tagged
+into `model_version` (`@n1`/`@n10`) — two label sets expected to differ must not
+share an identity, and the tag buys containment (production folds filter the
+untagged triple) plus verbatim scorer reuse.
+
+> **Outcome.** **Batch composition is acquitted**: every same-day composition
+> comparison is null, every cross-day comparison shows a ~0.02–0.03 gap including
+> with composition held fixed — the census-vs-lab −0.033 is **buy-time variance of
+> the served model** (non-monotone timeline at temperature 0 throughout).
+> Consequences: the N=10 batching lever is vindicated; the compact codebook is
+> closed on measured evidence; **any cross-day label comparison carries a buy-time
+> rider, and re-certification after a re-buy is not optional**; production's 0.766
+> stands — it certifies the labels actually bought. Named residue, eyes open: the
+> recomposed cell's same-game premise was measured false after the buy (corrected
+> 2026-07-27), so recomposed-vs-census interpretations carry a neighbor-structure
+> confound; the census's true mixed-game structure is untested. Readings regenerate
+> via `probes/d2d_reads.py`.
+
+**The self-grading 2×2 is registered, deferred to the milestone post.** Under a
+re-labeler judge, "the labeler judging its own labels" survives only as a
+verifier-shaped bias demonstration — each model verifies its own and the other's
+gold labels, self-preference = endorsing your own beyond what correctness explains.
+Off the critical path (~$1); the post decides with a cost proposal whether it wants
+the demonstration — the empirical receipt for the no-self-grading stance.
+
+---
+
+## The redirect & the product frame
+
+**The investigator is deferred; a grounded RAG chat is the story channel**
+(direction ruled 2026-07-27 by Arda; recorded at the gated design session, same
+date). The agentic verify-then-explain loop is **deferred indefinitely**; a RAG
+chat over the labeled reviews takes its milestone slot. Why: the chat monetizes
+M1's assets directly (the labeled envelopes are a metadata-filtered retrieval index
+most RAG systems lack; the calibrated judge machinery extends to groundedness /
+faithfulness / retrieval-quality evals), the evaluation thesis becomes more
+market-legible ("built and measured a RAG system" is understood in one sentence),
+and it fits the Data/ML/AI transition better than the bespoke loop. Cost named
+openly: the verify-then-explain differentiator goes dormant — deferred, not
+deleted. Blast radius verified small: nothing built depends on investigation
+machinery; the exposure is docs + product story.
+
+**The two-track rule survives translated.** Every displayed number still comes from
+the survey mint alone; stories now come from grounded retrieval — the chat quotes
+retrieved reviews and never mints numbers, retrieval counts in provenance stamps
+are process disclosure rather than statistics, and non-survey envelopes are
+excluded from the mint by construction (the same origin-tag wall the import-graph
+test guards). Roadmap shape: the chat is **the new M4**, sequenced after the
+sampling study (M2) and deployment (M3) — M3 ships a URL sooner, and the chat's
+offline prototype + eval can run against the 49-game census before deployment
+exists, so the eval story is never hostage to M3. `core/detect` survives as
+**display-only episode markers** built at M3: pure statistics over the
+all-language histogram, no explainer. The M1 post tells the redirect straight — a
+measured scope call on stated grounds, not a retreat.
+
+**Type a game name, get the report — then interrogate it** (product frame ruled
+2026-07-27; architecture rules at the M4 design session). The report stays the
+product; the chat is its **interrogation channel** inside the report page — never
+chat-first, never a standalone surface. It interrogates *this report's evidence
+base*, so chat coverage equals report coverage by construction. The design fitness
+test: every downstream choice must serve at least one of the three claims a stock
+RAG app cannot make, or it is commodity weight —
+
+1. **retrieval over self-labeled structure** — "why do people hate the grind?"
+   resolves to aspect ∧ sentiment ∧ game ∧ window filters before any embedding
+   runs, with a measured classifier (published F1 + CI) as the index;
+2. **RAG evals on the already-calibrated judge**;
+3. **a chat that structurally cannot fabricate statistics**.
+
+**Question scope.** In: aspect why/what (the core), sub-ontology drill-down (the
+one place semantic search earns its keep), time-scoped questions, and number
+questions answered as **mint citations**. Refused: advice and speculation
+("should I buy it?"), honestly and specifically. Out entirely: cross-game
+comparison — it breaks the per-report frame, which is the product's identity
+rather than a v1 limitation.
+
+**The answer contract: claims with receipts.** Short prose composed only over what
+was retrieved; each claim pinned to verbatim quotes passed through the
+fabricated-quote verifier before display (a claim whose quote does not verify is
+dropped, never shown); numbers appear only as visually distinct mint citations,
+never phrased by the model; every answer carries a one-line provenance stamp; and
+answers walk a three-state ladder — grounded answer → **thin-evidence answer,
+named as such** → honest refusal. **No free-composition mode**: the moment one
+answer type may speak without receipts, the differentiator is gone.
+
+**Leanings recorded for the M4 design session** (leanings, not rulings): a
+background chat pool beyond the survey (~5k, plain most-recent order, disclosed;
+never targeted — a steered fill is the investigation track reborn) with
+progressive labeling over a raw tier; **a small local pinned embedder** — pinned
+weights make the index immortal where an API embedder's retirement orphans every
+stored vector, and a 5k pool is ~8 MB of vectors, so brute-force cosine beside
+SQLite, no vector DB; **no RAG framework** — the chat is a pipeline, not a graph,
+and a framework layer would hide exactly the visible engineering the portfolio
+exists to show (LangGraph is named as the tool for the next complexity tier,
+adopted when a real loop appears, not before). The session's docket: pool tiering ·
+embedder choice · retrieval mechanics · eval design on the judge machinery ·
+cost caps · the composition prompt · the `Review` reception-metadata deferral
+reopened as a retrieval signal.
+
+---
+
+## Standing rules
+
+**The post ships with the milestone.** Every milestone's public artifact ships when
+the milestone does, imperfect — the standing counterweight to a known
+over-investment pattern.
 
 **The ops story is a deliverable, not plumbing** (2026-07-08). Two-sided stance: no
 infrastructure without a driving product need (the Kubernetes/Terraform tombstone
-stands), but no skipping an ops opportunity the product genuinely justifies as "not our
-focus" — DevOps/MLOps depth is a deliberate portfolio pillar here. What the product
-already justifies, made visible instead of silent: evals-in-CI regression against the
-gold set, observability (structured logs, cost-per-request, latency, token accounting)
-surfaced in a small ops dashboard, versioned provenance (prompt/model/gold-set versions
-stamped on every artifact), and a deploy pipeline as code. The test for any addition
-stays: does *this product* need it?
+stands), but no skipping an ops opportunity the product genuinely justifies —
+DevOps/MLOps depth is a deliberate portfolio pillar here. What the product already
+justifies, made visible instead of silent: evals-in-CI, observability surfaced in a
+small ops dashboard, versioned provenance on every artifact, and a deploy pipeline
+as code. The test for any addition stays: does *this product* need it?
 
-**Contract modeling: frozen dataclasses, validated at the shell** (2026-07-09, the M1
-foundation). The plain-data spine is `@dataclass(frozen=True, slots=True)` — immutable,
-hashable, closed-shape, importing nothing; validation lives in the shells, where a
-pydantic parser turns raw external JSON (Steam payloads, LLM responses) into a clean
-contract, so *trust no raw data* and *plain data crossing the seam* are both honored and
-pydantic never reaches core. Two record-design calls carry weight. **(1) The
-classification envelope:** one review yields one `ReviewClassification` — recording *that*
-it was classified, under which versions, with zero-or-more aspect mentions — rather than a
-flat mention list, because the probe's 46%-yield-nothing reviews make an empty result
-indistinguishable from an unprocessed one under a flat shape, which breaks resume/caching
-(empty reviews re-paid every run) and honest denominators ("46% yield zero" is only
-statable if *processed* counts separately from *produced mentions*). **(2) Dual
-sentiment:** the reviewer's overall verdict (`voted_up`) and per-aspect sentiment are
-separate fields, because they dissociate constantly ("refunded it, but the soundtrack is
-gorgeous") and both are needed to say things like "70% of negative reviews still praise
-the art." Provenance is **two-layer** — a universal run stamp (run id, code sha, config
-hash) orthogonal to the content-cache key (model + prompt + ontology versions) — and the
-narration/telemetry **sink is a Protocol in contracts**, so every shell inherits one
-emission contract and the ops-story observability is structural from the first commit
-rather than retrofitted. These are the first fields to freeze under *rules now, fields
-later*: their consumers all land at M1, and the field lists become authoritative in code.
-
-**C0 provider bake-off: the protocol** (2026-07-17, six-fork design discussion). The
-survey-slice labeler is chosen by measurement against the gold set, not by reputation.
-**Pool — free tiers first** (per the 2026-07-17 landscape scan, live-verified): Gemini
-2.5 Flash + Flash-Lite · Mistral Small 4 + Nemo · Groq Llama 3.3 70B + 3.1 8B ·
-DeepSeek v4-flash (trial tokens) · self-hosted 8B (Ollama). Cerebras dropped (hard
-5-RPM free ceiling, enterprise-only batch, and its speed sells latency — a ruled
-non-goal for batch labeling); OpenAI dropped for round one (no free tier). Paid tiers
-enter only if a winner needs throughput for the survey buy — a rate question, not a
-model-choice question; the scan found cost a non-discriminator at our scale (every
-realistic candidate labels the full survey slice for under ~$20 before batch
-discounts), so the deciding axes are quality axes. **Metrics, frozen before any run**:
-primary is mention-level precision/recall/F1 over pinned-slot mentions, paired by
-label-within-review against gold's 351 — precision and recall always reported
-separately because the known failure mode (flash-lite's over-extraction, the
-calibration entry in ONTOLOGY_PRUNING.md) is directional and F1 alone would blur it;
-sentiment scored as flat accuracy on matched pairs only (no adjacency credit — gold's
-`mixed` rulings were hard-won and 4 classes are too few for a distance to mean much),
-so polarity errors never double-punish detection errors. **One gate**: unrecoverable
-parse failures above 2% disqualify outright — a labeler that drops reviews at survey
-scale is missing-data bias no downstream metric repairs; below the gate a failed
-review scores as zero predictions (never excluded — exclusion flatters the providers
-that fail most). Salvage-parsed output counts as parsed, salvage rate reported.
-Zero-share is a **diagnostic, not a gate** (gold's base rate: 49.2%) — the pairing
-already prices fabrication as precision loss and misses as recall loss; zero-share
-stays in the report as the readable summary of that story. **Candidate-slot mentions
-stay out of the score** on both sides: n=11 in gold can't support a metric, and slot
-discipline is already priced in (forcing a pin where gold ruled candidate is an
-automatic precision hit; cowardly routing real aspects to candidates is a recall hit).
-The dumping loophole gets a named diagnostic — candidate-emission rate vs gold's ~3% —
-plus a qualitative overlap table against gold's 11, unscored. **Parity**: `classify-v1`
-verbatim for every candidate, no per-model tuning (tuned prompts would measure our
-effort, not the models); structured output deliberately non-parity — each candidate
-runs its best native mechanism (strict schema, JSON mode, Ollama schema), recorded per
-row, because that difference is part of the product being bought and flattening to the
-weakest mode would erase what the parse metric exists to measure; batch size and
-temperature held at the B4 pilot's values, context-forced deviations recorded, never
-silent. One scored run per candidate; a repeat run only as a decode-variance probe if
-leaders land within error bars. **Decision: frozen metrics, recorded judgment — no
-pre-committed ranking.** Arda rules from the full table after the runs (his call,
-2026-07-17); the guard against metric-shopping is that the metrics above are frozen
-now, and the ruling lands in this file with its why at the moment it's made. Two
-pieces of information ride with the table: a **reference line** — the gold-assist
-model's own F1 vs final gold, computed from the persisted assist drafts (it competes
-with nobody, it calibrates the field) — and a standing **no-buy exit**: the bake-off
-may conclude nobody is buyable, and the recorded outcome is then tier escalation
-(paid stronger models, round two), never buy-the-least-bad. **Lineage**:
-`claude-sonnet-5` is banned from the pool (gold assist, INSTRUCTIONS §8); Gemini 2.5
-Flash/Flash-Lite ran the *pruning probes* and shaped the vocabulary, not the gold
-labels — seen, weighed, eligible. **Provenance**: runs land under
-`probes/captures/bakeoff/<provider>/` — raw responses, parsed labels, and a manifest
-each (model ID string, provider, `classify-v1`, ontology pin `v1`, structured-output
-mode, batch size + deviations, date, token counts, actual cost); headline numbers
-carry 95% bootstrap CIs resampled over the 250 *reviews* (mentions within a review
-aren't independent); the comparison table is a generated artifact, regenerable from
-captures.
-
-**C0 bake-off: the scorer/runner design + the batch-size amendment** (2026-07-18,
-five-fork design discussion). **The amendment — batch size moves from the parity
-column to the part-of-the-product column**, joining structured output: the protocol
-above froze "batch size held at the pilot's values," but the pilot only ever measured
-N≤5, and free-tier daily request quotas make low N production-hostile (the ~50k-review
-survey buy at N=5 is ~10,000 requests — weeks at a 250–500 RPD tier; N=50 cuts it to
-~1,000). Since the bake-off's N becomes C1's production default and certify-what-ships
-means measuring each candidate at its deployable shape, **each candidate runs at its
-own N = min(envelope max, dilution ceiling)** — envelope max computed from the
-provider's own caps (per-request/per-minute input tokens; the output ceiling usually
-binds first: at ~120 output tokens per review, an 8k-output model caps near N≈60
-regardless of context window), dilution ceiling established once by the reframed
-N-probe. N is recorded in every manifest and shown per candidate in the comparison
-table — a visible dimension of Arda's ruling, never a hidden confound. Honesty rider,
-recorded so the choice reads correctly later: the free-tier RPD constraint motivated
-maximizing N; if C1 ends up buying the winner's paid tier (where RPD stops binding),
-high N was an operational choice, not a quality-driven one. **The N-probe** (runs
-before any scored run): map the quality-vs-N curve at N ∈ {5, 10, 20, 50, envelope
-max} on two structurally different free candidates — Gemini 2.5 Flash and Groq Llama
-3.3 70B — scored against gold with the same scorer; the dilution ceiling is the
-largest N where both hold quality within error bars. Two probe models rather than one
-so the ceiling isn't quietly tuned to a single vendor's comfort; using gold to set an
-operational parameter before the scored runs is calibration, not metric-shopping — the
-parameter rule applies uniformly, and the probe is disclosed here rather than
-discovered later. **Scoring core is library code** in `src/steamlens/evals/` (the
-ARCHITECTURE-planned eval stratum: imports anything, nothing imports it) because the
-gold-pairing metrics outlive the bake-off — evals-in-CI (D3) certifies against the
-same gold set; the runner and the table generator stay `probes/` scripts (one-shot
-orchestration whose findings, not style, are the artifact). **Pairing is set
-intersection by label within review**: gold verified duplicate-free (250/250, no
-repeated label in any review) and classify's parse collapses repeats on the prediction
-side, so true positives are label matches, false positives unmatched predictions,
-false negatives unmatched gold, pinned-slot only; sentiment is flat accuracy over the
-matched pairs. **Both sides resolve pinned-vs-candidate through `core/normalize`'s
-surface index** — one resolution authority, so the scorer and the candidates can never
-disagree about what "pinned" means; gold's 11 candidate mentions fall out mechanically,
-and a gold label drifting from the pinned vocabulary surfaces as a loud mismatch
-instead of silently scoring as a candidate. **The runner rides the full `LlmClient`**
-(fresh one-stage client per candidate) rather than raw provider entries: rpm pacing,
-bounded retries, the spend ledger, and the durable cache give a crashed run free
-resume — exactly the machinery free tiers need. **The 2% gate's "unrecoverable"
-defined**: a failed row gets one re-batch pass at N=1; unrecoverable means it failed
-in its production-shape batch *and* alone — crisp semantics ("fails even in the
-easiest setting"), poison-review isolation so one pathological text can't drag batch
-neighbors into the gate, ~5 extra requests at the gate boundary. Salvage-parsed rows
-count as parsed with the salvage rate reported, per the protocol. **Bootstrap CIs**:
-10,000 resamples over the 250 reviews, percentile intervals, fixed seed in the
-manifest. Derived scores are never persisted per provider — the table regenerates from
-captures + gold, one source of truth.
-
-**C0 bake-off: the run campaign's envelope amendments** (2026-07-18/19, accumulated
-during the runs; each lesson also lives as a comment on its candidate in
-`probes/bakeoff_runner.py`). **Pool growth**: Gemini 3-flash-preview / 3.1-flash-lite /
-3.5-flash (newer free tiers, console-verified quotas); Mistral Medium / Large /
-Ministral-14B (Arda's amendment — Mistral's free tier has no daily cap, so its stronger
-tiers are survey-viable at zero cost); nemotron-3-ultra and hunyuan-3 via OpenRouter
-(50 free requests/day *account-wide*, shared across both); DeepSeek v4-flash + v4-pro —
-**the pool's first paid tier**, with real prices in the ledger (flash $0.14/M in miss /
-$0.0028/M cache-hit / $0.28/M out; ids pinned because `deepseek-chat` deprecates
-2026-07-24 — five days' notice, the model-churn precedent named below). **Probe-model
-substitution**: the N-probe's planned second curve (Groq 70B) can't ladder — its
-envelope kills large batches — so the two dilution curves ran on gemini-3.1-flash-lite
-and mistral-small. **Envelope exits, recorded**: Groq 8B is envelope-dead (6K TPM < the
-~7.6k-token prompt — one request unservable at any N); Groq 70B is an **envelope exit
-by ruling** (2026-07-19: 100K TPD ≈ 2 days per 250-review measurement, ~22.5M tokens
-for the survey — infeasible for dispatch at any quality; its wire lessons stand: Groq
-counts prompt + the `max_tokens` *reservation* against its 12K per-request TPM window,
-and `json_object` forces an object root on this route too). **Retry three-staging**
-(after nemotron burned a full daily quota on straight-to-N=1 isolation): initial batch →
-re-batch failures at production N → isolate only survivors at N=1; the 2% gate's
-"failed in its batch AND alone" semantics is preserved at a fraction of the requests.
-**Decode tolerance ruled into core** (`core/classify`, not the probe — the bake-off
-must measure the same pipeline C1 will run): strict `json.loads` first, then the first
-fenced block that decodes, then the outermost `[...]` slice; object roots still fail
-the array contract deliberately — shape indiscipline is signal, and it caught v4-pro.
-**The output ceiling raised from measured demand** (2026-07-19): the day-one
-512+140/review formula truncated dense batches at five providers (cut exactly at the
-cap) and even one N=1 retry (a single dense review legitimately generates up to ~1,360
-tokens); now 2048+200/review — base holds one worst-case review, per-review clears the
-measured >165-token dense zone, the per-candidate `output_cap` min() stays as the
-runaway guard. **v4-pro: DQ'd on root-shape instability** (16.8% unrecoverable under
-`json_object`: object roots on 2/13 batches, bare `{"idx": 0, ...}` at N=1) — parsed-row
-precision .662 vs flash's .732 at 3× the price made a prompt-json rechase not worth
-buying; the row stands as measured. **Ollama: closed unwired, a value exit** — the
-serverless argument (a labeler living on the local GPU can't serve the M3/M4 live path)
-always limited local to the one-time survey batch, and DeepSeek's ~$1.4 true survey
-cost collapsed the remaining pitch to "save a dollar against 8B-Q4 quality risk plus a
-wiring session." **Two completions skipped by decision** (the Groq-exit precedent —
-a recorded decision, not a gap): 2.5 Flash n50 (its RPD went to the n20 DQ-clearing
-finish) and nemotron's last 3 reviews (row stands 247/250 PARTIAL) — both non-contenders
-whose rows couldn't move the ruling, and the ceiling raise invalidated their cheap
-cache-warm reruns.
-
-**C0 bake-off: the paired read + the v4-flash N-freeze** (2026-07-19). **Paired
-bootstrap added to the evals core** (`paired_bootstrap_ci`; `--compare` in the table
-script): every run scores the *same* 250 gold reviews, so run-vs-run gaps are paired —
-each resample draws one set of review indices and scores both runs on it. The
-separate-interval read overstates the gap's uncertainty, and the correction cut both
-ways on the same day: 3 Flash vs v4-flash at matched n20 — individual CIs overlap
-heavily, paired gap **real** (F1 +0.034 [+0.002, +0.067], recall-driven); 3 Flash n20
-vs v4-flash at its best N — **indistinguishable** (+0.025 [−0.004, +0.055]). Eyeballing
-overlapping intervals would have called the first one wrong. **The v4-flash ladder**
-(n5/10/20/50, all four 250/250 with zero parse failures): F1 .746 / **.776** / .767 /
-.762 — the curve peaks at n10 with two-sided paired evidence (beats n5: F1 +0.029
-[+0.009, +0.052], the n5 precision decay is the flash-lite pattern repeating; beats
-n50 on recall: +0.042 [+0.013, +0.073], the depth-dilution direction every ladder
-showed). **N frozen at 10 — quality's call alone**: true (cache-adjusted) cost is
-N-independent in practice (the ~88%-fixed prompt makes codebook repeats nearly free at
-the ~98%-off hit price; measured $0.006–$0.011 per 250 reviews across the ladder,
-survey ≈ $1.1–1.6 at any N), and wall time washes out because DeepSeek's envelope is
-concurrency-only (2,500 concurrent — the C1 driver gets bounded concurrency as config,
-per the seam's existing design). This closes the batch-size amendment's honesty rider:
-the free-tier RPD pressure that motivated maximizing N doesn't bind a paid
-concurrency-only winner, and the freeze went to the measured quality peak, not the
-operational ceiling.
-
-**C0 ruling: DeepSeek v4-flash at N=10 labels the survey** (Arda's ruling, 2026-07-19,
-from the regenerated table + paired comparisons; config: v4-flash · N=10 ·
-`classify-v1` · ontology `v1`). **The honest sentence**: 3 Flash is measurably better
-at matched N (+0.034 F1, paired CI excludes zero), the gap closes to indistinguishable
-against v4-flash's frozen N, and it costs ~12× more (~$25 paid-Gemini survey vs ~$1.4
-true) — v4-flash wins on cost-effectiveness with zero parse failures across its ladder,
-a stable `json_object` mode, and no quota envelope. Not claimed: "as good as the
-leader." The no-buy exit was live and not taken — top-cluster quality at survey cost
-below lunch money is a clear buy. **Single-labeler discipline**: the free-Gemini-with-
-DeepSeek-fallback hybrid was considered and rejected — savings bounded by the ~$1.4 it
-competes with, free quotas would label under 1% of the pool, and a mixed-labeler pool
-breaks measurement integrity (two error profiles inside every aggregate, and D2's
-judge calibrates against one labeler). Provider fallback re-enters legitimately at
-M3's design as an availability question, not a survey question. **Reopen conditions**:
-(1) the pre-registered compact-codebook experiment (D2) changes the prompt, which
-invalidates the dilution curve by construction — it re-certifies quality *and* N on
-the gold slice; (2) DeepSeek repricing or model deprecation — the `deepseek-chat`
-five-day retirement is the named precedent; (3) survey-scale anomalies the gold slice
-couldn't show (drift, systematic per-game failure) surface through D2/D3, and tier
-escalation per the protocol's no-buy clause is the recorded fallback, never
-quiet tolerance.
-
-**C1 slice ruling: census of the usable pool** (Arda's ruling, 2026-07-19; full
-narrative in the stream SESSION_LOG same date). The survey labels **every
-English-nonempty corpus review — 135,260 across the 49 usable games** (measured by
-`probes/survey_supply_counts.py`; ~45% of the 298K headline once English-first and
-Unicode-honest emptiness shrink the denominator; per-game min 195 / median ~2,100 /
-max 6,869). This deliberately reopens and supersedes the 2026-07-16 "full corpus is
-never labeled" ruling on its collapsed premises: the labelable pool is 135K, not 298K,
-and the cost base is v4-flash's true ~$3–6, not Gemini's ~$25 — census costs 2.9× the
-1,000/game alternative. What the census buys: no shortfall policy (small games are
-censuses under any scheme), zero sampling error against the corpus for every displayed
-number, and the sampling study (M2) is never capped by today's choice. **No
-pre-filtering beyond usable** (ruled same day): "no aspects" is the certified
-classifier's own verdict and a measured quantity (gold zero-share 49.2%), a usefulness
-heuristic would be an unvalidated second classifier standing in front of the certified
-one ("runs bad" is 8 characters of real signal), and exact-duplicate texts already
-cost once through the content-keyed label cache. **Instrument lesson recorded**:
-100-review/game probes cannot resolve mention rates under ~1% — the floor-clearance
-projection (`probes/floor_clearance_projection.py`) returns identical results at every
-candidate size — so tail pins (matchmaking, cheating, physics, servers_netcode at
-0.27–0.43% corpus-pooled) are only visible at n≈1,200–1,900, where the census lives
-anyway. Slice-size math in the stream WHITEBOARD (2026-07-19).
-
-**C0.5 certification: the v2 wording batch, ruled** (Arda's ruling, 2026-07-19: **the
-v2 full-fidelity codebook labels the survey, N=10 stands** — the sanctioned reopen
-under the C0 ruling's condition #1). **Why it ran**: the gold ledger's routing rulings
-(2026-07-16/17) postdate classify-v1's frozen wording (2026-07-13), so the labeler had
-never seen the semantics gold grades it against, and the survey pool is the durable
-asset C2, D2, and M2 all fold — it gets bought at aligned semantics. **The
-distillation** (one shot, by design — wording was never iterated against gold F1):
-triage interview over the 33-ruling ledger settled what rides (routing/semantic
-rulings 1–3, 8–16, 18–25, 27–33, the two FIXLOG wording riders, and machine-side
-demotion guards for camera/accessibility that v1 only carried for grind/localization)
-vs what stays gold-process-only (4–6, 17, 26); the ride-list landed in
-`src/steamlens/ontology/v2.toml` — same 51 pins, aliases byte-identical (the
-normalize surface index is unchanged), global rules 8 → 13, every real-pass example
-freshly constructed so no gold span reaches the machine's contract. The compact
-render became a first-class prompt variant (`classify-v1-compact`, own content pin) —
-template code, selected per run. **The arms** (gold slice, N=10, paired bootstrap
-10,000 resamples, seed 20260718, all runs 250/250 with zero parse failures): v2 vs the
-frozen v1 baseline — precision **+0.066 [+0.039, +0.098]** (real), recall −0.030
-[−0.062, +0.000] (borderline), F1 +0.020 [−0.003, +0.045], sentiment +0.015; v2-compact
-vs baseline — precision +0.073 (real) but recall **−0.057 [−0.097, −0.020] confirmed
-worse**; compact vs full — indistinguishable on all four metrics. The mention-economy
-diagnostic explains the shape: baseline over-mints (386 mentions vs gold's 351,
-zero-share 48.0% vs 49.2%), v2 lands on gold's economy (339 / 52.4%), compact folds
-too hard (329 / 54.0%) — the ruling batch is precision-lifting deletion, working as
-designed. **The honest sentence**: v2's F1 is not-worse-and-leaning-better, its
-precision gain is confirmed; "confirmed better F1" is not claimed. **Compact rejected
-for dispatch, kept for D2**: its token cut measured 26% (9,940 → 7,330 prompt
-tokens/request — the pre-registered ~60% was estimated against the leaner v1
-codebook), worth ~$0.10 across the whole census under prefix caching — immaterial next
-to a confirmed recall loss and broken human/machine contract parity. **The N re-check
-on the winner** (n5/n10/n20, C0's ladder shape): F1 .786 / **.796** / .752 — n10 beats
-n20 two-sided (+0.043 [+0.020, +0.071]), n5 is indistinguishable and dearer per
-request; the peak-at-10 shape reproduces under new wording. **Dispatch config for C1**:
-v4-flash · N=10 · `classify-v1` template · **ontology `v2`** (selected by explicit
-path; the packaged default stays v1 because gold's identity pin is v1 — flipping the
-default is a deliberate later step that must rework the runner's gold-pin check, not a
-side effect). Captures: `probes/captures/bakeoff/deepseek-v4-flash-v2*/`; cost of the
-whole certification ≈ $0.15.
-
-**C1 `studies/` labeling driver: the census dispatch design** (settled 2026-07-19,
-seven-fork design discussion; dispatch config itself frozen at the C0.5 ruling —
-v4-flash · N=10 · `classify-v1` · ontology v2 by explicit path). **Shape**: a thin
-`studies/` entry shell (per the module map) plus a local-corpus reader — raw frozen
-JSONL → `Review` records with the usable filter as a pure, tested predicate; the
-driver composes reader → `ReviewStore` ingest → selection → batch → `core/classify`
-prompt/parse → `LlmClient` → `LabelPool`, narrating through the sink. Resume needs no
-checkpoint ledger by construction: `unlabeled_under` *is* the checkpoint (envelopes +
-failure marks anti-joined), batch composition is deterministic over the remaining set,
-and the content-keyed cache makes a re-formed batch whose response was already bought
-free — crash anywhere, relaunch, pay only for what never completed. **Fork 1, store
-concurrency — two `Store` instances over the one file**: the client's cache/ledger
-bind to connection #1 (touched from worker threads under the client's lock), all
-label-pool writes go through connection #2 from the main thread only. Rationale: a
-transaction is connection-scoped, so on the shared single connection a worker's
-mid-`complete` cache write could land inside the main thread's open envelope
-`BEGIN…COMMIT` and be erased by its rollback — silently re-buying a bought response.
-Two connections make the interleave impossible structurally; WAL + the existing 5s
-busy timeout (the store docstring's "safety net for an unexpected second connection")
-get promoted to designed-for, docstring updated. Worker topology: the pool runs
-call+parse only; the main thread consumes completed futures, writes envelopes/failure
-marks, and owns the narration — the fail-loud duplicate-envelope discipline stays
-single-threaded. **Fork 2, ingest scope — usable pool only**: English + Unicode-honest
-nonempty + CS2 (app 730, named constant) excluded at the reader, so the `reviews`
-table, the ruled census, and the selection query are the same set and
-`unlabeled_under` means "remaining work" unmodified. After ingest the driver asserts
-the total equals the ruled **135,260** and fails loud before any money moves — the
-slice ruling becomes a runtime check. The ingest narration states the drop arithmetic
-(total on disk / non-English / empty / ingested), and the raw files stay the
-re-ingestable source of truth for any future non-English question. The no-usefulness-
-prefiltering ruling is untouched: low-content English reviews are bought, and their
-empty-mentions envelopes are the measured zero-share. **Fork 3, the label key's
-`model_version` — the requested id** (`deepseek-v4-flash`), never the response's
-self-reported version: keys are contracts, observations are evidence. The reported
-string journals per call in the spend ledger (already the `SpendRecord` shape) and the
-run manifest records the set seen; a mid-run change from the first-seen value **aborts
-loud** rather than warn-and-continue — a silent provider model roll is exactly the
-event that would split the pool's "one annotator" claim, and resume makes the abort
-cheap. Caveat on record: if DeepSeek merely echoes the alias, the drift watch watches
-a mirror — the per-call ledger is then the only real trace, which is why it is
-per-call. **Fork 4, throughput dials — run config, not design**: `max_workers`
-defaults to 1 (sequential resting state), the census dispatches explicitly at 10;
-client rpm for v4-flash set to 600 so pacing demotes to a runaway backstop under the
-worker bound (DeepSeek's envelope is concurrency-only, 2,500 concurrent for flash —
-console-verified 2026-07-19); the first batch runs solo before the pool opens so the
-provider's prefix cache seeds once instead of ~10 concurrent cold misses — pennies,
-but the pilot's cost-per-review extrapolation then measures steady-state behavior.
-These dials never enter the cache/envelope key — retunable per dispatch. **Failure
-policy — the bake-off's three-pass shape**: initial batches → failed idxs re-batched
-at production N → survivors isolated at N=1 → still-failing reviews marked durably via
-`record_failure` (excluded from future selection under this versions triple).
-`LlmUnavailableError` and `AtCapacityError` abort the run loud; both are resume-clean.
-Amended 2026-07-20 on live census evidence (DeepSeek's content filter 400'd one
-request over a single review's Tiananmen line, and the pre-fix abort would have
-re-formed the same batch every relaunch — a permanent wall): a
-`ProviderPermanentError` now fails the batch's rows into that same sweep, so the
-innocent co-batched reviews label on isolation and only the trigger review takes a
-durable mark carrying the provider's refusal verbatim — the pool honestly records
-"the annotator refused this text" (an instrument-limitation footnote the milestone
-post should carry: a Chinese-hosted annotator imposes its content policy on the
-census). Guard: a >20-refused-batches circuit breaker still aborts — a systemic 4xx
-(revoked key, broken payload) must surface as an abort, never as thousands of quiet
-marks. Same incident's second lesson: an aborting run now cancels its queued batches
-(the executor's context manager otherwise *waits* for the queue, which kept buying
-~11 minutes of responses behind the dying run — recoverable money since the cache
-serves them to the next tranche, but abort must mean stop by construction).
-**Fork 6, artifact homes**: the pool lives at `data/steamlens.sqlite3` (`data/`
-gitignored; the bought census joins the Drive backup with a hash manifest, post-census
-TODO), and each run also writes `data/runs/<run_id>/manifest.json` bakeoff-style —
-resolved config, versions triple + ontology content hash, counts, token totals,
-ledger cost, reported-version set, timestamps, aborted-or-clean. The `runs` table is
-the database's memory; the file is the human's citable one. **Fork 7, budget caps
-under the real balance** (~$9.80 DeepSeek credit at ruling time): pilot `--budget-usd
-1`, census `--budget-usd 8` — 2× the ruled $3–6 estimate's midpoint but deliberately
-*below* the balance so our clean `AtCapacityError` always fires before the provider's
-insufficient-balance error; the cap is per-invocation (the client counts from its own
-construction), so the driver narrates the ledger's lifetime total at startup — every
-relaunch shows cumulative census spend next to the fresh cap. Pilot gate before the
-census: a `--limit` slice (~300 reviews) certifies cost-per-review and throughput;
-census projection above ~$6 pauses for a top-up-or-reconsider ruling.
-
-**C2 `core/aggregate`: the number mint** (settled 2026-07-20, design discussion over
-five decisions; folds the census the C1 driver bought). **Shape**: a pure fold —
-survey-origin, version-pinned envelopes → `AspectAggregate` records — with persistence
-and the `aggregates` table pushed to the shell and deferred to their first consumer. The
-contract already fixes what a number *is* (`AspectAggregate`: raw counts only, the
-evidence floor deliberately a compose-time presentation rule, never baked into the
-stored tally); C2 is the first thing that fills it. **Decision 1, the grain — fold per
-game, `app_id` promoted onto the record.** A number is minted per `(app_id, aspect,
-slot)`, not once globally per aspect. Rationale: every consumer — a single-game report, a
-cross-game "best combat" leaderboard, the eventual product screen — lives at the per-game
-grain; a global fold blends incomparable populations (combat across an RPG, a farming
-sim, a city-builder is an average nobody wants) and, being lossy, can never be re-split
-into games, whereas per-game rows always roll back up to a global view. Per-game is also
-the only grain that stays honest about thin games: a small title's few mentions show *as*
-thin (wide error bars, greyed by the floor) instead of dissolving into a large pile. The
-cross-game leaderboard is then a *transpose* of the same table (fix an aspect, read down
-the games), needing no separate artifact. **Contract amendment**: `app_id: int` joins
-`AspectAggregate`. A2 froze the record before any consumer existed to reveal the grain;
-C2 is that consumer. Hiding the game inside `manifest_id` was rejected — it fails the
-"references carry their meaning, no decoder required" rule: every ranking query would
-decode the manifest to learn which game a number names. The game is part of the number's
-identity, so it is a first-class field. **Decision 2, candidates fold exactly like pinned
-— no fuzzy merge, singletons kept.** Candidates group by their exact stored
-(already-normalized) string, in the same table, `slot` carrying the pinned/candidate
-distinction. Two things are deliberately *not* done: (a) no machine merge of
-near-duplicates (`grind`/`grinding` stay distinct) — `core/normalize` (B2) already ran at
-label-buy time and by design only casefolds/collapses whitespace, never stems, because a
-false merge silently corrupts two aspects at once while a false miss lands recoverably in
-the candidate stratum for human-gated alias promotion; re-introducing fuzzy merging in C2
-would relitigate that at a layer further from review. (b) No floor at mint — singleton
-candidates mint as faithful (thin) rows, because the contract keeps the number a raw
-tally and the floor a display rule; keeping singletons means C2 has exactly one job
-(count everything, honestly) and *every* policy question (report floor, promotion
-threshold) lives downstream in one place. Consolidation for readability is deferred to
-the consumer: pinned aspects are already de-fragmented (aliases fold at label time), and
-residual candidate fragmentation is smoothed at consumption — an LLM composer naturally
-writes "excessive grinding" once (a *story*-track cosmetic merge, permitted; never a
-number merge), and a published *number* freezes its fold via offline alias promotion (a
-new ontology version + a cheap deterministic re-normalize over stored candidate strings —
-no LLM re-buy). C2 itself folds whatever version it is pinned to and stays the dumb
-faithful counter. **Decision 3, the denominator — per-game survey envelope count, empties
-included.** `sample_size` is that game's total survey envelopes under the pin, counting
-the ~46% empty-mentions envelopes; dropping them would inflate every share.
-`reviews_with_aspect` is the distinct reviews in the game mentioning the aspect (≤
-`sample_size`, and it differs from the mention total when one review mentions an aspect
-twice). This is exactly why the empty envelope is a first-class contract state (classify's
-envelope-over-flat-list call): the honest denominator is a stored quantity, not a guess.
-**Decision 4, provenance — the version pin and the manifest.** Only `survey`-origin,
-version-matching labels fold (contract-mandated; investigation-track labels never touch a
-number). The pin is **v2 by explicit path** — the C1 remainder: the packaged ontology
-default stays v1 (gold's identity pin), so every pool consumer, C2 included, pins v2
-explicitly. `manifest_id` names the fold — the version triple, the game set, when — tying
-each number back to the census sample it came from; the contract's deliberately loose
-manifest linkage (awaiting the M2 sampling machinery) is filled now with the census run's
-identity. **Decision 5, persistence — pure fold by default, snapshot on publish, table
-deferred.** C2's core is a pure function (`classifications → aggregates`,
-data-in/assert-out testable); it stores nothing. Recompute-on-demand is the default
-because the fold is cheap *and* fully reproducible (keep-vs-regenerate: regenerate the
-cheap middle). Persistence is an effect at the shell, taken deliberately only when a
-number is *published*: a snapshot step writes the fold into the `aggregates` table
-stamped with full provenance, giving a frozen, citable artifact — a snapshot store, not a
-live cache, so staleness is a non-issue (a persisted row is explicitly the record of run
-X). The `aggregates` table (B5-deferred to this consumer) is deferred *again* to its real
-first need — a published post (F1) — since D2 judges *labels* against gold and reads the
-pool, not the aggregate table. **Build note — never fold through the fat `reviews`
-join.** Measured on the census (135,259 envelopes / 170,532 mentions): the counting fold
-is ~150 ms, but joining the 169 MB `reviews` table merely to read each review's `app_id`
-drags text pages off disk and costs ~800 ms; prebuilding a skinny `review_id→app_id` map
-(110 ms, two columns) and folding against it lands the whole per-game pass at ~230 ms.
-Get `app_id` via the skinny map (or, only if ever needed, an append-only
-`app_id`-on-`classifications` migration); the ~1.5 s naive path is a fat-table smell, not
-an inherent cost.
-
-**`llm_client` / `store`: the response archive — raw provenance, not a cache** (settled
-2026-07-21, the pre-D2 debt pass). The store of bought provider responses is renamed
-`ResponseArchive` (was `ClassifyCache`) because it is a durable, content-addressed record
-of *unreproducible* raw provider output, not a disposable performance cache — an LLM reply
-can't be regenerated, and the archive is its only durable copy (same DB file as the labels,
-Drive-backed via the census manifest), so "clear it to reclaim space" must read as the data
-loss it is. Re-pay-avoidance (the `get` before dispatch that lets a run resume without
-re-buying) is a *free consequence* of a permanent content-addressed store, not a second
-design goal — so the archive constraint (never evict) names it, not the convenience. The
-rename also drops the "Classify" scope lie: every stage's calls land here, the D2 judge's
-included. Two alternatives rejected: **splitting** it into a real (disposable) cache plus an
-archive — identical bytes under an identical key, so the disposability is purely theoretical,
-structure with no operational teeth; and **adding a `raw` field to `LlmResponse`** so
-responses carry their wire body — it serves the wrong raw (the census responses are long
-gone; their raw exists *only* in the archive) while bolting a multi-KB blob onto every
-response for a value already stored once. **The seam stays text-only**: raw is a *forensic*
-affordance (human disagreement investigation — reading the model's discarded reasoning
-trace), never an input to a D2 metric (classification agreement, fabricated-quote, and
-numeric-grounding all read the *review text*, not the wire body), so it must be *retrievable*,
-not indexed on every record. Retrieval is by reconstructing the content-hash key on demand
-(review text + pinned prompt/ontology versions + route params + model → `sha256`), sound
-because the version-pinning discipline makes the recompute exact; no key is stored on the
-envelope and no helper is built until D2's forensic tooling defines the ergonomics it wants.
-The physical `classify_cache` table keeps its name — an internal string no contract reader
-sees, and renaming it would mean an `ALTER TABLE` migration on the bought 135K-row census DB
-for zero readability gain. Closes the 2026-07-18 raw-seam FIXLOG.
-
-**The codebook-overfit disclosure + the fresh holdout** (Arda's ruling at the D2
-scoping, 2026-07-21; recorded at the D2a session). Gold was blind-labeled before any
-model output — the safe direction — but the v2 codebook's distillation was tuned *on*
-gold's 250 reviews: the 33-ruling ledger it rode in on is gold-process output. Every
-v2-on-gold number (C0.5's arms, the D2a certification) is therefore
-**development-grade** — the instrument was refined against the same set it is scored
-on, and the numbers may flatter v2 relative to unseen text. Ruling: a fresh human
-holdout, ~100–150 reviews (random + stratified: rare aspects, zero-label, multi-aspect,
-several games), labeled by Arda under **frozen** v2 inside M1. Hard cases feed v3
-notes, never back-edits to v2 — a back-edit would re-tune the codebook on its test set
-and restart the contamination clock. Until the holdout lands, every published
-v2-on-gold number carries the development-grade disclosure.
-
-**Gold INSTRUCTIONS §8 extended to the eval chain: no gold-entangled model as an
-instrument** (ruled at the D2 scoping, 2026-07-21). §8 banned the gold-assist model
-(claude-sonnet-5) from the bake-off candidate pool; the same lineage logic covers every
-instrument whose calibration rides on gold — the D2 judge first. TABLE.md's gold-assist
-reference row (F1 0.910) is *self-agreement* — the model drafted what gold was
-adjudicated from — so a Claude-family judge calibrated against that gold would inherit
-self-agreement as apparent validity. First judge candidate: **Gemini flash** — a
-different family from the DeepSeek labeler too (a labeler-family judge would import
-self-preference bias into the agreement metrics), and the adapter already exists.
-
-**D2a certification core: the eval-run journal + the census-vs-gold read** (settled
-2026-07-23). **The certified object is the pool, not the configuration**: C0.5
-certified model + prompt + codebook on lab-composed batches; D2a scores the bought
-envelopes themselves — the labels every displayed number folds — against gold through
-the same frozen scorer. **Schema, step 2** (the consumer B5 deferred to): `eval_runs`
-holds the regenerability set — run stamp into the shared `runs` journal, the scored
-pool's versions triple, ontology content hash, gold path + file sha256, scored/gold
-review counts, seed, resamples, scorer identity (`census-vs-gold/1`, bumped if pairing
-semantics ever change) — and `eval_metrics` holds name-keyed child rows (value +
-optional CI bounds, present-or-absent together). Child rows over metric columns
-because the metric family grows (D2b's fabricated-quote, D2c's per-category judge
-agreement — variable-length, unfit for fixed columns): a new metric is new rows, never
-a migration on minted runs; same parent/child shape as classifications→mentions. The
-shell is `evals/certify` (`certify_pool` → journal row, written once, round-trip
-verified) — *not* `studies/`: the import law says nothing imports `evals`, so
-certification consumes the system, never the reverse. **Scope rule**: gold predates
-the census usable-pool ruling and holds 5 CS2 (app 730) reviews the census never
-labeled; certification scores the 245-review intersection — an excluded game's reviews
-are skipped, never counted as failures (that would fabricate a penalty for reviews the
-model never saw) — and the narrowing is stored on the run row (`n_scored_reviews`),
-not buried in prose. Gold itself stays untouched: it serves judge calibration and the
-holdout comparison, where CS2 is fine. **The first read** (245 shared reviews, paired
-bootstrap 10,000 resamples, seed 20260718): census envelopes F1 **0.766
-[0.713–0.811]** vs the C0.5 v2 arm's 0.799, paired Δ **−0.033 [−0.061, −0.007]** —
-real at the 95% level on precision (−0.030), recall (−0.036), and F1; sentiment
-indistinguishable; diagnostics healthy (zero-share 51.0% vs gold 49.8%, candidate
-emission 3.6%, zero parse failures). Same model, prompt, codebook, and gold — the
-suspects are batch composition (the C0.5 arm batched gold reviews together; the census
-batched them among arbitrary corpus neighbors — the pre-registered D2d contamination
-experiment, now with an effect size to chase) and provider-side drift (weaker: the
-runs sit ~1 day apart). **The honest headline**: M1 certifies the production labels at
-0.766; the 0.796 is the same configuration under lab batch conditions. Evidence
-regenerates via `probes/census_vs_gold_gap.py`.
-
-**D2b mechanical census audit: the fabricated-quote metric reframed, health without
-thresholds, numeric grounding deferred** (settled 2026-07-23, three rulings). **The
-reframe**: the parse already enforces the verbatim check at *write time* — a
-non-verbatim quote is repaired to null (counted as an `EvidenceRepair`) and the mention
-survives — so the stored pool holds zero fabricated quotes **by construction**, and
-"fabricated-quote rate over the census" decomposes honestly into three numbers: the
-**invariant audit** (every stored span re-checked as a verbatim substring of its
-review: **0 violations over 163,842 spans**, 96.1% of 170,532 mentions carry evidence —
-"zero, verified," not "zero, assumed"; a violation exits nonzero, it means parse or
-storage drifted), the **attempted-fabrication rate** (write-time repair counts from the
-census run manifests: 4,979 repairs ≈ 2.9% of attempted quotes, the model-quality
-diagnostic the stored pool can no longer show because its bad quotes were nulled before
-storage), and the standing spine caveat (verbatim passes a quote read upside-down —
-misattribution stays the human audit). **Ruling 1, homes**: audits stay out of the
-eval-run journal — `eval_runs` means "scored against a measuring stick" and an audit
-has none; `probes/census_health.py` renders `captures/census_health/HEALTH.md`,
-derived-and-regenerable (the TABLE.md pattern); if D3's trend gate later wants audit
-history, its row shape is designed then. **Ruling 2, per-game health carries no
-thresholds**: the table (zero-share, mentions/review, evidence coverage, candidate
-share, top-aspect concentration per game) is for human reading; inventing cutoffs
-before seeing the distribution tunes alarms to nothing — tolerance bands are D3's
-decision. First read: the shape is coherent, not pathological — zero-share spans 23.7%
-(Redfall) to 80.1% (Goat Simulator, meme-review culture; census 51.6% overall vs gold's
-49.8%), evidence coverage sits in a tight 93.1–98.1% band, and the drama games top on
-exactly their drama (The Day Before: `developer_conduct` at 38.1% of mentions).
-**Ruling 3, the numeric-grounding checker is deferred to its first consumer**: its
-input contract (what a numeric claim *is* — structured tuples vs prose to parse) is
-undiscoverable until composed prose exists (M3's composer, or F1's post tooling at a
-stretch); building it now would freeze a guessed seam. Recorded here so D2's metric
-list stays honest: classification agreement (D2a, journaled), fabricated-quote
-(this entry's decomposition), numeric grounding (deferred, with this reason).
-
-**The misattribution audit sample: the draw** (minted 2026-07-23 — the human half
-D2b's reframe reserved). Unit is the **claim** — one evidence-carrying mention
-(aspect, sentiment, verbatim quote) in its review; the metric is the share of claims
-whose verbatim-true quote is attached to the wrong aspect or to a sentiment it doesn't
-carry. Draw: a **seeded systematic pass over the frame sorted by (game, aspect,
-sentiment)** — all 163,842 evidence-carrying census mentions, every k-th row from a
-random start — which is implicit proportional stratification across all three
-dimensions at once: self-weighting, so the audited rate estimates the population rate
-with no reweighting. Balanced over-sampling of rare strata rejected: it buys
-per-stratum reads n=100 cannot resolve and costs the clean headline number. 100
-primary + 10 ordered reserves; a seeded shuffle assigns the split so reserves aren't
-biased toward the sort-order tail. Verdicts are **two independent checks** per claim —
-`aspect_supported` / `sentiment_supported` (yes/no/unclear) — so the rate decomposes
-into misattribution and sentiment-given-quote. Artifacts in
-`eval/audits/misattribution/` (SHEET.md, the audit sheet with the quote bracketed in
-its full review · sample.jsonl · manifest.json with seed/rule/pool/strata); minted by
-`probes/mint_misattribution_sample.py`; the verdict scorer (rate + CI, journaled as an
-eval run) builds after Arda's audit, as its own step.
-
-**D2c judge design: a second annotator, not a verifier** (settled 2026-07-23,
-four-fork design discussion; rulings Arda's). **Fork 1, task shape — independent
-re-labeler.** The judge never sees production's answer: it labels the review fresh
-under the same frozen artifacts (`classify-v1`, the v2 codebook), and agreement is
-computed mechanically afterwards. Verifier-shaped judging rejected: showing the
-prediction anchors the judge toward endorsing it — leniency in exactly the direction a
-self-certification can't afford — and an "anything missed?" clause is a weak
-substitute for actually running the extraction task. The re-labeler also makes
-infrastructure reuse total: a judge run is an envelope set under its own versions
-triple (`gemini-flash / classify-v1 / v2` first, per the §8 eval-chain extension), so
-calibration (judge-vs-gold) and the census-sample read (judge-vs-production) are the
-existing certify scorer pointed at different pairs. Riders: **single-review dispatch,
-temperature 0** — batch composition measurably moved production's labels (the −0.033
-census-vs-lab delta), and the instrument must not inherit a variable it exists to
-measure. Standing caveat: two models can share blind spots, so agreement is an
-optimistic bound — mitigated by the cross-family pick, backstopped by the human
-holdout. A verification-shaped pass stays available later as an adjudication
-assistant; it is not the judge. **Fork 2, calibration protocol.** The judge labels all
-250 gold reviews (CS2 included — the judge reads review text; the 245 intersection was
-pool scope), scored by the frozen scorer: overall precision/recall/F1 +
-sentiment-on-matches — the same metrics production was certified on, so the two
-instruments compare directly — plus per-item-type slices gold's n can carry
-(zero-mention, multi-mention, candidate-emitting); per-aspect agreement (~7 gold
-mentions per aspect) waits for the census sample, where the journal's
-`judge_agreement/<aspect>` naming finally gets its n. **The decision rule,
-pre-registered** so the number can't be rationalized after the fact, reads the paired
-bootstrap Δ(judge − production) on shared gold: **pass** — significantly above
-production's 0.766 → the judge is a valid quality reader and census-sample verdicts
-are reference-grade; **marginal** — indistinguishable → the judge remains a
-disagreement flagger (two independent annotators agreeing correlates with
-correctness), and the sample reports agreement rates, never "judge-corrected quality";
-**fail** — significantly below → reported as a finding, certification stands on the
-mechanical layers. Frontier escalation (~$25, sample-only) is proposed to Arda only
-from marginal/fail, never auto-fired. **Fork 3, refusal routing** — resolves the
-parked `llm_client` ambiguity, both readings. Routing labeler-refused reviews to the
-judge as a replacement labeler: **rejected** — the pool's identity is one annotator's
-triple, a substitute label is a different triple that can't quietly join the displayed
-numbers, and patching would launder the instrument-limitation footnote (the
-Chinese-hosted annotator's content policy) out of the record; the one refused review
-is human-readable at zero cost. The judge's own refusals ride the existing
-typed-refusal mechanism unchanged (durable marks under the judge's triple); scoring
-computes agreement over the mutually-labeled intersection with refusal counts
-disclosed — an instrument that declines to read didn't read wrong — via the run row's
-existing `n_gold_reviews` vs `n_scored_reviews`. **Fork 4, the self-grading arm —
-reframed, registered, deferred to F1.** Under a re-labeler judge, "v4-flash judging
-its own labels" splits: the *consistency* reading (re-labeling single-review) is D2d's
-batch-composition isolation and lives there; the distinctly *self-grading* remainder
-is a verifier-shaped bias demonstration — the 2×2 where each of v4-flash and Gemini
-flash verifies its own and the other's gold labels, endorsement rates scored against
-gold, self-preference = endorsing your own beyond what correctness explains (one cell
-alone can't separate self-preference from plain leniency). Registered off the critical
-path (~$1 of verifier calls); F1 decides with a cost proposal whether the post wants
-the demonstration — the empirical receipt for the eval chain's no-self-grading stance.
-**Flagged for the build, not decided here**: the journal's annotator-vs-annotator fit
-(`eval_runs` hard-requires `gold_path`/`gold_sha256`, but the census-sample read
-scores judge-vs-production with no gold anywhere — stuffing production labels into a
-field named gold would be dishonest naming; likely a small step-3 generalization or a
-sibling table) · the `origin` value judge envelopes carry · whether the census-sample
-draw reuses the misattribution draw machinery.
-
-**D2c build decisions: the judge dispatch shell** (2026-07-23 build session; the
-model and routing picks Arda's, the rest built to the settled design). **The model
-pick amends the design's generic "Gemini flash" to `gemini-3-flash-preview`**, on
-evidence assembled at build time: current prices (OpenRouter's listing, checked live)
-crossed with the bake-off's gold-scored arms put 3-flash at F1 0.801/0.789 across two
-batch sizes — the only flash candidate consistently above production's 0.766, where a
-0.775-class judge (2.5-flash, 3.1-flash-lite) near-guarantees a *marginal* calibration
-verdict and a demoted instrument — at ~$0.90 for the 250-review calibration versus
-~$2.80 for 3.5-flash's weaker, noisier evidence. Two caveats recorded with the pick:
-the 0.801 carries selection optimism (the same gold measures the pick and the
-calibration — winner's-curse shrinkage expected), and the `-preview` id can be retired
-or revised; mitigation is running calibration and the census sample close together,
-with the GA-id fallback (3.5-flash) priced. **Routing is direct Gemini API**, not
-OpenRouter: the bake-off measured this model under the exact `responseSchema` +
-`thinkingBudget: 0` generation config the adapter sends, and instrument continuity
-with that evidence is worth the one-time billing-enable on the Google key (OpenRouter
-would change the serving path and structured-output mode, and adds ~5.5% on credits).
-**The CS2 rows are backfilled, honestly**: the label pool's foreign key demands a
-review row per envelope, so the driver inserts gold's out-of-scope reviews from their
-corpus files with true metadata — never fabricated rows — and the census driver's
-supply assertion and selection are scoped by excluded app ids so the backfilled rows
-are never counted or bought by a labeling run (the alternatives — calibrating on 245
-only, or parking CS2 envelopes outside the pool — respectively relitigate fork 2 and
-fragment the envelope-set identity the scorer reuse leans on). **Judge envelopes carry
-`origin = survey`** (the flagged deliberate look, resolved): they label survey-track
-reviews, the two-track wall is origin ∩ versions triple, and the judge's own
-`model_version` already keeps its envelopes out of every displayed fold —
-`investigation` would misstate the track. **Single-review dispatch collapses the
-failure sweep**: a malformed answer at N=1 is C1's isolate case on first attempt (a
-temperature-0 retry replays the identical cached response), so it takes its durable
-mark immediately; and both refusal shapes — a request-level rejection and Gemini's
-generation-level safety block (a `REFUSAL` finish with an empty body) — converge on
-the typed failure path, counted against a 5-refusal circuit breaker (gold text is
-twice-vetted; more than a handful means a systemic request problem). **Placement:**
-`evals/judge_gold.py` — the driver consumes the gold artifact, and the import law
-(nothing imports `evals`) forces the arrow, same reasoning as the certify shell. A
-**text handshake** guards instrument identity: every gold record's text must equal
-the stored review's text — an envelope must never claim text the judge never read.
-Equality is after ``strip()`` on both sides, a pilot-day softening (2026-07-23): the
-verbatim check aborted the first dispatch on 14/250 rows, all traced to the gold
-draw's edge-whitespace strip at minting (``draw_gold_set.py``) against raw corpus
-rows, with zero divergence beyond edges verified across all 250; content divergence
-still aborts. The scoring-side generalizations (a
-`judge-vs-gold/1` scorer identity, the no-exclusion scope) land with the scoring
-step, not the dispatcher.
-
-**The agreement-run journal fit: one journal, the reference generalized** (settled
-2026-07-23, ruled by Arda — the fork the build flag left open). The census-sample
-read scores judge-vs-production with no gold anywhere, but the journal hard-pinned
-its measuring stick as a file (`gold_path`/`gold_sha256`, NOT NULL). Ruling: **a
-step-3 schema generalization**, not a sibling agreement-runs table — the gold-named
-columns become reference columns (`reference_id`, `reference_sha256`,
-`n_reference_reviews`) plus a `reference_kind` tag whose closed vocabulary lives on
-the contract enum (`gold-file` now; `pool-labels` defined now, first written by the
-census-sample scorer), existing rows backfilled `gold-file` — which is what they
-always were. Three reasons, descending: the epistemic distinction a sibling table
-would enforce structurally (a certification against human truth vs two machines
-agreeing) is already recorded twice on every row — the scorer identity and now the
-kind — so a reader aggregating quality numbers filters on those; the one-journal
-intent was half-declared when `eval_metrics` was born name-keyed "so per-category
-judge agreement lands as new rows"; and every run kind on the horizon —
-census-vs-gold, judge-vs-gold, judge-vs-production, the misattribution-audit rate
-(whose reference is Arda's sheet, a file again) — answers the same sentence, *this
-label set, scored against that pinned reference, by this scorer*, differing by two
-columns: too little difference to pay for a duplicated journal surface (a second
-contract, a second record/get with the atomicity discipline, and `eval_metrics` FK
-surgery besides). The accepted cost, eyes open: the reference columns' meaning now
-depends on the kind — one flat table quietly holding a sum type. For `pool-labels`
-rows the pinning property survives by digest: `reference_id` names the reference
-annotator's versions triple plus the sampled slice, `reference_sha256` hashes the
-canonically-serialized reference label set — computed rather than read from a file,
-same tamper-evidence (exact serialization defined when that scorer builds).
-Rejected: production labels in fields named gold (dishonest naming, ruled at the
-build flag) and materializing the judge's sample labels as a reference *file* — a
-copy minted solely to satisfy a column shape, whose truth lives in the store. The
-migration stays additive per the freeze rule (column renames rewrite no data; the
-ADD COLUMN default is the honest backfill), verified by an upgrade test built at
-version 2 with a gold-named minted row — the real DB's exact shape. Sample-draw
-provenance, when the agreement run lands, rides the run's `config_hash` like every
-other run dial; the existing `seed` column stays the bootstrap's.
-
-**The census-sample stage: frame, size, dispatch path — and the machinery built to
-them** (ruled + built 2026-07-23; the three dials Arda's from a costed proposal).
-**The frame is reviews, not mentions**: the judge's unit of work is a review and the
-scorer's tallies are per-review, so the sample draws from the census's 135,259 survey
-envelopes under the production triple — the misattribution draw's seeded systematic
-method (sorted by `(app_id, review_id)`, every k-th from a seeded start: implicit
-proportional-by-game stratification, self-weighting) on this new frame; a mention
-frame would overweight multi-mention reviews with no clean review-level
-interpretation. Zero-mention reviews stay in — "both instruments say no aspects" is
-agreement worth measuring. **n = 1,000** (~$5 sync at calibration's measured
-$1.21/250): roughly halves gold's F1 interval (±~0.03 by √n extrapolation — indicative,
-not promised) and gives the per-aspect table its first usable head-of-distribution n;
-±0.02 wasn't worth doubling the spend. **Dispatch stays sync**; the Batch API's 50%
-(~$2.50 saved) doesn't pay for its job-submit/poll/download build at this scale
-(break-even ~10K+ reviews), and the preview-id retirement mitigation — run soon after
-calibration — pushes the same way. No reserves: a judge refusal is a disclosed drop
-from the scoring intersection, never a replacement. The minted sample
-(`probes/mint_census_sample.py` → `eval/agreement/`, seed 20260723) drew frame-exact
-135,259, all 49 games, drawn zero-envelope share 0.522 (~1.4σ from the census's
-~0.50). **The sample pins text by hash, not by copy**: each drawn record carries the
-stored text's sha256; the dispatch refuses a store whose text no longer hashes to its
-pin — gold's handshake problem solved exactly, since the store is the single text
-source. **The dispatch engine extracted to `evals/judge_dispatch`**: everything
-instrument-defining (model + measured generation config, the single-review/temp-0
-riders, both refusal shapes, durable-mark-on-first-attempt, the refusal breaker) now
-lives once, shared by two thin shells — `judge_gold` (calibration: gold as id list,
-CS2 backfill, strip-equality handshake) and `judge_sample` (the sample as id list, the
-sha256 handshake, no backfill) — so the two runs cannot drift apart; behavior proven
-unchanged by the existing calibration rig. **The agreement scorer**
-(`evals/agreement`, scorer `judge-vs-production/1`): the judge's envelopes take
-`tally_review`'s reference role — safe because the parse layer already collapses
-repeated aspects per review (verified: zero duplicate pinned labels in either
-annotator's stored envelopes) — with direction fixed in code: precision = share of
-production's mentions the judge corroborates, recall = share of the judge's mentions
-production found. Accounting per the refusal ruling: judge-unread drops (disclosed via
-`n_reference_reviews` = the drawn sample vs `n_scored_reviews` = the mutual
-intersection); a production failure mark scores as a parse failure, same as
-certification; a partially-dispatched sample dies loud. **The pool-labels digest
-settled**: `reference_sha256` = sha256 over canonical JSON of the judge's scored
-envelopes — per review (sorted), every mention as `[aspect, slot, sentiment]` sorted;
-no evidence spans (unscored decoration), no run stamps (the pin is on the labels, so
-an identical re-dispatch verifies identical). **Item-type slices land in
-`certification_metrics`** for every journaled run, as new name-keyed rows (no scorer
-bump — pairing semantics unchanged): membership reads the *reference* side (gold in a
-certification, the judge in the agreement read) per the calibration protocol's item
-types; each slice always journals its `n_<slice>` (an absent statistic row must mean
-"empty slice", never "not computed"); zero-mention's statistic is quiet-agreement (F1
-is undefined where the reference is empty), the mention-carrying slices reuse F1,
-all bootstrapped within-slice. Remaining to execute, in order: the judge dispatch
-(`judge_sample`, ~$6, pilot `--limit` first) → the agreement read (`agreement`) →
-re-run `certify --judge` at zero cost to journal a calibration run carrying the new
-slice rows.
-
-**D2d registered experiments: the contamination isolation and the compact 2×2**
-(ruled 2026-07-25, both forks Arda's from the design discussion; design-first, no
-dispatch yet — the costed dispatch proposal builds from live pricing). Both arms ride
-existing references — the judge never runs again (its 1,000-sample verdicts are the
-fixed ruler; the preview-id retirement caveat doesn't bite), and gold is gold.
-**The contamination arm buys both reads**: (1) *gold-referenced recovery* — the 245
-census-labeled gold reviews re-labeled by production's own model at N=1, scored
-against gold; the anchor's position is the diagnosis — landing near the lab 0.799
-says batch *company* did the damage (solo ≈ among-gold-peers), above it says size
-itself costs (the judge's monotone shape), near the census 0.766 acquits batching;
-(2) *judge-referenced shift at scale* — the minted 1,000-review agreement sample
-re-labeled at N=1, scored by the existing `judge-vs-production` scorer against the
-judge's stored verdicts, paired on the same reviews as the recorded N=10 0.791
-[0.772–0.810]. The reads answer accuracy and scale respectively; slice overlap is
-negligible by construction (~2 reviews expected). **A contingent third buy is
-registered with its trigger fixed now**: re-run the *lab* condition (the 245 at N=10
-among fresh census neighbors) *iff* the gold read's paired Δ (N=1 minus the census
-condition) fails to exclude zero upward — that branch alone can't distinguish
-"batching never mattered" from provider drift since 07-19, and the rerun separates
-them; if the trigger doesn't fire, the money is never spent. **The compact arm
-completes the 2×2** — codebook {full, compact} × batch {N=10, N=1} on the same
-1,000-review sample, judge-referenced; full×N=10 is the production census read
-(0.791), full×N=1 is the contamination arm's second read, so only the two compact
-cells are new. The registered question ("does a leaner rule set beat a muddier
-context") is an *interaction* claim — C0.5 already showed compact-vs-full
-indistinguishable in clean gold-among-gold context; census batches are the muddy
-context, so the readings are compact's batch penalty vs full's, plus the
-deployment-relevant compact×N=10 cell against 0.791. A winning compact becomes a
-*priced candidate* for future buys, never an auto-switch — C0's reopen condition
-stands: a prompt change re-certifies quality and N on gold first. **Rejected**: a
-gold-referenced compact rider (the 245 under compact at census conditions) — its
-question only goes live if compact wins, and the re-certification that victory
-triggers supersedes a 245-review anchor. **The cell-identity seam** (build
-discovery 2026-07-25, ruled by Arda same day): the pool's envelope key is the bare
-versions triple, and *three* of the four cells would collide under it — full-N=1
-with production's census labels exactly, and the two compact cells with each other
-(same model, same `classify-v1-compact` pin, only N differs — and N officially rides
-the run's config hash, which the pool key never sees). Ruling: experiment envelopes
-stay in the pool but their `model_version` key carries the batch condition —
-`deepseek-v4-flash@n1` / `@n10` — while the wire request uses the real model id and
-the manifest records both. The tag is honest at the level the key exists for: the
-triple names the annotator whose labels these are, and D2d's premise is that batch
-condition measurably changes that annotator — two label sets expected to differ must
-not share an identity. It also buys containment (production folds filter the
-untagged triple, so experiment labels can never leak into a displayed number) and
-verbatim scorer reuse (certify's and agreement's existing `--model` dial). Rejected:
-tagging `prompt_version` (claims prompt artifacts that don't exist — the template is
-byte-identical across N) and a sibling experiment table (schema surgery plus a
-duplicated scorer read path for a sub-dollar experiment). The N=10 cells batch
-sample reviews among themselves, which stands in for census composition because a
-random census draw's neighbors are census neighbors in distribution. **Cost, estimated from
-C1's recorded all-in** (~9–10× per-review at N=1 for the full codebook): the two
-contamination reads ~$0.31, the two compact cells ~$0.21, the contingent ~$0.07 if
-fired — total under a dollar; the dispatch proposal prices exactly before any call.
-
-**D2d executed: composition acquitted, buy-time variance found, the compact
-codebook closed** (2026-07-25, same session as the design ruling; all five cells +
-the fired contingent bought for ~$2.98 ledger / ~$0.45 expected billed, 5,693
-envelopes, zero failures). **The registered trigger fired** — the gold read's ΔF1
-(N=1 minus census) +0.013 [−0.021, +0.046] failed to exclude zero upward — and the
-contingent it bought (`full-n10-gold-recomposed`: each in-scope gold review
-re-labeled same-day among nine fresh seeded same-game fillers, ~$0.38) overturned
-the arm's working story. **Every same-day composition comparison is null**: compact
-N=1 vs N=10 −0.003 [−0.017, +0.010] (n=1,000, judge-referenced; runs
-`agree-20260725T122123Z-d19a401b` / `agree-20260725T122103Z-9a58bafa`), full N=1 vs
-recomposed-N=10 −0.012 [−0.046, +0.022] (n=245, gold-referenced). **Every cross-day
-comparison shows the ~0.02–0.03 gap**, including with composition held fixed:
-recomposed-vs-census recall +0.042 [+0.003, +0.083] — the recall recovery the N=1
-cell showed over the census appears identically under census-style batching, so it
-belongs to *when* the labels were bought, not to batch size or company. Verdict:
-**batch composition is acquitted; the census-vs-lab −0.033 is buy-time variance of
-the served model** (non-monotone timeline — lab 07-18 0.799, census 07-19 0.766,
-today 0.791 — so serving-state variance, not steady drift; temperature 0
-throughout). Named residue, eyes open — **corrected 2026-07-27 at the full-base review**: the
-recomposition's same-game premise was measured false after the buy. The census's
-`ORDER BY review_id` batches gave a review a mean 1.08 same-game neighbors of 9
-(~12% same-game; 16% corpus-wide baseline), so the recomposed cell did not
-reproduce the census's neighbor structure — it *installed* an all-same-game
-structure the census never had. The cell still holds N and freshness constant and
-its null read stands as bought, but any recomposed-vs-census interpretation
-carries that structure change as a confound; the census's true structure
-(mixed-game, id-adjacent) is untested, and n=245 bounds the gold-side power. **The
-matrix-read interaction that briefly read as confirming the leaner-codebook
-hypothesis (+0.023 [+0.003, +0.044]) is a day artifact** — its full-codebook penalty
-compared a 07-19 buy against a same-day buy while the compact cells were both
-same-day; the drift-clean codebook comparison (both cells same-day, N=1, n=1,000,
-paired vs judge) reads **compact 0.793 vs full 0.811, Δ −0.018 [−0.031, −0.005],
-real** — C0.5's recall-loss verdict confirmed at census scale. **Consequences**:
-(1) the N=10 batching lever is vindicated — no future buy pays solo-dispatch prices
-for quality; (2) `classify-v1-compact` is closed as a dispatch candidate on
-measured evidence (it remains a versioned artifact; reopening requires new
-evidence, not new hope); (3) a new standing instrument caveat — same config, same
-composition, different day moved F1 by ~0.02–0.03, so any cross-day label
-comparison carries a buy-time rider, and re-certification after a re-buy is not
-optional; (4) production's census certification 0.766 stands — it certifies the
-labels actually bought. Runs of record: `certify-20260725T122037Z-ce9315b2` (N=1
-vs gold), `certify-20260725T184220Z-cf74d6f4` (the recomposed cell vs gold, 0.791 —
-minted clean post-commit), plus the three agreement rows above; readings regenerate
-via `probes/d2d_reads.py` (the same-day codebook read is post-hoc, disclosed as such).
-
-**D3 evals-in-CI: a deterministic re-score pinned to the runs of record** (ruled
-2026-07-26, three-fork design discussion). The premise that shapes everything: CI
-produces no fresh model output — re-scoring stored envelopes against pinned
-references under a fixed seed is deterministic and free — so the gate catches
-*code/scorer/artifact* drift (a normalize change, a gold edit, a schema break),
-never model drift, which only enters at a label re-buy and is already governed by
-the buy-time recertification caveat above. Fork 1, what runs: **both runs of
-record regenerate in CI** — the production certification (F1 0.766) and the
-census-sample agreement read (F1 0.791) — from a committed envelope fixture,
-since CI has no `data/steamlens.sqlite3`: the production envelopes for gold's 245
-in-scope reviews plus the production+judge pairs for the 1,000-review agreement
-intersection, as diffable JSONL with a provenance manifest (source DB, export run
-ids, content hashes), rebuilt in-test into a throwaway store *through the real
-writer surfaces* so CI's read path is production's. As built (`evals/ci_fixture`,
-same date): the pins are fresh current-code exports that must *descend from* the
-journaled anchors at export time, each with one disclosed relaxation — the
-certification anchor `certify-20260723T093643Z-4eab554c` was journaled before the
-item-type slice rows existed, so its digits must survive as an exact ordered
-prefix; the agreement anchor is the per-aspect row of record
-`agree-20260723T203011Z-78258f68`, compared in full but config hash excluded,
-because that hash digests the sample file's pre-normalization CRLF bytes. Which
-surfaced the general rule, now enforced: digest-pinned artifacts (gold, the
-agreement sample, the ontology TOMLs, the fixture itself) are held at LF by
-`.gitattributes`, and the exporter refuses to mint from a CRLF working copy — a
-byte-hashed artifact whose bytes vary by platform can never gate a Linux CI
-checkout. Rejected: certification-only
-(leaves the agreement/per-aspect semantics — the post's second headline number —
-unguarded); integrity-hash checks without re-scoring (a scorer-behavior drift that
-touches no artifact sails through — the gate must regenerate the number, that is
-the point); a binary sqlite fixture (not diffable, not reviewable). The D2d cells
-stay out of CI: closed experiments are journal history, not standing invariants.
-Fork 2, gate semantics: **exact-digit mismatch fails; harness errors fail; nothing
-merely annotates** — a deliberate reinterpretation of the roadmap's "drift
-annotates, harness errors fail" line, which imagined model drift before D2d
-established CI can't produce any; a digit mismatch in a deterministic re-score is
-an unintended behavior change or an undeclared semantics change, and both demand
-in-PR action. The escape hatch is the standing scorer-identity discipline: a
-deliberate semantics change bumps the scorer string (`census-vs-gold/2`) and
-updates the pinned expectation in the same commit. The pin comparison covers
-metric digits and config identity (scorer, reference hashes, seed, resamples) —
-never run ids or timestamps. Tolerance bands exit CI entirely and become the
-**re-buy decision rule**: a recertification after any label re-buy reads against a
-band floored at the measured ~0.03 buy-time variance — tighter would alarm on the
-instrument's own noise. Fork 3, trend surface: **M1-minimal** — the eval-run
-journal already is the trend store (append-only rows with full regenerability);
-no CI trend artifact, no committed trend document to drift; at most a probe
-rendering journal rows chronologically per scorer identity on demand, with the
-bands-overlaid trend view deferred to deployment (M3), when re-buys become
-routine and a surface exists to show it on.
-
-**`steam_client` E1 build: the door, three operations, both paths** (ruled
-2026-07-27, five-fork design discussion; executes the standing "donor, not
-template" reframe above). Fork 1, scope: E1 builds **resolve-game (appdetails +
-the donor's identity guard), the histogram snapshot, and the window-fetch
-primitive** (windowed-unfiltered cursor walk, validated, provenance-stamped) —
-deliberately *not* `FetchPlan` execution or `SampleManifest` minting, whose
-producer (`core/sampling`, the policy the sampling study (M2) certifies) doesn't
-exist yet; contracts freeze when their consumers land, the pattern held since the
-contracts records. Post-redirect note: the primitive's consumer is the survey
-draw — the investigator's `fetch_window` is deferred with the investigator
-milestone (M4) itself (the roadmap redirect ruled the same day; its own DESIGN
-entry lands at the RAG-replacement design session — until then the stream TODO's
-top bullet is the standing rule). Fork 2, contracts frozen now: **`GameRef`**
-(app_id, store name, `query_summary` population totals, and the identity-guard
-verdict OK | MISMATCH | NO_DATA absorbed into the record — a MISMATCH `GameRef`
-is an honest answer about what Steam returned; a wrapper record was rejected as
-a layer for one field), **`HistogramSnapshot`** (rollup buckets + the
-age-dependent rollup unit MONTH | WEEK — never hardcoded, per the M0 probe —
-daily last-30, `past_events`, fetched-at for the freshness rule), and
-**`WindowFetchResult`** (the fetched `Review`s + per-window provenance: path
-outcome WINDOWED | FALLBACK_WALKED | SKIPPED_INFEASIBLE, pages, retries, and the
-semantic-validation verdict — the window params are undocumented, so every
-response is checked against the requested window, never trusted). `Review`
-stays unextended: reception metadata (helpful votes, playtime) remains deferred;
-the RAG design session may reopen that deferral as a retrieval signal. Fork 3,
-**the cursor fallback is built now, not stubbed**: it is the same machinery as
-the windowed walk — same pagination, retry GET, seen-cursor and no-cursor
-guards — under timestamp-gated loop control (skip until timestamps enter the
-window, collect until they exit), plus a pure feasibility estimate (histogram
-depth above the window's end vs the rate budget → SKIPPED_INFEASIBLE,
-disclosed, never a silent hole). Deferring to deployment (M3) was rejected: the
-marginal cost is a loop mode, the donor's cursor-walk knowledge is freshest
-now, and the hard part — enumerating the walk's edge cases as tests — is
-exactly what benefits from in-head semantics. The feasibility helper stays
-private to `steam_client` and migrates into `core/sampling` when the plan
-compiler lands (the sampling study will want to certify it). Stop discipline
-everywhere: the walk stops on the window boundary, a repeated cursor, or a
-missing cursor — **short or empty pages inside a window are suspicious, not
-conclusive: retried, never a stop** (the donor's proven-unsafe stopping rule,
-inverted; FIXLOG 2026-07-09). Standing correction reaffirmed here (Arda's
-catch, against the harvest's confident comment): the donor's "80 is the
-community-verified reliable value" for `num_per_page` is a documented
-inaccuracy — FIXLOG 2026-07-07 verified **no batch size is universally safe**
-(the same bug thread reports 80 failing where 100 works) — so page size is a
-non-load-bearing config knob (default 100, matching every probe this project
-ran); safety lives in detect-and-retry plus the window-bounded stops, not in a
-magic constant. A one-request build-time probe checks whether pages >100 are
-honored (halves per-window request cost if so) — a probe, not an assumption.
-Fork 4, verification in two layers plus a gate: parsers test against the real
-probe captures (both rollup units, the tiny-indie edge, real `past_events`, the
-blanked/restored window pair — the real-artifact round-trip precedent); walk
-logic tests against an **injectable transport** with scripted page sequences
-(short page mid-stream continues; short-then-zero retries before concluding;
-repeated cursor stops; `success==2` yields empty-with-query_summary; a page
-straddling the boundary trims; retry exhaustion raises typed). A record/replay
-library (vcrpy) was rejected: a dependency for what one injectable callable
-does, and cassettes rot. The live layer is a gated smoke
-(`STEAMLENS_LIVE_SMOKE=1`, run deliberately, never in CI): resolve through the
-guard, histogram with rollup-unit check, one windowed page with semantic
-validation, the blank/restore check on Borderlands 2, one forced-fallback
-shallow window — pacing active throughout. Fork 5, pacing: **the donor's flat
-floor** — a configurable inter-request delay (default 1.5s ≡ the ~200-req/5-min
-folklore budget) at the top of the retry-GET chokepoint, so every attempt,
-every endpoint, every caller inherits it by construction; the adaptive half is
-the exponential backoff on 429/5xx in the same function. Token bucket rejected
-(bursts buy nothing here; clock-carrying state costs testability);
-unenforced config rejected (the fallback walk is mechanical — an unenforced
-budget is how a polite client becomes impolite). Sleep is injectable like the
-transport: the suite never really sleeps.
-
-**The roadmap redirect: the investigator deferred, a grounded RAG chat is the story
-channel** (direction ruled 2026-07-27 by Arda mid-session; this entry is the gated
-design session's record, same date). The investigator milestone (M4) — the agentic
-verify-then-explain loop — is **deferred indefinitely**; a RAG chat over the labeled
-reviews takes its milestone slot. Why: the chat monetizes M1's assets directly (the
-labeled envelopes are a metadata-filtered retrieval index most RAG systems lack; the
-calibrated judge machinery extends to groundedness / faithfulness / retrieval-quality
-evals), the evaluation thesis becomes more market-legible ("built and measured a RAG
-system" is understood in one sentence where verify-then-explain must be explained),
-and it fits the Data/ML/AI transition better than the bespoke loop. Cost named openly:
-the verify-then-explain differentiator goes dormant — deferred, not deleted
-(`Origin.INVESTIGATION` stays a harmless enum; round caps, language guard,
-manifest-less fetches sleep). Blast radius verified small: nothing built depends on
-investigation machinery; the exposure is docs + product story. **The two-track rule
-survives translated**: every displayed number still comes from the survey mint alone;
-stories now come from grounded retrieval — the chat quotes retrieved reviews and never
-mints numbers, retrieval counts in provenance stamps are process disclosure rather
-than statistics, and non-survey envelopes are excluded from the mint by construction
-(the same origin-tag wall the import-graph test guards). Roadmap shape: the chat is
-**the new M4**, sequenced after the sampling study (M2) and deployment (M3) — M3
-keeps its already-scoped shape and ships a URL sooner, and the chat interrogates the
-survey sample whose policy M2 defines; its offline prototype + eval can run against
-the 49-game census before deployment exists, so the eval story is never hostage to
-M3. `core/detect` survives as **display-only episode markers**, built at M3: pure
-statistics over the all-language histogram, no explainer. The chat inherits the
-drill-down role in degraded-but-honest form — a spike window's survey coverage is
-structurally thin (the investigator's founding observation), so spike questions get
-thin-evidence-labeled answers, not fabricated explanations; targeted window fetches
-to enrich them would rebuild investigation machinery without its verification loop
-and stay out (a named future reopening at most). The M1 post's roadmap paragraph
-tells the redirect straight — a measured scope call on stated grounds, not a retreat.
-VISION.md stays frozen per doc precedence.
-
-**The RAG chat product frame: type a game name, get the report — then interrogate
-it** (ruled 2026-07-27, product-level design session; architecture rules at the M4
-design session). The report stays the product; the chat is its **interrogation
-channel** inside the report page — never chat-first, never a standalone surface. It
-interrogates *this report's evidence base* (the game's own labeled envelopes), so
-chat coverage equals report coverage by construction — the 49-game census is the
-offline instance of that and the eval population. The design fitness test — every
-downstream choice must serve at least one of the three claims a stock RAG app cannot
-make, or it is commodity weight: (1) **retrieval over self-labeled structure** —
-"why do people hate the grind?" resolves to aspect ∧ sentiment ∧ game ∧ window
-filters before any embedding runs, with a measured classifier (F1 0.766, CI
-published) as the index; (2) **RAG evals on the already-calibrated judge**; (3) **a
-chat that structurally cannot fabricate statistics**. Question scope: **in** —
-aspect why/what (the core), sub-ontology drill-down (the one place semantic search
-earns its keep), time-scoped questions (the timeline made conversational), and
-number questions answered as **mint citations** (the deferral that still helps);
-**refused** — advice and speculation ("should I buy it?"), honestly and
-specifically; **out entirely** — cross-game comparison: it breaks the per-report
-frame, which is the product's identity rather than a v1 limitation, so any return
-is a deliberate future reopening, not a standing promise. The answer contract —
-**claims with receipts**: short prose composed only over what was retrieved; each
-claim pinned to verbatim quotes — expandable, linked, passed through the
-fabricated-quote verifier before display (a claim whose quote does not verify is
-dropped, never shown); numbers appear only as visually distinct mint citations,
-never phrased by the model; every answer carries a one-line provenance stamp
-("grounded in 34 negative 'grind' reviews from this game's sample; 6 quoted"); and
-answers walk a three-state ladder — grounded answer → **thin-evidence answer, named
-as such** ("thin evidence: only 3 reviews in this game's sample touch that") →
-honest refusal ("the sample doesn't cover that"). **No free-composition mode**:
-even "what's the overall vibe?" answers over retrieved reviews plus mint aggregates
-or defers to the verdict panel — the moment one answer type may speak without
-receipts, the differentiator is gone. Leanings recorded for the M4 design session
-(leanings, not rulings): **the chat pool** — the cold path keeps drawing beyond the
-survey in the background (~5k, plain most-recent order, disclosed in provenance;
-never targeted — a steered fill is the investigation track reborn), with
-progressive labeling preferred over a raw tier (census pricing makes labels ~3¢ per
-thousand, so the fork is latency-shaping, not cost — and a raw tier turns most of
-the pool into commodity embed-and-cosine) and on-the-fly embedding as the trailing
-third stage (fetch → label → embed, each trailing the last, all behind the report,
-which opens on the survey alone); **a small local pinned embedder** (MiniLM /
-bge-small class) — pinned weights make the index immortal where an API embedder's
-retirement orphans every stored vector (the D2c instrument caveat, in its worse
-form), CPU-viable on any host, and a 5k pool is ~8 MB of vectors so brute-force
-cosine beside SQLite, no vector DB; **no RAG framework** — the chat is a pipeline
-(classify intent → refuse | defer-to-mint | retrieve → compose → verify → render),
-not a graph: the provider seam already exists, reviews are natural retrieval units
-(no chunking problem), and a framework layer would hide exactly the visible
-engineering the portfolio exists to show; LangGraph is named as the tool for the
-next complexity tier (a real loop — iterative retrieval, or the investigator
-reopened) and is adopted when a loop appears, not before; framework literacy is
-handled as an experiment-lab exercise plus a deliberate paragraph in the M4 post.
-The M4 design docket: the pool-tiering ruling (raw / progressive / lazy) · the
-embedder choice (verify the then-current small-model field, not today's memory) ·
-retrieval mechanics (structured filter ∧ semantic, ranking) · eval design
-(groundedness, faithfulness, retrieval quality on the judge machinery; the census
-is the eval population) · per-question and per-session cost caps · the
-answer-composition prompt · the `Review` reception-metadata deferral (helpful
-votes, playtime) reopened as a candidate retrieval signal (the E1 entry's pointer).
-
-**The bootstrap-undefined fix: a statistic learns to say "undefined", and the first
-scorer bump walks the deliberate-change path** (ruled 2026-07-28, six-fork design
-discussion; executes the full-base review's bootstrap finding — the one docket item
-left from the architecture session). The defect: the scoring core's ratio convention
-(0.0 on an empty denominator, honest for a *reported* point value whose `n_*` fields
-sit beside it) silently corrupts a bootstrap distribution — a resample where the
-statistic is undefined ("nothing to judge") contributes 0.0 as if it were measured
-badness, pulling the interval's lower tail toward zero. Reachability, established
-before ruling: `f1_candidate_emitting` is the real case (slice members qualify by
-*candidate* emission, candidates are unscored, so a resample of the ~18 members can
-be pinned-empty on both sides); `sentiment_accuracy` (denominator tp) is the sharp
-headline case but practically unreachable on the 245-review frame; per-aspect
-agreement F1 is safe by construction (every member names the aspect, so the
-denominator is bounded below by the resample size). Fork 1, where "undefined"
-lives: **in the core's types** — `_ratio` returns `float | None` and it propagates
-into `BakeoffScores` (`precision`, `recall`, `sentiment_accuracy`,
-`candidate_emission_rate` are None on an empty denominator; `f1` is None iff a
-component is — P=0 and R=0 both *defined* still gives F1 0.0, the correct
-measured-badness limit; the zero-shares and `parse_failure_rate` stay plain `float`,
-their denominator is the tally count and `score` already rejects empty). The one
-place that knows the denominator decides, instead of callers re-deriving it. Fork
-2, the resampling loop: `bootstrap_ci`/`paired_bootstrap_ci` type the statistic
-`float | None`, **drop undefined draws, take percentiles over the defined ones** —
-same RNG stream, so digits move only where an undefined draw actually occurred —
-and **raise past a 1% undefined share** (the one arbitrary constant, ruled: above
-it the slice is too sparse for the statistic and the honest output is no number,
-not a wide one; below it, no journal-schema change and no disclosure rows — the
-behavior is deterministic under the seed and documented at the definition site.
-Rejected: journaling an `undefined_resamples` count per metric — a store/pin-format
-ripple for a count that is zero everywhere today). Fork 3, point values: a
-headline or diagnostic statistic undefined on the full scoring frame means there
-is nothing to certify — raise, loud; a *slice* statistic undefined over its full
-members skips the stat row like the n=0 case (the reading rule becomes "no stat
-row = nothing scoreable there"; the `n_<slice>` row still journals). Fork 4,
-identity: **all three scorer strings bump to /2** (`census-vs-gold/2`,
-`judge-vs-gold/2`, `judge-vs-production/2`) — the procedure the string names
-changed for all three regardless of whether their digits move under the recorded
-seeds; bumping only where digits moved would leave two identical strings naming
-two different procedures. Fork 5, the re-anchor mechanics — the deliberate-change
-path D3 named but never used, executed as: **mint fresh certification and
-agreement rows of record under /2** into the journal from the real pool via the
-existing front doors (same dials as the /1 anchors: seed 20260718, 10,000
-resamples, v2 by explicit path), one-time comparison against the /1 anchors
-(`run_discrepancies` with its relaxations, ad hoc — a moved digit would be a
-disclosed finding, not an error), **repoint the exporter's `HISTORICAL_*` anchors
-to the new run ids**, re-export the fixture, all in one commit. Rejected: a
-permanent "scorer-bump relaxation" flag in the exporter — machinery for a rare
-event; `run_discrepancies` keeps its relaxation parameters as the reusable
-cross-semantics comparison tool, but the export path's calls become exact. Side
-effect, deliberate: **both disclosed relaxations retire** — the new certify anchor
-includes the item-type slice rows (the metrics-prefix relaxation dies) and the new
-agreement anchor's config hash digests LF bytes (the config-hash exclusion dies) —
-so the exporter's verification lands on full identity, closing the relaxation
-stories the D3 entry disclosed. Fork 6, pinned by test where no test existed: an
-undefined resample is dropped and the interval reads over the defined draws, the
-sparsity floor raises, `sentiment_accuracy` is None at tp=0, the F1 composition
-rule, and the slice-skip behavior.
+---
 
 ## Scope & non-goals
 
 - In: aspect reports with receipts, narrated live analysis, the report-interrogation
-  RAG chat (the redirect entries above), display-only episode markers on the timeline,
-  the trust panel, Docker/FastAPI/SQLite/CI deployment, the evaluation methodology as a
-  public artifact, the ops story as a public artifact (dashboard + pipeline, per the
-  operational decision above).
-- Deliberately out: fake-review verdicts (tombstoned above) · multilingual evaluation
-  claims (post-launch experiment, unverified if shipped) · Kubernetes/Terraform/cloud
-  MLOps (zero marginal signal for a portfolio app) · cross-game chat comparison (the
-  product-frame entry above) · the agentic investigator (deferred 2026-07-27, the
-  redirect entry above) · any displayed number sourced from outside the survey mint
-  (the old investigation-track wall, now also covering the chat pool).
+  RAG chat, display-only episode markers on the timeline, the trust panel,
+  Docker/FastAPI/SQLite/CI deployment, the evaluation methodology as a public
+  artifact, the ops story as a public artifact.
+- Deliberately out: fake-review verdicts (tombstoned under Data access) ·
+  multilingual evaluation claims (post-launch experiment, unverified if shipped) ·
+  Kubernetes/Terraform/cloud MLOps (zero marginal signal for a portfolio app) ·
+  cross-game chat comparison (the product frame's identity, not a v1 limitation) ·
+  the agentic investigator (deferred 2026-07-27, the redirect above) · any displayed
+  number sourced from outside the survey mint (the old investigation-track wall, now
+  also covering the chat pool).
 
 ## Open questions / deferred
 
-- **Aspect ontology** — DECIDED 2026-07-09: hybrid with a fixed core (see Operational
-  decisions; evidence in `probes/FINDINGS.md` §6). The eval harness is now definable:
-  gold set + judge calibrate against the pinned core vocabulary.
-- **Cache persistence on an ephemeral free host** — decided in the deployment
+- **Cache persistence on an ephemeral host** — decided in the deployment
   milestone's (M3) design (bake-into-image / dataset sync / paid storage).
-- **LLM tier** — extraction+eval (M1) exit, from the measured cost/quality table, now
-  with three columns:
-  free API tier, cheap paid API, and **self-hosted open-weight** (added 2026-07-08).
-  **The survey-labeling stage is decided as of 2026-07-19** — cheap paid API (DeepSeek
-  v4-flash at N=10, the C0 ruling above), with the self-hosted column closed unwired
-  for this stage (the Ollama value exit); the remaining stages (judge, phrasing, the
-  investigator) still decide at their own design points per the per-stage rule.
-  Decided **per stage, not globally** (refined 2026-07-08): the seam routes each stage
-  independently, and the gap between small and frontier models is stage-dependent —
-  near-zero for phrasing, modest-and-measurable for classification (sarcasm is where it
-  concentrates), largest for the investigation loop's agentic reasoning. The judge is
-  exempt from the choice entirely: always a stronger model than the one it grades
-  (self-preference bias), low volume, API.
-  The self-hosted candidate costs nothing to evaluate — that milestone is offline
-  work, so a small
-  open-weight model (Qwen/Llama/Gemma class) runs on the local machine behind the same
-  provider seam. Its deployment path, if it wins or ties: serverless GPU with
-  scale-to-zero (pay-per-second fits the budget cap; the cold start is absorbed by the
-  narrated runtime — "waking the model up…" is a legitimate stream line).
-- **Hosting shape: HF Spaces vs. a cheap VPS** — decided in the deployment milestone's
-  (M3) design. The VPS
-  (~$5/mo, docker-compose, own deploy pipeline + monitoring) is stronger DevOps signal
-  and solves cache ephemerality for free; HF Spaces is fewer moving parts. Interacts
-  with the cache-persistence question above. **The free-host premise fell 2026-07-09**
-  (verified on the create-Space form during the smoke-test milestone, M0): compute
-  Spaces — Gradio and Docker alike — now require PRO ($9/mo); only Static Spaces stay
-  free. Hosting therefore costs money on either fork, and the VPS is the *cheaper*
-  option as well as the stronger signal; HF's remaining case is fewer moving parts
-  plus ZeroGPU quota if PRO were bought anyway. Decision stays at M3, on this
-  corrected footing.
-- **Runtime sampling policy and sizes** — the sampling study's (M2) output, by
-  construction — now joined by the **interval method** for displayed shares (stratified
-  designs change the variance math; decided with the policy, not before it).
+- **LLM tier for the remaining stages** — per stage, at each stage's design point
+  (the tier rule above). The survey-labeling stage is decided (the labeler ruling);
+  the phrasing/composition stage and the chat's stages decide at M3/M4. The judge
+  stays exempt: always a stronger model than the one it grades.
+- **Hosting shape** — decided at deployment (M3). The free-host premise fell
+  2026-07-09 (compute Spaces are PRO-gated), so hosting costs money on either fork
+  and a cheap VPS is the cheaper option as well as the stronger DevOps signal; a
+  provider direction exists and is re-decided at M3 entry, gated on a
+  reachability probe from the actual host.
+- **Runtime sampling policy, sizes, and the interval method for displayed
+  shares** — the sampling study's (M2) output, by construction: a stratified
+  design changes the variance math, so the formula is decided with the policy,
+  not before it.
 - **Marked-share floor threshold** — the degradation trigger for bomb-dominated
-  samples: provisional value set during extraction+eval (M1), tuned at the sampling
-  study (M2). The corpus off-topic probe resolved its gate with a twist: the corpus
-  holds zero marked-window reviews, so tuning can't use it — it needs windows fetched
-  fresh through the windowed unfiltered path.
-- **Verification debts at extraction+eval (M1) entry** (both from the panel's
-  critique round) — **corpus off-topic probe: CLEARED 2026-07-09** (corpus clean by
-  coverage geometry — no marked window overlaps any game's coverage, 0 of 298,553
-  reviews affected, no backfill; the blanking mechanism itself confirmed real on a
-  plain default walk, making unfiltered fetching a data-integrity requirement, not a
-  preference); **datacenter windowed-params probe: CLEARED 2026-07-09** (the
-  production primary path — date-window params + the unfiltered flag with cursor
-  pagination — verified identical from a GitHub Actions datacenter IP, faster than
-  residential). Verdicts and evidence: `probes/FINDINGS.md`, extraction+eval entry
-  findings.
+  samples: provisional during M1, tuned at the sampling study. The corpus holds
+  zero marked-window reviews, so tuning needs windows fetched fresh through the
+  windowed unfiltered path.
+- **The human track** (Arda's, parallel): the fresh v2 holdout (the overfit
+  disclosure's mitigation) · the self-relabel consistency subset · the
+  misattribution audit sheet (minted, awaiting the pass) · judge-disagreement
+  adjudication (sheet seeded from the top-disagreement exemplars).
