@@ -15,7 +15,8 @@ gold-assist reference line from ``eval/gold/assist/raw`` (it competes with
 nobody — it calibrates the field), and writes ``TABLE.md`` next to the
 captures with full provenance in its header. Derived scores are deliberately
 never persisted per candidate: this script IS the one source of scored truth,
-regenerable from raw artifacts at any time (DESIGN's C0 entries).
+regenerable from raw artifacts at any time (DESIGN's bake-off protocol, in
+the choosing-the-labeler section).
 
 A run whose unrecoverable-parse rate exceeds the 2% gate is marked DQ; a
 partial capture (aborted run) is scored with its missing reviews counted as

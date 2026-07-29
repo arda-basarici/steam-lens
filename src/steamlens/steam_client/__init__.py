@@ -4,9 +4,8 @@ All live Steam access goes through this package: ``SteamTransport`` is the
 paced, retried GET chokepoint every operation shares, dialed by
 ``SteamClientConfig``, with typed failures in ``errors``. The operations
 (resolve + identity guard, histogram snapshot, the windowed walk and its
-cursor fallback) land on top of it. Design record: DESIGN.md's
-"``steam_client`` E1 build: the door, three operations, both paths" entry
-(2026-07-27).
+cursor fallback) land on top of it. Design record: the door-as-built
+decisions under DESIGN's data-access section (ruled 2026-07-27).
 """
 
 from steamlens.steam_client.client import SteamClient

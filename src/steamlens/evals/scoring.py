@@ -1,6 +1,7 @@
 """Gold-vs-prediction scoring — the frozen bake-off metrics as pure functions.
 
-The protocol's metrics (DESIGN's C0 entries) computed from data alone: pairing
+The protocol's metrics (DESIGN's bake-off protocol, in the
+choosing-the-labeler section) computed from data alone: pairing
 is set intersection by label within a review, both sides resolved through
 ``core/normalize``'s surface index so the scorer and the candidates can never
 disagree about what "pinned" means. The per-review ``ReviewTally`` is the unit
@@ -16,8 +17,8 @@ candidate-emission diagnostic and the qualitative overlap table.
 A ratio with an empty denominator is *undefined* (``None``), never 0.0: a
 resample with nothing to judge is not measured badness, and folding it into a
 bootstrap distribution as 0.0 would pull the interval's lower tail toward
-zero (the 2026-07-28 bootstrap-undefined ruling, DESIGN's operational
-decisions). Reporting conventions — what a journal row shows when a statistic
+zero (the 2026-07-28 bootstrap-undefined ruling, in DESIGN's eval-harness
+section). Reporting conventions — what a journal row shows when a statistic
 is undefined — live with the callers; here a statistic just tells the truth.
 """
 

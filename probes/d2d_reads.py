@@ -5,8 +5,8 @@ Usage:
                                       [--seed 20260718] [--resamples 10000]
 
 Committed with the dispatch driver, *before* any cell is bought, so the
-decision rules are code — not post-hoc analysis. Two reads, per DESIGN's D2d
-registered-experiments entry (2026-07-25):
+decision rules are code — not post-hoc analysis. Two reads, per the
+registered-experiments decision in DESIGN's judge section (ruled 2026-07-25):
 
 **The gold read** (``--read gold``) puts the full-codebook N=1 re-label next
 to the two existing anchors on the shared in-scope gold reviews — the census

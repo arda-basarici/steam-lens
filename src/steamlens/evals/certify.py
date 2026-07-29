@@ -52,8 +52,8 @@ Names the whole procedure — set-intersection pairing via ``core/normalize``,
 candidate mentions unscored, the out-of-scope exclusion rule — so a semantics
 change bumps this string and old rows stay attributable to old semantics.
 ``/2`` (2026-07-28): the bootstrap drops undefined resamples instead of
-folding them in as 0.0 — the bootstrap-undefined ruling, DESIGN's operational
-decisions.
+folding them in as 0.0 — the bootstrap-undefined ruling, in DESIGN's
+eval-harness section.
 """
 
 JUDGE_SCORER: Final = "judge-vs-gold/2"

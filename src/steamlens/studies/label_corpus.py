@@ -5,9 +5,10 @@ The first M1 labels land through this entry shell: frozen corpus → usable pool
 → the label pool. The driver owns orchestration only; every hard guarantee it
 leans on lives in a seam it composes — bought responses in the content-keyed
 cache, spend in the ledger, resume in the selection query (an interrupted run
-relaunches and pays only for what never completed). Design record: DESIGN.md's
-C1 labeling driver entry (2026-07-19); the dispatch config itself was frozen at
-the C0.5 certification ruling.
+relaunches and pays only for what never completed). Design record: the
+census-dispatch decisions in DESIGN's labeling-engine section (settled
+2026-07-19); the dispatch config itself was frozen at the v2 codebook
+certification ruling.
 
 The run's shell — the tee'd log and the deliberate two-``Store`` split — is
 ``dispatch.run_shell``'s contract; the two-writer reasoning lives there once.

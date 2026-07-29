@@ -5,8 +5,8 @@ request, dialed by ``LlmClientConfig`` (routes, model envelopes, prices, the
 budget cap), served by provider *functions* registered in ``registry``, with
 typed failures in ``errors`` and in-memory cache/ledger bindings in ``memory``
 for tests and offline runs (real runs bind the store's durable
-archive/ledger pair in the same slots). Design record: DESIGN.md's two
-``llm_client`` operational-decisions entries (2026-07-13).
+archive/ledger pair in the same slots). Design record: the provider-seam
+decisions in DESIGN's labeling-engine section (settled 2026-07-13).
 """
 
 from steamlens.llm_client.client import LlmClient

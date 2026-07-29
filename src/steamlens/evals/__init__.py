@@ -4,8 +4,9 @@ The import law's top stratum: ``evals`` may import anything, nothing imports
 ``evals`` — certification consumes the system, never the reverse. Current
 surface: the validated gold loader (``load_gold``) and the pure scoring core
 (``tally_review`` → ``score`` → ``bootstrap_ci`` / ``paired_bootstrap_ci``,
-the latter for run-vs-run gaps on the shared gold slice), per DESIGN's C0 bake-off
-protocol + scorer-design entries (2026-07-17/18). The D2a certification shell
+the latter for run-vs-run gaps on the shared gold slice), per DESIGN's bake-off
+protocol (the choosing-the-labeler section) and the eval-harness section's
+scoring-core-as-library decision. The D2a certification shell
 (``certify_pool`` — the pool's production labels scored against gold and
 journaled into the store's eval-run tables) lives at
 ``steamlens.evals.certify`` and is imported by module path, deliberately not

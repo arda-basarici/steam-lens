@@ -12,7 +12,7 @@ promise. The codebook renders **full-fidelity** — every field of every aspect,
 grouped by category — so the machine annotator reads the same instructions the
 human annotator reads at gold labeling (the design call: an agreement number is
 only clean when both annotators worked from one contract). The pre-registered
-**compact** variant (DESIGN's classify-prompt entry) renders the decision
+**compact** variant (DESIGN's classify-stage section) renders the decision
 surface only — definition + label when + do not label when, no aliases, no
 examples — under its own ``COMPACT_PROMPT_VERSION`` and its own content pin;
 it exists to measure whether a leaner rule set beats a muddier context, and
@@ -31,8 +31,9 @@ malformed row becomes a typed ``IdxFailure`` the driver re-batches, and a
 fabricated evidence quote is repaired to ``None`` and counted rather than
 killing its mention. The decode step tolerates prose- and fence-wrapped
 payloads (prompt-json candidates narrate around their answer); the semantic
-contract — a JSON *array* of per-idx rows — is unchanged. See DESIGN's two
-``core/classify`` operational-decisions entries for the full reasoning.
+contract — a JSON *array* of per-idx rows — is unchanged. See the
+classify-stage decisions in DESIGN's labeling-engine section for the full
+reasoning.
 """
 
 from __future__ import annotations

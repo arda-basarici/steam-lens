@@ -8,8 +8,8 @@ binds for tests, ``ReviewStore`` (the corpus snapshot and the labeling
 driver's selection query), ``LabelPool`` (envelopes, mentions, runs,
 failure marks), and ``EvalRunLog`` (the certification journal —
 ``eval_runs``/``eval_metrics``, the runs of record the CI gate regenerates).
-Typed failures in ``errors``. Design record: DESIGN.md's two
-``store`` operational-decisions entries (2026-07-14).
+Typed failures in ``errors``. Design record: the store decisions in
+DESIGN's labeling-engine section (settled 2026-07-14).
 """
 
 from steamlens.store.archive import SqliteResponseArchive

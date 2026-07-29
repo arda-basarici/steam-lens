@@ -1,7 +1,7 @@
 """The CI eval gate's fixture — committed store rows plus pinned expectations (D3).
 
 CI has no ``data/steamlens.sqlite3`` — the label pool lives only on the dev
-machine — yet the D3 design (DESIGN's evals-in-CI entry) wants CI to regenerate
+machine — yet the D3 design (DESIGN's evals-in-CI decision) wants CI to regenerate
 the runs of record and fail on any digit drift. This module owns the committed
 bridge under ``eval/ci/``: the exact store rows the two re-scores read
 (reviews, run stamps, envelopes — normalized like the store's own tables), the

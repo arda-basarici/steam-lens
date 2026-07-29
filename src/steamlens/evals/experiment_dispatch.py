@@ -6,8 +6,9 @@ isolation evidence. Each *cell* re-labels a fixed review scope with the
 census's model under one controlled condition — codebook render (full |
 compact) × batch size (N=1 | N=10) — so the existing scorers can read the
 batch effect and the codebook interaction off the same reviews. The ruled
-cells, their decision rules, and the contingent follow-up are DESIGN's D2d
-registered-experiments entry (2026-07-25); the registered readings live in
+cells, their decision rules, and the contingent follow-up are the
+registered-experiments decision in DESIGN's judge section (ruled 2026-07-25);
+the registered readings live in
 ``probes/d2d_reads.py``.
 
 Cell envelopes land in the label pool, but their ``model_version`` key
@@ -136,7 +137,8 @@ draw assumed, so the cell holds N and freshness constant while *installing*
 an all-same-game neighbor structure the census never had. The composition
 stays as registered — the run is bought and its null read stands as bought —
 but any recomposed-vs-census interpretation carries that structure change as
-a named confound (DESIGN's D2d executed entry, the corrected residue)."""
+a named confound (the registered-experiments outcome in DESIGN's judge
+section, the corrected residue)."""
 
 
 @dataclass(frozen=True, slots=True)

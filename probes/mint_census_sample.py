@@ -6,7 +6,7 @@ Usage:
 Calibration proved the judge reference-grade on gold's 250; this probe mints
 the sample that carries that instrument out where gold doesn't reach: 1,000
 census reviews whose production labels will be scored against the judge's
-fresh labels (the judge-vs-production agreement read, DESIGN's D2c entries).
+fresh labels (the judge-vs-production agreement read, DESIGN's judge section).
 
 The frame is the census itself — every review holding a survey envelope under
 production's versions triple — so the draw estimates census-level agreement.
