@@ -13,7 +13,7 @@ records' ontology pin and the packaged artifact.
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 
 import pytest
@@ -21,6 +21,7 @@ import pytest
 from steamlens.contracts import Sentiment
 from steamlens.core.normalize import build_surface_index
 from steamlens.evals import (
+    ReviewTally,
     bootstrap_ci,
     load_gold,
     paired_bootstrap_ci,
@@ -261,13 +262,46 @@ def test_score_counts_candidate_emission_against_all_emitted_mentions() -> None:
     assert score(tallies).candidate_emission_rate == pytest.approx(1 / 2)
 
 
-def test_score_reports_zero_ratios_with_exposed_denominators() -> None:
-    """All-failed run: every ratio 0.0, and the n_* fields say why."""
+def test_score_reports_undefined_ratios_as_none_with_exposed_denominators() -> None:
+    """All-failed run: nothing was predicted, so precision has nothing to
+    measure — None, not 0.0 (recall keeps its defined 0.0: gold mentions
+    existed and were missed). The n_* fields say why."""
     tallies = [tally_review(gold=[("combat", _POS)], predicted=[], index=_INDEX, parse_failed=True)]
     scores = score(tallies)
-    assert scores.precision == 0.0
+    assert scores.precision is None
+    assert scores.recall == 0.0
+    assert scores.f1 is None
     assert scores.n_pred_mentions == 0
     assert scores.parse_failure_rate == 1.0
+
+
+def test_score_says_undefined_where_there_is_nothing_to_judge() -> None:
+    """The bootstrap-undefined ruling's core claims, one denominator at a time:
+    prediction-only → recall and sentiment undefined (no gold, no matches);
+    empty-empty → every mention ratio undefined, including candidate emission."""
+    pred_only = score([tally_review(gold=[], predicted=[("combat", _POS)], index=_INDEX)])
+    assert pred_only.precision == 0.0
+    assert pred_only.recall is None
+    assert pred_only.f1 is None
+    assert pred_only.sentiment_accuracy is None
+
+    silent = score([tally_review(gold=[], predicted=[], index=_INDEX)])
+    assert silent.precision is None
+    assert silent.recall is None
+    assert silent.f1 is None
+    assert silent.candidate_emission_rate is None
+    assert silent.zero_share_pred == 1.0  # the share fields never go undefined
+
+
+def test_f1_is_zero_not_none_when_both_components_are_defined_zeros() -> None:
+    """P=0 and R=0 both *measured* (predictions and gold exist, none match) is
+    total badness, not "nothing to judge" — F1's limit there is 0.0."""
+    scores = score(
+        [tally_review(gold=[("combat", _POS)], predicted=[("performance", _NEG)], index=_INDEX)]
+    )
+    assert scores.precision == 0.0
+    assert scores.recall == 0.0
+    assert scores.f1 == 0.0
 
 
 def test_score_rejects_an_empty_tally_sequence() -> None:
@@ -279,10 +313,16 @@ def test_score_rejects_an_empty_tally_sequence() -> None:
 
 
 def test_bootstrap_is_deterministic_under_its_seed() -> None:
+    # every tally carries gold and predictions so F1 is defined on every
+    # resample — undefined-draw handling has its own tests below
     tallies = [
         tally_review(gold=[("combat", _POS)], predicted=[("combat", _POS)], index=_INDEX),
-        tally_review(gold=[("performance", _NEG)], predicted=[], index=_INDEX),
-        tally_review(gold=[], predicted=[], index=_INDEX),
+        tally_review(gold=[("performance", _NEG)], predicted=[("combat", _POS)], index=_INDEX),
+        tally_review(
+            gold=[("voice acting", _NEG), ("combat", _POS)],
+            predicted=[("combat", _POS)],
+            index=_INDEX,
+        ),
     ]
     first = bootstrap_ci(tallies, lambda t: score(t).f1, n_resamples=200, seed=7)
     again = bootstrap_ci(tallies, lambda t: score(t).f1, n_resamples=200, seed=7)
@@ -304,6 +344,84 @@ def test_bootstrap_rejects_an_empty_tally_sequence() -> None:
         bootstrap_ci([], lambda t: 0.0, n_resamples=10, seed=1)
 
 
+# --- undefined resamples (the bootstrap-undefined ruling, DESIGN 2026-07-28) ------
+
+
+def _scripted(values: Sequence[float | None]) -> Callable[[Sequence[ReviewTally]], float | None]:
+    """A statistic that ignores its resample and replays ``values`` call by call.
+
+    The bootstrap contract under test is about the *values* stream (drop the
+    undefined, percentile the rest), so scripting the stream directly makes the
+    expected interval hand-computable — deriving it through real tallies would
+    re-implement the resampler in the test.
+    """
+    replay = iter(values)
+    return lambda _tallies: next(replay)
+
+
+_ONE_TALLY = [
+    tally_review(gold=[("combat", _POS)], predicted=[("combat", _POS)], index=_INDEX)
+]
+
+
+def test_bootstrap_reads_percentiles_over_the_defined_draws_only() -> None:
+    """One undefined draw of 100 is dropped, and the percentile ranks re-read
+    over the 99 defined values — visibly shifting the low bound against the
+    same stream with the draw defined. Folding None in as 0.0 (the old
+    convention) would have crushed the low bound to 0.0 instead."""
+    with_gap: list[float | None] = [float(i) for i in range(1, 101)]
+    with_gap[2] = None  # the third draw is "nothing to judge"
+    interval = bootstrap_ci(_ONE_TALLY, _scripted(with_gap), n_resamples=100, seed=1)
+    assert (interval.low, interval.high) == (4.0, 98.0)
+
+    dense = [float(i) for i in range(1, 101)]
+    baseline = bootstrap_ci(_ONE_TALLY, _scripted(dense), n_resamples=100, seed=1)
+    assert (baseline.low, baseline.high) == (3.0, 98.0)
+
+
+def test_bootstrap_raises_past_the_sparsity_floor() -> None:
+    """Two undefined draws of 100 exceed the 1% floor — the honest output is
+    no interval, not a wide one."""
+    values: list[float | None] = [float(i) for i in range(1, 101)]
+    values[10] = values[20] = None
+    with pytest.raises(ValueError, match="too sparse"):
+        bootstrap_ci(_ONE_TALLY, _scripted(values), n_resamples=100, seed=1)
+
+
+def test_bootstrap_refuses_a_sparse_slice_through_a_real_statistic() -> None:
+    """The reachable production case in miniature: sentiment accuracy over a
+    slice where matches are rare — resamples without a single matched pair
+    have nothing to judge, and there are far too many of them to drop."""
+    tallies = [
+        tally_review(gold=[("combat", _POS)], predicted=[("combat", _POS)], index=_INDEX),
+        *(
+            tally_review(gold=[("performance", _NEG)], predicted=[], index=_INDEX)
+            for _ in range(4)
+        ),
+    ]
+    with pytest.raises(ValueError, match="too sparse"):
+        bootstrap_ci(
+            tallies, lambda t: score(t).sentiment_accuracy, n_resamples=200, seed=7
+        )
+
+
+def test_paired_bootstrap_drops_draws_where_either_side_is_undefined() -> None:
+    """The paired loop calls the statistic twice per draw (a then b); a None on
+    either side drops that draw's difference. One dropped draw of 200 stays
+    under the floor and leaves the identical-runs interval at exactly [0, 0]."""
+    values: list[float | None] = [1.0] * 400
+    values[1] = None  # resample 1's b-side
+    interval = paired_bootstrap_ci(
+        _ONE_TALLY, _ONE_TALLY, _scripted(values), n_resamples=200, seed=3
+    )
+    assert (interval.low, interval.high) == (0.0, 0.0)
+
+    sparse: list[float | None] = [1.0] * 400
+    sparse[1] = sparse[3] = sparse[5] = None  # three dropped draws breach 1% of 200
+    with pytest.raises(ValueError, match="too sparse"):
+        paired_bootstrap_ci(_ONE_TALLY, _ONE_TALLY, _scripted(sparse), n_resamples=200, seed=3)
+
+
 # --- paired_bootstrap_ci ---------------------------------------------------------
 
 
@@ -320,16 +438,18 @@ def test_paired_bootstrap_identical_runs_gap_is_zero() -> None:
 
 
 def test_paired_bootstrap_detects_a_uniform_gap() -> None:
-    """A perfect run vs an all-miss run: every resample shows the same +1 F1 gap."""
+    """A perfect run vs an all-wrong run (predictions exist, none match — F1 a
+    measured 0.0, not undefined): every resample shows the same +1 F1 gap."""
     perfect = tuple(
         tally_review(gold=[("combat", _POS)], predicted=[("combat", _POS)], index=_INDEX)
         for _ in range(5)
     )
-    misses = tuple(
-        tally_review(gold=[("combat", _POS)], predicted=[], index=_INDEX) for _ in range(5)
+    all_wrong = tuple(
+        tally_review(gold=[("combat", _POS)], predicted=[("performance", _NEG)], index=_INDEX)
+        for _ in range(5)
     )
     interval = paired_bootstrap_ci(
-        perfect, misses, lambda t: score(t).f1, n_resamples=50, seed=3
+        perfect, all_wrong, lambda t: score(t).f1, n_resamples=50, seed=3
     )
     assert interval.low == interval.high == 1.0
 
@@ -339,10 +459,11 @@ def test_paired_bootstrap_is_deterministic_under_its_seed() -> None:
         tally_review(gold=[("combat", _POS)], predicted=[("combat", _POS)], index=_INDEX)
         for _ in range(3)
     )
+    # b's tallies all carry gold and predictions — F1 defined on every draw
     b = (
-        tally_review(gold=[("combat", _POS)], predicted=[], index=_INDEX),
+        tally_review(gold=[("combat", _POS)], predicted=[("performance", _NEG)], index=_INDEX),
         tally_review(gold=[("performance", _NEG)], predicted=[("performance", _NEG)], index=_INDEX),
-        tally_review(gold=[], predicted=[], index=_INDEX),
+        tally_review(gold=[("voice acting", _POS)], predicted=[("combat", _POS)], index=_INDEX),
     )
     first = paired_bootstrap_ci(a, b, lambda t: score(t).f1, n_resamples=200, seed=7)
     again = paired_bootstrap_ci(a, b, lambda t: score(t).f1, n_resamples=200, seed=7)

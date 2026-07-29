@@ -1,9 +1,9 @@
 {
   "run": {
-    "run_id": "agree-20260726T091519Z-2cf21910",
-    "code_version": "83d0c5a+dirty",
-    "created_at": "2026-07-26T09:15:19.666015+00:00",
-    "config_hash": "d0750b8aa0584f6e4b8aada9aba21a82948c5d26e2803f38805a61e5449e684f"
+    "run_id": "agree-20260728T184252Z-03a61480",
+    "code_version": "e2adf5c+dirty",
+    "created_at": "2026-07-28T18:42:52.798516+00:00",
+    "config_hash": "1bebdb5478c71b4bd54c6bf4beb031236f4781ea1c09a5c2daa484ecac093a48"
   },
   "versions": {
     "model_version": "deepseek-v4-flash",
@@ -18,7 +18,7 @@
   "n_scored_reviews": 1000,
   "seed": 20260718,
   "n_resamples": 10000,
-  "scorer": "judge-vs-production/1",
+  "scorer": "judge-vs-production/2",
   "metrics": [
     {
       "metric": "precision",

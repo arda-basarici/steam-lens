@@ -322,6 +322,67 @@ def test_export_refuses_a_crlf_pinned_artifact(tmp_path: Path) -> None:
         )
 
 
+_GOLD_BALLAST = ("r3", "r4", "r5", "r6")
+_SAMPLE_BALLAST = ("s3", "s4", "s5", "s6")
+
+
+def _loop_gold_and_sample(tmp_path: Path) -> tuple[Path, Path]:
+    """The loop test's artifacts: the branch-carrying reviews plus matched
+    ballast, which keeps every bootstrap resample's statistic defined at the
+    test's 50 resamples (a prediction-free resample would otherwise trip the
+    sparsity floor on a frame this small)."""
+    gold_path = _write_lf(
+        tmp_path / "gold.jsonl",
+        [
+            _gold_line("r1", "10", [{"aspect": "gameplay", "sentiment": "positive"}]),
+            _gold_line("r2", "10", []),
+            *(
+                _gold_line(rid, "10", [{"aspect": "gameplay", "sentiment": "positive"}])
+                for rid in _GOLD_BALLAST
+            ),
+        ],
+    )
+    sample_path = _write_lf(
+        tmp_path / "sample.jsonl",
+        [
+            _sample_line(item, rid, 20)
+            for item, rid in enumerate(("s1", "s2", *_SAMPLE_BALLAST), start=1)
+        ],
+    )
+    return gold_path, sample_path
+
+
+def _populate_loop_pool(store: Store) -> None:
+    """Both annotators' envelopes for the loop test, identical across phases."""
+    store.reviews.put_many(
+        [_review(rid, 10) for rid in ("r1", "r2", *_GOLD_BALLAST)]
+        + [_review(rid, 20) for rid in ("s1", "s2", *_SAMPLE_BALLAST)]
+    )
+    run = Provenance(
+        run_id="c1-test", code_version="sha-t", created_at=_NOON, config_hash="cfg"
+    )
+    store.labels.record_run(run)
+    gameplay_hit = (_mention("gameplay", Sentiment.POSITIVE),)
+    performance_hit = (_mention("performance", Sentiment.NEGATIVE),)
+    production: dict[str, tuple[AspectMention, ...]] = {
+        "r1": gameplay_hit,
+        "r2": (),
+        "s1": performance_hit,
+        "s2": (),
+        **dict.fromkeys(_GOLD_BALLAST, gameplay_hit),
+        **dict.fromkeys(_SAMPLE_BALLAST, performance_hit),
+    }
+    judge: dict[str, tuple[AspectMention, ...]] = {
+        "s1": performance_hit,
+        "s2": (_mention("gameplay", Sentiment.MIXED),),
+        **dict.fromkeys(_SAMPLE_BALLAST, performance_hit),
+    }
+    for review_id, mentions in production.items():
+        store.labels.put(_envelope(review_id, _PRODUCTION, run, mentions))
+    for review_id, mentions in judge.items():
+        store.labels.put(_envelope(review_id, _JUDGE, run, mentions))
+
+
 def test_export_fixture_closes_the_loop(tmp_path: Path) -> None:
     """Export from a synthetic store, rebuild from the fixture, reproduce the pins.
 
@@ -329,37 +390,9 @@ def test_export_fixture_closes_the_loop(tmp_path: Path) -> None:
     the rebuilt store's re-score must show zero discrepancies against the pins
     the exporter minted.
     """
-    gold_path = _write_lf(
-        tmp_path / "gold.jsonl",
-        [
-            _gold_line("r1", "10", [{"aspect": "gameplay", "sentiment": "positive"}]),
-            _gold_line("r2", "10", []),
-        ],
-    )
-    sample_path = _write_lf(
-        tmp_path / "sample.jsonl",
-        [_sample_line(1, "s1", 20), _sample_line(2, "s2", 20)],
-    )
+    gold_path, sample_path = _loop_gold_and_sample(tmp_path)
     with Store(":memory:") as store:
-        store.reviews.put_many(
-            [_review("r1", 10), _review("r2", 10), _review("s1", 20), _review("s2", 20)]
-        )
-        run = Provenance(
-            run_id="c1-test", code_version="sha-t", created_at=_NOON, config_hash="cfg"
-        )
-        store.labels.record_run(run)
-        for review_id, mentions in {
-            "r1": (_mention("gameplay", Sentiment.POSITIVE),),
-            "r2": (),
-            "s1": (_mention("performance", Sentiment.NEGATIVE),),
-            "s2": (),
-        }.items():
-            store.labels.put(_envelope(review_id, _PRODUCTION, run, mentions))
-        for review_id, mentions in {
-            "s1": (_mention("performance", Sentiment.NEGATIVE),),
-            "s2": (_mention("gameplay", Sentiment.MIXED),),
-        }.items():
-            store.labels.put(_envelope(review_id, _JUDGE, run, mentions))
+        _populate_loop_pool(store)
 
         # Journal the anchors as re-stamped copies of a first scoring pass —
         # the exporter inherits its dials from them, then must reproduce them.
@@ -390,31 +423,16 @@ def test_export_fixture_closes_the_loop(tmp_path: Path) -> None:
 
         fixture_dir = tmp_path / "ci"
         with pytest.raises(ValueError, match="does not reproduce"):
-            # The certify anchor's config hash must genuinely match — only the
-            # agreement comparison forgives it, so a bogus certify hash is loud.
+            # Since the /2 re-anchor, both anchors' config hashes must
+            # genuinely match — a bogus hash is loud on either comparison.
             export_fixture(
                 store, fixture_dir, source_db=Path(":memory:"),
                 gold_path=gold_path, sample_path=sample_path, ontology_path=None,
             )
 
-    # Rebuild the store with a faithful certify anchor and export for real.
+    # Rebuild the store with faithful anchors and export for real.
     with Store(":memory:") as store:
-        store.reviews.put_many(
-            [_review("r1", 10), _review("r2", 10), _review("s1", 20), _review("s2", 20)]
-        )
-        run = Provenance(
-            run_id="c1-test", code_version="sha-t", created_at=_NOON, config_hash="cfg"
-        )
-        store.labels.record_run(run)
-        for review_id, versions, mentions in (
-            ("r1", _PRODUCTION, (_mention("gameplay", Sentiment.POSITIVE),)),
-            ("r2", _PRODUCTION, ()),
-            ("s1", _PRODUCTION, (_mention("performance", Sentiment.NEGATIVE),)),
-            ("s2", _PRODUCTION, ()),
-            ("s1", _JUDGE, (_mention("performance", Sentiment.NEGATIVE),)),
-            ("s2", _JUDGE, (_mention("gameplay", Sentiment.MIXED),)),
-        ):
-            store.labels.put(_envelope(review_id, versions, run, mentions))
+        _populate_loop_pool(store)
         first_certify = certify_pool(
             store, gold_path=gold_path, ontology_path=None,
             model_version=_PRODUCTION.model_version,

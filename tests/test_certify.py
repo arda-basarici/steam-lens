@@ -37,7 +37,9 @@ from steamlens.evals.certify import (
     certify_pool,
     pool_tallies,
     render_eval_run,
+    slice_metrics,
 )
+from steamlens.evals.scoring import tally_review
 from steamlens.ontology import load_ontology, load_ontology_version
 from steamlens.store import Store
 
@@ -110,18 +112,29 @@ def _pool_store(envelopes: dict[str, tuple[AspectMention, ...]], apps: dict[str,
 
 
 # Three in-scope reviews (a hit, a miss, a both-empty) and one from the
-# excluded game — the smallest pool that exercises every scope branch.
-_APPS = {"r1": 10, "r2": 10, "r3": 20, "r-cs2": 730}
+# excluded game exercise every scope branch; three matched ballast reviews
+# keep every bootstrap resample's statistic defined (a frame this small would
+# otherwise draw prediction-free resamples past the sparsity floor).
+_APPS = {"r1": 10, "r2": 10, "r3": 20, "r-cs2": 730, "r4": 10, "r5": 10, "r6": 20}
 _GOLD_LINES = [
     _gold_line("r1", "10", [{"aspect": "gameplay", "sentiment": "positive"}]),
     _gold_line("r2", "10", [{"aspect": "performance", "sentiment": "negative"}]),
     _gold_line("r3", "20", []),
     _gold_line("r-cs2", "730", [{"aspect": "gameplay", "sentiment": "positive"}]),
+    _gold_line("r4", "10", [{"aspect": "gameplay", "sentiment": "positive"}]),
+    _gold_line("r5", "10", [{"aspect": "performance", "sentiment": "negative"}]),
+    _gold_line("r6", "20", [{"aspect": "gameplay", "sentiment": "positive"}]),
 ]
+_BALLAST = {
+    "r4": (_mention("gameplay", Sentiment.POSITIVE),),
+    "r5": (_mention("performance", Sentiment.NEGATIVE),),
+    "r6": (_mention("gameplay", Sentiment.POSITIVE),),
+}
 _ENVELOPES = {
     "r1": (_mention("gameplay", Sentiment.POSITIVE),),
     "r2": (),  # the model found nothing where gold has a mention
     "r3": (),
+    **_BALLAST,
 }
 
 
@@ -135,9 +148,9 @@ class TestPoolTallies:
             tallies = pool_tallies(store, gold, _INDEX, _VERSIONS)
         finally:
             store.close()
-        assert len(tallies) == 3  # r-cs2 is out of scope: absent, not a zero row
+        assert len(tallies) == 6  # r-cs2 is out of scope: absent, not a zero row
         assert not any(t.parse_failed for t in tallies)
-        assert sum(t.tp for t in tallies) == 1  # r1's gameplay hit
+        assert sum(t.tp for t in tallies) == 4  # r1's gameplay hit + the ballast's three
         assert sum(t.fn for t in tallies) == 1  # r2's missed performance
 
     def test_failure_mark_scores_as_parse_failure(self, tmp_path: Path) -> None:
@@ -185,8 +198,8 @@ class TestCertifyPool:
             )
         finally:
             store.close()
-        assert eval_run.n_reference_reviews == 4
-        assert eval_run.n_scored_reviews == 3
+        assert eval_run.n_reference_reviews == 7
+        assert eval_run.n_scored_reviews == 6
         assert eval_run.versions == _VERSIONS
         assert eval_run.reference_kind is ReferenceKind.GOLD_FILE
         assert eval_run.reference_id == gold_path.as_posix()
@@ -243,7 +256,7 @@ class TestCertifyPool:
             )
         finally:
             store.close()
-        assert eval_run.n_scored_reviews == 4  # the CS2 review scores, not skipped
+        assert eval_run.n_scored_reviews == 7  # the CS2 review scores, not skipped
         assert eval_run.scorer == JUDGE_SCORER
 
     def test_slice_rows_read_the_reference_side(self, tmp_path: Path) -> None:
@@ -265,14 +278,20 @@ class TestCertifyPool:
                 {"aspect": "gameplay", "sentiment": "positive"},
                 {"aspect": "flurbo economy", "sentiment": "negative"},
             ]),
+            # matched ballast: keeps the headline bootstrap defined on every
+            # resample without joining any of the three slices under test
+            _gold_line("r-b1", "10", [{"aspect": "gameplay", "sentiment": "positive"}]),
+            _gold_line("r-b2", "10", [{"aspect": "performance", "sentiment": "negative"}]),
         ])
         store = _pool_store(
             {
                 "r-multi": (_mention("gameplay", Sentiment.POSITIVE),),
                 "r-zero": (),
                 "r-cand": (_mention("gameplay", Sentiment.POSITIVE),),
+                "r-b1": (_mention("gameplay", Sentiment.POSITIVE),),
+                "r-b2": (_mention("performance", Sentiment.NEGATIVE),),
             },
-            {"r-multi": 10, "r-zero": 10, "r-cand": 10},
+            {"r-multi": 10, "r-zero": 10, "r-cand": 10, "r-b1": 10, "r-b2": 10},
         )
         try:
             eval_run = certify_pool(
@@ -296,6 +315,24 @@ class TestCertifyPool:
         assert named["f1_candidate_emitting"].value == 1.0
         for stat in ("zero_mention_agreement", "f1_multi_mention", "f1_candidate_emitting"):
             assert named[stat].ci_low is not None  # bootstrapped within the slice
+
+    def test_undefined_slice_statistic_skips_the_row_but_journals_its_n(self) -> None:
+        """A candidate-emitting review can be pinned-empty on both sides — the
+        slice then has members but nothing scoreable, and the honest journal
+        is the n row alone (the old convention would have minted an F1 0.0
+        row out of "nothing to judge"). Quiet-agreement stays journaled: its
+        denominator is the member count, never empty."""
+        member = tally_review(
+            gold=[("flurbo economy", Sentiment.NEGATIVE)], predicted=[],
+            index={"gameplay": "gameplay"},
+        )
+        named = {m.metric: m for m in slice_metrics([member], seed=7, n_resamples=50)}
+        assert named["n_candidate_emitting"].value == 1.0
+        assert "f1_candidate_emitting" not in named
+        assert named["n_zero_mention"].value == 1.0  # pinned-empty gold is a zero
+        assert named["zero_mention_agreement"].value == 1.0
+        assert named["n_multi_mention"].value == 0.0
+        assert "f1_multi_mention" not in named
 
     def test_certification_survives_the_journal_round_trip(self, tmp_path: Path) -> None:
         gold_path = _write_gold(tmp_path, _GOLD_LINES)

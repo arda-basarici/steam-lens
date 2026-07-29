@@ -57,11 +57,13 @@ from steamlens.evals.scoring import ReviewTally, bootstrap_ci, tally_review
 from steamlens.ontology import load_ontology, load_ontology_version
 from steamlens.store import Store
 
-AGREEMENT_SCORER: Final = "judge-vs-production/1"
+AGREEMENT_SCORER: Final = "judge-vs-production/2"
 """The agreement procedure's identity: certify's pairing semantics with the
 judge's labels in the reference role, no scope exclusion (the sample was
 drawn from the census, so every review is in scope by construction), and
-judge-unread reviews dropped from the intersection with the drop disclosed."""
+judge-unread reviews dropped from the intersection with the drop disclosed.
+``/2`` tracks the bootstrap-undefined bump shared with the certify scorers
+(undefined resamples dropped, never folded in as 0.0)."""
 
 PER_ASPECT_FLOOR: Final = 30
 """Judge-side n below which an aspect gets no journal row — an F1 over a
@@ -118,7 +120,14 @@ def per_aspect_metrics(
 
 
 def _aspect_f1(aspect: str) -> Callable[[Sequence[ReviewTally]], float]:
-    """The one-aspect F1 statistic, closed over the aspect for the bootstrap."""
+    """The one-aspect F1 statistic, closed over the aspect for the bootstrap.
+
+    Plain ``float``, no undefined case: every member names the aspect on some
+    side, so ``2·tp+fp+fn`` is at least the resample size — the empty
+    denominator the bootstrap-undefined ruling guards against is unreachable
+    here by membership construction. The ``else 0.0`` is a defensive dead
+    branch, not a reporting convention.
+    """
 
     def statistic(tallies: Sequence[ReviewTally]) -> float:
         tp = sum(aspect in t.matched_aspects for t in tallies)

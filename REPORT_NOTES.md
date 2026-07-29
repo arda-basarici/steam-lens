@@ -7,6 +7,84 @@ decisions it feeds.
 
 ---
 
+## 2026-07-28 — A statistic learns to say "undefined," and the drift gate's escape hatch gets its first real turn of the key
+
+*The scorer-bump session — the last docket item from the full-base review, run as
+its own design-then-build session. Record: DESIGN.md's "bootstrap-undefined fix"
+operational entry; the finding itself is the review report's bootstrap entry
+(stream `reviews/2026-07-27-full-base-review.md`, finding 43). Feeds: the M1
+post's eval-harness / honest-measurement section — both the bug story and the
+deliberate-change-path story.*
+
+The full-base review left one finding that touched certified digits, which is why
+it got its own session instead of riding the architecture commits. The scoring
+core's ratio convention — 0.0 on an empty denominator — is perfectly honest for a
+*reported* point value, because the `n_*` denominator fields sit right beside the
+number and a zero is never mistaken for measured badness. But `bootstrap_ci` feeds
+the same statistic 10,000 resamples with no `n_*` beside them, so a resample where
+the statistic is *undefined* — nothing to judge — contributed 0.0 as if it were
+measured badness, dragging every confidence interval's lower tail toward zero.
+The elegant part of the finding was where it was reachable: not the 245-review
+headline frame (an all-matchless resample there is astronomically unlikely) but
+the candidate-emitting slice, whose ~15 members qualify by *candidate* emission —
+and candidates are unscored, so a member can carry zero pinned mentions on either
+side, and a resample of 15 such draws makes precision, recall, and F1 all 0/0.
+The design had even seen this exact trap once before — the zero-mention slice
+deliberately reports quiet-agreement because "F1 is undefined where the reference
+is empty" — it just hadn't carried the reasoning into the resampling loop.
+
+The fix ruled: a ratio with an empty denominator is `None`, never 0.0, and the
+bootstrap drops undefined draws and reads percentiles over the defined ones —
+same RNG stream, so digits move only where an undefined draw actually occurred.
+Two subtleties earned their own rulings. First, F1's composition: precision and
+recall both *defined* at 0.0 is total measured badness (predictions and gold both
+exist, none match), so F1 there is 0.0, not undefined — only a `None` component
+makes F1 `None`. The line between "measured zero" and "nothing to measure" runs
+through the middle of one formula. Second, the design's one admitted-arbitrary
+constant: a 1% sparsity floor. A few undefined draws in 10,000 don't change what
+an interval claims, but past the floor the slice is too sparse for the statistic
+and the honest output is *no interval*, not a wide one — the alternatives were
+"always drop silently" (a 40%-undefined interval would journal wearing a
+certified metric's name) and "any undefined draw raises" (certification becomes
+fragile to any gold edit shifting slice composition). Taste admitted as taste:
+1% is a judgment call; the two endpoints it rejects are not.
+
+Then the fix forced the part worth telling in the post: the evals-in-CI design
+(D3) had named a deliberate-change path — "a semantics change bumps the scorer
+string and re-exports the pins in the same commit" — that had never been used.
+This session used it for real. All three scorer identities bumped to `/2`
+(`census-vs-gold/2`, `judge-vs-gold/2`, `judge-vs-production/2` — all three,
+because the procedure the string names changed for all three, whether or not
+their digits moved), fresh runs of record were minted from the real pool under
+the same dials (runs `certify-20260728T184100Z-5f3f4652` and
+`agree-20260728T184121Z-7c975c95`, seed 20260718, 10,000 resamples), and the
+descent comparison against the old `/1` anchors came back **digit-identical on
+every metric row** — under the recorded seed, no undefined resample ever
+actually occurred. So the published numbers (F1 0.766 [0.713–0.811], agreement
+0.791 [0.772–0.810]) were never live-corrupted: the session closed a latent
+hazard, not an active error — which is itself the honest-measurement story, and
+the reason the comparison was run rather than assumed.
+
+The re-anchor bought an unplanned cleanup: the fixture exporter's two disclosed
+relaxations — the certification anchor's metrics compared only as an ordered
+prefix (it predated the item-type slice rows), the agreement anchor's config
+hash excluded (it had digested pre-normalization CRLF bytes) — both existed
+because the anchors were older than the code verifying against them. New
+anchors, minted by current code, need no forgiveness: both relaxations retired
+and the exporter's verification is now exact on full identity. The comparison
+machinery keeps its relaxation parameters as the tool the *next* deliberate
+change will reach for.
+
+One consequence surfaced where design consequences usually hide: the test suite.
+Several synthetic fixtures — three- and four-review frames with a zero-mention
+or all-miss review — started raising "too sparse to bootstrap," and they were
+*right to*: a 3-review frame where a third of resamples have nothing to judge
+genuinely is too sparse, and the old convention had been quietly manufacturing
+0.0s to paper over it. The frames gained matched "ballast" reviews rather than
+any test-side escape hatch — the floor's semantics hold in tests exactly as in
+production. Tests 374 → 383, all green with the CI gate armed regenerating the
+new `/2` pins to the digit.
+
 ## 2026-07-27 — The investigator stood down, and the frame that keeps its replacement from being a tutorial project: three claims a stock RAG app can't make
 
 *The RAG-replacement product design session — the gate that had to run before the

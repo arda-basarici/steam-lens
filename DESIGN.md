@@ -1524,6 +1524,64 @@ is the eval population) · per-question and per-session cost caps · the
 answer-composition prompt · the `Review` reception-metadata deferral (helpful
 votes, playtime) reopened as a candidate retrieval signal (the E1 entry's pointer).
 
+**The bootstrap-undefined fix: a statistic learns to say "undefined", and the first
+scorer bump walks the deliberate-change path** (ruled 2026-07-28, six-fork design
+discussion; executes the full-base review's bootstrap finding — the one docket item
+left from the architecture session). The defect: the scoring core's ratio convention
+(0.0 on an empty denominator, honest for a *reported* point value whose `n_*` fields
+sit beside it) silently corrupts a bootstrap distribution — a resample where the
+statistic is undefined ("nothing to judge") contributes 0.0 as if it were measured
+badness, pulling the interval's lower tail toward zero. Reachability, established
+before ruling: `f1_candidate_emitting` is the real case (slice members qualify by
+*candidate* emission, candidates are unscored, so a resample of the ~18 members can
+be pinned-empty on both sides); `sentiment_accuracy` (denominator tp) is the sharp
+headline case but practically unreachable on the 245-review frame; per-aspect
+agreement F1 is safe by construction (every member names the aspect, so the
+denominator is bounded below by the resample size). Fork 1, where "undefined"
+lives: **in the core's types** — `_ratio` returns `float | None` and it propagates
+into `BakeoffScores` (`precision`, `recall`, `sentiment_accuracy`,
+`candidate_emission_rate` are None on an empty denominator; `f1` is None iff a
+component is — P=0 and R=0 both *defined* still gives F1 0.0, the correct
+measured-badness limit; the zero-shares and `parse_failure_rate` stay plain `float`,
+their denominator is the tally count and `score` already rejects empty). The one
+place that knows the denominator decides, instead of callers re-deriving it. Fork
+2, the resampling loop: `bootstrap_ci`/`paired_bootstrap_ci` type the statistic
+`float | None`, **drop undefined draws, take percentiles over the defined ones** —
+same RNG stream, so digits move only where an undefined draw actually occurred —
+and **raise past a 1% undefined share** (the one arbitrary constant, ruled: above
+it the slice is too sparse for the statistic and the honest output is no number,
+not a wide one; below it, no journal-schema change and no disclosure rows — the
+behavior is deterministic under the seed and documented at the definition site.
+Rejected: journaling an `undefined_resamples` count per metric — a store/pin-format
+ripple for a count that is zero everywhere today). Fork 3, point values: a
+headline or diagnostic statistic undefined on the full scoring frame means there
+is nothing to certify — raise, loud; a *slice* statistic undefined over its full
+members skips the stat row like the n=0 case (the reading rule becomes "no stat
+row = nothing scoreable there"; the `n_<slice>` row still journals). Fork 4,
+identity: **all three scorer strings bump to /2** (`census-vs-gold/2`,
+`judge-vs-gold/2`, `judge-vs-production/2`) — the procedure the string names
+changed for all three regardless of whether their digits move under the recorded
+seeds; bumping only where digits moved would leave two identical strings naming
+two different procedures. Fork 5, the re-anchor mechanics — the deliberate-change
+path D3 named but never used, executed as: **mint fresh certification and
+agreement rows of record under /2** into the journal from the real pool via the
+existing front doors (same dials as the /1 anchors: seed 20260718, 10,000
+resamples, v2 by explicit path), one-time comparison against the /1 anchors
+(`run_discrepancies` with its relaxations, ad hoc — a moved digit would be a
+disclosed finding, not an error), **repoint the exporter's `HISTORICAL_*` anchors
+to the new run ids**, re-export the fixture, all in one commit. Rejected: a
+permanent "scorer-bump relaxation" flag in the exporter — machinery for a rare
+event; `run_discrepancies` keeps its relaxation parameters as the reusable
+cross-semantics comparison tool, but the export path's calls become exact. Side
+effect, deliberate: **both disclosed relaxations retire** — the new certify anchor
+includes the item-type slice rows (the metrics-prefix relaxation dies) and the new
+agreement anchor's config hash digests LF bytes (the config-hash exclusion dies) —
+so the exporter's verification lands on full identity, closing the relaxation
+stories the D3 entry disclosed. Fork 6, pinned by test where no test existed: an
+undefined resample is dropped and the interval reads over the defined draws, the
+sparsity floor raises, `sentiment_accuracy` is None at tp=0, the F1 composition
+rule, and the slice-skip behavior.
+
 ## Scope & non-goals
 
 - In: aspect reports with receipts, narrated live analysis, the report-interrogation

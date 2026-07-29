@@ -14,14 +14,17 @@ and demands ``pinned_view`` equality — CI's read path is production's, and an
 intentional semantics change has exactly one honest path: bump the scorer
 string and re-export the pins in the same commit.
 
-The verification against history carries two disclosed relaxations, one per
-run. The certification row of record was journaled before the item-type slice
-rows existed, so its metrics must survive as an exact ordered *prefix* of the
-fresh run's. The agreement row of record hashed the sample file's
-pre-normalization CRLF bytes into its config hash, so that one field is
-excluded there — and to keep any such byte skew from ever entering the pins,
-the exporter refuses to run while a digest-pinned artifact carries CRLF bytes
-(``.gitattributes`` holds them at LF from here on).
+The verification against history is exact on the full pinned identity. It
+originally carried two disclosed relaxations (the certification anchor
+predated the item-type slice rows, so its metrics compared as an ordered
+prefix; the agreement anchor's config hash digested pre-normalization CRLF
+bytes, so that field was excluded) — both retired at the 2026-07-28 ``/2``
+re-anchor, when the bootstrap-undefined scorer bump minted fresh rows of
+record under current code. ``run_discrepancies`` keeps the relaxation
+parameters as the cross-semantics comparison tool for the *next* deliberate
+change; the standing export path needs neither. The CRLF lesson survives as
+enforcement: the exporter refuses to run while a digest-pinned artifact
+carries CRLF bytes (``.gitattributes`` holds them at LF).
 """
 
 from __future__ import annotations
@@ -68,13 +71,16 @@ ONTOLOGY_PATH: Final = Path("src/steamlens/ontology/v2.toml")
 purpose: the reference paths land inside journaled config hashes as given, so
 the exporter and the gate must both run from the repo root to hash-agree."""
 
-HISTORICAL_CERTIFY: Final = "certify-20260723T093643Z-4eab554c"
-"""The journaled production certification (census-vs-gold/1, F1 0.766) the
-certification pin must descend from — its digits survive as a metrics prefix."""
+HISTORICAL_CERTIFY: Final = "certify-20260728T184100Z-5f3f4652"
+"""The journaled production certification (census-vs-gold/2, F1 0.766) the
+certification pin must reproduce in full. Minted at the bootstrap-undefined
+re-anchor; digit-identical to its /1 predecessor certify-20260723T093643Z-4eab554c."""
 
-HISTORICAL_AGREEMENT: Final = "agree-20260723T203011Z-78258f68"
+HISTORICAL_AGREEMENT: Final = "agree-20260728T184121Z-7c975c95"
 """The journaled census-sample agreement read with the per-aspect rows
-(judge-vs-production/1, F1 0.791) the agreement pin must reproduce in full."""
+(judge-vs-production/2, F1 0.791) the agreement pin must reproduce in full.
+Minted at the bootstrap-undefined re-anchor; digit-identical to its /1
+predecessor agree-20260723T203011Z-78258f68."""
 
 REVIEWS_FILE: Final = "reviews.jsonl"
 RUNS_FILE: Final = "runs.jsonl"
@@ -186,12 +192,14 @@ def run_discrepancies(
     """Human-readable differences between a reference run and a fresh re-score.
 
     Empty means the fresh run reproduces the reference under ``pinned_view``'s
-    contract. The two relaxations exist for the historical anchors only — the
-    module docstring carries their stories — and every deviation they forgive
-    is named at the call site, never defaulted on: ``metrics_prefix`` accepts
-    fresh runs whose metric family *grew* (the reference rows must survive as
-    an exact ordered prefix), ``ignore_config_hash`` skips the one field the
-    agreement anchor can no longer reproduce byte-for-byte.
+    contract. The relaxations are the cross-semantics comparison tools a
+    deliberate change reaches for when descent must be checked across a
+    boundary the exact contract can't span — a metric family that *grew*
+    (``metrics_prefix``: the reference rows must survive as an exact ordered
+    prefix) or a config hash the fresh run can't reproduce byte-for-byte
+    (``ignore_config_hash``). The standing export path uses neither since the
+    2026-07-28 re-anchor; every use is named at its call site, never
+    defaulted on.
     """
     problems: list[str] = []
     reference_view = pinned_view(reference)
@@ -472,7 +480,7 @@ def export_fixture(
         seed=historical_certify.seed,
         n_resamples=historical_certify.n_resamples,
     )
-    _verified(historical_certify, fresh_certify, metrics_prefix=True)
+    _verified(historical_certify, fresh_certify)
 
     historical_agreement = _journaled(store, HISTORICAL_AGREEMENT)
     fresh_agreement = agreement_pool(
@@ -484,7 +492,7 @@ def export_fixture(
         seed=historical_agreement.seed,
         n_resamples=historical_agreement.n_resamples,
     )
-    _verified(historical_agreement, fresh_agreement, ignore_config_hash=True)
+    _verified(historical_agreement, fresh_agreement)
 
     gold_ids, sample_ids = gate_review_ids(gold_path, sample_path)
     production = fresh_certify.versions
@@ -524,14 +532,11 @@ def export_fixture(
         "verified_against": {
             "certification": {
                 "run_id": HISTORICAL_CERTIFY,
-                "comparison": "identity + metrics as ordered prefix (the anchor was "
-                "journaled before the item-type slice rows existed)",
+                "comparison": "full pinned identity, exact",
             },
             "agreement": {
                 "run_id": HISTORICAL_AGREEMENT,
-                "comparison": "identity + full metrics, config hash excluded (the "
-                "anchor's hash digests the sample file's pre-normalization CRLF "
-                "bytes; same parsed content)",
+                "comparison": "full pinned identity, exact",
             },
         },
         "counts": {

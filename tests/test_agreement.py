@@ -145,54 +145,60 @@ def _run(store: Store, sample_path: Path):
 
 
 def test_accounting_drops_judge_unread_and_scores_the_rest(tmp_path: Path) -> None:
-    """Four sampled: agree / production-miss / both-empty / judge-refused.
+    """Four sampled reviews carry the branches — agree / production-miss /
+    both-empty / judge-refused — plus three agreeing ballast reviews that keep
+    every bootstrap resample's statistic defined on this tiny frame.
 
     The judge-refused review narrows ``n_scored_reviews`` below the sample
-    size; the other three score. Direction shows in recall < 1 (the judge's
+    size; the other six score. Direction shows in recall < 1 (the judge's
     r2 mention that production missed) with precision = 1 (everything
     production said, the judge corroborates).
     """
-    ids = ["r1", "r2", "r3", "r4"]
+    ids = ["r1", "r2", "r3", "r4", "r5", "r6", "r7"]
+    agree = (_mention("gameplay", Sentiment.POSITIVE),)
     store = _store(
         ids,
-        production={"r1": (_mention("gameplay", Sentiment.POSITIVE),), "r2": (), "r3": (),
-                    "r4": ()},
-        judge={"r1": (_mention("gameplay", Sentiment.POSITIVE),),
-               "r2": (_mention("performance", Sentiment.NEGATIVE),), "r3": ()},
+        production={"r1": agree, "r2": (), "r3": (), "r4": (),
+                    "r5": agree, "r6": agree, "r7": agree},
+        judge={"r1": agree, "r2": (_mention("performance", Sentiment.NEGATIVE),), "r3": (),
+               "r5": agree, "r6": agree, "r7": agree},
         judge_failures=("r4",),
     )
     try:
         eval_run = _run(store, _sample_file(tmp_path, ids))
     finally:
         store.close()
-    assert eval_run.n_reference_reviews == 4
-    assert eval_run.n_scored_reviews == 3
+    assert eval_run.n_reference_reviews == 7
+    assert eval_run.n_scored_reviews == 6
     assert eval_run.reference_kind is ReferenceKind.POOL_LABELS
     assert eval_run.scorer == AGREEMENT_SCORER
     assert JUDGE_MODEL_ID in eval_run.reference_id
     assert "sample.jsonl" in eval_run.reference_id
     named = {m.metric: m.value for m in eval_run.metrics}
     assert named["precision"] == 1.0
-    assert named["recall"] == 0.5
+    assert named["recall"] == 0.8  # 4 corroborated of the judge's 5 mentions
     assert named["parse_failure_rate"] == 0.0
 
 
 def test_production_failure_scores_as_parse_failure(tmp_path: Path) -> None:
-    ids = ["r1", "r2"]
+    # r3-r5 are agreeing ballast: they keep the bootstrap defined on every
+    # resample of this tiny frame without touching the failure accounting
+    ids = ["r1", "r2", "r3", "r4", "r5"]
+    agree = (_mention("gameplay", Sentiment.POSITIVE),)
     store = _store(
         ids,
-        production={"r1": (_mention("gameplay", Sentiment.POSITIVE),)},
-        judge={"r1": (_mention("gameplay", Sentiment.POSITIVE),),
-               "r2": (_mention("performance", Sentiment.NEGATIVE),)},
+        production={"r1": agree, "r3": agree, "r4": agree, "r5": agree},
+        judge={"r1": agree, "r2": (_mention("performance", Sentiment.NEGATIVE),),
+               "r3": agree, "r4": agree, "r5": agree},
         production_failures=("r2",),
     )
     try:
         eval_run = _run(store, _sample_file(tmp_path, ids))
     finally:
         store.close()
-    assert eval_run.n_scored_reviews == 2
+    assert eval_run.n_scored_reviews == 5
     named = {m.metric: m.value for m in eval_run.metrics}
-    assert named["parse_failure_rate"] == 0.5
+    assert named["parse_failure_rate"] == 0.2
 
 
 def test_partially_dispatched_sample_dies_loud(tmp_path: Path) -> None:

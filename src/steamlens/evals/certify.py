@@ -45,28 +45,31 @@ from steamlens.evals.scoring import ReviewTally, bootstrap_ci, score, tally_revi
 from steamlens.ontology import load_ontology, load_ontology_version
 from steamlens.store import Store
 
-SCORER: Final = "census-vs-gold/1"
+SCORER: Final = "census-vs-gold/2"
 """The scoring procedure's identity, stamped on every run this shell mints.
 
 Names the whole procedure — set-intersection pairing via ``core/normalize``,
-candidate mentions unscored, the out-of-scope exclusion rule — so a future
-semantics change bumps this string and old rows stay attributable to old
-semantics.
+candidate mentions unscored, the out-of-scope exclusion rule — so a semantics
+change bumps this string and old rows stay attributable to old semantics.
+``/2`` (2026-07-28): the bootstrap drops undefined resamples instead of
+folding them in as 0.0 — the bootstrap-undefined ruling, DESIGN's operational
+decisions.
 """
 
-JUDGE_SCORER: Final = "judge-vs-gold/1"
+JUDGE_SCORER: Final = "judge-vs-gold/2"
 """The judge-calibration variant's identity: same pairing and metrics, but NO
 out-of-scope exclusion — the judge labels all of gold (pool scope was the
 labeler's constraint, not the judge's), so its runs must not wear a scorer
-name whose semantics include the exclusion rule."""
+name whose semantics include the exclusion rule. ``/2`` tracks the same
+bootstrap-undefined bump as the census scorer's."""
 
-_BOOTSTRAPPED: Final[dict[str, Callable[[Sequence[ReviewTally]], float]]] = {
+_BOOTSTRAPPED: Final[dict[str, Callable[[Sequence[ReviewTally]], float | None]]] = {
     "precision": lambda t: score(t).precision,
     "recall": lambda t: score(t).recall,
     "f1": lambda t: score(t).f1,
     "sentiment_accuracy": lambda t: score(t).sentiment_accuracy,
 }
-_DIAGNOSTICS: Final[dict[str, Callable[[Sequence[ReviewTally]], float]]] = {
+_DIAGNOSTICS: Final[dict[str, Callable[[Sequence[ReviewTally]], float | None]]] = {
     "zero_share_pred": lambda t: score(t).zero_share_pred,
     "candidate_emission_rate": lambda t: score(t).candidate_emission_rate,
     "parse_failure_rate": lambda t: score(t).parse_failure_rate,
@@ -134,17 +137,34 @@ def certification_metrics(
     certified claims, and an interval would dress them as one. The item-type
     slices (the D2c calibration protocol's remainder) land as extra name-keyed
     rows via ``slice_metrics`` — new rows, never a schema or scorer change.
+
+    A statistic undefined over the *full* scoring frame means there is nothing
+    to certify — that raises, loud, rather than minting a run whose headline
+    is a placeholder. (Slices have a softer rule; see ``slice_metrics``.)
     """
     metrics: list[EvalMetric] = []
     for name, statistic in _BOOTSTRAPPED.items():
         ci = bootstrap_ci(tallies, statistic, n_resamples=n_resamples, seed=seed)
         metrics.append(
-            EvalMetric(metric=name, value=statistic(tallies), ci_low=ci.low, ci_high=ci.high)
+            EvalMetric(
+                metric=name, value=_defined(name, statistic(tallies)),
+                ci_low=ci.low, ci_high=ci.high,
+            )
         )
     for name, statistic in _DIAGNOSTICS.items():
-        metrics.append(EvalMetric(metric=name, value=statistic(tallies)))
+        metrics.append(EvalMetric(metric=name, value=_defined(name, statistic(tallies))))
     metrics.extend(slice_metrics(tallies, seed=seed, n_resamples=n_resamples))
     return tuple(metrics)
+
+
+def _defined(name: str, value: float | None) -> float:
+    """``value``, or a loud stop — a full-frame statistic may never journal as None."""
+    if value is None:
+        raise ValueError(
+            f"statistic {name!r} is undefined over the full scoring frame — "
+            "nothing to certify"
+        )
+    return value
 
 
 def _pinned_quiet_share(tallies: Sequence[ReviewTally]) -> float:
@@ -168,7 +188,7 @@ class SliceSpec:
     name: str
     member: Callable[[ReviewTally], bool]
     stat_name: str
-    statistic: Callable[[Sequence[ReviewTally]], float]
+    statistic: Callable[[Sequence[ReviewTally]], float | None]
 
 
 _SLICE_ROWS: Final[tuple[SliceSpec, ...]] = (
@@ -184,23 +204,25 @@ _SLICE_ROWS: Final[tuple[SliceSpec, ...]] = (
 def slice_metrics(
     tallies: Sequence[ReviewTally], *, seed: int, n_resamples: int
 ) -> tuple[EvalMetric, ...]:
-    """The per-item-type rows: each slice's n, and its statistic where n > 0.
+    """The per-item-type rows: each slice's n, and its statistic where defined.
 
     Every slice journals its ``n_<slice>`` denominator even at zero — a
-    missing statistic row must be readable as "slice was empty", never
-    "slice wasn't computed". Statistics bootstrap within the slice under the
-    run's seed.
+    missing statistic row must be readable as "nothing scoreable there":
+    either the slice was empty, or its statistic is undefined over the full
+    membership (a candidate-emitting slice can be pinned-empty on both sides),
+    and the journaled n disambiguates. Statistics bootstrap within the slice
+    under the run's seed.
     """
     rows: list[EvalMetric] = []
     for spec in _SLICE_ROWS:
         members = [t for t in tallies if spec.member(t)]
         rows.append(EvalMetric(metric=f"n_{spec.name}", value=float(len(members))))
-        if members:
+        value = spec.statistic(members) if members else None
+        if value is not None:
             ci = bootstrap_ci(members, spec.statistic, n_resamples=n_resamples, seed=seed)
             rows.append(
                 EvalMetric(
-                    metric=spec.stat_name, value=spec.statistic(members),
-                    ci_low=ci.low, ci_high=ci.high,
+                    metric=spec.stat_name, value=value, ci_low=ci.low, ci_high=ci.high,
                 )
             )
     return tuple(rows)
