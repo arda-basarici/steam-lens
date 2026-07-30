@@ -4,20 +4,20 @@ What is being built and why — the decisions and their reasoning, as a narrativ
 snapshot of the current design, edited in place as decisions evolve. **This document is
 the living source of truth for decisions from the vision phase onward**; `VISION.md` is
 the fixed vision-phase snapshot (2026-07-07) and is not updated as the design moves.
-How it's built → ARCHITECTURE; the pitch → README. The chronological journey lives in
-the stream's session log; executed experiments appear here as conclusions with
-citations to their runs of record.
+How it's built → ARCHITECTURE; the pitch → README. Executed experiments appear here
+as conclusions with citations to their runs of record.
 
-*Living snapshot · last updated 2026-07-29.*
+*Living snapshot · last updated 2026-07-30.*
 
 ---
 
 ## Objective
 
 An app where entering a game returns what players actually like and dislike — aspect-
-level strengths/weaknesses with verbatim evidence, plus detected-and-explained events in
-the review timeline — computed live at request time on real Steam data, with a rigorous,
-honest evaluation of whether the LLM doing the reading is actually right. **Success
+level strengths/weaknesses with verbatim evidence, episode markers on the review
+timeline, and a grounded chat that interrogates the report's evidence — computed live
+at request time on real Steam data, with a rigorous, honest evaluation of whether
+the LLM doing the reading is actually right. **Success
 criterion:** a stranger uses the deployed app unassisted and every claim they see is
 attributable — to specific reviews (quotes), to a measured sampling tolerance, or to a
 published error rate; and each of the four milestones ships a standalone postable
@@ -42,8 +42,10 @@ scaled numbers carry the judge's measured error.
 rate** — it is deliberately not called a hallucination rate, because a real quote
 attached to a wrong reading passes it. That failure class (misattribution — sarcasm is
 Steam's native dialect) is measured separately by human audit of ~100 claims.
-Adversarial inputs (prompt-injection strings among the eval canaries) are in the harness
-from the start: the product's entire input is attacker-controlled text.
+Adversarial inputs are a standing harness requirement — the product's entire input
+is attacker-controlled text — but no prompt-injection canary set exists yet: it
+lands with the first surface that renders model prose (deployment, M3), deferred
+on the same grounds as the numeric-grounding check.
 
 **Evals gate softly.** The harness runs in CI on prompt/model changes with tolerance
 bands and trend reporting; a hard build-fail on a noisy LLM metric was rejected because
@@ -82,10 +84,8 @@ retrieved reviews and never mint numbers. See "The redirect & the product frame"
 
 ## The system flow — module boundaries, seams, contracts
 
-Settled 2026-07-09 through the second design panel: four blind proposals (simplicity /
-contract / risk / practitioner-canon framings), four adversarial critics, synthesis
-arbitrated by Arda; raw material in the private panel archive. The decisions and their
-reasoning; the module map itself lives in ARCHITECTURE.md.
+Settled 2026-07-09. The decisions and their reasoning; the module map itself lives in
+ARCHITECTURE.md.
 
 **Four strata, one import law.** Plain-data contracts (import nothing) → pure core
 transforms → effect shells (Steam client, LLM client, store, narration sinks) →
@@ -93,7 +93,7 @@ orchestrator and entry shells (pipeline runners, serving, CLI, study drivers). C
 never imports a shell; the entry shells — the eval harness and the study drivers —
 are import-forbidden to everything; a CI import-graph test asserts the whole table
 and refuses to fail open (a package must declare its rank to exist, relative imports
-are banned). All four blind proposals converged on this skeleton independently. The
+are banned). Four independent design framings converged on this skeleton. The
 build later inserted a generic run-machinery stratum between the doors and the entry
 shells, after the full-base review (2026-07-27) showed the shells sharing that
 machinery by reaching into each other's interiors instead — the as-built graph lives
@@ -101,8 +101,8 @@ in ARCHITECTURE.
 
 **The sampling policy is core code, executed by shells.** A pure plan compiler turns
 histogram + policy into a fetch plan; the Steam client executes plans against the live
-API, the study runner executes the same plans against the corpus. This is the panel's
-load-bearing repair: with policy logic inside the client shell, the sampling study (M2)
+API, the study runner executes the same plans against the corpus. The load-bearing
+consideration: with policy logic inside the client shell, the sampling study (M2)
 would certify a simulation while production ran a later reimplementation — a measured
 tolerance describing code that never ships.
 
@@ -110,22 +110,22 @@ tolerance describing code that never ships.
 by (review, model, prompt version, ontology version) and carry an origin tag (survey /
 investigation / corpus). Aggregation takes a manifest + the pool + an explicit version
 pin and folds only manifest members with survey origin. The alternative —
-manifest-keyed labels, three of four proposals' instinct — died under critique: strict
+manifest-keyed labels — was rejected: strict
 origin-checked aggregation rejects exactly the offline resampling the sampling study
 exists to perform.
 
-**Two-track enforcement is defense-in-depth, never "impossible."** Every proposal
-claimed structural impossibility; every critic found a concrete bypass. The honest
+**Two-track enforcement is defense-in-depth, never "impossible."** Every claimed
+structural impossibility fell to a concrete bypass under critique. The honest
 guarantee, adopted: independent walls — distinct container types at the sampler seam
 (only the survey draw mints a sample manifest; the investigation's window fetch
 returns a manifest-less type), the store's membership join carrying an origin
 predicate, the CI import test — plus origin tags making any leak auditable after the
 fact. "Impossible" is banned vocabulary in these docs.
 
-**Numbers in prose are grounded like quotes.** The panel's most valuable single
-discovery (three critics, independently): quote grounding cannot catch a phrasing
-model writing "roughly 40%" over a 27% aggregate, or laundering an investigation count
-into a percentage-shaped sentence. A numeric-grounding check joins report composition:
+**Numbers in prose are grounded like quotes.** Quote grounding cannot catch a
+phrasing model writing "roughly 40%" over a 27% aggregate, or laundering an
+investigation count into a percentage-shaped sentence. A numeric-grounding check
+joins report composition:
 every numeral in rendered narrative must match a value in the aggregates or events the
 claim cites. Harness-side at extraction+eval (M1); a runtime gate at deployment (M3).
 
@@ -151,7 +151,7 @@ alongside the policy: a stratified design changes the variance math, so committi
 a formula now would ship a wrong error bar in the product whose thesis is honest
 error bars.
 
-**Ops conventions adopted from the canon framing, fit-tested:** prompts as versioned
+**Ops conventions adopted from practitioner canon, fit-tested:** prompts as versioned
 files with content hashes; one spend-ledger table powering the caps, the M1 cost
 table, and the ops dashboard; classify-call caching keyed on content (review-text hash
 + prompt + model + ontology versions); the gold set as versioned files in the repo.
@@ -202,15 +202,14 @@ for volatility) was rejected: the documented surface is itself buggy, and the bo
 fallback absorbs the volatility that refusal would only avoid by forfeiting the
 product's best capability.
 
-**Marked-window reviews: include + disclose** (settled 2026-07-09; all four panel
-proposals converged on it blind, and no critic landed on the policy itself). Survey
+**Marked-window reviews: include + disclose** (settled 2026-07-09). Survey
 numbers include sampled reviews falling inside Valve-marked off-topic windows; the
 trust panel discloses the count per window and links the timeline event. Excluding
 would re-apply, by hand, the blunt blanking the unfiltered fetch exists to avoid — the
 probe's marked window split ~50/50, thousands of legitimate reviews inside — and
 per-review classification absorbs bomb reviews into the aspects they actually complain
-about, while the story track owns the bomb *story*. Two amendments the adversarial
-round forced: (1) **membership is derived at read time** from the freshest
+about, while the story track owns the bomb *story*. Two amendments: (1)
+**membership is derived at read time** from the freshest
 `past_events` snapshot — Valve marks windows retroactively, so a fetch-time stamp goes
 stale exactly when it matters; (2) a **marked-share floor** — past a threshold
 (provisional now; tuned at the sampling study) the report degrades honestly rather
@@ -235,6 +234,11 @@ the review-bombing subtype only. *(Tombstone: fake-review detection — cut 2026
 no ground truth exists, the claim is unfalsifiable, and an unvalidatable accusation
 makes every other claim less trustworthy.)*
 
+*Redirect 2026-07-27: the explanation half is deferred with the investigator —
+deployment (M3) ships display-only episode markers, pure statistics over the
+all-language histogram; the detection layer and the tombstone stand. See "The
+redirect & the product frame".*
+
 ### The door as built (`steam_client`)
 
 **Donor, not template.** The module is a fresh build to the windowed-unfiltered
@@ -247,7 +251,7 @@ because the frozen default-walk loop *is* the proven-unsafe blanking path, and i
 silence on logs/cost/latency is exactly the observability gap this project treats as
 a deliverable.
 
-**Three operations, both paths** (ruled 2026-07-27, five-fork design discussion).
+**Three operations, both paths** (ruled 2026-07-27).
 The build scope is resolve-game (appdetails + the donor's identity guard), the
 histogram snapshot, and the window-fetch primitive — deliberately *not* `FetchPlan`
 execution or `SampleManifest` minting, whose producer (`core/sampling`, the policy
@@ -274,10 +278,7 @@ the window-bounded stops, not in a magic constant.
 (default 1.5s ≡ the ~200-req/5-min folklore budget) sits at the top of the one
 retry-GET chokepoint, so every attempt, every endpoint, every caller inherits it;
 adaptive backoff on 429/5xx lives in the same function. A token bucket was rejected
-(bursts buy nothing; clock-carrying state costs testability). Verification is two
-layers plus a gate: parsers against real probe captures, walk logic against an
-injectable transport with scripted page sequences, and a deliberate live smoke
-(`STEAMLENS_LIVE_SMOKE=1`, never in CI).
+(bursts buy nothing; clock-carrying state costs testability).
 
 ---
 
@@ -290,9 +291,9 @@ and the aggregate mint that folds it.
 
 ### The provider seam (`llm_client`)
 
-**One generic door, routing as data** (settled 2026-07-13, five-fork design
-discussion). The client exposes a single `complete()` over a stage-keyed request —
-never per-stage methods: the per-stage routing table (stage → provider, model, params)
+**One generic door, routing as data** (settled 2026-07-13). The client exposes a
+single `complete()` over a stage-keyed request — never per-stage methods: the
+per-stage routing table (stage → provider, model, params)
 stays *data*, so retargeting a stage is a config edit. Each route carries an opaque
 provider-params block passed to the adapter untranslated, dodging the
 lowest-common-denominator squeeze without widening the seam; the one field lifted out
@@ -336,8 +337,8 @@ re-truncates identically) and carries its normalized reason for the caller to de
 
 ### The classify stage (`core/classify`)
 
-**The prompt renders the codebook full-fidelity** (settled 2026-07-13, six-fork
-design discussion). A versioned artifact (file + content hash + changelog) carrying
+**The prompt renders the codebook full-fidelity** (settled 2026-07-13). A
+versioned artifact (file + content hash + changelog) carrying
 every field, all aspects, category-grouped — so the machine annotator reads the same
 instructions the human annotator reads at gold labeling, keeping the agreement number
 clean of instruction gaps. The compact decision-surface rendering was pre-registered
@@ -378,8 +379,8 @@ disclosed in the run report — include-and-disclose applied to our own failures
 
 ### The store
 
-**Tables land with their first consumer** (settled 2026-07-14, six-fork design
-discussion) — the *rules now, fields later* principle applied to schema: pre-building
+**Tables land with their first consumer** (settled 2026-07-14) — the *rules now,
+fields later* principle applied to schema: pre-building
 `eval_runs` would have guessed at exactly what the eval-journal design existed to
 decide. Schema lifecycle is a hand-rolled ordered-steps **migration runner** stamped
 via `PRAGMA user_version`; Alembic was rejected (SQLAlchemy machinery on a raw
@@ -398,8 +399,7 @@ their own key, which is what makes the pool accretive.
 construction (structural constraints only — NOT NULL, FK, UNIQUE); reads treat the
 file as raw external data and validate by *reconstruction* — enum constructors plus a
 naive-timestamp-rejecting datetime parse, failing loud with the offending row.
-Datetimes are ISO-8601 text **normalized to UTC at write**: string order is
-chronological order only under a single shared offset. The label pool is
+The label pool is
 **normalized, never a JSON blob** — the load-bearing queries (the origin ∩ version
 fold, the two-track wall's origin predicate, denominator counts) all reach *inside*
 the envelope. Write semantics follow each contract: archive `put` upserts, ledger
@@ -426,9 +426,9 @@ response.
 
 ### The census dispatch (`studies/`)
 
-**A thin entry shell over the seams** (settled 2026-07-19, seven-fork design
-discussion). The driver composes corpus reader → store ingest → selection → batch →
-classify → client → label pool, narrating through the sink. Resume needs no
+**A thin entry shell over the seams** (settled 2026-07-19). The driver composes
+corpus reader → store ingest → selection → batch → classify → client → label
+pool, narrating through the sink. Resume needs no
 checkpoint ledger by construction: `unlabeled_under` *is* the checkpoint, batch
 composition is deterministic over the remaining set, and the content-keyed archive
 makes a re-formed batch whose response was already bought free — crash anywhere,
@@ -465,8 +465,8 @@ connections, worker pool shape) is structural detail: ARCHITECTURE.
 
 ### The number mint (`core/aggregate`)
 
-**A pure fold with persistence pushed to the shell** (settled 2026-07-20, five
-decisions). Survey-origin, version-pinned envelopes → `AspectAggregate` records; the
+**A pure fold with persistence pushed to the shell** (settled 2026-07-20).
+Survey-origin, version-pinned envelopes → `AspectAggregate` records; the
 core stores nothing, because the fold is cheap and fully reproducible
 (keep-vs-regenerate: regenerate the cheap middle). Persistence is taken deliberately
 only when a number is *published* — a snapshot stamped with full provenance, a
@@ -516,8 +516,8 @@ point is safe because four things are built regardless: the provider-agnostic se
 a concurrency-capable classify stage, narrated progress, and enforced budget caps
 with an honest at-capacity state.
 
-**The bake-off protocol: frozen metrics, recorded judgment** (2026-07-17, six-fork
-design discussion). The survey labeler is chosen by measurement against the gold
+**The bake-off protocol: frozen metrics, recorded judgment** (2026-07-17). The
+survey labeler is chosen by measurement against the gold
 set, not by reputation, with the metrics frozen *before* any run so the ruling can't
 metric-shop:
 
@@ -541,7 +541,7 @@ each candidate at its deployable shape; a disclosed N-probe set the dilution cei
 on two structurally different candidates before any scored run. The campaign's
 operational lessons (envelope exits, the three-stage retry that preserves the gate's
 semantics at a fraction of the requests) live as comments on their candidates in
-`probes/bakeoff_runner.py` and in the session log.
+`probes/bakeoff_runner.py`.
 
 **Paired reads, not interval eyeballing** (2026-07-19). Every run scores the same
 250 gold reviews, so run-vs-run gaps are paired — `paired_bootstrap_ci` resamples
@@ -553,8 +553,8 @@ two-sided, and true cache-adjusted cost is N-independent in practice, which clos
 the amendment's honesty rider — the free-tier pressure that motivated maximizing N
 never bound the paid winner.
 
-**The ruling: DeepSeek v4-flash at N=10 labels the survey** (Arda's ruling,
-2026-07-19). The honest sentence: Gemini 3 Flash is measurably better at matched N
+**The ruling: DeepSeek v4-flash at N=10 labels the survey** (ruled 2026-07-19).
+The honest sentence: Gemini 3 Flash is measurably better at matched N
 (+0.034 F1, paired CI excludes zero), the gap closes to indistinguishable against
 v4-flash's frozen N, and it costs ~12× more — v4-flash wins on cost-effectiveness
 with zero parse failures across its ladder. Not claimed: "as good as the leader."
@@ -567,7 +567,7 @@ deprecation (the `deepseek-chat` five-day retirement is the named precedent), an
 survey-scale anomalies surfacing through the eval harness — tier escalation is the
 recorded fallback, never quiet tolerance.
 
-**The slice ruling: census of the usable pool** (Arda's ruling, 2026-07-19). The
+**The slice ruling: census of the usable pool** (ruled 2026-07-19). The
 survey labels **every English-nonempty corpus review — 135,260 across 49 games**.
 This deliberately reopened and superseded the earlier "full corpus is never
 labeled" ruling on its collapsed premises: the labelable pool measured 135K, not
@@ -599,12 +599,12 @@ every displayed number knows which vocabulary produced it. The v1 ratification
 record — the pruning criterion, every per-aspect ruling, reopen conditions — is the
 repo's `ONTOLOGY_PRUNING.md` (ratified 2026-07-15; 55 → 51 pins).
 
-**The v2 wording batch** (Arda's ruling, 2026-07-19 — the sanctioned reopen under
+**The v2 wording batch** (ruled 2026-07-19 — the sanctioned reopen under
 the labeler ruling's prompt-change condition). The gold ledger's routing rulings
 postdate classify-v1's frozen wording, so the labeler had never seen the semantics
 gold grades it against — and the survey pool is the durable asset every downstream
 consumer folds, so it gets bought at aligned semantics. The distillation was one
-shot by design (wording never iterated against gold F1): a triage interview over
+shot by design (wording never iterated against gold F1): a triage pass over
 the 33-ruling gold ledger settled what rides vs what stays gold-process-only,
 landing in `src/steamlens/ontology/v2.toml` — same 51 pins, aliases byte-identical,
 every example freshly constructed so no gold span reaches the machine's contract.
@@ -624,7 +624,7 @@ prefix caching — and the census-scale experiment closed it: drift-clean, compa
 measures **−0.018 F1 real vs full** (the judge-referenced same-day read, 2026-07-25).
 It remains a versioned artifact; reopening requires new evidence, not new hope.
 
-**The codebook-overfit disclosure** (Arda's ruling, 2026-07-21). Gold was
+**The codebook-overfit disclosure** (ruled 2026-07-21). Gold was
 blind-labeled before any model output — the safe direction — but the v2
 distillation was tuned *on* gold's 250 reviews, so every v2-on-gold number is
 **development-grade**: the instrument was refined against the set it is scored on.
@@ -665,8 +665,7 @@ run kind answers the same sentence, *this label set, scored against that pinned
 reference, by this scorer*. The accepted cost, eyes open: one flat table quietly
 holding a sum type. For pool-label references the pinning property survives by
 digest over the canonically-serialized label set — same tamper-evidence as a file
-hash. Rejected: production labels in fields named gold (dishonest naming), and a
-sibling agreement table (a duplicated journal surface for a two-column difference).
+hash.
 
 > **Outcome.** The production census labels certify at **F1 0.766 [0.713–0.811]**
 > against gold on the 245-review intersection (run
@@ -703,8 +702,8 @@ seam. Recorded so the metric list stays honest: classification agreement
 (journaled), fabricated-quote (decomposed above), numeric grounding (deferred, with
 this reason).
 
-**A statistic says "undefined", never 0.0** (ruled 2026-07-28, six-fork design
-discussion). The scoring core's empty-denominator convention (0.0, honest for a
+**A statistic says "undefined", never 0.0** (ruled 2026-07-28). The scoring
+core's empty-denominator convention (0.0, honest for a
 reported point value with its `n` beside it) silently corrupts a bootstrap
 distribution — an undefined resample contributes 0.0 as if it were measured
 badness, dragging the interval's lower tail. The fix lives in the core's types:
@@ -727,11 +726,10 @@ errors fail; nothing merely annotates** — in a deterministic re-score a digit
 mismatch is an unintended behavior change or an undeclared semantics change, and
 both demand in-PR action. The escape hatch is the scorer-identity discipline: a
 deliberate semantics change bumps the scorer string and re-exports the pins in the
-same commit — a path exercised once already (the undefined-statistics fix bumped
-all three scorers to /2, minted fresh anchors digit-identical to the /1 runs, and
-retired the exporter's two disclosed relaxations, so verification now lands on full
-identity). Byte-hashed artifacts are held at LF by `.gitattributes` and the
-exporter refuses a CRLF working copy — a platform-varying hash can never gate a
+same commit (exercised once: the undefined-statistics fix bumped all three
+scorers to /2 and retired the exporter's relaxations). Byte-hashed artifacts are
+held at LF by `.gitattributes` and the exporter refuses a CRLF working copy — a
+platform-varying hash can never gate a
 Linux checkout. **Tolerance bands exit CI entirely** and become the **re-buy
 decision rule**: a recertification after any label re-buy reads against a band
 floored at the measured ~0.03 buy-time variance — tighter would alarm on the
@@ -749,9 +747,9 @@ gold was adjudicated from — so a same-family judge would inherit self-agreemen
 apparent validity. The judge is also a different family from the labeler: a
 labeler-family judge would import self-preference into the agreement metrics.
 
-**A second annotator, not a verifier** (settled 2026-07-23, four-fork design
-discussion). The judge never sees production's answer: it labels the review fresh
-under the same frozen artifacts, and agreement is computed mechanically afterwards.
+**A second annotator, not a verifier** (settled 2026-07-23). The judge never sees
+production's answer: it labels the review fresh under the same frozen artifacts,
+and agreement is computed mechanically afterwards.
 Verifier-shaped judging was rejected — showing the prediction anchors the judge
 toward endorsing it, leniency in exactly the direction a self-certification can't
 afford. The re-labeler also makes infrastructure reuse total: a judge run is an
@@ -779,7 +777,7 @@ the record); the judge's own refusals take durable marks, with agreement compute
 over the mutually-labeled intersection and refusal counts disclosed — an instrument
 that declines to read didn't read wrong.
 
-**The build amendments** (2026-07-23; model and routing picks Arda's). The generic
+**The build amendments** (2026-07-23). The generic
 "Gemini flash" resolved to `gemini-3-flash-preview` on assembled evidence — the only
 flash candidate consistently above production's certified F1, where a weaker judge
 near-guarantees a demoted instrument — with two caveats recorded: selection optimism
@@ -851,9 +849,9 @@ the demonstration — the empirical receipt for the no-self-grading stance.
 ## The redirect & the product frame
 
 **The investigator is deferred; a grounded RAG chat is the story channel**
-(direction ruled 2026-07-27 by Arda; recorded at the gated design session, same
-date). The agentic verify-then-explain loop is **deferred indefinitely**; a RAG
-chat over the labeled reviews takes its milestone slot. Why: the chat monetizes
+(ruled 2026-07-27). The agentic verify-then-explain loop is **deferred
+indefinitely**; a RAG chat over the labeled reviews takes its milestone slot.
+Why: the chat monetizes
 M1's assets directly (the labeled envelopes are a metadata-filtered retrieval index
 most RAG systems lack; the calibrated judge machinery extends to groundedness /
 faithfulness / retrieval-quality evals), the evaluation thesis becomes more
@@ -925,8 +923,7 @@ reopened as a retrieval signal.
 ## Standing rules
 
 **The post ships with the milestone.** Every milestone's public artifact ships when
-the milestone does, imperfect — the standing counterweight to a known
-over-investment pattern.
+the milestone does, imperfect — shipping deliberately outranks polish.
 
 **The ops story is a deliverable, not plumbing** (2026-07-08). Two-sided stance: no
 infrastructure without a driving product need (the Kubernetes/Terraform tombstone
@@ -973,7 +970,7 @@ as code. The test for any addition stays: does *this product* need it?
   samples: provisional during M1, tuned at the sampling study. The corpus holds
   zero marked-window reviews, so tuning needs windows fetched fresh through the
   windowed unfiltered path.
-- **The human track** (Arda's, parallel): the fresh v2 holdout (the overfit
+- **The human annotation track** (parallel): the fresh v2 holdout (the overfit
   disclosure's mitigation) · the self-relabel consistency subset · the
   misattribution audit sheet (minted, awaiting the pass) · judge-disagreement
   adjudication (sheet seeded from the top-disagreement exemplars).
