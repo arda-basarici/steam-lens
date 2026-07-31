@@ -6,6 +6,8 @@
 
 # --- working files (disposable by design) ---
 WHITEBOARD.md
+# report drafts — working prose; the frozen PDF + its generator are what commit
+report/draft/
 
 # --- data & runtime artifacts (mostly regenerable; but data/steamlens.sqlite3 is
 #     the BOUGHT label census — Drive-backed + hash-manifested, never re-derivable) ---

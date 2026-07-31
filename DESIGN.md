@@ -837,12 +837,15 @@ untagged triple) plus verbatim scorer reuse.
 > confound; the census's true mixed-game structure is untested. Readings regenerate
 > via `probes/d2d_reads.py`.
 
-**The self-grading 2×2 is registered, deferred to the milestone post.** Under a
-re-labeler judge, "the labeler judging its own labels" survives only as a
-verifier-shaped bias demonstration — each model verifies its own and the other's
-gold labels, self-preference = endorsing your own beyond what correctness explains.
-Off the critical path (~$1); the post decides with a cost proposal whether it wants
-the demonstration — the empirical receipt for the no-self-grading stance.
+**The self-grading 2×2 is closed unexecuted (2026-07-30).** Under a re-labeler
+judge, "the labeler judging its own labels" survived only as a verifier-shaped
+bias demonstration — each model verifying its own and the other's gold labels,
+self-preference = endorsing your own beyond what correctness explains. It was
+registered off the critical path (~$1) with the milestone post as its decision
+point; the post declined the demonstration. The no-self-grading stance needs no
+empirical receipt here: it rests on the independent-judge calibration itself
+(judge F1 0.816 vs gold, +0.050 paired over production), and self-preference
+bias is well-documented in the literature. No number depends on the arm.
 
 ---
 
