@@ -26,14 +26,27 @@ import sqlite3
 from pathlib import Path
 
 from reportlab.lib.colors import HexColor, white
-from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.lib.utils import ImageReader
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
-    BaseDocTemplate, Flowable, Frame, HRFlowable, Image, KeepTogether,
-    NextPageTemplate, PageBreak, PageTemplate, Paragraph, Spacer, Table, TableStyle,
+    BaseDocTemplate,
+    Flowable,
+    Frame,
+    HRFlowable,
+    Image,
+    KeepTogether,
+    NextPageTemplate,
+    PageBreak,
+    PageTemplate,
+    Paragraph,
+    Spacer,
+    Table,
+    TableStyle,
 )
 
 ROOT = next(p for p in [Path.cwd(), *Path.cwd().parents] if (p / "pyproject.toml").is_file())
@@ -77,9 +90,6 @@ except ImportError:
 
 # Base-14 Helvetica has no Turkish glyphs (ş, ı) — embed Segoe UI for the author
 # line so the name renders correctly; subset-embedded, so the PDF stays portable.
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-
 _SEGOE = Path("C:/Windows/Fonts/segoeui.ttf")
 AUTHOR_FONT = "Helvetica"
 if _SEGOE.is_file():
@@ -109,23 +119,23 @@ DATA = dict(
 
 # Prose figures NOT asserted by verify_data(), with their runs of record (the durable
 # number->source map; the draft ledgers are disposable). Verified by hand 2026-07-30/31:
-#   406/704->313 open-extraction fragmentation .. probes/captures/aspect_vocab/ (2026-07-09 probe)
-#   49 games / ~4,900 reviews / ~7,500 mentions . probes/pruning_evidence_table.py (prints 4900/49/7475)
-#   camera 0/100 then 1/~1,900; grind 15 ........ ONTOLOGY_PRUNING.md + aspect_vocab_ext captures
-#   33 gold-born rulings ........................ eval/gold INSTRUCTIONS ledger (entries via SESSION_LOG 2026-07-17)
-#   codebook deltas +0.066/-0.030; compact -0.057  probes/captures/bakeoff/deepseek-v4-flash-v2*/
-#   top-15 28% / half single-game ............... B4-era probe analysis (REPORT_NOTES L1750 record)
-#   88.2% codebook token share .................. bake-off scorer-session measurement (REPORT_NOTES L989 record)
-#   N-ladder .746/.776/.767/.762; +0.029 ........ captures/bakeoff DeepSeek slices (TABLE.md regen)
-#   matched-N +0.034 / best-N +0.025 ............ captures/bakeoff paired reads (C0 closure)
-#   298,553 -> 135,260 (45%) .................... probes/survey_supply_counts.py
-#   pilot $1-cap / 91.6% / $22-vs-$5 ............ C1 pilot manifest, data/runs/ (SESSION_LOG 2026-07-19)
-#   $3.80 all-in / 92.8% hit rate / 2 incidents . C1 run manifests + census-backup-manifest-2026-07-20
-#   1,239 candidates / grind 898 ................ census DB candidate slot (same mint as aspect_shares)
-#   163,842 spans / 96.1% / 0 violations / ~2.9%  probes/captures/census_health/HEALTH.md
-#   0.799 lab / -0.033 / $0.38 / -0.018 ......... D2d captures + probes/d2d_reads.py (2026-07-25)
-#   assist scorecard 73/11/16/+17 ............... eval/gold/assist/ + SESSION_LOG 2026-07-17
-#   updates 0.611 / music 0.974 slices .......... agree-20260723T203011Z-78258f68 (per-aspect journal)
+# 406/704->313 open-extraction fragmentation . probes/captures/aspect_vocab/ (2026-07-09 probe)
+# 49 games / ~4,900 reviews / ~7,500 mentions  probes/pruning_evidence_table.py (4900/49/7475)
+# camera 0/100 then 1/~1,900; grind 15 ....... ONTOLOGY_PRUNING.md + aspect_vocab_ext captures
+# 33 gold-born rulings ....................... eval/gold INSTRUCTIONS (SESSION_LOG 2026-07-17)
+# codebook +0.066/-0.030; compact -0.057 ..... probes/captures/bakeoff/deepseek-v4-flash-v2*/
+# top-15 28% / half single-game .............. B4-era probe analysis (REPORT_NOTES L1750)
+# 88.2% codebook token share ................. bake-off scorer session (REPORT_NOTES L989)
+# N-ladder .746/.776/.767/.762; +0.029 ....... captures/bakeoff DeepSeek slices (TABLE.md regen)
+# matched-N +0.034 / best-N +0.025 ........... captures/bakeoff paired reads (C0 closure)
+# 298,553 -> 135,260 (45%) ................... probes/survey_supply_counts.py
+# pilot $1-cap / 91.6% / $22-vs-$5 ........... C1 pilot manifest data/runs/ (SESSION_LOG 2026-07-19)
+# $3.80 all-in / 92.8% hit rate / 2 incidents  C1 run manifests + census-backup-manifest-2026-07-20
+# 1,239 candidates / grind 898 ............... census DB candidate slot (same mint as aspect_shares)
+# 163,842 spans / 96.1% / 0 violations / ~2.9%  probes/captures/census_health/HEALTH.md
+# 0.799 lab / -0.033 / $0.38 / -0.018 ........ D2d captures + probes/d2d_reads.py (2026-07-25)
+# assist scorecard 73/11/16/+17 .............. eval/gold/assist/ + SESSION_LOG 2026-07-17
+# updates 0.611 / music 0.974 slices ......... agree-20260723T203011Z-78258f68 (per-aspect journal)
 
 
 # ---------------------------------------------------------------- bake-off table parser
@@ -169,7 +179,8 @@ def verify_data() -> None:
     def metric(pin: dict, name: str) -> dict:
         rows = [m for m in pin["metrics"] if m["metric"] == name]
         if len(rows) != 1:
-            raise AssertionError(f"pin {pin['run']['run_id']}: expected one '{name}' metric, got {len(rows)}")
+            raise AssertionError(f"pin {pin['run']['run_id']}: expected one '{name}' metric, "
+                                 f"got {len(rows)}")
         return rows[0]
 
     f1 = metric(certify, "f1")
@@ -188,11 +199,13 @@ def verify_data() -> None:
         ("agreement n", agree["n_scored_reviews"], DATA["agree_n"]),
     ]
 
-    gold = [json.loads(line) for line in (ROOT / "eval/gold/gold.jsonl").read_text(encoding="utf-8").splitlines() if line]
+    gold_lines = (ROOT / "eval/gold/gold.jsonl").read_text(encoding="utf-8").splitlines()
+    gold = [json.loads(line) for line in gold_lines if line]
+    zero_share = _round3(sum(1 for r in gold if not r["mentions"]) / len(gold))
     checks += [
         ("gold records", len(gold), DATA["gold_records"]),
         ("gold mentions", sum(len(r["mentions"]) for r in gold), DATA["gold_mentions"]),
-        ("gold zero-share", _round3(sum(1 for r in gold if not r["mentions"]) / len(gold)), DATA["gold_zero_share"]),
+        ("gold zero-share", zero_share, DATA["gold_zero_share"]),
     ]
 
     if not JOURNAL_DB.is_file():
@@ -234,7 +247,8 @@ def verify_data() -> None:
     for aspect, expected in DATA["aspect_shares"].items():
         checks.append((f"aspect share {aspect}", minted.get(aspect), expected))
 
-    bad = [f"  {name}: artifact says {got!r}, report says {want!r}" for name, got, want in checks if got != want]
+    bad = [f"  {name}: artifact says {got!r}, report says {want!r}"
+           for name, got, want in checks if got != want]
     if bad:
         raise AssertionError("report numbers drifted from their artifacts:\n" + "\n".join(bad))
     print(f"verify_data: {len(checks)} pinned values match their artifacts")
@@ -286,19 +300,22 @@ def make_styles() -> dict[str, ParagraphStyle]:
                                spaceAfter=9, firstLineIndent=0)
     s["bullet"] = ParagraphStyle("bullet", parent=s["body"], leftIndent=16, bulletIndent=4,
                                  spaceAfter=5, firstLineIndent=0)
-    s["thesis"] = ParagraphStyle("thesis", fontName="Helvetica-BoldOblique", fontSize=11, leading=16,
-                                 textColor=ACCENT, leftIndent=12, spaceBefore=4, spaceAfter=10)
+    s["thesis"] = ParagraphStyle("thesis", fontName="Helvetica-BoldOblique", fontSize=11,
+                                 leading=16, textColor=ACCENT, leftIndent=12,
+                                 spaceBefore=4, spaceAfter=10)
     s["stat"] = ParagraphStyle("stat", fontName="Helvetica", fontSize=10.5, leading=15.5,
                                textColor=INK, alignment=TA_CENTER)
-    s["figure_ph"] = ParagraphStyle("figure_ph", fontName="Helvetica-Oblique", fontSize=8, leading=12,
-                                    textColor=CAPGREY, alignment=TA_CENTER)
+    s["figure_ph"] = ParagraphStyle("figure_ph", fontName="Helvetica-Oblique", fontSize=8,
+                                    leading=12, textColor=CAPGREY, alignment=TA_CENTER)
     s["lift_head"] = ParagraphStyle("lift_head", fontName="Helvetica-Bold", fontSize=9, leading=12,
                                     textColor=ACCENT, spaceAfter=3)
-    s["lift_body"] = ParagraphStyle("lift_body", fontName="Helvetica-Oblique", fontSize=10, leading=15,
-                                    textColor=INK, alignment=TA_JUSTIFY)
-    s["th"] = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=9, leading=12, textColor=white)
+    s["lift_body"] = ParagraphStyle("lift_body", fontName="Helvetica-Oblique", fontSize=10,
+                                    leading=15, textColor=INK, alignment=TA_JUSTIFY)
+    s["th"] = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=9, leading=12,
+                             textColor=white)
     s["tc"] = ParagraphStyle("tc", fontName="Helvetica", fontSize=9, leading=12.5, textColor=INK)
-    s["foot"] = ParagraphStyle("foot", fontName="Helvetica", fontSize=8.5, leading=11, textColor=MUTED)
+    s["foot"] = ParagraphStyle("foot", fontName="Helvetica", fontSize=8.5, leading=11,
+                               textColor=MUTED)
     if HYPHEN_LANG:
         for name in ("body", "lead", "bullet"):
             s[name].hyphenationLang = HYPHEN_LANG
@@ -466,7 +483,7 @@ def build_chart_figures() -> None:
         ("judge vs gold", DATA["judge_f1"], DATA["judge_ci"], MPL_INK),
     ]
     fig, ax = plt.subplots(figsize=(8.4, 2.2), dpi=200)
-    for i, (label, value, (lo, hi), color) in enumerate(series):
+    for i, (_label, value, (lo, hi), color) in enumerate(series):
         ax.hlines(i, lo, hi, color=color, linewidth=1.6, alpha=0.9)
         ax.plot(value, i, "o", color=color, markersize=7)
         ax.annotate(f"{value:.3f}", (value, i), xytext=(0, 7),
@@ -502,11 +519,13 @@ FRONT = [
              "labeler's performance measured at **F1 0.766 [0.713–0.811]** against a "
              "human-adjudicated reference, and a census-scale audit finding no evidence of "
              "a quality cliff."),
-    ("image", ("m1_pipeline.png", "The Milestone-1 pipeline, built and measured: the LLM call is the smallest part; "
-               "the instrument around it is the work. (“Survey-origin ∩ version pin”: only "
-               "survey-track labels under the pinned codebook version may enter the fold that "
-               "mints displayed numbers.)")),
-    ("p", "The work organized itself into four investigations, and the report is structured as them:"),
+    ("image", ("m1_pipeline.png",
+               "The Milestone-1 pipeline, built and measured: the LLM call is the smallest "
+               "part; the instrument around it is the work. (“Survey-origin ∩ version pin”: "
+               "only survey-track labels under the pinned codebook version may enter the fold "
+               "that mints displayed numbers.)")),
+    ("p", "The work organized itself into four investigations, and the report is structured "
+          "as them:"),
     ("p", "**1 · The vocabulary problem: what should the system extract?** Counting needs "
           "stable units. Open extraction fragments (406 labels on 500 reviews); pure taxonomy "
           "encodes unmeasured priors. The answer is a versioned hybrid: a fixed core of 51 "
@@ -638,9 +657,9 @@ INV1 = [
           "zero, so the cost may be nil. The trade was accepted "
           "deliberately, because the system's failure mode of record is over-claiming, not "
           "under-hearing. This certified second version is the production codebook for "
-          "everything that follows. A compact variant of the codebook (shorter, cheaper per call) was "
-          "tested in the same experiment and rejected on evidence: it cost −0.057 [−0.097, "
-          "−0.020] recall against savings of roughly ten cents per full corpus pass."),
+          "everything that follows. A compact variant of the codebook (shorter, cheaper per "
+          "call) was tested in the same experiment and rejected on evidence: it cost −0.057 "
+          "[−0.097, −0.020] recall against savings of roughly ten cents per full corpus pass."),
     ("h2", "What this bought, and what it refused"),
     ("p", "The candidate channel did its job at scale: the census (Investigation 3) surfaced "
           "1,239 distinct candidate strings, and the demoted `grind` resurfaced as the top "
@@ -715,9 +734,10 @@ INV2 = [
           "“nothing”). The decision rule was deliberately a recorded human ruling over the "
           "frozen table, not an automatic ranking: the metrics constrain the judgment, the "
           "judgment stays accountable."),
-    ("image", ("bakeoff.png", "The bake-off at each model's best scored operating point: F1 vs gold with 95% "
-               "bootstrap CIs; models disqualified at the parse gate are not shown. Rendered from the frozen "
-               "comparison table.")),
+    ("image", ("bakeoff.png",
+               "The bake-off at each model's best scored operating point: F1 vs gold with 95% "
+               "bootstrap CIs; models disqualified at the parse gate are not shown. Rendered "
+               "from the frozen comparison table.")),
     ("p", "**Batch size turned out to be a per-model quantity, not a convention.** How many "
           "reviews ride in one prompt changes accuracy, and the curve is not monotone: the "
           "selected model scored F1 0.746 / 0.776 / 0.767 / 0.762 at batch sizes 5, 10, 20, "
@@ -857,10 +877,16 @@ INV4 = [
           "wired so they cannot drift silently after the fact. This chapter is the reason the "
           "report calls the system an instrument."),
     ("table", (["who / what", "what it is", "its role"],
-               [["the production labeler", "the chosen model + certified codebook; labeled every census review", "the object under evaluation"],
-                ["gold", "250 reviews, human-adjudicated", "the reference the pipeline cannot influence"],
-                ["the judge", "an independent second annotator from a different model family", "extends the reference's reach beyond 250"],
-                ["the census sample", "1,000 seeded reviews, text pinned by hash", "where judge and production are compared at scale"]],
+               [["the production labeler",
+                 "the chosen model + certified codebook; labeled every census review",
+                 "the object under evaluation"],
+                ["gold", "250 reviews, human-adjudicated",
+                 "the reference the pipeline cannot influence"],
+                ["the judge",
+                 "an independent second annotator from a different model family",
+                 "extends the reference's reach beyond 250"],
+                ["the census sample", "1,000 seeded reviews, text pinned by hash",
+                 "where judge and production are compared at scale"]],
                [42 * mm, 82 * mm, 46 * mm])),
     ("h2", "The reference: a gold set the pipeline cannot touch"),
     ("p", "The first attempt at a reference was the obvious one, and it was killed on "
@@ -875,7 +901,8 @@ INV4 = [
           "accelerated the pass, under two guards: every drafted evidence span was "
           "machine-verified verbatim against the review text, and the assisting model was "
           "named in provenance and banned from the labeler comparison, because the reference "
-          "must not favor a candidate. A human adjudicated all 250 reviews; the assist's scorecard (73% "
+          "must not favor a candidate. A human adjudicated all 250 reviews; the assist's "
+          "scorecard (73% "
           "accepted, 11% modified, 16% deleted, 17 human-added mentions) is recorded rather "
           "than hidden. Even the tooling was audited: a verbatim round-trip gate caught a file "
           "formatter silently rewriting asterisks inside review quotes."),
@@ -912,9 +939,10 @@ INV4 = [
           "load-bearing claim, read honestly as a point-estimate ordering (the three "
           "intervals overlap): the census result is consistent with production behaving as "
           "it did on gold. **No evidence of a quality cliff outside the reference.**"),
-    ("image", ("bracketing.png", "The bracketing: judge-vs-production agreement on the census sample lands between "
-               "the two gold readings, consistent with production behaving on the census as "
-               "it did on gold.")),
+    ("image", ("bracketing.png",
+               "The bracketing: judge-vs-production agreement on the census sample lands "
+               "between the two gold readings, consistent with production behaving on the "
+               "census as it did on gold.")),
     ("p", "The agreement decomposes informatively: technical aspects agree at 0.9+ (`music` "
           "0.974), soft and meta aspects carry the gap (`updates` 0.611, driven by the judge "
           "finding mentions production misses). The caveat is stated with it: agreement is not "
@@ -945,8 +973,9 @@ INV4 = [
           "looked like a confirmed composition effect, and that conclusion was already "
           "drafted. Then the contingent fired: a $0.38 re-buy under *matched* composition "
           "reproduced the same recovery. The best-supported driver is **buy-time variance of "
-          "the served model**: across three buy dates the same configuration read 0.799, 0.766, and "
-          "0.791 against gold, day-to-day movement of ~0.02–0.03 F1 at temperature zero. "
+          "the served model**: across three buy dates the same configuration read 0.799, "
+          "0.766, and 0.791 against gold, day-to-day movement of ~0.02–0.03 F1 at "
+          "temperature zero. "
           "Batch composition was acquitted (every same-day test null); the "
           "compact codebook was closed the same way (−0.018 [−0.031, −0.005] against full, "
           "same-day, drift-clean); and the finding graduated into a standing operational "
@@ -1116,7 +1145,8 @@ def section_flow(kicker: str, title: str, blocks: list) -> list:
         elif kind == "stat":
             flow.append(KeepTogether([Spacer(1, 2 * mm), stat_box(text), Spacer(1, 4 * mm)]))
         elif kind == "figure":
-            flow.append(KeepTogether([Spacer(1, 2 * mm), figure_placeholder(text), Spacer(1, 4 * mm)]))
+            flow.append(KeepTogether([Spacer(1, 2 * mm), figure_placeholder(text),
+                                      Spacer(1, 4 * mm)]))
         elif kind == "image":
             filename, caption = text
             flow.extend(image_figure(filename, caption))
@@ -1137,7 +1167,8 @@ def _footer(canvas, doc) -> None:
     canvas.setFont("Helvetica", 8)
     canvas.setFillColor(MUTED)
     mark = "DRAFT · " if DRAFT_RENDER else ""
-    canvas.drawString(20 * mm, 12 * mm, f"{mark}The Instrument Around the Model · SteamLens Milestone 1")
+    canvas.drawString(20 * mm, 12 * mm,
+                      f"{mark}The Instrument Around the Model · SteamLens Milestone 1")
     canvas.drawRightString(190 * mm, 12 * mm, str(canvas.getPageNumber()))
     canvas.restoreState()
 

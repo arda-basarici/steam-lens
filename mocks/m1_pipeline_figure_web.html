@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SteamLens — Extraction + Evaluation (web figure, numberless)</title>
+<!-- The portfolio-site sibling of m1_pipeline_figure.html: same structure, restyled
+     larger/cleaner for web width, and with MEASUREMENTS STRIPPED (F1s, costs, counts)
+     so the living page can never go stale-wrong. Structural identities (51 aspects,
+     250-review gold, 49 games, batch N=10, n=1,000) stay: they are pinned design
+     facts, not instrument readings. The report keeps the numbered original. -->
+<style>
+  /* palette = the site's theme (Base.astro): paper #14161b · card #1c1f26 · ink #e9e6df
+     · muted #9a968c · hair #2b2f38 · border #3a3f4a · amber #e0a458 · blue #7fa8c9 */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #14161b;
+    font-family: Inter, -apple-system, "Segoe UI", sans-serif;
+    color: #e9e6df;
+    display: flex; justify-content: center;
+    padding: 40px 0;
+  }
+  .card { width: 1720px; background: #14161b; padding: 8px 24px 20px; }
+
+  /* ---------- header ---------- */
+  .head { display: flex; align-items: center; gap: 16px; }
+  .head .hico { width: 44px; height: 44px; stroke-width: 1.6; color: #e0a458; flex: none; }
+  h1 { font-size: 34px; font-weight: 600; letter-spacing: -0.01em; font-family: Newsreader, Georgia, serif; color: #f6f3ea; }
+  h1 span { color: #9a968c; font-weight: 400; }
+  .sub { font-size: 16.5px; color: #9a968c; margin: 8px 0 0; }
+  .rule { height: 2px; background: #3a3f4a; margin: 16px 0 24px; }
+
+  /* ---------- stage grid ---------- */
+  .stages {
+    display: grid;
+    grid-template-columns: 252px 22px 300px 22px 252px 22px 320px 22px 252px 18px 170px;
+  }
+  .panel {
+    border: 1.5px solid; border-radius: 14px; padding: 14px 13px 15px;
+    background: #1c1f26;
+  }
+  .p1 { border-color: #46566b; }
+  .p2 { border-color: #6b5a40; }
+  .p3 { border-color: #47604f; }
+  .p4 { border-color: #575071; }
+  .p5 { border-color: #6b4d58; }
+  .flow {
+    display: flex; align-items: center; justify-content: center;
+    color: #9a968c; font-size: 20px; font-weight: 700;
+  }
+  .panel-head { display: flex; align-items: center; gap: 9px; margin-bottom: 13px; }
+  .chipnum {
+    width: 26px; height: 26px; border-radius: 7px; flex: none;
+    color: #14161b; font-size: 15px; font-weight: 750;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .panel-title { font-size: 18px; font-weight: 700; }
+  .phico { width: 22px; height: 22px; stroke-width: 1.8; margin-left: auto; opacity: 0.8; }
+
+  .node {
+    border: 1px solid #3a3f4a; border-radius: 10px; background: #14161b;
+    padding: 11px 11px 10px; text-align: center;
+  }
+  .ico { width: 28px; height: 28px; stroke-width: 1.8; margin-bottom: 5px; }
+  .node .nname { font-size: 14.5px; font-weight: 650; line-height: 1.25; color: #f6f3ea; }
+  .node .ndet  { font-size: 12px; color: #9a968c; line-height: 1.35; margin-top: 3px; }
+  .down { text-align: center; color: #9a968c; font-size: 16px; line-height: 1.35; margin: 2px 0; }
+
+  .stat {
+    margin-top: 12px; border-radius: 9px; padding: 9px 11px;
+    font-size: 12.5px; line-height: 1.4; color: #e9e6df; text-align: center;
+    background: #2b2f38;
+  }
+  .stat b { font-size: 13px; color: #f6f3ea; }
+
+  /* the two-track wall — inverted to the site's light plate for emphasis */
+  .wall {
+    margin: 12px 0 0; padding: 10px 11px; border-radius: 8px;
+    background: #f4f1e9; color: #14161b; font-size: 12px; line-height: 1.4;
+  }
+  .wall b { font-size: 12.5px; letter-spacing: 0.07em; }
+
+  /* right rail: built vs planned */
+  .rail { display: flex; flex-direction: column; gap: 16px; }
+  .railbox { border: 1.5px dashed #3a3f4a; border-radius: 12px; padding: 12px 12px; background: #1c1f26; }
+  .railbox h3 { font-size: 13.5px; font-weight: 700; margin-bottom: 9px; color: #e9e6df; }
+  .ghost { opacity: 0.55; }
+  .ghost .node { border-style: dashed; background: transparent; }
+  .railnote { font-size: 11px; color: #9a968c; margin-top: 7px; line-height: 1.4; }
+
+  /* ---------- supporting strip ---------- */
+  .support {
+    margin-top: 20px; border: 1.5px dashed #b97f35; border-radius: 12px;
+    padding: 12px 16px; display: flex; align-items: center; gap: 16px; background: #1c1f26;
+  }
+  .support .slabel { font-size: 14px; font-weight: 700; color: #e0a458; flex: none; }
+  .support .items { display: flex; flex-wrap: wrap; gap: 9px 24px; font-size: 13px; color: #9a968c; }
+  .support .item { display: flex; align-items: center; gap: 8px; }
+  .support .ico { width: 21px; height: 21px; margin: 0; color: #e0a458; flex: none; }
+  .support b { color: #e9e6df; font-weight: 650; }
+
+  /* ---------- description strip ---------- */
+  .desc {
+    margin-top: 22px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 24px;
+    border-top: 1px solid #2b2f38; padding-top: 18px;
+  }
+  .desc .d { font-size: 13px; line-height: 1.5; color: #9a968c; }
+  .desc .d .dh { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .desc .d .dh .chipnum { width: 21px; height: 21px; font-size: 12.5px; border-radius: 5px; }
+  .desc .d .dh span { font-size: 14px; font-weight: 700; color: #e9e6df; }
+
+  /* ---------- footer ---------- */
+  .foot {
+    margin-top: 18px; display: flex; justify-content: space-between; align-items: center;
+    border-top: 1px solid #2b2f38; padding-top: 14px;
+  }
+  .legend { display: flex; gap: 18px; font-size: 13px; color: #9a968c; }
+  .key { display: flex; align-items: center; gap: 7px; }
+  .key .sw { width: 13px; height: 13px; border-radius: 4px; }
+  .caveat { font-size: 12px; color: #9a968c; max-width: 760px; text-align: right; line-height: 1.45; }
+
+  /* stage hues — pastel-on-dark steps around the site's blue (#7fa8c9) and amber
+     (#e0a458), same lightness band so no stage shouts */
+  .c1 { background: #7fa8c9; } .b1 { border-color: #46566b; }
+  .c2 { background: #e0a458; } .b2 { border-color: #6b5a40; }
+  .c3 { background: #8fbf9f; } .b3 { border-color: #47604f; }
+  .c4 { background: #a49add; } .b4 { border-color: #575071; }
+  .c5 { background: #cf93a8; } .b5 { border-color: #6b4d58; }
+  .t1 { color: #7fa8c9; } .t2 { color: #e0a458; } .t3 { color: #8fbf9f; }
+  .t4 { color: #a49add; } .t5 { color: #cf93a8; }
+  .s2 { background: #2b2f38; } .s3 { background: #2b2f38; } .s4 { background: #2b2f38; }
+</style>
+</head>
+<body>
+
+<!-- icon symbols: stroke-style, colored via currentColor -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5"/><path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/>
+    </symbol>
+    <symbol id="i-filter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 4h18l-7 8.5V19l-4 2v-8.5L3 4z"/>
+    </symbol>
+    <symbol id="i-run" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="9"/><path d="M10 8.5l5 3.5-5 3.5v-7z"/>
+    </symbol>
+    <symbol id="i-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 7a3 3 0 0 0-3-3H3v15h6a3 3 0 0 1 3 3"/><path d="M12 7a3 3 0 0 1 3-3h6v15h-6a3 3 0 0 0-3 3"/><path d="M12 7v15"/>
+    </symbol>
+    <symbol id="i-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7 18a5 5 0 1 1 .9-9.9A6 6 0 0 1 19.5 10 4 4 0 0 1 18 17.9L7 18z"/>
+    </symbol>
+    <symbol id="i-archive" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/>
+    </symbol>
+    <symbol id="i-bars" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 20h18"/><path d="M6 20v-7"/><path d="M12 20V5"/><path d="M18 20v-10"/>
+    </symbol>
+    <symbol id="i-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>
+    </symbol>
+    <symbol id="i-scale" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3v18"/><path d="M9 21h6"/><path d="M5 7h14"/><path d="M5 7l-2.5 6a3.2 3.2 0 0 0 5 0L5 7z"/><path d="M19 7l-2.5 6a3.2 3.2 0 0 0 5 0L19 7z"/>
+    </symbol>
+    <symbol id="i-swap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 8h14l-3.5-3.5"/><path d="M20 16H6l3.5 3.5"/>
+    </symbol>
+    <symbol id="i-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 8l-9-4.5L3 8l9 4.5L21 8z"/><path d="M3 8v8l9 4.5 9-4.5V8"/><path d="M12 12.5V20"/>
+    </symbol>
+    <symbol id="i-redo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 4v5h5"/>
+    </symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2l8 3v6c0 5-3.4 8.9-8 11-4.6-2.1-8-6-8-11V5l8-3z"/><path d="M8.5 12l2.5 2.5 4.5-4.5"/>
+    </symbol>
+    <symbol id="i-door" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 21V3h11v18"/><path d="M2 21h20"/><circle cx="13" cy="12" r="0.8"/>
+    </symbol>
+    <symbol id="i-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 3h8l10 10-8 8L3 11V3z"/><circle cx="8" cy="8" r="1.4"/>
+    </symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+    </symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3L2 20h20L12 3z"/><path d="M12 10v4"/><circle cx="12" cy="17" r="0.8"/>
+    </symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5z"/><path d="M8 10h8M8 13.5h5"/>
+    </symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="card">
+
+  <div class="head">
+    <svg class="hico"><use href="#i-target"/></svg>
+    <h1>SteamLens · Extraction + Evaluation <span>(Milestone 1, built &amp; measured)</span></h1>
+  </div>
+  <p class="sub">From raw Steam reviews to certified per-game numbers: the LLM call is the smallest part; the instrument around it is the work.</p>
+  <div class="rule"></div>
+
+  <div class="stages">
+
+    <!-- 1 · Data -->
+    <div class="panel p1">
+      <div class="panel-head">
+        <div class="chipnum c1">1</div>
+        <div class="panel-title t1">Data</div>
+        <svg class="phico t1"><use href="#i-db"/></svg>
+      </div>
+      <div class="node b1">
+        <svg class="ico t1"><use href="#i-db"/></svg>
+        <div class="nname">Review corpus</div>
+        <div class="ndet">49 games · raw Steam reviews</div>
+      </div>
+      <div class="down">↓</div>
+      <div class="node b1">
+        <svg class="ico t1"><use href="#i-filter"/></svg>
+        <div class="nname">Usable filter</div>
+        <div class="ndet">English, Unicode-honest non-empty<br>· the usable pool, counted exactly</div>
+      </div>
+      <div class="down">↓</div>
+      <div class="node b1">
+        <svg class="ico t1"><use href="#i-archive"/></svg>
+        <div class="nname">Store (SQLite / WAL)</div>
+        <div class="ndet">migration runner · ingest asserts<br>the census size before any spend</div>
+      </div>
+    </div>
+
+    <div class="flow">→</div>
+
+    <!-- 2 · Labeling engine -->
+    <div class="panel p2">
+      <div class="panel-head">
+        <div class="chipnum c2">2</div>
+        <div class="panel-title t2">Labeling engine</div>
+        <svg class="phico t2"><use href="#i-run"/></svg>
+      </div>
+      <div class="node b2">
+        <svg class="ico t2"><use href="#i-run"/></svg>
+        <div class="nname">Census driver</div>
+        <div class="ndet">resume by construction · three-pass<br>failure sweep · circuit breakers</div>
+      </div>
+      <div class="down">↓</div>
+      <div class="node b2">
+        <svg class="ico t2"><use href="#i-book"/></svg>
+        <div class="nname">Classify prompt (codebook v2)</div>
+        <div class="ndet">51 pinned aspects · reviews cross as<br>data-never-instructions · batch N=10</div>
+      </div>
+      <div class="down">↓</div>
+      <div class="node b2">
+        <svg class="ico t2"><use href="#i-cloud"/></svg>
+        <div class="nname">Provider seam</div>
+        <div class="ndet">raw httpx, no SDKs · budget reserved<br>before dispatch · spend ledger</div>
+      </div>
+      <div class="down">↓</div>
+      <div class="node b2">
+        <svg class="ico t2"><use href="#i-db"/></svg>
+        <div class="nname">Label pool + response archive</div>
+        <div class="ndet">version-keyed envelopes · raw output<br>content-addressed, never re-paid</div>
+      </div>
+      <div class="stat s2"><b>One disclosed provider refusal</b><br>kept in the artifact's arithmetic</div>
+    </div>
+
+    <div class="flow">→</div>
+
+    <!-- 3 · Number mint -->
+    <div class="panel p3">
+      <div class="panel-head">
+        <div class="chipnum c3">3</div>
+        <div class="panel-title t3">Number mint</div>
+        <svg class="phico t3"><use href="#i-bars"/></svg>
+      </div>
+      <div class="node b3">
+        <svg class="ico t3"><use href="#i-filter"/></svg>
+        <div class="nname">Survey-origin ∩ version pin</div>
+        <div class="ndet">only origin-tagged survey labels<br>under the pinned versions fold</div>
+      </div>
+      <div class="down">↓</div>
+      <div class="node b3">
+        <svg class="ico t3"><use href="#i-bars"/></svg>
+        <div class="nname">Per-game aspect aggregates</div>
+        <div class="ndet">empties in the denominator<br>· raw tallies, no floor</div>
+      </div>
+      <div class="stat s3"><b>Every displayed number</b><br>mints here · nowhere else</div>
+      <div class="wall">
+        <b>THE WALL</b><br>
+        stories never mint numbers; an import-graph
+        test + origin predicate keep it standing
+      </div>
+    </div>
+
+    <div class="flow">→</div>
+
+    <!-- 4 · Evaluation instrument -->
+    <div class="panel p4" style="border-width: 2.5px;">
+      <div class="panel-head">
+        <div class="chipnum c4">4</div>
+        <div class="panel-title t4">Evaluation instrument</div>
+        <svg class="phico t4"><use href="#i-scale"/></svg>
+      </div>
+      <div class="node b4">
+        <svg class="ico t4"><use href="#i-book"/></svg>
+        <div class="nname">Human gold set · 250 reviews</div>
+        <div class="ndet">blind-labeled before any model<br>output · versioned in the repo</div>
+      </div>
+      <div class="down">↓</div>
+      <div class="node b4">
+        <svg class="ico t4"><use href="#i-target"/></svg>
+        <div class="nname">Certification of the bought labels</div>
+        <div class="ndet">scored against gold · bootstrap<br>CIs, resampled by review</div>
+      </div>
+      <div class="down">↓</div>
+      <div class="node b4">
+        <svg class="ico t4"><use href="#i-scale"/></svg>
+        <div class="nname">LLM judge · different family</div>
+        <div class="ndet">an independent second annotator ·<br>calibrated against gold before use</div>
+      </div>
+      <div class="down">↓</div>
+      <div class="node b4">
+        <svg class="ico t4"><use href="#i-swap"/></svg>
+        <div class="nname">Census-sample agreement</div>
+        <div class="ndet">a seeded n=1,000 sample · no evidence<br>of a quality cliff outside gold</div>
+      </div>
+      <div class="stat s4"><b>Quote audit: zero non-verbatim spans</b> in storage · misattribution audit: human, in progress</div>
+    </div>
+
+    <div class="flow">→</div>
+
+    <!-- 5 · Evals in CI -->
+    <div class="panel p5">
+      <div class="panel-head">
+        <div class="chipnum c5">5</div>
+        <div class="panel-title t5">Evals gate CI</div>
+        <svg class="phico t5"><use href="#i-shield"/></svg>
+      </div>
+      <div class="node b5">
+        <svg class="ico t5"><use href="#i-box"/></svg>
+        <div class="nname">Committed fixture</div>
+        <div class="ndet">both runs of record, rebuilt<br>through the real writer surfaces</div>
+      </div>
+      <div class="down">↓</div>
+      <div class="node b5">
+        <svg class="ico t5"><use href="#i-redo"/></svg>
+        <div class="nname">Deterministic re-score</div>
+        <div class="ndet">no fresh model output · catches<br>code / scorer / artifact drift</div>
+      </div>
+      <div class="down">↓</div>
+      <div class="node b5">
+        <svg class="ico t5"><use href="#i-shield"/></svg>
+        <div class="nname">Exact-digit gate</div>
+        <div class="ndet">a digit mismatch fails the build ·
+        deliberate change = scorer bump<br>+ pins re-exported, same commit</div>
+      </div>
+    </div>
+
+    <div class="flow"></div>
+
+    <!-- rail: built vs next -->
+    <div class="rail">
+      <div class="railbox">
+        <h3>Built, waiting</h3>
+        <div class="node">
+          <svg class="ico" style="color:#9a968c;"><use href="#i-door"/></svg>
+          <div class="nname" style="font-size:13px;">Steam review client</div>
+          <div class="ndet">the live door: resolve · histogram ·
+          windowed fetch · built + live-smoked; production path at deployment</div>
+        </div>
+      </div>
+      <div class="railbox ghost">
+        <h3>Next · not built</h3>
+        <div class="node">
+          <div class="nname" style="font-size:13px;">sampling study</div>
+        </div>
+        <div class="down">↓</div>
+        <div class="node">
+          <div class="nname" style="font-size:13px;">deployed app</div>
+        </div>
+        <div class="down">↓</div>
+        <div class="node">
+          <div class="nname" style="font-size:13px;">report chat (grounded)</div>
+        </div>
+        <div class="railnote">dashed = roadmap, deliberately<br>not claimed as built</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- supporting services -->
+  <div class="support">
+    <div class="slabel">Standing services</div>
+    <div class="items">
+      <span class="item"><svg class="ico"><use href="#i-tag"/></svg><span><b>Provenance stamps</b> · run id · code sha · config hash</span></span>
+      <span class="item"><svg class="ico"><use href="#i-lock"/></svg><span><b>Budget caps</b> · atomic reserve-before-dispatch</span></span>
+      <span class="item"><svg class="ico"><use href="#i-alert"/></svg><span><b>Typed errors</b> · world-failing vs promise-keeping never blur</span></span>
+      <span class="item"><svg class="ico"><use href="#i-chat"/></svg><span><b>Narration sink</b> · every stage emits typed progress</span></span>
+      <span class="item"><svg class="ico"><use href="#i-clock"/></svg><span><b>Politeness</b> · one retry-GET chokepoint owns the rate budget</span></span>
+    </div>
+  </div>
+
+  <!-- description strip -->
+  <div class="desc">
+    <div class="d">
+      <div class="dh"><div class="chipnum c1">1</div><span>Data</span></div>
+      A 49-game corpus filtered to every English non-empty review. Ingest asserts the
+      ruled census size and fails loud before any money moves.
+    </div>
+    <div class="d">
+      <div class="dh"><div class="chipnum c2">2</div><span>Labeling engine</span></div>
+      Per-review aspect + sentiment classification through a provider-agnostic seam.
+      The labeler was picked by a frozen-metric bake-off, not reputation.
+    </div>
+    <div class="d">
+      <div class="dh"><div class="chipnum c3">3</div><span>Number mint</span></div>
+      A pure fold from labels to per-game aggregates. Only survey-origin,
+      version-pinned labels may enter · the two-track wall is enforced by structure,
+      not convention.
+    </div>
+    <div class="d">
+      <div class="dh"><div class="chipnum c4">4</div><span>Evaluation instrument</span></div>
+      Human-anchored gold, a cross-family judge calibrated before use, and agreement
+      measured beyond gold's reach. Every published number carries its confidence
+      interval.
+    </div>
+    <div class="d">
+      <div class="dh"><div class="chipnum c5">5</div><span>Evals gate CI</span></div>
+      The runs of record regenerate in CI from committed artifacts; an exact-digit
+      mismatch fails the build. Tolerance bands exist too · as the label re-buy rule,
+      floored at measured buy-time variance.
+    </div>
+  </div>
+
+  <!-- footer -->
+  <div class="foot">
+    <div class="legend">
+      <span class="key"><span class="sw c1"></span>data</span>
+      <span class="key"><span class="sw c2"></span>labeling</span>
+      <span class="key"><span class="sw c3"></span>the mint</span>
+      <span class="key"><span class="sw c4"></span>evaluation</span>
+      <span class="key"><span class="sw c5"></span>CI gate</span>
+      <span class="key"><span class="sw" style="background:#eda100;"></span>standing services</span>
+    </div>
+    <div class="caveat">
+      Honest limits, stated: one human annotator (disclosed in every artifact) ·
+      codebook v2 was tuned on gold, so v2-on-gold numbers are development-grade until
+      a fresh holdout lands · labels re-certify after any re-buy (measured buy-time
+      variance). Scores, intervals, and costs live in the text and the report, not in
+      this diagram.
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
