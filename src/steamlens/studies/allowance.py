@@ -26,7 +26,13 @@ long-tail split views both consume it:
 
 Reproduction was verified before this graduation: over the run of record
 ``m2sweep-20260802T132010Z-2969bcab`` these definitions re-derive exactly
-tail 0.000 / mid 0.005 / headline 0.073.
+the checkpoint's flat constants, tail 0.000 / mid 0.005 / headline 0.073.
+
+The long-tail stage-1 splits (ruled 2026-08-03) superseded the flat
+constants with regime-conditioned ones: the flat numbers averaged a calm
+regime needing no allowance at all into a spiky regime needing roughly
+double, so the shipped constants now mint per regime — ``is_spiky_regime``
+over the pool's peak window share decides which set a report quotes.
 
 Take-all pools quote the exact number and no interval, so nothing here ever
 applies to them; the allowance prices sampled draws only.
@@ -47,6 +53,28 @@ TAIL_SHARE_CEILING: Final = 0.05
 SHIPPED_SAMPLE_SIZE: Final = 1000
 """The size rule's sampled n (the curves checkpoint, 2026-08-02) — the tier
 the shipped constants pin to."""
+
+SPIKY_PEAK_SHARE_FLOOR: Final = 2 / 3
+"""The regime boundary (the stage-1 splits ruling, 2026-08-03): a pool whose
+busiest window claims two-thirds or more of its reviews is spiky, and the
+allowance constants condition on the regime. Runtime-computable before any
+draw — the live histogram arrives ahead of window planning."""
+
+
+def is_spiky_regime(peak_share: float) -> bool:
+    """Whether a pool's peak window share puts it in the spiky allowance regime.
+
+    The stage-1 splits located the entire windowed penalty in spiky pools:
+    with spiky units set aside, no band at any pool size needs any allowance,
+    so the constants mint per regime rather than averaging two very different
+    games into one flat number. The boundary is inclusive — exactly
+    two-thirds is spiky — and the threshold ruled over a sweep showing the
+    calm regime's constants at zero for every candidate cut from 0.50 to
+    0.75, so only the spiky side's calibration hinged on it.
+    """
+    if not 0.0 <= peak_share <= 1.0:
+        raise ValueError(f"peak share {peak_share} lies outside [0, 1] — not a pool share")
+    return peak_share >= SPIKY_PEAK_SHARE_FLOOR
 
 
 class ShareBand(StrEnum):

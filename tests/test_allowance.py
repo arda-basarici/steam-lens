@@ -15,6 +15,7 @@ import pytest
 from steamlens.studies.allowance import (
     ShareBand,
     flat_allowance,
+    is_spiky_regime,
     needed_inflation,
     share_band,
     smoothed_allowance,
@@ -93,3 +94,17 @@ def test_smoothed_allowance_refuses_a_missing_shipped_tier() -> None:
     """Smoothing around a hole would pin the constant to the wrong n — refused."""
     with pytest.raises(ValueError, match="no calibration"):
         smoothed_allowance({750: 0.02, 1500: 0.005}, shipped=1000)
+
+
+def test_spiky_regime_boundary_is_inclusive_at_two_thirds() -> None:
+    """Exactly two-thirds of the pool in one window is spiky — the ruled edge."""
+    assert is_spiky_regime(2 / 3)
+    assert is_spiky_regime(0.9)
+    assert not is_spiky_regime(0.66)
+    assert not is_spiky_regime(0.05)
+
+
+def test_spiky_regime_refuses_non_shares() -> None:
+    """A peak share outside [0, 1] is a wiring bug, never a regime."""
+    with pytest.raises(ValueError, match="outside"):
+        is_spiky_regime(1.5)

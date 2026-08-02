@@ -1103,6 +1103,53 @@ record `m2sweep-20260802T132010Z-2969bcab`: 49 games · 243 anchor pools ·
   sampling fraction. At pools just over the cutoff, Wilson's missing FPC errs
   conservative — over-covers, never under.
 
+**The long-tail stage-1 splits — the regime refinement, ruled 2026-08-03**
+*(over the same run of record; the splits, threshold sweep, and constants
+regenerable via ``scripts/split_sweep_by_shape.py`` and
+``scripts/mint_allowances.py``)*.
+
+- **The finding: the windowed penalty lives entirely in temporal
+  spikiness.** Convergence split by game shape at the (game, anchor) grain —
+  population, peak window share, headline-aspect count — showed all three
+  axes breaking the ruled tolerances in their top groups, but conditioning
+  untangles it: with spiky pools set aside, no band at any pool size needs
+  any allowance (constants 0.000 across pool terciles), while spiky pools
+  need roughly double the flat price. The checkpoint's flat constants were
+  an average of two regimes — over-covering calm pools (~100% measured
+  coverage, ±10-point headline bars where Wilson alone suffices) and
+  under-covering spiky ones (~87% at the shipped n) — the same dishonesty
+  the checkpoint refused, one level down.
+- **The ruling: the allowance conditions on the spikiness regime.** Boundary:
+  peak window share at or above **2/3** — the pool share of the busiest
+  histogram bucket, computable from the live histogram before any draw, so
+  the conditioning adds no data dependency. Ruled over a threshold sweep:
+  calm constants sit at zero for every candidate cut from 0.50 to 0.75, so
+  only the spiky side's calibration hinged on the choice, and 2/3 puts the
+  full measured price on the units that measured it (0.50 would dilute the
+  spiky calibration with borderline units that need nothing). The
+  regime-conditioned constants supersede the flat ones (kept above as the
+  checkpoint's record): primary path calm **0.000 / 0.000 / 0.000** and
+  spiky **0.000 / 0.017 / 0.127** — calm headline ships at roughly ±2.5
+  points, spiky headline at roughly ±15; fallback path calm
+  **0.000 / 0.004 / 0.065** and spiky **0.000 / 0.022 / 0.130** — the
+  cursor path's newest-first bias needs no spike, so even its calm regime
+  carries real allowances, and its disclosure stays regime-aware.
+- **Spiky mid joins the headline treatment.** In the spiky regime, mid
+  aspects carry no separate error tolerance — spiky-mid p95 error (~3.5
+  points) breaks ±2.5 regardless of the interval quoted, and a tolerance
+  minted to fit would restate the interval — the same reasoning that left
+  headline tolerance-free at the checkpoint. Calm mid keeps ±2.5 points,
+  tail keeps ±1 point everywhere; the tolerance table is regime-aware in
+  exactly one cell.
+- **Caveats carried to the report, not the code.** The spiky calibration
+  rests on thin cells (48 headline cells at the shipped tier; the smoothing
+  max is the deliberate conservatism), and the constants remain
+  self-calibrated on-corpus — the closing test and the fresh buys are the
+  held-out check of the *conditioned* constants now. Stage 2's label-free
+  frame checks gain a sharper question than they were designed with:
+  whether genuinely long-tail games land in the spiky regime at all — the
+  off-corpus regime distribution is the transfer risk that remains.
+
 **The M2 report.** A standalone frozen PDF (the per-milestone precedent):
 the question · method (census as ground truth, the raced policies, the two
 gates, seeds) · the curves as centerpiece · the rulings that fell out (policy,
@@ -1160,9 +1207,12 @@ as code. The test for any addition stays: does *this product* need it?
   shares** — RESOLVED at the M2 curves checkpoint (2026-08-02, rulings in the
   study-design section above): time-proportional primary · take-all at pool
   ≤ 2,000, else n = 1,000 · Wilson + per-band constant bias allowance ·
-  band-conditioned tolerance at the 95% register. Still ahead of the study:
-  the long-tail stages, the mixing floor, and the closing test that validates
-  the rule held-out.
+  band-conditioned tolerance at the 95% register. Refined at the long-tail
+  stage-1 splits (2026-08-03, same section): the allowance and the mid
+  tolerance condition on the spikiness regime (peak window share ≥ 2/3).
+  Still ahead of the study: the stage-2 frame checks (now pointed at the
+  off-corpus regime distribution), the mixing floor, and the closing test
+  that validates the rule held-out.
 - **Marked-share floor threshold** — tuning procedure ruled (the mixing
   experiment, study-design section above); the value lands after the curves
   checkpoint sets the tolerance it measures against.

@@ -7,7 +7,93 @@ decisions it feeds.
 
 ---
 
+## 2026-08-03 — The flat constant was an average of two games: spikiness splits the honesty price
+
+*Long-tail stage 1 (M2 ladder step 6) — the within-corpus shape splits and the
+ruling session over them, run the day after the curves checkpoint. Record: "The
+long-tail stage-1 splits" block in DESIGN.md's study-design section (ruled
+2026-08-03); same run of record `m2sweep-20260802T132010Z-2969bcab`, views
+regenerable via `scripts/split_sweep_by_shape.py` and
+`scripts/mint_allowances.py`. Feeds: the M2 report's long-tail evidence and
+rulings sections, and the sampling-honesty post.*
+
+Stage 1's design question was cautious: split the convergence curves by game
+shape — pool size, temporal spikiness, aspect concentration — and hope they
+come out flat, so the size rule transfers unconditioned. They did not, and the
+way they didn't is the story. In the first cut, *all three* axes looked guilty:
+the top tercile of every axis broke the ruled mid tolerance at the shipped
+n=1,000 (spikiest tercile p95 error 3.5 points against the ±2.5 promise, with
+the shipped interval's coverage down to 0.872 mid / 0.875 headline; biggest
+pools and 2+-headline games failing similarly — the stage-1 verdict tables over
+the run of record). Three independent problems would have been a bad day. The
+untangling came from conditioning: with the spiky third of anchor pools set
+aside, the pool-size effect vanishes entirely — every pool tercile mints an
+allowance of 0.000 in every band — and a near-uniform pool-by-spikiness
+cross-tab (the terciles share units almost evenly) confirmed the axes weren't
+proxies for each other; they were both proxies for spikiness. The whole
+windowed penalty lives in pools whose busiest month holds a large share of all
+reviews — which is exactly the mechanism the policy race had already exposed
+(one window swallowing the quota, a newest-first prefix inside it), now located
+instead of averaged.
+
+Located, it indicted the checkpoint's own constants. The flat allowance pair
+(mid 0.005 / headline 0.073, ruled the day before) turned out to be an average
+of two very different games: calm pools that need *no* allowance at all —
+Wilson alone covers, their measured coverage rides ~100%, and they'd been
+shipping ±10-point headline bars where ±2.5 suffices — and spiky pools that
+need roughly double the flat price. For a product whose thesis is honest error
+bars, that is the checkpoint's own failure mode one level down: over-cautious
+where it's easy, over-confident where it's hard. The ruling (Arda's, over the
+split tables) followed the same thesis a third time: condition the price on
+the regime. Two facts made the conditioning cheap. Peak window share is
+computable from the live review histogram *before any draw* — the runtime
+fetches that histogram to plan windows anyway, so the regime adds no data
+dependency. And the threshold barely mattered where it could have hurt: a
+sweep over candidate cuts (0.50 to 0.75) minted calm constants of exactly
+0.000 at every cut, so only the spiky side's calibration hinged on the choice.
+Two-thirds won over one-half because the lower cut dilutes the spiky pool with
+borderline units that need nothing, under-protecting the genuinely spiky tail
+(0.109 vs the 0.127 those units actually measure). The shipped constants:
+primary path calm 0.000 everywhere, spiky 0.017 mid / 0.127 headline (~±15
+points); fallback path calm 0.004 / 0.065, spiky 0.022 / 0.130 — the fallback's
+calm-regime allowances are themselves a finding, since a newest-first walk
+over the whole pool is biased with or without a spike. A companion ruling
+closed the tolerance gap: spiky mid joins the headline treatment (no separate
+error tolerance — ±2.5 is unmeetable there regardless of interval, and a
+number minted to fit would restate the interval), while calm mid keeps its
+±2.5.
+
+The session also banked a methods lesson worth telling. The allowance
+computation had lived as session scratch; graduating it into a committed mint
+script required reconstructing the exact definition, and the first faithful-
+looking attempt (exact Wilson-edge distances, interpolated quantile) produced
+mid 0.004 / headline 0.067 — close to the ruled constants, not equal. Rather
+than shipping the near-miss, the discrepancy was surfaced and chased: the
+ratified numbers reproduce exactly under the centered reading (error minus
+half-width) plus the ceiling order statistic — the *minimal* inflation that
+actually reaches 95% coverage, which is also the more defensible definition
+since coverage is a step function an interpolated quantile undershoots. The
+centered approximation was kept deliberately: its error runs conservative
+(wider bars, never narrower), and it is what the ruling ratified. Honesty
+marks that ride forward: the spiky calibration rests on thin cells (48
+headline cells at the shipped tier — the smoothing max is the mitigation),
+everything remains self-calibrated on the popular-game corpus, and the
+committed closing test is now the held-out check of the *conditioned*
+constants. Stage 2's label-free frame checks inherit a sharper question than
+they were designed with: not just "do long-tail temporal structures fall in
+the corpus's range" but "which regime do long-tail games land in" — if the
+long tail is disproportionately spiky, the ±15-point regime is its normal.
+
+Figure: the spikiness split panel (headline-band p90 curves, spiky tercile
+running 2–4× the others) is the natural evidence figure; the per-regime
+constants table (calm/spiky × band, primary and fallback) is the natural
+rulings table — both regenerate from the run of record.
+
 ## 2026-08-02 — Price the pretense: the checkpoint chose wider error bars over more data
+
+> ⚠ REVISED by the 2026-08-03 entry — the flat allowance constants (mid 0.005 /
+> headline 0.073) are superseded by regime-conditioned ones; the entry's
+> reasoning stands, but the shipped constants now condition on spikiness.
 
 *The curves checkpoint (M2 ladder step 5) — the ruling session over the sweep's
 figures, run the same day the sweep landed. Record: "The curves checkpoint" block
