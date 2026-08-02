@@ -7,7 +7,108 @@ decisions it feeds.
 
 ---
 
-## 2026-07-28 — A statistic learns to say "undefined," and the drift gate's escape hatch gets its first real turn of the key
+## 2026-08-02 — The census pays its dividend: the sampling study designed as a free simulation, with one tolerance governing everything
+
+*The sampling study's (M2) design session — discussion only, no code; run the day
+M1's closure was confirmed. Record: DESIGN.md's "The sampling study (M2) — the
+study design" section (ruled 2026-08-02); the build ladder is in the stream TODO.
+Feeds: the M2 report's method and limitations sections, and the sampling-honesty
+post ("You don't need 250k reviews — measured").*
+
+The session opened on an asset that had already changed the study's economics
+before a single design question was asked. When the census was bought (C1,
+2026-07-19 — 135,260 labeled envelopes, every English-nonempty corpus review
+across 49 games), the slice ruling explicitly paid extra for "a sampling study
+never capped by today's choice." This is where that purchase pays out: the study
+is pure offline re-folding of stored labels — draw 500 rows, recompute, repeat —
+so the main path costs CPU minutes, not LLM dollars. VISION's guessed ladder of
+three sizes (300/1k/3k) became a dense nine-point ladder with a few hundred
+repeated draws per game × policy × size, simply because density became free.
+
+Arda's opening framing set the study's shape before any formalism arrived: run
+the analysis at increasing sample sizes, watch when the readings settle, pick
+the size there. The session's real work was making "settled" precise, and it
+landed as two gates rather than one. Share error — the sampled per-aspect ratio
+lands within tolerance of the census value — is what the displayed number
+claims. But the app never shows a bare 27%; it shows "27% ±3", and that ±3 is a
+promise with its own failure mode: across repeated draws the quoted interval
+must actually contain the truth at its nominal rate. The two gates can disagree
+— shares can look fine while the computed error bars run systematically narrow —
+and that second failure is the poisonous one for a product whose entire thesis
+is honest error bars. Ranking stability and praise/criticism direction were
+deliberately demoted to reported-but-not-gating: both follow from shares being
+right, so gating them adds criteria without adding information. One deliberate
+strictness: the tolerance applies to *every* aspect the report would display,
+not a quantile of them — the evidence floor already hides the sparse tail, so
+whatever survives the floor honors the promise.
+
+The policy race is shaped by an API fact: Steam has no "500 random reviews"
+button. The runtime can express only windowed draws (spread a budget across
+date windows) and the documented cursor walk — which in practice returns a
+most-recent prefix, a biased draw by construction. So the race is four
+candidates: uniform random as the unreachable textbook reference (free to
+simulate against a held corpus), time-proportional windowed as the primary
+hypothesis, equal-per-window as the likely-rejected variant whose rejection
+will carry numbers instead of hand-waving, and the cursor-prefix fallback
+raced *as it actually behaves* — its bias measured and quoted as a trust-panel
+disclosure whenever a report runs on the fallback path, rather than assumed
+away. Playtime and vote-type stratification were considered and demoted to
+representativeness diagnostics on the winner: time is the axis the windowed
+path natively speaks, and whether the API can even express the other axes is
+unverified.
+
+Curves-first was Arda's call, and it matched his opening framing: the
+alternative — fix "±3" now and read the size off later — would pick the
+product's promise blind, before seeing which tolerances are even reachable at
+reasonable cost. Instead the study produces the full curves and the tolerance
+is chosen at a review checkpoint over real measurements, a product decision
+made with open eyes. The same measure-then-pick logic swallowed a second open
+question for free: the interval *formula* (design-naive, design-aware, or
+bootstrap-over-reviews) rides along by computing all three on every simulated
+draw — the calibration gate is itself the test — and the simplest formula
+whose coverage is honest under the winning policy ships. The deliverable is a
+size rule, not a number: corpus games span orders of magnitude, so below some
+population cutoff the answer is "take everything."
+
+The session's most satisfying turn was the marked-share floor. Since M1 it had
+been a provisional guess — past some share of review-bomb-window material, the
+report degrades honestly. The corpus holds zero marked-window reviews, so this
+is the study's one unavoidable LLM spend: fetch marked windows fresh from 2–3
+documented-bomb games, label ~1–2k reviews under the frozen versions, and blend
+them into normal samples at increasing shares offline. The floor then stops
+being a guessed percentage and becomes *the marked share at which a sample's
+conclusions drift beyond the same tolerance the curves checkpoint just set* —
+one honesty standard running end to end through the milestone, and a sequencing
+consequence for free (the mixing experiment must run after the tolerance
+ruling).
+
+Long-tail transfer got a staged plan, and its best part is Arda's. The corpus
+is ~50 popular games in a recent window; the deployed app will be pointed at
+six-year-old indie titles with 900 reviews. The staged evidence — split the
+convergence results by game shape within the corpus, then run label-free
+histogram checks on genuinely long-tail games through the existing sampler —
+was on the table as proposed, with a small label buy *gated* on whether the
+within-corpus splits showed trouble. Arda recast the buy: not a conditional
+hedge but a committed closing test — once the size rule exists, label ~3
+long-tail games fully and validate the finished rule off-corpus, a held-out
+test of the study's actual deliverable. The gate became a graduation exam.
+
+The last ruling folded the human eval track's holdout into M2 itself. The
+census reference is machine-labeled — VISION always called it the "stated,
+imperfect reference" — so the study measures sampling error while the
+classifier's own error rides silently on top; the fresh human holdout
+(~100–150 reviews under frozen v2) turns that from a hand-wave into a measured
+bound in the report's limitations section. The newer reason it belongs inside
+M2: the fresh buys are out-of-distribution against gold's 250 popular-game
+reviews — bomb-window reviews and obscure titles are exactly where the
+classifier is newly trusted and least checked — so the holdout draws across
+corpus *and* fresh material. The rest of the human track (misattribution
+audit, self-relabel, judge adjudication) stays parallel and non-gating.
+
+Figure: the convergence curves themselves — error vs. sample size, one line per
+policy, the census as zero line — are the report's centerpiece and the post's
+money shot. Second candidate: the mixing curve (conclusion drift vs. marked
+share) with the floor marked where it crosses the tolerance band.
 
 *The scorer-bump session — the last docket item from the full-base review, run as
 its own design-then-build session. Record: DESIGN.md's "bootstrap-undefined fix"

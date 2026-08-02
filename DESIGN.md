@@ -923,6 +923,107 @@ reopened as a retrieval signal.
 
 ---
 
+## The sampling study (M2) — the study design
+
+*(Ruled 2026-08-02. The design session's output: how the study runs and what gates
+its answers. The values themselves — the winning policy, the tolerance, the size
+rule, the floor — are the study's output, landed at the checkpoints below.)*
+
+**The convergence target: two gates, per displayed aspect.** A sample size is
+acceptable when, against the full-census fold as reference, (1) every per-aspect
+share the report would display lands within tolerance of the census share, and
+(2) the quoted interval covers the census value at its nominal rate — the error
+bar keeps its promise. Share error is what the displayed number claims; interval
+calibration is the product's actual thesis (honest error bars), and a policy can
+pass one while failing the other. Rank stability of the top aspects and
+praise/criticism direction are measured and reported but never gate — both follow
+from shares being right, so gating them adds criteria without information. The
+tolerance applies to *every* aspect above the display evidence floor, not a
+quantile of them: the floor already excludes the sparse tail, so whatever
+survives it honors the promise.
+
+**Four raced policies; two diagnostic axes.** Raced: **uniform random** (not
+runtime-expressible — the textbook reference every other policy is judged
+against, free to simulate against a held corpus); **time-proportional windowed**
+(budget spread across date windows by review volume — the runtime primary path's
+hypothesis, approximating uniform random through windowed fetches);
+**equal-per-window** (over-represents quiet periods; likely rejected, and then
+the rejection carries numbers); **cursor-prefix** (the documented fallback as it
+actually behaves — a most-recent prefix, biased by construction; its measured
+bias becomes the trust-panel disclosure quoted whenever a report runs on the
+fallback path). Playtime and vote-type are *representativeness diagnostics* on
+the winner, not raced candidates: time is the axis the windowed path natively
+speaks, and runtime expressibility of the other axes is unverified against the
+probes' recorded parameter surface.
+
+**Curves first; the deliverable is a size rule.** The size ladder densifies at
+the low end (100 / 250 / 500 / 750 / 1000 / 1500 / 2000 / 3000 / 5000), a few
+hundred independent draws per game × policy × size — resampling stored labels is
+CPU-only, so density costs minutes. Tolerance and size are picked at a **review
+checkpoint over the real curves**, not fixed in advance: the tolerance is a
+product decision (promise strength vs. per-report fetch+classify cost) better
+made looking at reachable tradeoffs than guessed blind. The deliverable is a
+rule, not a number — games vary by orders of magnitude, so: take-all below a
+population cutoff, sample n by the winning policy above it; the curves locate
+the cutoff.
+
+**Interval methods race inside the same simulation.** The candidate formulas —
+design-naive binomial, design-aware stratified, bootstrap-over-reviews — are all
+computed on every simulated draw, and the calibration gate is itself the test:
+ship the *simplest* method whose coverage is honest under the winning policy.
+Simplicity is the tiebreak because the formula ships in production; the fancier
+method earns its place only when the simple one's coverage measurably fails.
+Constraint carried from the eval harness: resampling intervals draw whole
+reviews, never mentions — mentions within one review move together, and
+treating them as independent fakes precision.
+
+**Long-tail transfer: staged evidence, ending in a held-out test.** The corpus
+is ~50 popular games in a recent window; the deployed app will be pointed at
+anything. Three stages: (1) **within-corpus splits** — convergence results split
+by game shape (population, temporal spikiness, aspect concentration); if curves
+vary with shape, the size rule conditions on it, and the transfer risk is
+measured rather than suspected; (2) **label-free frame checks** — fresh
+histograms for genuinely long-tail games through the existing sampler, no LLM
+spend, testing whether their temporal structures fall inside the range the
+corpus spans; (3) a **committed closing test** — ~3 long-tail games labeled
+fully under the frozen versions once the size rule exists, validating the
+finished rule off-corpus rather than arguing transfer. Fresh buys carry the
+buy-time re-certification rider (the D2d ruling).
+
+**The marked-share floor tunes by mixing experiment.** The corpus holds zero
+marked-window reviews, so this is the study's one path off stored labels: fetch
+marked windows fresh from 2–3 documented-bomb games through `steam_client`'s
+windowed path (the wire-level caveat parked in the probes' findings gets its
+check here), label ~1–2k marked-window reviews under the frozen versions, then
+blend them into normal samples at increasing shares offline. The floor is the
+marked share at which a sample's conclusions drift beyond **the same tolerance
+the curves checkpoint set** — one honesty standard end to end, replacing a
+guessed percentage. Sequencing falls out: the mixing experiment runs after the
+tolerance ruling and shares one fetch-and-label session with the long-tail
+closing test.
+
+**The human holdout folds into M2; the rest of the human track stays parallel.**
+The census reference is machine-labeled — the study measures *sampling* error
+while the classifier's own error rides silently on top. The fresh human holdout
+(~100–150 reviews under frozen v2) is drawn as an M2 step, scoped across corpus
+material *and* the fresh buys — marked-window and long-tail reviews are
+out-of-distribution against gold's popular-game 250, exactly where the
+classifier is newly trusted — and its number lands in the report's limitations
+as the measured bound on the reference's imperfection. The misattribution audit,
+self-relabel subset, and judge-disagreement adjudication stay the parallel
+human-time track, not gating M2.
+
+**The M2 report.** A standalone frozen PDF (the per-milestone precedent):
+the question · method (census as ground truth, the raced policies, the two
+gates, seeds) · the curves as centerpiece · the rulings that fell out (policy,
+tolerance, size rule, interval method with measured coverage) · the fallback's
+disclosed bias · the long-tail evidence and closing test · the mixing curves
+and the floor · limitations stated plainly (popular-games corpus, English-only,
+buy-time variance, the reference-imperfection bound) · provenance, every figure
+regenerable. No artifact references REPORT_NOTES.md.
+
+---
+
 ## Standing rules
 
 **The post ships with the milestone.** Every milestone's public artifact ships when
@@ -966,14 +1067,16 @@ as code. The test for any addition stays: does *this product* need it?
   provider direction exists and is re-decided at M3 entry, gated on a
   reachability probe from the actual host.
 - **Runtime sampling policy, sizes, and the interval method for displayed
-  shares** — the sampling study's (M2) output, by construction: a stratified
-  design changes the variance math, so the formula is decided with the policy,
-  not before it.
-- **Marked-share floor threshold** — the degradation trigger for bomb-dominated
-  samples: provisional during M1, tuned at the sampling study. The corpus holds
-  zero marked-window reviews, so tuning needs windows fetched fresh through the
-  windowed unfiltered path.
-- **The human annotation track** (parallel): the fresh v2 holdout (the overfit
-  disclosure's mitigation) · the self-relabel consistency subset · the
+  shares** — still the sampling study's (M2) output, but the *procedure* is now
+  ruled (the study-design section above, 2026-08-02): the values land at the M2
+  curves checkpoint, where tolerance and the size rule are picked over the
+  measured curves and the simplest honestly-covering interval formula ships.
+- **Marked-share floor threshold** — tuning procedure ruled (the mixing
+  experiment, study-design section above); the value lands after the curves
+  checkpoint sets the tolerance it measures against.
+- **The human annotation track** — re-timed at the M2 design session
+  (2026-08-02): the fresh v2 holdout folds into M2 (drawn across corpus + the
+  fresh buys; its number bounds the reference's imperfection in the M2 report).
+  Parallel, not gating: the self-relabel consistency subset · the
   misattribution audit sheet (minted, awaiting the pass) · judge-disagreement
   adjudication (sheet seeded from the top-disagreement exemplars).
