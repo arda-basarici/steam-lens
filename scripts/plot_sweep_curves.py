@@ -1,7 +1,7 @@
 """The curves-checkpoint figures — rendered views over a sweep run of record.
 
 Reads one ``m2sweep`` run directory (``measurements.jsonl`` + ``manifest.json``)
-and regenerates the two centerpiece figures the checkpoint rules over:
+and regenerates the checkpoint's figure pack:
 
 - ``error_curves.png`` — absolute share error vs sample size, per policy:
   the median and the p90 over all (game × anchor × aspect) cells, the ruled
@@ -9,6 +9,19 @@ and regenerates the two centerpiece figures the checkpoint rules over:
   size n, 90% of displayed shares land within this."
 - ``coverage_curves.png`` — measured interval coverage vs sample size, one
   panel per policy, one line per candidate method against the nominal 95%.
+- ``signed_bias.png`` — signed error (sample − census share) per policy:
+  median line with a p10–p90 band. Absolute-error pooling can cancel
+  direction across aspects; this view is where cursor-prefix's trust-panel
+  disclosure number comes from, and where a windowed policy would betray a
+  net drift.
+- ``error_by_share_band.png`` — the p90 error curves sliced by the aspect's
+  census share (small / mid / large): absolute error scales with
+  ``sqrt(p(1-p))``, so one pooled tolerance blurs bands the display treats
+  very differently.
+- ``error_by_pool_size.png`` — the p90 error curves sliced by the anchor
+  pool's size: previews whether one (cutoff, n) size rule is plausible or
+  the rule must condition on game size (the long-tail split stage then
+  formalizes it).
 
 Figures are regenerable views, never precious: they land in the run's own
 ``figures/`` folder and re-running overwrites them (keep the run artifact,
@@ -24,6 +37,7 @@ from __future__ import annotations
 import json
 import sys
 from collections import defaultdict
+from collections.abc import Callable
 from pathlib import Path
 
 import matplotlib
@@ -161,6 +175,178 @@ def plot_coverage_curves(rows: list[dict[str, object]], sizes: list[int], out: P
     plt.close(fig)
 
 
+def plot_signed_bias(rows: list[dict[str, object]], sizes: list[int], out: Path) -> None:
+    """Median signed error with a p10-p90 band, faceted per policy, zero-anchored."""
+    pools: dict[tuple[str, int], list[float]] = defaultdict(list)
+    for row in rows:
+        signed = float(row["mean_sample_share"]) - float(row["reference_share"])  # type: ignore[arg-type]
+        pools[(str(row["policy"]), int(row["size"]))].append(signed)  # type: ignore[arg-type]
+    fig, axes = plt.subplots(1, 4, figsize=(13, 3.6), dpi=150, sharey=True)
+    for ax, policy in zip(axes, POLICY_ORDER, strict=True):
+        _style_axis(ax)
+        ax.axhline(0.0, color=_MUTED, linewidth=1, linestyle="--")
+        xs = [size for size in sizes if pools.get((policy, size))]
+        ordered = [sorted(pools[(policy, size)]) for size in xs]
+        color = POLICY_COLORS[policy]
+        ax.plot(
+            xs, [quantile(values, 0.5) for values in ordered],
+            color=color, linewidth=2, marker="o", markersize=3,
+        )
+        ax.fill_between(
+            xs,
+            [quantile(values, 0.1) for values in ordered],
+            [quantile(values, 0.9) for values in ordered],
+            color=color, alpha=0.18, linewidth=0,
+        )
+        ax.set_xscale("log")
+        ax.set_xticks(sizes)
+        ax.set_xticklabels([str(s) for s in sizes], rotation=45)
+        ax.minorticks_off()
+        ax.set_title(policy, color=_INK, fontsize=10)
+        ax.set_xlabel("sample size", color=_INK, fontsize=9)
+    axes[0].set_ylabel("sample share − census share\n(median, p10–p90 band)",
+                       color=_INK, fontsize=9)
+    fig.suptitle("Signed bias per policy — direction the |error| pooling can hide",
+                 color=_INK, fontsize=11)
+    fig.tight_layout()
+    fig.savefig(out, bbox_inches="tight")
+    plt.close(fig)
+
+
+def _facet_p90_error(
+    rows: list[dict[str, object]],
+    sizes: list[int],
+    out: Path,
+    band_of: Callable[[dict[str, object]], str],
+    band_order: list[str],
+    suptitle: str,
+) -> None:
+    """The p90 |error| curves per policy, faceted by a row-derived band."""
+    pools: dict[tuple[str, str, int], list[float]] = defaultdict(list)
+    for row in rows:
+        key = (band_of(row), str(row["policy"]), int(row["size"]))  # type: ignore[arg-type]
+        pools[key].append(float(row["mean_error"]))  # type: ignore[arg-type]
+    fig, axes = plt.subplots(1, len(band_order), figsize=(11, 3.8), dpi=150, sharey=True)
+    for ax, band in zip(axes, band_order, strict=True):
+        _style_axis(ax)
+        for policy in POLICY_ORDER:
+            xs = [size for size in sizes if pools.get((band, policy, size))]
+            ys = [quantile(sorted(pools[(band, policy, size)]), 0.9) for size in xs]
+            ax.plot(
+                xs, ys, color=POLICY_COLORS[policy], linewidth=2,
+                marker="o", markersize=3, label=policy,
+            )
+        ax.set_xscale("log")
+        ax.set_xticks(sizes)
+        ax.set_xticklabels([str(s) for s in sizes], rotation=45)
+        ax.minorticks_off()
+        cells = sum(len(v) for (b, _, _), v in pools.items() if b == band)
+        ax.set_title(f"{band}  ({cells:,} cells)", color=_INK, fontsize=10)
+        ax.set_xlabel("sample size", color=_INK, fontsize=9)
+    axes[-1].legend(fontsize=8, frameon=False, loc="upper right")
+    axes[0].set_ylabel("p90 |sample − census share|", color=_INK, fontsize=9)
+    fig.suptitle(suptitle, color=_INK, fontsize=11)
+    fig.tight_layout()
+    fig.savefig(out, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_error_by_share_band(
+    rows: list[dict[str, object]], sizes: list[int], out: Path
+) -> None:
+    """The p90 curves sliced by the aspect's census share."""
+    def band(row: dict[str, object]) -> str:
+        share = float(row["reference_share"])  # type: ignore[arg-type]
+        if share < 0.05:
+            return "share < 5%"
+        if share < 0.15:
+            return "share 5–15%"
+        return "share ≥ 15%"
+
+    _facet_p90_error(
+        rows, sizes, out, band, ["share < 5%", "share 5–15%", "share ≥ 15%"],
+        "Convergence by census share — one tolerance means different things per band",
+    )
+
+
+def plot_error_by_pool_size(
+    rows: list[dict[str, object]], sizes: list[int], out: Path
+) -> None:
+    """The p90 curves sliced by the anchor pool's population."""
+    def band(row: dict[str, object]) -> str:
+        pool = int(row["pool_size"])  # type: ignore[arg-type]
+        if pool < 1000:
+            return "pool < 1k"
+        if pool < 3000:
+            return "pool 1–3k"
+        return "pool ≥ 3k"
+
+    _facet_p90_error(
+        rows, sizes, out, band, ["pool < 1k", "pool 1–3k", "pool ≥ 3k"],
+        "Convergence by anchor-pool size — is one (cutoff, n) rule plausible?",
+    )
+
+
+def plot_coverage_by_share_band(
+    rows: list[dict[str, object]], sizes: list[int], out: Path
+) -> None:
+    """Interval coverage sliced by census share, under the primary-path policy.
+
+    The pooled coverage figure is dominated by small-share cells; this view
+    asks whether each method keeps its promise on the big-share aspects a
+    report leads with, for time-proportional draws specifically.
+    """
+    bands = ["share < 5%", "share 5–15%", "share ≥ 15%"]
+
+    def band(row: dict[str, object]) -> str:
+        share = float(row["reference_share"])  # type: ignore[arg-type]
+        if share < 0.05:
+            return bands[0]
+        if share < 0.15:
+            return bands[1]
+        return bands[2]
+
+    pools: dict[tuple[str, str, int], list[float]] = defaultdict(list)
+    for row in rows:
+        if row["policy"] != "time-proportional":
+            continue
+        for method in ("wilson", "bootstrap", "stratified"):
+            reading = row.get(method)
+            if isinstance(reading, dict):
+                pools[(band(row), method, int(row["size"]))].append(  # type: ignore[arg-type]
+                    float(reading["coverage"])
+                )
+    fig, axes = plt.subplots(1, 3, figsize=(11, 3.8), dpi=150, sharey=True)
+    for ax, band_name in zip(axes, bands, strict=True):
+        _style_axis(ax)
+        ax.axhline(0.95, color=_MUTED, linewidth=1, linestyle="--")
+        for method, color in METHOD_COLORS.items():
+            xs = [size for size in sizes if pools.get((band_name, method, size))]
+            if not xs:
+                continue
+            ys = [
+                sum(pools[(band_name, method, size)]) / len(pools[(band_name, method, size)])
+                for size in xs
+            ]
+            ax.plot(xs, ys, color=color, linewidth=2, marker="o", markersize=3, label=method)
+        ax.set_xscale("log")
+        ax.set_xticks(sizes)
+        ax.set_xticklabels([str(s) for s in sizes], rotation=45)
+        ax.minorticks_off()
+        cells = sum(len(v) for (b, _, _), v in pools.items() if b == band_name) // 3
+        ax.set_title(f"{band_name}  (~{cells:,} cells)", color=_INK, fontsize=10)
+        ax.set_xlabel("sample size", color=_INK, fontsize=9)
+    axes[0].set_ylabel("measured coverage", color=_INK, fontsize=9)
+    axes[-1].legend(fontsize=8, frameon=False, loc="lower right")
+    fig.suptitle(
+        "Coverage by census share under time-proportional draws — the promise where it's loudest",
+        color=_INK, fontsize=11,
+    )
+    fig.tight_layout()
+    fig.savefig(out, bbox_inches="tight")
+    plt.close(fig)
+
+
 def main() -> None:
     """Render both figures into ``<run_dir>/figures/``."""
     if len(sys.argv) != 2:
@@ -173,8 +359,11 @@ def main() -> None:
     figures_dir.mkdir(exist_ok=True)
     plot_error_curves(rows, sizes, figures_dir / "error_curves.png")
     plot_coverage_curves(rows, sizes, figures_dir / "coverage_curves.png")
-    print(f"{len(rows):,} rows -> {figures_dir / 'error_curves.png'}")
-    print(f"{'':>14}-> {figures_dir / 'coverage_curves.png'}")
+    plot_signed_bias(rows, sizes, figures_dir / "signed_bias.png")
+    plot_error_by_share_band(rows, sizes, figures_dir / "error_by_share_band.png")
+    plot_error_by_pool_size(rows, sizes, figures_dir / "error_by_pool_size.png")
+    plot_coverage_by_share_band(rows, sizes, figures_dir / "coverage_by_share_band.png")
+    print(f"{len(rows):,} rows -> 6 figures under {figures_dir}")
 
 
 if __name__ == "__main__":

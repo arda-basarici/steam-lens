@@ -7,6 +7,111 @@ decisions it feeds.
 
 ---
 
+## 2026-08-02 — A deterministic draw has no error bar: one question about future work picked the study's population
+
+*The curves sweep's (M2 ladder step 4) design pass and build — the session after
+the study design was ruled. Record: the composed-replication paragraph in
+DESIGN.md's study-design section (ruled 2026-08-02); run of record
+`m2sweep-20260802T132010Z-2969bcab`. Feeds: the M2 report's method (replication
+unit, anchor grid), results (the convergence and calibration curves), and
+limitations (nested anchors, the corpus-at-T approximation) sections.*
+
+The step-2 build had left a deliberately unresolved flag, and this session opened
+on it. Windowed sampling draws are fully deterministic: same corpus, same plan,
+same sample, every time — and this is not a simulation artifact, it is equally
+true of the live runtime refetching the same date windows. So the design
+session's "a few hundred repeated draws per game × policy × size" quietly only
+applies to the uniform reference; every windowed cell yields one fixed sample
+and one fixed error. That breaks the calibration gate's grammar: "the interval
+covers the truth 95% of the time" is a rate, and a deterministic draw gives it
+no population to be a rate over. The sweep needed a ruling on where variance
+comes from: treat games × aspects as the replication units, simulate the
+time-of-query dimension by truncating each game's corpus at historical anchors,
+or compose both.
+
+What decided it was not a statistics argument but a question Arda asked about
+sequencing: the study runs on corpus data now, but later ladder steps go
+through the live Steam API as a test — does the choice here constrain those?
+Working that through reframed the options. A live query is always a
+single-anchor draw (one game, its full history as of that moment, one
+deterministic sample), so under the games-only option the later live steps —
+the label-free frame checks and the committed closing test — would be
+out-of-distribution spot checks against a claim certified only for the snapshot
+date. Under the composed population (anchors × games × aspects), time-of-query
+is inside the certified claim, and those same live steps become genuine
+held-out draws from the population the size rule talks about. The asymmetry in
+switching costs sealed it: no machinery hangs on the choice either way (the
+truncation loop is study-only code), but choosing narrow and widening later
+would reopen the checkpoint's tolerance and size rule — the exact rework the
+ladder ordering exists to avoid. Composed form, ruled.
+
+The anchor grid follows the same honesty logic as the rest of the study.
+Anchors sit at fixed quantiles of each game's *own* review-time span
+(40/55/70/85/100% — an absolute calendar grid would place anchors before
+thin-coverage games existed), truncating the corpus there and compiling the
+plan from the truncated histogram reproduces exactly what a live query at that
+moment would have seen, and two caveats were recorded for the report rather
+than papered over: anchors within one game are nested (later corpora contain
+earlier ones — they widen the population without being independent
+replications), and truncating today's corpus at T assumes Steam would have
+served the same rows at T, which review edits and deletions make an
+approximation only the live tests can ground. Two hygiene rules fell out of
+the build: an anchor whose truncated pool duplicates an earlier anchor's is
+dropped (truncation is monotone — equal size is the identical pool), and a
+cell whose ladder size reaches its pool is skipped as take-all, because a
+take-all draw's zero error is free flattery for a convergence curve.
+
+The sweep itself ran the same session, and the census dividend held: 49 games ×
+anchors × 4 policies × the nine-size ladder — 5,476 cells, 255,744 persisted
+measurement rows — in about five minutes of CPU (run of record above; the
+uniform reference at 200 seeded draws per cell). First readings, all
+[PRELIMINARY — the checkpoint ruling (tolerance · size rule · winning policy ·
+interval method) has not happened; these curves are its input]: median share
+error is small everywhere (~0.6% at n=100, under 0.1% by 2000, near-identical
+across policies) and the p90 is what separates the race — uniform best,
+cursor-prefix worst. The interval race already has a striking shape: Wilson,
+the design-naive candidate, holds roughly 92–97% measured coverage across all
+policies and sizes, while bootstrap-over-reviews collapses at small samples
+(~60% coverage at n=100) and the design-aware stratified interval — the
+sophisticated one — under-covers persistently (~55–90%). Its finite-population
+correction pretends the within-window draw is random when the contract says
+newest-first prefix; watching the fancy method fail its own pretense is
+exactly what the calibration gate was built to catch, and if the verdict
+survives the checkpoint, "the simplest honest formula ships" will have been
+decided by measurement, not taste.
+
+The checkpoint-prep views, cut later the same session, sharpened the story
+into the question the checkpoint must now answer. Slicing the same persisted
+rows by the aspect's census share showed the windowed policies' penalty is not
+spread evenly — it concentrates almost entirely in the big-share aspects
+(≥15%, the ones a report leads with): their p90 error sits at 7–11% and barely
+falls until n≈1500, because a deterministic newest-first prefix's error is
+bias, and bias does not shrink like √n — it only dies when growing quotas
+swallow whole windows. The companion coverage slice then confirmed the
+consequence [PRELIMINARY, same caveat]: on those same big-share aspects under
+time-proportional draws, *every* candidate interval under-covers, and coverage
+gets *worse* as n grows (Wilson ~88% at n=100 degrading to ~75–78% by
+1500–2000) — interval widths shrink with n while the bias stays, the classic
+bias-versus-width squeeze. More data made the error bars less honest. The
+pooled verdicts ("Wilson covers everywhere") were dominated by the small-share
+cells where absolute errors are tiny by construction. The signed-bias view
+cleared one suspect: no policy hides a net direction (cursor-prefix's spread
+at n=100 is wide, ±1.5% at p10–p90, but symmetric). So the checkpoint inherits
+a sharp trade: the runtime-expressible primary path keeps its promise on the
+long tail of aspects but breaks it on the headline ones unless n is large
+enough to reach the take-all regime — or the design answers with something
+else (a bias-aware interval, a band-aware tolerance, or the micro-window
+variant the sampling contract deliberately left expressible).
+
+Figure: six committed checkpoint figures, all regenerable from the run of
+record via `scripts/plot_sweep_curves.py` — the convergence curves (median +
+p90 share error vs size, per policy), the calibration panel (measured coverage
+vs the quoted 95%, per policy × method), the signed-bias panels, the p90
+curves by census-share band, the p90 curves by anchor-pool size, and coverage
+by share band under time-proportional. The share-band pair is the report's
+likely centerpiece: it is where "sampling is easy" turns into "sampling is
+easy exactly where it matters least."
+
 ## 2026-08-02 — The census pays its dividend: the sampling study designed as a free simulation, with one tolerance governing everything
 
 *The sampling study's (M2) design session — discussion only, no code; run the day
