@@ -26,6 +26,7 @@ from steamlens.contracts.enums import (
     PathOutcome,
     ReferenceKind,
     RollupUnit,
+    SamplingPolicyKind,
     Sentiment,
     StageKind,
 )
@@ -41,6 +42,7 @@ from steamlens.contracts.llm import (
 from steamlens.contracts.ontology import AspectDef, AspectOntology, OntologyVersion
 from steamlens.contracts.provenance import ClassifierVersions, Provenance
 from steamlens.contracts.reviews import Review
+from steamlens.contracts.sampling import FetchPlan, PlannedWindow, SamplingPolicy
 from steamlens.contracts.steam import (
     GameRef,
     HistogramBucket,
@@ -62,6 +64,7 @@ __all__ = [
     "IdentityVerdict",
     "RollupUnit",
     "PathOutcome",
+    "SamplingPolicyKind",
     # provenance
     "Provenance",
     "ClassifierVersions",
@@ -77,6 +80,10 @@ __all__ = [
     "HistogramSnapshot",
     "ReviewEvent",
     "WindowFetchResult",
+    # sampling
+    "SamplingPolicy",
+    "PlannedWindow",
+    "FetchPlan",
     # classification
     "AspectMention",
     "ReviewClassification",

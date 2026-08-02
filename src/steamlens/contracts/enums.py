@@ -175,6 +175,29 @@ class PathOutcome(StrEnum):
     SKIPPED_INFEASIBLE = "skipped-infeasible"
 
 
+class SamplingPolicyKind(StrEnum):
+    """Which runtime-expressible draw a sampling policy asks for.
+
+    Steam's API offers no random access to reviews, so every policy the
+    runtime can actually execute is one of two shapes: a windowed draw
+    (date windows with per-window quotas — ``TIME_PROPORTIONAL`` spreads the
+    budget by each window's review volume, ``EQUAL_PER_WINDOW`` gives every
+    window the same share) or ``CURSOR_PREFIX`` (the documented cursor walk
+    from the newest review — the fallback path as it actually behaves, a
+    most-recent prefix). The sampling study (M2) races these against a
+    uniform-random reference; that reference is deliberately NOT a member
+    here, because it is not runtime-expressible — it lives in the study
+    shell, never in a plan.
+
+    >>> SamplingPolicyKind.TIME_PROPORTIONAL == "time-proportional"
+    True
+    """
+
+    TIME_PROPORTIONAL = "time-proportional"
+    EQUAL_PER_WINDOW = "equal-per-window"
+    CURSOR_PREFIX = "cursor-prefix"
+
+
 class StageKind(StrEnum):
     """The kind of a stage-progress event carried over the narration sink.
 
