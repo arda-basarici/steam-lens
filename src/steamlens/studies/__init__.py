@@ -9,8 +9,16 @@ decisions in DESIGN's labeling-engine section (settled 2026-07-19).
 """
 
 from steamlens.studies.aggregate_corpus import census_manifest_id, mint_census_aggregates
+from steamlens.studies.sample_corpus import (
+    corpus_histogram,
+    execute_plan,
+    uniform_reference_draw,
+)
 
 __all__ = [
     "census_manifest_id",
     "mint_census_aggregates",
+    "corpus_histogram",
+    "execute_plan",
+    "uniform_reference_draw",
 ]
