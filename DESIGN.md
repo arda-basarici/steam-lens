@@ -1013,6 +1013,30 @@ as the measured bound on the reference's imperfection. The misattribution audit,
 self-relabel subset, and judge-disagreement adjudication stay the parallel
 human-time track, not gating M2.
 
+**The replication unit: query anchors × games × aspects** *(ruled 2026-08-02,
+the step-4 design pass — settling the question the build flagged)*. Windowed
+draws are fully deterministic — same corpus, same plan, same sample, true of
+the live runtime too — so repeat-variance exists only for the uniform
+reference, and error distributions and coverage rates need a population of
+report runs to be statements about. The certified population is the composed
+one: **query anchors** (each game's corpus truncated at fixed quantiles of its
+own review-time span — 40/55/70/85/100%, never an absolute calendar grid that
+would predate thin-coverage games; compiling from the truncated histogram
+reproduces exactly what a live query at that moment would have seen) ×
+**games** × **displayed aspects**. This makes the checkpoint's rulings claims
+about report runs generally rather than one snapshot date, and makes the
+committed closing test a genuine held-out draw from the certified population —
+a fresh game queried at a fresh time. Two disclosures ride the report, not the
+code: anchors within one game are nested (later corpora contain earlier ones),
+widening the population without being independent replications; and truncating
+today's corpus at T assumes Steam would have served the same rows at T —
+edits and deletions make that an approximation only the live tests ground.
+Sweep hygiene falls out of the ruling: an anchor whose truncated pool
+duplicates an earlier anchor's is dropped (truncation is monotone — equal size
+is the identical pool, and re-measuring adds correlated copies), and a cell
+whose ladder size reaches its pool is recorded take-all and skipped — a
+take-all draw's zero error is free flattery for a convergence curve.
+
 **The M2 report.** A standalone frozen PDF (the per-milestone precedent):
 the question · method (census as ground truth, the raced policies, the two
 gates, seeds) · the curves as centerpiece · the rulings that fell out (policy,

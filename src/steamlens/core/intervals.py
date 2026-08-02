@@ -31,6 +31,7 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass
+from functools import cache
 
 _Z_95 = 1.959963984540054
 _LOWER_TAIL = 0.025
@@ -94,6 +95,7 @@ def wilson_interval(successes: int, sample_size: int) -> Interval:
     return Interval(low=max(center - half_width, 0.0), high=min(center + half_width, 1.0))
 
 
+@cache
 def exact_bootstrap_interval(successes: int, sample_size: int) -> Interval:
     """The bootstrap-over-reviews percentile interval, computed exactly.
 
@@ -103,7 +105,11 @@ def exact_bootstrap_interval(successes: int, sample_size: int) -> Interval:
     seed, no Monte Carlo error. Degenerate at the boundaries by the
     percentile bootstrap's own nature (a 0% or 100% sample share yields a
     zero-width interval); that flaw is left visible for the coverage gate to
-    price rather than patched here.
+    price rather than patched here. Cached: the function is pure on two small
+    ints and the result immutable, while the sweep's hundreds of thousands of
+    draws revisit only the few thousand ``(successes, sample_size)`` pairs the
+    size ladder admits — without the cache the quantile scan dominates the
+    whole study's runtime.
 
     >>> exact_bootstrap_interval(50, 100)
     Interval(low=0.4, high=0.6)
