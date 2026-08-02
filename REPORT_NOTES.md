@@ -7,6 +7,110 @@ decisions it feeds.
 
 ---
 
+## 2026-08-02 — Price the pretense: the checkpoint chose wider error bars over more data
+
+*The curves checkpoint (M2 ladder step 5) — the ruling session over the sweep's
+figures, run the same day the sweep landed. Record: "The curves checkpoint" block
+in DESIGN.md's study-design section (ruled 2026-08-02); run of record
+`m2sweep-20260802T132010Z-2969bcab`. Feeds: the M2 report's rulings and
+limitations sections, and the sampling-honesty post ("You don't need 250k
+reviews — measured").*
+
+The session was a figure-by-figure walkthrough ending in four rulings —
+winning policy, interval method, tolerance, size rule — and the arc of the
+walkthrough is worth preserving because the pooled evidence and the sliced
+evidence told opposite stories. Pooled over all cells, everything looked
+shippable: median share error tiny at every size, Wilson's coverage riding
+92–97%. Sliced by the aspect's census share, the same rows broke the promise
+exactly where a report is loudest: on ≥15%-share aspects the windowed policies'
+p90 error sat at 7–11 points and barely moved with n (a newest-first prefix's
+error is bias, and bias doesn't shrink like √n), and every candidate interval
+under-covered there — *worse* as n grew, Wilson falling from ~88% at n=100 to
+~75–78% by 1500–2000, because the quoted width shrinks like 1/√n while the
+bias stays put. For a product whose thesis is honest error bars, that is the
+worst possible failure mode: buying more reviews made the numbers more
+confident and less honest at the same time.
+
+Four candidate answers came in from the sweep session's baton, none
+pre-decided, and each met a different fate. Brute force — larger n, earlier
+take-all — was rejected by the study's own curves: the headline-band error is
+flat in n, so more sampling buys almost nothing there while the fetch+classify
+cost grows linearly. The micro-window variant (finer windows, shorter
+prefixes — the only candidate that attacks the *cause* rather than repricing
+the symptom) was parked, not killed: it carries an unsolved compiler question
+(windows mint from monthly histogram rollups; finer grain needs the
+deliberately-unused daily strips or a within-window multi-cursor draw) and an
+unknown payoff without a re-sweep, so it waits on named triggers — the closing
+test failing held-out, or the deployment milestone finding the headline widths
+product-unacceptable. Band-aware tolerance proved necessary but insufficient
+alone: absolute error scales with the share itself, so one flat tolerance
+never meant the same thing across bands — but conditioning the tolerance
+merely renames the problem while the interval still claims 95% and delivers
+75. What won was the bias-aware interval, and the reason it won is the
+study's own thesis applied once more: the whole interval race had been about
+pricing pretenses (Wilson won it because its pretense was least wrong), so
+the consistent move is to *pay for* the windowed pretense explicitly — quote
+Wilson's width plus a measured bias allowance. The sweep's signed-bias view
+made the shape clean: no policy hides a net direction, so there is nothing to
+re-center — the point estimate stands and only the width inflates.
+
+An allowance table computed live from the run of record's measurement rows
+turned the debate concrete: the flat width inflation that would have restored
+95% coverage on the sweep is zero for tail aspects (<5% share — Wilson alone
+already covers), about half a point for mid aspects (5–15%), and ~7 points
+for headline aspects — which therefore ship at roughly ±10 points until the
+take-all regime makes them exact. That number decided the rest. Since the
+headline width is bias-bound and flat in n (±11 at n=500, ±8 at n=2000), the
+sample size decouples from the headline problem entirely — n gets chosen on
+the tail and mid bands' ordinary convergence plus cost, and only the take-all
+cutoff genuinely fixes headline aspects, which quietly raised the cutoff's
+importance from cost knob to honesty boundary.
+
+The rulings, Arda's over the table: **time-proportional windowed is the
+primary path** (it dominated the other implementable draws on every slice;
+equal-per-window was eliminated — its quiet-month over-weighting never paid
+anywhere; cursor-prefix keeps its designed fallback-with-disclosure role).
+**Wilson plus per-band constant allowances** — 0.000 / 0.005 / 0.073,
+each the max of the calibration over the shipped tier and its neighbors
+(the ≥15% band is thin, 30–280 cells per point, so the raw 95th-percentile
+calibration is a noisy order statistic and the smoothing is deliberate
+conservatism); take-all pools quote the exact number and no interval.
+**Tolerance ±1 point (tail) and ±2.5 points (mid) at the 95% register**, with
+headline aspects carrying no separate error tolerance — their promise *is*
+the calibrated interval plus take-all exactness; a tolerance number there
+would either restate the width or claim precision the draw can't deliver.
+**Size rule: take all at pool ≤ 2,000, else sample n = 1,000** — n=750 passed
+tolerance with no margin against off-corpus drift, n=1,500 buys 0.2 points
+for 50% more cost, and the cutoff takes the 2×n shape (below it sampling
+saves less than half the cost, so exactness is nearly free). The rule states
+itself in one sentence — "we read 1,000 reviews; if the game has 2,000 or
+fewer, we read them all" — which is the thesis line of the eventual post made
+concrete: at most 2k reviews per report, not 250k.
+
+One refinement quietly superseded a design-session ruling and was recorded
+rather than papered over: the original convergence gate said the tolerance
+applies to *every* displayed aspect, "not a quantile of them" — but a
+deterministic draw offers no per-cell guarantee to certify, so the gate now
+reads at the 95% register, putting both gates (error and calibration) in the
+same probability language. DESIGN carries the supersession with its why.
+
+Honesty marks for the report. The allowance constants are self-calibrated on
+the same 49-game corpus they're measured on [PRELIMINARY — the committed
+closing test on fresh long-tail games is the held-out check; until it runs,
+the calibration is on-corpus only]. And the corpus is long-tail-leaning
+(median full pool ~2,100 reviews), so "60% of anchor pools are take-all at
+the cutoff" overstates real-world reach — the big games users will actually
+query sit permanently in the sampled ±10 regime; the report should say so
+plainly. The constants were minted in-session from the run's persisted rows
+and are re-derivable; a committed mint script (rather than session scratch)
+is a flagged loose end.
+
+Figure: the share-band error curves and the coverage-by-band panel are the
+report's centerpiece pair — "sampling is easy exactly where it matters
+least," then the price paid to fix it. The allowance table itself (band × n:
+Wilson's coverage, the inflation, the shipped width) is a natural report
+table, regenerable from the run of record.
+
 ## 2026-08-02 — A deterministic draw has no error bar: one question about future work picked the study's population
 
 *The curves sweep's (M2 ladder step 4) design pass and build — the session after
@@ -15,6 +119,9 @@ DESIGN.md's study-design section (ruled 2026-08-02); run of record
 `m2sweep-20260802T132010Z-2969bcab`. Feeds: the M2 report's method (replication
 unit, anchor grid), results (the convergence and calibration curves), and
 limitations (nested anchors, the corpus-at-T approximation) sections.*
+
+> The [PRELIMINARY — checkpoint pending] flags below resolved the same day: the
+> checkpoint ruled, confirming these readings — see the entry above.
 
 The step-2 build had left a deliberately unresolved flag, and this session opened
 on it. Windowed sampling draws are fully deterministic: same corpus, same plan,

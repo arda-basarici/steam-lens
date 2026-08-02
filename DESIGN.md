@@ -938,9 +938,12 @@ calibration is the product's actual thesis (honest error bars), and a policy can
 pass one while failing the other. Rank stability of the top aspects and
 praise/criticism direction are measured and reported but never gate — both follow
 from shares being right, so gating them adds criteria without information. The
-tolerance applies to *every* aspect above the display evidence floor, not a
-quantile of them: the floor already excludes the sparse tail, so whatever
-survives it honors the promise.
+tolerance applies per share band and is certified at the **95% register** — 95%
+of population cells within tolerance (refined at the curves checkpoint,
+2026-08-02: deterministic draws offer no per-cell guarantee to certify, and the
+95% register puts both gates in one probability language, the same one the
+interval quotes). The display evidence floor still excludes the sparse tail
+before any promise applies.
 
 **Four raced policies; two diagnostic axes.** Raced: **uniform random** (not
 runtime-expressible — the textbook reference every other policy is judged
@@ -1037,6 +1040,69 @@ is the identical pool, and re-measuring adds correlated copies), and a cell
 whose ladder size reaches its pool is recorded take-all and skipped — a
 take-all draw's zero error is free flattery for a convergence curve.
 
+**The curves checkpoint — the study's values, ruled 2026-08-02** *(over run of
+record `m2sweep-20260802T132010Z-2969bcab`: 49 games · 243 anchor pools ·
+255,744 cells; every figure and constant regenerable from the run)*.
+
+- **Policy: time-proportional windowed is the primary path.** It dominated the
+  other implementable draws on every slice — pooled p90 error, per-band error,
+  and Wilson coverage at every n. Equal-per-window is eliminated: its
+  quiet-month over-weighting never paid for itself anywhere. Cursor-prefix
+  keeps its designed fallback role; the sweep's signed-bias view showed **no
+  net direction for any policy** — misses are symmetric spread — so the
+  fallback's trust-panel disclosure is a spread statement, not a drift
+  correction.
+- **The big-share finding, and pricing it rather than fixing it.** The windowed
+  penalty concentrates almost entirely in **≥15%-share aspects**: p90 error
+  7–11 points, bias-dominated — a newest-first prefix's bias does not shrink
+  like √n, so the error curves run flat from n=100 to ~1500 and collapse only
+  when growing quotas swallow whole windows. In that band every interval
+  method under-covers, *worse as n grows* (Wilson ~88% at n=100 falling to
+  ~75–78% by 1500–2000): the width shrinks like 1/√n while the bias stays
+  put. The ruling follows the study's own thesis — price the pretense: the
+  shipped interval carries a measured bias allowance and the tolerance
+  conditions on share band. **Larger n is rejected** as an answer (the curves
+  are flat in n; the cost is linear). **The micro-window variant is parked** —
+  the one candidate that attacks the cause rather than repricing it, but it
+  carries an unsolved compiler question (windows mint from monthly rollups;
+  finer grain needs the deliberately-unused daily strips or a within-window
+  multi-cursor draw) and an unknown payoff without a re-sweep. Reopen
+  triggers: the closing test failing held-out, or the deployment milestone
+  (M3) finding the headline widths product-unacceptable.
+- **Interval method: Wilson plus a per-band constant allowance.** Bootstrap is
+  eliminated — the percentile interval collapses to lattice points at small
+  n·p̂ (measured ~60% coverage at n=100). Stratified-with-FPC is eliminated —
+  its within-window-SRS pretense is exactly what the prefix draw violates
+  (bias-centered intervals, and quota-1 windows reporting zero variance).
+  Form: one constant per share band added to Wilson's half-width on sampled
+  draws; **take-all pools quote the exact number and no sampling interval** —
+  a swallowed pool is a census of itself. Constants pin at the shipped n,
+  smoothed conservatively against order-statistic noise (the max of the
+  flat-inflation calibration over the shipped tier and its neighbors): **tail
+  0.000 · mid 0.005 · headline 0.073** — a headline aspect displays at roughly
+  ±10 points. The constants are self-calibrated on the study corpus; the
+  closing test is their held-out check, and they re-derive from the run of
+  record, never hand-carried. The fallback path, where its numbers quote an
+  interval, calibrates its own (larger) allowance from the same rows'
+  cursor-prefix column.
+- **Tolerance, band-conditioned at the 95% register:** tail (<5% census share)
+  **±1 point** · mid (5–15%) **±2.5 points** · headline (≥15%) carries **no
+  separate error tolerance** — its promise is the calibrated interval plus
+  take-all exactness; a tolerance number there would either restate the
+  interval width or claim a precision the windowed draw cannot deliver.
+- **Size rule: take all at pool ≤ 2,000; otherwise sample n = 1,000
+  time-proportional.** n=1,000 sits one tier above the smallest
+  tolerance-passing size (750 passes the mid band at 2.3 vs 2.5 — no margin
+  against off-corpus drift) and returns flatten beyond it (1,500 buys 0.2
+  points for 50% more cost). The cutoff takes the 2×n shape: below it,
+  sampling saves less than half the fetch+classify cost, so exactness —
+  including headline exactness — is nearly free; above it, per-report cost
+  caps at 2,000 fetched+classified reviews (the thesis made concrete: at most
+  2k reviews per report, not 250k). Pool size otherwise doesn't condition the
+  rule — the pool-size slice showed convergence rides absolute n, not
+  sampling fraction. At pools just over the cutoff, Wilson's missing FPC errs
+  conservative — over-covers, never under.
+
 **The M2 report.** A standalone frozen PDF (the per-milestone precedent):
 the question · method (census as ground truth, the raced policies, the two
 gates, seeds) · the curves as centerpiece · the rulings that fell out (policy,
@@ -1091,10 +1157,12 @@ as code. The test for any addition stays: does *this product* need it?
   provider direction exists and is re-decided at M3 entry, gated on a
   reachability probe from the actual host.
 - **Runtime sampling policy, sizes, and the interval method for displayed
-  shares** — still the sampling study's (M2) output, but the *procedure* is now
-  ruled (the study-design section above, 2026-08-02): the values land at the M2
-  curves checkpoint, where tolerance and the size rule are picked over the
-  measured curves and the simplest honestly-covering interval formula ships.
+  shares** — RESOLVED at the M2 curves checkpoint (2026-08-02, rulings in the
+  study-design section above): time-proportional primary · take-all at pool
+  ≤ 2,000, else n = 1,000 · Wilson + per-band constant bias allowance ·
+  band-conditioned tolerance at the 95% register. Still ahead of the study:
+  the long-tail stages, the mixing floor, and the closing test that validates
+  the rule held-out.
 - **Marked-share floor threshold** — tuning procedure ruled (the mixing
   experiment, study-design section above); the value lands after the curves
   checkpoint sets the tolerance it measures against.
