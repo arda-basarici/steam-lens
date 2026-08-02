@@ -26,7 +26,10 @@ dev = [
 line-length = 100
 target-version = "py313"
 # probes/ are one-shot investigation scripts (their findings are the artifact,
-# not their style); the lint gate covers the library + tests, matching pyright.
+# not their style). Everything else is linted: the library, the tests, and the
+# operational scripts under scripts/ and report/ — deliberately wider than
+# pyright's src+tests below, which stays narrow because strict typing costs more
+# to hold than style does.
 extend-exclude = ["probes"]
 
 [tool.ruff.lint]
