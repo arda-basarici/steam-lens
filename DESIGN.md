@@ -1150,6 +1150,63 @@ regenerable via ``scripts/split_sweep_by_shape.py`` and
   whether genuinely long-tail games land in the spiky regime at all — the
   off-corpus regime distribution is the transfer risk that remains.
 
+**The long-tail stage-2 frame checks — the off-corpus regime distribution,
+measured and ruled passed 2026-08-03** *(over discovery run
+``longtail-20260802T232206Z-9bf61718``: 24 games admitted from 959
+seeded-uniform probes of a 177,272-game catalogue snapshot; every table and
+figure regenerable via ``scripts/discover_longtail_games.py`` and
+``scripts/frame_check_longtail.py``)*.
+
+- **The list nobody picked.** Discovery is criteria-driven by construction —
+  the selection-bias critique is answered before it is raised. Three
+  review-count bands on the whole-game, all-language totals read, edges
+  aligned to the ruled take-all cutoff so each band asks a distinct question:
+  the true tail at 200–2,000 (production fetches these whole — 6 games), the
+  engaging band strictly above 2,000 through 20,000 (the only place the size
+  rule actually samples — 14 games), and a bridge at 20,000–60,000 toward
+  corpus scale (4 games). Candidates were drawn by seeded uniform probing of
+  a persisted games-only catalogue snapshot, admitted exactly when the store
+  called them a game and the totals landed in an open band; seed, snapshot,
+  and probe order are all recorded, so the list re-draws. (The frame itself
+  is the keyed ``IStoreService`` catalogue — Valve retired the keyless
+  applist endpoint in March 2026; the key crosses only the process
+  environment.) The probe log doubles as an unbiased catalogue sample, kept
+  with the run.
+- **The regime answer: the long tail is calm territory.** One game in 24 is
+  spiky on the production instrument (peak window share ≥ 2/3 over the live
+  histogram's native buckets); 5 of 120 (game, anchor) units — 4.2%, against
+  the corpus's 33.1%. No band is spiky-heavy (true tail 0%, engaging 7.1%,
+  bridge 0%). Deployed against the long tail, the runtime will overwhelmingly
+  quote the calm constants — Wilson-only intervals — with the spiky treatment
+  reserved for the rare whole-life-event game the boundary exists for. Fresh
+  peak shares (0.022–0.813) sit entirely inside corpus support (0.036–1.000):
+  the conditioning never extrapolates. Fresh whole-life pools exceed corpus
+  pool support on the high side (to 63k against 6.9k) — a report disclosure,
+  not a gap, pool size being the axis stage 1 cleared of any conditioning.
+- **The span effect — what the corpus regime rate actually measured.** The
+  instrument-agreement handful (five corpus games, live histograms fetched
+  alongside the fresh ones) shows the two instruments agreeing decently over
+  the same month range, while the same games' whole-life histograms read far
+  flatter (0.503 → 0.042; 0.415 → 0.059). The corpus's 33% spiky rate is
+  therefore largely a property of *windowed pools*, not of popular games:
+  the calibration measured the penalty mechanism — one window swallowing the
+  draw's quota — on recent-window pools, and production, reading whole-life
+  histograms, will meet that shape mainly in games whose whole life is one
+  event. The spiky constants stay as ruled (the mechanism transfers by
+  shape, not by span); the closing test remains the held-out check that the
+  calm-regime promise holds off-corpus.
+- **The instrument disclosure.** Steam serves weekly rollup buckets for some
+  games (5 of the 24) and monthly for the rest; weekly-native readings sit at
+  or below their month-rolled counterparts, and no admitted game flips across
+  the 2/3 boundary by unit choice. The regime is computed on the native
+  buckets deliberately: the windowed compiler plans one window per native
+  bucket, so the native series is the shape the draw actually experiences.
+- **Carried to the fresh-buy session (step 8):** the ~3 long-tail games
+  labeled fully should span the regimes this check surfaced — the one spiky
+  admit (Sword and Fairy Inn 2, whose 36 English reviews of 2,277 also
+  exercise the language question), one weekly-unit young game, one flat
+  mid-band game.
+
 **The M2 report.** A standalone frozen PDF (the per-milestone precedent):
 the question · method (census as ground truth, the raced policies, the two
 gates, seeds) · the curves as centerpiece · the rulings that fell out (policy,
@@ -1210,9 +1267,10 @@ as code. The test for any addition stays: does *this product* need it?
   band-conditioned tolerance at the 95% register. Refined at the long-tail
   stage-1 splits (2026-08-03, same section): the allowance and the mid
   tolerance condition on the spikiness regime (peak window share ≥ 2/3).
-  Still ahead of the study: the stage-2 frame checks (now pointed at the
-  off-corpus regime distribution), the mixing floor, and the closing test
-  that validates the rule held-out.
+  The stage-2 frame checks passed 2026-08-03 (same section): the long tail
+  is calm territory, the conditioning never extrapolates. Still ahead of
+  the study: the mixing floor and the closing test that validates the rule
+  held-out.
 - **Marked-share floor threshold** — tuning procedure ruled (the mixing
   experiment, study-design section above); the value lands after the curves
   checkpoint sets the tolerance it measures against.

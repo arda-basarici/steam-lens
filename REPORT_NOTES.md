@@ -7,6 +7,90 @@ decisions it feeds.
 
 ---
 
+## 2026-08-03 — The long tail turned out calm — and the corpus's spikiness was the window talking
+
+*Long-tail stage 2 (M2 ladder step 7) — the label-free frame checks, run the
+same day stage 1 ruled. Record: "The long-tail stage-2 frame checks" block in
+DESIGN.md's study-design section (ruled passed 2026-08-03); discovery run
+`longtail-20260802T232206Z-9bf61718` (data/longtail/), tables and figures
+regenerable via `scripts/discover_longtail_games.py` and
+`scripts/frame_check_longtail.py`. Feeds: the M2 report's long-tail evidence
+section, the limitations section (span and instrument disclosures), and the
+sampling-honesty post.*
+
+Stage 1 handed stage 2 a sharper question than it was designed with. The
+original frame check asked only whether long-tail games' temporal structures
+fall inside the range the corpus spans; after the spikiness ruling, the
+load-bearing version became: does the long tail *land in the spiky regime* —
+the regime where headline bars widen to ±15 points? If most small games were
+spiky, the calm constants would be a popular-game privilege and the product's
+long-tail promise would quietly degrade.
+
+The first story is how the game list was built, because the method is the
+defense. A hand-picked list invites exactly the selection-bias critique the
+stage exists to answer, so nobody picked it: three review-count bands with
+edges aligned to the ruled take-all cutoff — a true tail at 200–2,000 total
+reviews where production fetches everything anyway, the band strictly above
+2,000 through 20,000 where the size rule actually samples (weighted heaviest),
+and a 20,000–60,000 bridge toward corpus scale — filled by seeded uniform
+probing of a persisted games-only catalogue snapshot (177,272 apps), admitting
+a candidate exactly when the store called it a game and its totals landed in
+an open band. 959 probes filled all bands: 6 + 14 + 4 = 24 games, list
+re-drawable from the recorded seed and snapshot. The probe hit a wall worth
+telling: the keyless catalogue endpoint every tutorial still names
+(`ISteamApps/GetAppList`) turned out retired — and the first diagnosis, made
+off a single 404, was challenged by Arda ("I don't think the Steam API
+changed — check properly"). The re-verification was the right call twice
+over: it exposed a sloppy first probe (the supported-API check had queried
+the wrong interface), and it hardened the conclusion — same 404 from two
+networks, the community reporting the identical error string since March
+2026, and the June steam-reviews project reconciled because its 50-game list
+was hand-curated and never touched a catalogue endpoint. The fix was the
+keyed `IStoreService` replacement, onboarded through the secret-safe pattern
+(key in the process environment only, absent from every persisted artifact).
+
+The answer came back unambiguous: the long tail is calm territory. One game
+in 24 sits in the spiky regime on the production instrument; at the
+replication grain it's 5 of 120 (game, anchor) units — 4.2%, against the
+corpus's 33.1% (the frame-check regime table over the discovery run). Fresh
+peak window shares (0.022–0.813) sit entirely inside corpus support
+(0.036–1.000), so the regime conditioning never extrapolates. Deployed
+against the long tail, the runtime will overwhelmingly quote the calm
+constants — Wilson-only bars — with the ±15-point spiky treatment reserved
+for the rare game whose whole life is one event.
+
+The surprise was what the comparison said about the corpus itself. Five
+corpus games had their live histograms fetched alongside the fresh ones as an
+instrument-agreement check, and the two instruments agree decently over the
+same month range — but the same games' *whole-life* histograms read far
+flatter than their corpus-window readings (0.503 → 0.042 and 0.415 → 0.059
+on the agreement table's clearest rows). The corpus's 33% spiky rate was
+largely a property of *windowed pools* — a recent fetch window concentrates
+mass into few buckets — not a property of popular games. That reframes what
+the calibration measured without unseating it: the spiky constants priced the
+penalty *mechanism* (one window swallowing the draw's quota), and the
+mechanism transfers by shape, not by span; production, reading whole-life
+histograms, simply meets that shape more rarely than the corpus rate
+suggested. The committed closing test stays the held-out check that the
+calm-regime promise holds off-corpus. [PRELIMINARY in one respect — the 4.2%
+is a 24-game estimate; the closing test and fresh buys are the check.]
+
+Two disclosures were banked for the report. Steam serves weekly rollup
+buckets for young games (5 of the 24) and the regime is computed on the
+native buckets deliberately — the windowed compiler plans one window per
+native bucket, so native is the shape the draw experiences; weekly-native
+readings sit at or below month-rolled ones and no admitted game flips across
+the 2/3 boundary by unit choice. And fresh whole-life pools exceed corpus
+pool support on the high side (to 63k against the corpus's 6.9k) — disclosed
+rather than conditioned on, pool size being the axis stage 1 cleared. The
+fresh-buy session's leaning was accepted with the ruling: the one spiky admit
+(Sword and Fairy Inn 2 — 36 English reviews of 2,277, which also exercises
+the language question), one weekly-unit young game, one flat mid-band game.
+
+Figure: the frame-check ECDF (fresh bands vs the corpus, the 2/3 line marked)
+and the pool-size-vs-peak-share scatter (fresh units against the corpus
+cloud) — both rendered in the discovery run's `figures/`.
+
 ## 2026-08-03 — The flat constant was an average of two games: spikiness splits the honesty price
 
 *Long-tail stage 1 (M2 ladder step 6) — the within-corpus shape splits and the
