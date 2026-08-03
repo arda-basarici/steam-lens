@@ -1207,6 +1207,78 @@ figure regenerable via ``scripts/discover_longtail_games.py`` and
   exercise the language question), one weekly-unit young game, one flat
   mid-band game.
 
+**The fresh-buy session (step 8) — selections and design, ruled 2026-08-03**
+*(the one shared fetch-and-label pass serving the mixing experiment, the
+closing test, and the human holdout; bomb candidates nominated by web
+research, verified only by the wire-level probe below — nomination is not
+evidence)*.
+
+- **The bomb games: Borderlands 2, Book of Demons, The Witcher 3.** Chosen to
+  spread the marked-window population three ways: the canonical first-ever
+  off-topic mark (Borderlands 2 — the April 2019 Epic-exclusivity bomb, a
+  tight ~2-week window, 7,030 reviews on the wire), a small-volume ongoing
+  mark (Book of Demons — the March 2022 regional-pricing bomb; `end_date=0`
+  on the wire, 2,349 reviews to date), and a second tight window with a low
+  English share (The Witcher 3 — March 3–17 2022; the researched "9-month
+  span" was corrected to 14 days by the probe, finding 6).
+  Cyberpunk 2077 was excluded on corpus overlap: fresh material stays
+  disjoint from the 49 corpus games. Alternates on record if a pick fails
+  the probe: IL-2 Sturmovik (a ~25-month window), Slay the Spire 2 (the 2026
+  mega-bomb; mark dates unverified).
+- **The long-tail games: Sword and Fairy Inn 2, Dragonkin: The Banished,
+  Talisman: Digital Classic Edition** — the stage-2 leaning made concrete
+  from the discovery run's admitted list: the one spiky admit (peak 0.756,
+  the language case), the youngest weekly-served admit (Mar 2026, 1,312
+  English; native 0.166 vs month-rolled 0.383 exercises the unit disclosure
+  live), and the flattest mid-band admit with real English headroom (6,108
+  English, peak 0.033).
+- **The mid-band criterion rides the English pool, not the total.** The size
+  rule samples only above the 2,000-review take-all cutoff, and the
+  labelable pool is English — a pick whose English subset falls under the
+  cutoff would quietly turn the closing test into three take-all games and
+  validate nothing.
+- **English-only stands everywhere, including the 36-of-2,277 game.** The
+  classifier's certified contract and the codebook are English; production
+  faces the same 36-review reality for that game, and take-all over a tiny
+  English pool *is* the honest production behavior. Labeling non-English
+  would test an instrument never certified.
+- **The probe gates the buy — pick verification, not mechanism.** The
+  blank/restore mechanism is already proven (the M0/M1 probe findings:
+  default listings blank marked windows, `filter_offtopic_activity=0`
+  restores them, verified locally and from a datacenter; every future fetch
+  carries the flag). What no probe has done is verify the *picks*: that
+  each bomb game's `past_events` mark exists with usable window dates, and
+  that the in-window **English** pool — the only labelable material — is
+  large enough to feed the mixing experiment. A bomb pick failing either
+  check is replaced from the alternates, not forced.
+- **The holdout: 150 reviews, 60 corpus / 45 marked-window / 45 long-tail.**
+  Seeded stratified draw with the fresh material deliberately oversampled
+  relative to volume — out-of-distribution against gold's popular-game 250
+  is exactly where the reference is newly trusted. Labeled blind to machine
+  labels under frozen codebook v2 (the misattribution-sheet precedent);
+  scored as review-level agreement against production labels (the judge's
+  frame — reviews, not mentions) with a Wilson interval; the number lands in
+  the report's limitations as the measured bound on the reference's
+  imperfection. Overall agreement reads at roughly ±6 points, per-stratum at
+  roughly ±12 — coarse but honest.
+- **The cost frame, priced per the standing rule.** At the census rate
+  ($3.80 for 135,260 reviews, ~$0.03 per thousand) the whole session —
+  ~1–2k marked-window reviews, three long-tail English pools, the gold
+  re-certification run — prices well under a dollar. The Batch API option
+  is priced and declined: 50% of cents does not pay for the
+  job-submit/poll/download path (the recorded n=1,000 reasoning, one scale
+  smaller). The D2d rider is binding: a fresh certification run against
+  gold under the frozen triple accompanies the buy — the census's 0.766
+  certifies only the census's labels, never these.
+
+> **Outcome.** The pick probe **PASSED** all three bomb games (2026-08-03,
+> finding 6): every mark exists, every window blanks by default and restores
+> under the flag, sample timestamps all in-window. Combined in-window English
+> pool **6,454** (4,085 / 823 / 1,546) against the mixing appetite of ~1–2k —
+> the buy is not supply-constrained. Wire truth corrected two research claims
+> (The Witcher 3's span is 14 days; Book of Demons' mark is ongoing), and the
+> ongoing mark needs a concrete end date substituted at fetch time.
+
 **The M2 report.** A standalone frozen PDF (the per-milestone precedent):
 the question · method (census as ground truth, the raced policies, the two
 gates, seeds) · the curves as centerpiece · the rulings that fell out (policy,

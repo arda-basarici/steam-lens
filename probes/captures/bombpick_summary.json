@@ -1,0 +1,65 @@
+[
+ {
+  "app_id": 49520,
+  "name": "Borderlands 2",
+  "mark_exists": true,
+  "events": [
+   {
+    "start": 1554249600,
+    "end": 1555286400,
+    "ongoing": false,
+    "histogram_volume": 0,
+    "default_total": 0,
+    "unfiltered_total": 7030,
+    "english_total": 4085
+   }
+  ],
+  "sample_page": {
+   "reviews": 100,
+   "in_window": 100,
+   "english": 53
+  }
+ },
+ {
+  "app_id": 449960,
+  "name": "Book of Demons",
+  "mark_exists": true,
+  "events": [
+   {
+    "start": 1646092800,
+    "end": 1785753961,
+    "ongoing": false,
+    "histogram_volume": 1727,
+    "default_total": 0,
+    "unfiltered_total": 2349,
+    "english_total": 823
+   }
+  ],
+  "sample_page": {
+   "reviews": 100,
+   "in_window": 100,
+   "english": 50
+  }
+ },
+ {
+  "app_id": 292030,
+  "name": "The Witcher 3: Wild Hunt",
+  "mark_exists": true,
+  "events": [
+   {
+    "start": 1646265600,
+    "end": 1647475200,
+    "ongoing": false,
+    "histogram_volume": 0,
+    "default_total": 0,
+    "unfiltered_total": 8992,
+    "english_total": 1546
+   }
+  ],
+  "sample_page": {
+   "reviews": 100,
+   "in_window": 100,
+   "english": 23
+  }
+ }
+]

@@ -133,6 +133,43 @@ primary path is verified from a datacenter IP.
 Azure, not the eventual host's IP range — the deployment milestone (M3) rechecks
 from whatever host its fork picks.
 
+---
+
+# Sampling-study findings (M2) — 2026-08-03
+
+## 6. Bomb-pick verification — all three marks real, English pools sized
+
+The fresh-buy session's gate (`bomb_pick_probe.py`): the step-8 bomb picks were
+nominated by web research, and nomination is not evidence — per pick, does the
+`past_events` mark exist, does *this* game's window blank-and-restore, and how
+large is the in-window English pool the label buy actually consumes (windowed
+totals-only queries; a sample page checks every timestamp lands in-window).
+
+| game | marked window (wire) | default | unfiltered | English |
+|---|---|---:|---:|---:|
+| Borderlands 2 | 2019-04-03 → 04-15 | 0 | 7,030 | 4,085 |
+| Book of Demons | 2022-03-01 → **ongoing** (`end_date=0`) | 0 | 2,349 | 823 |
+| The Witcher 3 | 2022-03-03 → 03-17 | 0 | 8,992 | 1,546 |
+
+- **All three marks exist (type 0), all three windows blank by default and
+  restore under the flag** — the mechanism now confirmed on every pick, not a
+  stand-in. Sample pages: 100/100 timestamps in-window on each.
+- **Combined English pool 6,454** against the mixing experiment's ~1–2k
+  appetite — the buy is not supply-constrained, and the three games' English
+  shares (58% / 35% / 17%) mean blends can vary the source mix.
+- **Two research claims corrected by the wire:** The Witcher 3's marked span is
+  **14 days**, not the reported ~9 months; Book of Demons' mark is **ongoing**
+  (`end_date=0` — the first such case this project has fetched; the buy must
+  substitute a concrete end, and `fetch_window` requires one anyway).
+- *Probe artifact, not a data problem:* the histogram cross-check reads 0 for
+  sub-month windows — rollup buckets are stamped at period start, so a window
+  opening mid-month contains no bucket date. The check's real purpose held:
+  every windowed total is window-sized, not whole-game-sized, so the
+  undocumented params are honored by `query_summary`.
+
+(`bombpick_summary.json` · `bombpick_hist_<appid>.json` ·
+`bombpick_page_<appid>.json`)
+
 ## 6. The aspect-ontology probe — the emergent vocabulary is flat-tailed and game-specific; ruling: hybrid with a fixed core
 
 The week-1 discriminator from the framing handoff: run open extraction (the model
