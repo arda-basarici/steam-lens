@@ -1354,6 +1354,70 @@ experiment's checkpoint)*.
 > unmeasurable by construction (partially mitigated by the spiky-regime
 > allowance and the timeline markers).
 
+**The closing test (step 10) — design, ruled 2026-08-04** *(the staged
+long-tail evidence's committed final stage made concrete; the charter is in
+the study-design section above — the finished rule validated off-corpus on
+the three fresh long-tail games, fully labeled under the frozen triple)*.
+
+- **The grid measures; the full anchor headlines.** The held-out games run
+  the certified own-span anchor grid (40/55/70/85/100%), and the verdict
+  reads over all measured cells — the certification's own population
+  reading. The full-corpus anchor is the report's headline unit ("a fresh
+  game queried today" — the honest single case), with the grid behind it
+  supplying the cell population a single anchor cannot: the closing test
+  has no blend randomness and windowed draws are deterministic, so each
+  admitted cell is exactly one draw and the 95% register is only readable
+  across cells. Measuring the full anchor alone was considered and
+  declined — one game's displayed aspects are too thin a base for a
+  register claim.
+- **Truth is each game's own full-pool fold** under the frozen triple, read
+  from the fresh-buy run's own label store, with the census-fold wiring
+  guard applied at the full anchor (exact id-set equality before anything
+  is measured — the sweep's precedent). Vocabulary is each game's own
+  pinned index; the mixing sweep's merged vocabulary was
+  contamination-specific and does not apply.
+- **The size rule runs as shipped, and both of its sides are under test.**
+  Pools above the 2,000 cutoff sample n = 1,000 time-proportional through
+  the certified seams and read the certified gates per cell — only
+  Talisman (6,094) crosses the cutoff, so the sampled-path evidence is
+  its anchors × aspects. Pools at or under the cutoff take all; unlike the
+  sweeps, take-all cells are *recorded with an exactness verification*
+  (sampled shares equal to the fold's, exactly) rather than skipped —
+  in the sweeps take-all was free flattery for convergence curves, here
+  the cutoff side is itself part of the promise being validated.
+  Dragonkin (1,311) and Sword and Fairy Inn 2 (36) sit entirely on the
+  take-all side.
+- **The spiky-regime transfer stays a disclosure, not a claim.** Sword and
+  Fairy Inn 2 is the lone spiky exemplar (peak window share 0.756) at 36
+  usable English reviews of 2,277 total, take-all by construction — nothing
+  sampled exists to validate the spiky allowance off-corpus, and the report
+  says so plainly (alongside the language-reality disclosure its 36-of-2,277
+  embodies). Dragonkin's weekly-served shape (native peak 0.166 vs
+  month-rolled 0.383) exercises the rollup-unit disclosure live. Pass/fail
+  wording for the report drafts at the verdict, once the rates exist.
+
+> **Outcome (ruled 2026-08-04): the closing test passes — the size rule
+> holds held-out.** Off the run of record
+> `m2close-20260804T140340Z-1cc06586` (3 games, 15 cells, 605 rows;
+> verdict and figures regenerable via ``scripts/analyze_closing_test.py``):
+> the two games under the take-all cutoff reproduced their reference
+> exactly (Sword and Fairy Inn 2 and Dragonkin, 360/360 rows at error
+> zero — the cutoff side's promise is exactness, delivered), and Talisman,
+> the one game above it, sampled at n = 1,000 across five admitted
+> anchors, held the certified 95% register on the pooled population
+> reading: **coverage 0.971, tolerance 0.991** over 245 cells, and
+> 0.980 / 0.979 at the full anchor — the report's headline unit. Two
+> disclosures ride the report: the mid band's coverage alone reads 0.902
+> (46/51), driven by one aspect (`learning_curve`) missing at three
+> *nested* anchors — one correlated miss counted three times, the
+> recorded nested-anchors caveat made concrete; and no sampled draw
+> exercised the spiky-regime conditioning off-corpus — the lone spiky
+> exemplar is take-all at 36 usable English reviews of 2,277, itself the
+> language-reality disclosure. The verdict gates on the certified pooled
+> reading (the floor analyzer's own); band slices print as diagnosis,
+> never a gate. The micro-window variant's reopen trigger ("the closing
+> test failing held-out") did **not** fire.
+
 **The M2 report.** A standalone frozen PDF (the per-milestone precedent):
 the question · method (census as ground truth, the raced policies, the two
 gates, seeds) · the curves as centerpiece · the rulings that fell out (policy,
@@ -1416,8 +1480,9 @@ as code. The test for any addition stays: does *this product* need it?
   tolerance condition on the spikiness regime (peak window share ≥ 2/3).
   The stage-2 frame checks passed 2026-08-03 (same section): the long tail
   is calm territory, the conditioning never extrapolates. The mixing floor
-  landed 2026-08-04 (the mixing-experiment outcome above). Still ahead of
-  the study: the closing test that validates the rule held-out.
+  landed 2026-08-04 (the mixing-experiment outcome above). The closing test
+  passed held-out 2026-08-04 (the closing-test outcome above) — the study's
+  measurements are complete; what remains is the M2 report itself.
 - **Marked-share floor threshold** — RESOLVED 2026-08-04 (the mixing
   experiment's outcome, study-design section above): **2%**,
   worst-source, grid-located (holds at 2%, broken by 5%). Steam's default

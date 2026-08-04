@@ -74,7 +74,7 @@ def load_marked_pools(run_dir: Path, versions: ClassifierVersions) -> tuple[Mark
     outside the manifest's window — each a wiring or artifact-integrity
     failure, never a sampling outcome.
     """
-    manifest = _read_manifest(run_dir)
+    manifest = read_fetch_manifest(run_dir)
     marked = [game for game in manifest.games if game.role == "marked-window"]
     if not marked:
         raise ValueError(f"{run_dir}: manifest holds no marked-window games — wrong run dir?")
@@ -125,8 +125,8 @@ def load_marked_pools(run_dir: Path, versions: ClassifierVersions) -> tuple[Mark
 
 
 @dataclass(frozen=True, slots=True)
-class _ManifestGame:
-    """One manifest game entry, reduced to the fields the loader consumes."""
+class FetchManifestGame:
+    """One manifest game entry, reduced to the fields the run's consumers stand on."""
 
     app_id: int
     name: str
@@ -136,15 +136,21 @@ class _ManifestGame:
 
 
 @dataclass(frozen=True, slots=True)
-class _Manifest:
-    """The fetch manifest's loader-facing slice: run identity plus its games."""
+class FetchManifest:
+    """A fetch manifest's consumer-facing slice: run identity plus its games."""
 
     run_id: str
-    games: tuple[_ManifestGame, ...]
+    games: tuple[FetchManifestGame, ...]
 
 
-def _read_manifest(run_dir: Path) -> _Manifest:
-    """Parse ``manifest.json``, validating the fields this module stands on."""
+def read_fetch_manifest(run_dir: Path) -> FetchManifest:
+    """Parse a fetch run's ``manifest.json``, validating the fields consumers stand on.
+
+    Public because the manifest is the run directory's single account of
+    which game plays which role — this loader selects the ``marked-window``
+    games and the closing test selects the ``long-tail`` ones from the same
+    record, so the parse-and-validate lives once.
+    """
     path = run_dir / "manifest.json"
     if not path.is_file():
         raise ValueError(f"no manifest.json under {run_dir} — not a fetch run directory")
@@ -153,7 +159,7 @@ def _read_manifest(run_dir: Path) -> _Manifest:
     games_raw = raw.get("games")
     if not isinstance(run_id, str) or not isinstance(games_raw, list):
         raise ValueError(f"{path}: manifest is missing 'run_id' or 'games'")
-    games: list[_ManifestGame] = []
+    games: list[FetchManifestGame] = []
     for entry in cast(list[dict[str, object]], games_raw):
         windows = entry.get("windows")
         if not isinstance(windows, list) or len(windows) != 1:
@@ -165,7 +171,7 @@ def _read_manifest(run_dir: Path) -> _Manifest:
         window = cast(dict[str, object], windows[0])
         try:
             games.append(
-                _ManifestGame(
+                FetchManifestGame(
                     app_id=int(cast(int, entry["app_id"])),
                     name=cast(str, entry["name"]),
                     role=cast(str, entry["role"]),
@@ -175,7 +181,7 @@ def _read_manifest(run_dir: Path) -> _Manifest:
             )
         except (KeyError, TypeError) as exc:
             raise ValueError(f"{path}: malformed game entry ({exc!r})") from exc
-    return _Manifest(run_id=run_id, games=tuple(games))
+    return FetchManifest(run_id=run_id, games=tuple(games))
 
 
 def _enveloped_ids_by_game(
@@ -216,7 +222,7 @@ def _game_of(review_id: str, app_id_of: dict[str, int]) -> int:
     return app_id
 
 
-def _assert_in_window(game: _ManifestGame, pool: tuple[Review, ...]) -> None:
+def _assert_in_window(game: FetchManifestGame, pool: tuple[Review, ...]) -> None:
     """Every pooled review inside the manifest window, inclusive on both ends.
 
     Mirrors the windowed walk's zone judgment: the walk collected within

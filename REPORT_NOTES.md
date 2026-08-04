@@ -7,6 +7,84 @@ decisions it feeds.
 
 ---
 
+## 2026-08-04 — The closing test passes: the size rule survives three games it never trained on
+
+*The committed closing test (M2 ladder step 10), the staged long-tail
+evidence's final stage — the finished size rule validated off-corpus on the
+three fresh long-tail games bought and fully labeled at the step-8 session,
+rather than argued by transfer. Record: "The closing test (step 10)" block
+and its Outcome in DESIGN.md's study-design section; run of record
+`m2close-20260804T140340Z-1cc06586` (data/runs/), verdict and figures
+regenerable via `scripts/analyze_closing_test.py`. Feeds: the M2 report's
+long-tail evidence / closing-test section, its limitations (the nested-anchor
+and spiky-exemplar disclosures), and the sampling-honesty post.*
+
+The whole study earns its keep here or nowhere: every ruling so far —
+policy, size rule, interval allowance, tolerance table — was calibrated on
+the same 49-game corpus it was measured against. The closing test is the one
+measurement where the finished rule meets games it never saw: Sword and
+Fairy Inn 2 (36 usable English reviews of 2,277 — the language-stress case),
+Dragonkin: The Banished (1,311 — the weekly-served young game), and
+Talisman: Digital Classic Edition (6,094 — the flat mid-band case), each
+fully labeled under the frozen triple so its own full-pool fold is the
+ground truth.
+
+The design confirm had one fork with real teeth: which query anchors do the
+held-out games run? The honest single unit is the full anchor — "a fresh
+game queried today" is exactly deployment's situation — but a quiet
+structural fact decides against measuring only that: the closing test has no
+blend randomness and windowed draws are deterministic, so there are no
+repeats anywhere. Each cell is exactly one draw, and a 95% register is only
+readable across a *population* of cells. One anchor's population is just one
+game's displayed aspects — a few dozen reads to certify a 95% promise from.
+Arda ruled the compromise that keeps both honesties: the certified own-span
+anchor grid measures (five simulated query moments, multiplying the cell
+population five-fold), and the full anchor headlines in the report. The
+second ruling took no fight: the spiky-regime conditioning's off-corpus
+transfer is *not* a named claim — the lone spiky exemplar has 36 labeled
+reviews and, being under the take-all cutoff, contributes no sampled draw at
+all; claiming transfer from that would be theater. It rides as a disclosure.
+
+One inversion from the sweeps is worth the report explaining, because it
+looks like an inconsistency and is the opposite. The curves and mixing
+sweeps *skipped* take-all cells — a draw that swallows its whole pool has
+error identically zero, free flattery for a convergence curve. The closing
+test *records* them, exactness-verified: here the cutoff side of the size
+rule is itself under test, and "a game under 2,000 reviews gets its exact
+number" is a promise you verify, not a nuisance you skip. Two of the three
+held-out games (Dragonkin and Sword and Fairy Inn 2) sit entirely on that
+side, and delivered: 360 of 360 recorded reads exact at error zero. The
+sampled side belonged to Talisman alone — all five anchors above the
+cutoff — and held the certified register on the pooled population reading
+the certification itself uses: coverage 0.971 and tolerance 0.991 over 245
+cells, 0.980 / 0.979 at the headline full anchor (run of record
+`m2close-20260804T140340Z-1cc06586`). The micro-window variant's reopen
+trigger — "the closing test failing held-out" — did not fire.
+
+The verdict's honest wrinkle got quoted, not buried. Sliced by display band,
+the mid band's coverage alone reads 0.902 (46 of 51 cells) — under the
+register. Three of those five misses are the same aspect, `learning_curve`,
+erring by about 1.35 points against the calm regime's zero allowance at
+three different anchors — and those anchors are *nested*, later corpora
+containing earlier ones, so this is closer to one correlated miss counted
+three times than three independent failures. It is the nested-anchors caveat
+DESIGN recorded in the abstract, now with a concrete face. The band read
+stays diagnosis rather than verdict for two reasons: the certified promise
+was always the pooled reading (the mixing floor gates the same way), and 51
+cells resolve a true-0.95 rate to about ±3 points — thin evidence in either
+direction. The report states it; it does not gate on it.
+
+What this closes: the study's measurements are complete. Policy, size rule,
+interval method, tolerance table, contamination floor — every ruling now
+carries an off-corpus check or a named disclosure where one wasn't buyable.
+What remains of the sampling study (M2) is the report itself.
+
+Figure: `figures/closing_register_by_anchor.png` in the run dir — both gates
+vs anchor quantile against the 95% rule, the coverage dip at the 0.55 anchor
+recovering by the full anchor. Figure: `figures/closing_error_vs_reference.png`
+— every sampled cell's error vs its reference share, misses hugging the
+tolerance rules near the band edges.
+
 ## 2026-08-04 — The mixing floor is 2%: the error bars break before the numbers look wrong
 
 *The mixing experiment (M2 ladder step 9), designed, built, and ruled in one
