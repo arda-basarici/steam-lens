@@ -1,0 +1,95 @@
+{
+  "run_id": "holdout-20260804T215600Z-c0edb01a",
+  "code_version": "67e175d+dirty",
+  "created_at": "2026-08-04T21:56:00.094448+00:00",
+  "scorer": "holdout-vs-production/1",
+  "reference": {
+    "kind": "gold-file",
+    "id": "eval/holdout/SHEET.md",
+    "sha256": "8e01227650cdc808b79a998cefb64666a800e73fb95b9b50f892d4f98e98f90c"
+  },
+  "pool_versions": {
+    "model_version": "deepseek-v4-flash",
+    "prompt_version": "classify-v1",
+    "ontology_version": "v2"
+  },
+  "n_reference_reviews": 150,
+  "n_scored_reviews": 149,
+  "skipped_reviews": [
+    "209679440"
+  ],
+  "metrics": [
+    {
+      "metric": "holdout_n",
+      "value": 149.0,
+      "ci_low": null,
+      "ci_high": null
+    },
+    {
+      "metric": "holdout_agreement",
+      "value": 0.5570469798657718,
+      "ci_low": 0.4768498255732934,
+      "ci_high": 0.6343765401730813
+    },
+    {
+      "metric": "holdout_n/marked-window",
+      "value": 45.0,
+      "ci_low": null,
+      "ci_high": null
+    },
+    {
+      "metric": "holdout_agreement/marked-window",
+      "value": 0.5111111111111111,
+      "ci_low": 0.3700446464458318,
+      "ci_high": 0.650429762471215
+    },
+    {
+      "metric": "holdout_n/long-tail",
+      "value": 45.0,
+      "ci_low": null,
+      "ci_high": null
+    },
+    {
+      "metric": "holdout_agreement/long-tail",
+      "value": 0.4444444444444444,
+      "ci_low": 0.30938930034997586,
+      "ci_high": 0.5882386550647896
+    },
+    {
+      "metric": "holdout_n/corpus",
+      "value": 59.0,
+      "ci_low": null,
+      "ci_high": null
+    },
+    {
+      "metric": "holdout_agreement/corpus",
+      "value": 0.6779661016949152,
+      "ci_low": 0.5510500442652536,
+      "ci_high": 0.7831242475811436
+    },
+    {
+      "metric": "holdout_aspect_set_match",
+      "value": 0.5637583892617449,
+      "ci_low": null,
+      "ci_high": null
+    },
+    {
+      "metric": "holdout_n_aspect_set_match",
+      "value": 84.0,
+      "ci_low": null,
+      "ci_high": null
+    },
+    {
+      "metric": "holdout_sentiment_given_aspect_match",
+      "value": 0.9880952380952381,
+      "ci_low": null,
+      "ci_high": null
+    },
+    {
+      "metric": "parse_failure_rate",
+      "value": 0.0,
+      "ci_low": null,
+      "ci_high": null
+    }
+  ]
+}
