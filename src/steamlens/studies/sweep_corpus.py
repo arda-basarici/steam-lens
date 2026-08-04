@@ -429,7 +429,7 @@ class RunConfig:
     app_ids: tuple[int, ...] | None
 
 
-def _load_label_indexes(
+def load_label_indexes(
     store: Store, versions: ClassifierVersions
 ) -> tuple[dict[int, frozenset[str]], dict[int, dict[str, frozenset[str]]]]:
     """The pool's two id indexes, per game: envelope ids and pinned aspect → mentions.
@@ -438,7 +438,9 @@ def _load_label_indexes(
     from; the pinned mention index is ``measure_draw``'s ``aspect_reviews``.
     Candidate-slot mentions stay out — the gate applies to displayed aspects,
     and display vocabulary is pinned (the checkpoint's evidence floor then
-    filters *within* these).
+    filters *within* these). Public because every census-store study consumes
+    the same two indexes — the mixing sweep loads through this same function,
+    so "what counts as the labeled universe" stays a single definition.
     """
     app_id_of = store.reviews.app_id_by_review()
     envelope_ids: dict[int, set[str]] = {}
@@ -459,10 +461,14 @@ def _load_label_indexes(
     )
 
 
-def _census_shares_by_game(
+def census_shares_by_game(
     aggregates: Sequence[AspectAggregate],
 ) -> dict[int, dict[str, float]]:
-    """The fold's own pinned mention shares, per game — the wiring guard's truth."""
+    """The fold's own pinned mention shares, per game — the wiring guard's truth.
+
+    Public alongside ``load_label_indexes`` and ``assert_reference_wiring``:
+    the census-store studies share one wiring-guard vocabulary.
+    """
     pinned: dict[int, list[AspectAggregate]] = {}
     for aggregate in aggregates:
         if aggregate.slot is AspectSlot.PINNED:
@@ -470,7 +476,7 @@ def _census_shares_by_game(
     return {app_id: mention_shares(rows) for app_id, rows in pinned.items()}
 
 
-def _assert_reference_wiring(
+def assert_reference_wiring(
     app_id: int,
     pool: Sequence[Review],
     aspect_reviews: Mapping[str, Set[str]],
@@ -594,14 +600,14 @@ def execute_run(cfg: RunConfig, started: datetime | None = None) -> int:
             f"repeats {cfg.repeats} · base seed {cfg.base_seed}",
         )
         try:
-            envelope_ids, mention_ids = _load_label_indexes(store, versions)
+            envelope_ids, mention_ids = load_label_indexes(store, versions)
             if not envelope_ids:
                 raise RunAbort(
                     f"no survey envelopes under {versions.model_version}/"
                     f"{versions.prompt_version}/{versions.ontology_version} — "
                     "wrong version pin or wrong database"
                 )
-            census = _census_shares_by_game(mint_census_aggregates(store, versions=versions))
+            census = census_shares_by_game(mint_census_aggregates(store, versions=versions))
             narrate(
                 sink, _STAGE, StageKind.PROGRESS,
                 f"label pool loaded: {len(envelope_ids)} games, "
@@ -621,7 +627,7 @@ def execute_run(cfg: RunConfig, started: datetime | None = None) -> int:
                         "the census covered every usable game; wrong db or corpus"
                     )
                 pool = tuple(r for r in result.reviews if r.review_id in labeled)
-                _assert_reference_wiring(app_id, pool, aspect_reviews, census[app_id])
+                assert_reference_wiring(app_id, pool, aspect_reviews, census[app_id])
 
                 game_started = time.monotonic()
                 sweep = sweep_game(pool, aspect_reviews, sweep_cfg)
