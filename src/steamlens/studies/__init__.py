@@ -9,6 +9,7 @@ decisions in DESIGN's labeling-engine section (settled 2026-07-19).
 """
 
 from steamlens.studies.aggregate_corpus import census_manifest_id, mint_census_aggregates
+from steamlens.studies.marked_pool import MarkedPool, load_marked_pools
 from steamlens.studies.measure import (
     AspectMeasurement,
     IntervalReading,
@@ -24,6 +25,8 @@ from steamlens.studies.sample_corpus import (
 __all__ = [
     "census_manifest_id",
     "mint_census_aggregates",
+    "MarkedPool",
+    "load_marked_pools",
     "corpus_histogram",
     "execute_plan",
     "uniform_reference_draw",

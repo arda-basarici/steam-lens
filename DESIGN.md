@@ -1298,6 +1298,37 @@ evidence)*.
 > (The Witcher 3's span is 14 days; Book of Demons' mark is ongoing), and the
 > ongoing mark needs a concrete end date substituted at fetch time.
 
+**The mixing experiment (step 9) — design, ruled 2026-08-04** *(the
+floor-tuning procedure made concrete; the procedure's charter is in the
+study-design section above, and the floor value itself lands at this
+experiment's checkpoint)*.
+
+- **The drifted number measures against the census share — the study's exact
+  gates, re-run with contamination.** The displayed number's promise is
+  tolerance-of-truth, so the floor is the last marked share at which the
+  certified 95%-register promise still holds: same regime-aware tolerance
+  table, same coverage gate, same pass/fail machinery. Measuring drift
+  against the unmixed sample's own conclusion was considered and declined —
+  it isolates the marginal contamination effect, but applies the tolerance
+  to a quantity it was never minted for.
+- **Replacement at fixed n.** A mixed draw keeps the ruled sample size: the
+  certified plan draws the full n, then a seeded random subset of
+  round(s·n) members is swapped for marked-window reviews. Contamination is
+  the same-size sample a report would take with a fraction of it being bomb
+  material; addition would grow the sample and entangle two effects. The
+  share grid densifies at the low end, mirroring the size ladder:
+  0 / 2 / 5 / 10 / 15 / 20 / 30 / 50%.
+- **Three curves, one per bomb game; the floor reads from the worst.** The
+  marks were picked to spread the marked-window population (the canonical
+  tight window / a small ongoing mark / a low-English tight window); pooling
+  would average away exactly that spread, and per-source curves tell the
+  report which bomb flavor bites first.
+- **Base cells reuse the certified population grid** (query anchors × corpus
+  games) with the same seeded-draw discipline as the curves sweep. Blending
+  is offline resampling of stored labels — CPU-only, zero LLM spend; the
+  marked labels come from the fresh-buy run's own store, read through the
+  same corpus reader the re-certification used.
+
 **The M2 report.** A standalone frozen PDF (the per-milestone precedent):
 the question · method (census as ground truth, the raced policies, the two
 gates, seeds) · the curves as centerpiece · the rulings that fell out (policy,

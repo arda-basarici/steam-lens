@@ -7,6 +7,107 @@ decisions it feeds.
 
 ---
 
+## 2026-08-03 — The instruments fought back: the wire corrected the research, the cache refused the re-buy, and the archive caught a race
+
+*The fresh-buy session (M2 ladder step 8), built end to end in one session —
+picks, wire probe, fetch, buy-time re-certification, the certified label buy,
+and the blind human-holdout draw (the draw itself spilling past midnight to
+2026-08-04). Record: "The fresh-buy session (step 8)" block in DESIGN.md's
+study-design section; fetch run `freshbuy-20260803T110347Z-bccdb631`
+(data/freshbuy/), probe finding 6 in `probes/FINDINGS.md`. Feeds: the M2
+report's method section (fresh-material provenance, the buy-time
+certificate), the limitations section (reference imperfection via the
+holdout, buy-time variance), and the sampling-honesty post.*
+
+Step 8 exists because the corpus contains zero marked-window reviews and no
+genuinely long-tail games — the mixing experiment and the closing test both
+need material the project had never fetched, labeled under the frozen
+production versions. The session's through-line turned out to be its
+instruments repeatedly overruling its inputs, which is the story a report
+about measurement honesty wants.
+
+The bomb-game picks started as web research, and nomination was deliberately
+not treated as evidence. The research surfaced Borderlands 2, Book of
+Demons, and The Witcher 3 as carriers of Valve's off-topic marks (Cyberpunk
+2077 qualified too, but sits in the corpus — fresh material stays disjoint
+from the 49 corpus games). A cheap wire probe (`probes/bomb_pick_probe.py`,
+five paced requests per game; finding 6) then verified each pick and
+corrected the record twice: The Witcher 3's marked span is fourteen days
+(March 3–17, 2022), not the ~nine months the coverage suggested, and Book of
+Demons' mark is *ongoing* — `end_date=0` on the wire, the first ongoing mark
+the project met, forcing the fetch to substitute its own start instant as
+the concrete end. Every window blanks under a default fetch and restores
+under the flag, now confirmed on the actual picks rather than a stand-in,
+with a combined in-window English pool of 6,454
+(`probes/captures/bombpick_summary.json`) against the mixing experiment's
+~1–2k appetite.
+
+The fetch itself was quiet in the way a good instrument is: 33,264 reviews
+across the six games (three marked windows, three whole-life long-tail
+corpora), every walk on the primary windowed path, and the English counts
+matching both the probe and the two-day-old discovery snapshots exactly —
+independent reads agreeing across days. The one blemish is disclosed by
+design: The Witcher 3 collected 8,991 of Steam's reported 8,992, most
+plausibly a review deleted between the summary read and the walk reaching it
+(run manifest, `freshbuy-20260803T110347Z-bccdb631`).
+
+Then the caching layer taught the session its best lesson. The buy-time
+re-certification — the ruling that a re-buy is never trusted on an old
+certificate — was designed to replicate July's gold-recomposed cell with the
+*same* composition seed, for exact comparability: same batches, only buy
+time varying. The run "completed" 245 batches in ten seconds at $0.00,
+cache-hit rate 1.0. Identical composition is identical request content, and
+the content-keyed response archive exists precisely to never pay twice for
+identical content — the property that made the design attractive is the
+property that made it free and useless. That was a design error of mine,
+caught only by the $0 invoice. The replayed envelopes were deleted (they
+measured July's annotator while wearing a tag that promised today's), and
+the cell re-ran on a fresh seed, leaning on the earlier composition
+acquittal (every same-day composition comparison null) to price the changed
+composition at nothing. The transferable statement: spend-safety caching and
+drift measurement are structurally opposed — a drift instrument must vary
+its content, or the cache will faithfully hand back the past.
+
+The corrected instrument delivered a clean certificate: today's annotator
+scored F1 0.776 [0.727–0.818] against gold (`certify-20260803T120942Z`,
+journaled), sitting between the census's 0.766 and July's recomposed 0.791 —
+a three-point buy-time series entirely inside the wobble the July
+experiments measured. The fresh buy proceeded on that certificate and
+settled exact: 13,887 usable English reviews, 13,886 envelopes plus one
+durable content-filter refusal — mirroring, review for review, the census's
+own single-refusal accounting — at roughly $2.62 for the session,
+ledger-priced. (The pilot also exposed a pricing illusion worth keeping: the
+census's famous $3.80 was a prefix-cache-discounted provider price; at list
+rates the same buy ledgers ~5× higher.) The provider dashboard closed the
+day at $0.54 billed (read 2026-08-04) — a measured 4.9× gap between list
+ledger and cache-discounted bill, the discount the pilot predicted.
+
+The buy's one abort was a provenance guard earning its keep. Review-bomb
+material is template-heavy — runs of identical copy-paste reviews — and ten
+consecutive identical texts recomposed another batch's exact prompt. Under
+concurrency both batches were in flight at once, both bought, and the
+archive refused to overwrite its record with the second, different body:
+clean abort nineteen reviews short, resume replayed from the archive,
+finished. The diverse census could never have hit this; marked-window
+material hits it easily. Parked as a hardening candidate (dedupe in-flight
+requests by archive key) rather than fixed in the heat of the moment.
+
+The session closed with the human holdout drawn blind: 150 reviews at 60
+corpus / 45 marked-window / 45 long-tail (seed 20260804, `eval/holdout/`),
+rendered in the gold workbook's labeling format with strata and games held
+back in the machine record only. One flagged edge, left as designed: Sword
+and Fairy Inn 2 — the language-stress case with 36 usable English reviews —
+drew zero under the uniform within-stratum draw (expected 0.9), so the
+holdout does not humanly check that game; a non-scored side-sheet remains
+the cheap fix if wanted. [PENDING — the holdout number does not exist yet;
+Arda's labeling pass produces it, and it lands in the report's limitations
+as the measured bound on the machine reference's imperfection.]
+
+Figure: the three-point buy-time series — census 0.766, July recomposed
+0.791, fresh-buy re-cert 0.776, each with its CI — as the visual argument
+that the annotator under the fresh labels is the same instrument the census
+certified.
+
 ## 2026-08-03 — The long tail turned out calm — and the corpus's spikiness was the window talking
 
 *Long-tail stage 2 (M2 ladder step 7) — the label-free frame checks, run the
