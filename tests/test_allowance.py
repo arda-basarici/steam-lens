@@ -17,9 +17,31 @@ from steamlens.studies.allowance import (
     flat_allowance,
     is_spiky_regime,
     needed_inflation,
+    primary_band_tolerance,
+    primary_shipped_allowance,
     share_band,
     smoothed_allowance,
 )
+
+
+def test_primary_tolerances_hold_the_ruled_table() -> None:
+    """Tail ±1pt everywhere; calm mid ±2.5pts; spiky mid and headline are
+    interval-governed — the checkpoint table with the stage-1 refinement."""
+    assert primary_band_tolerance(ShareBand.TAIL, spiky=False) == 0.010
+    assert primary_band_tolerance(ShareBand.TAIL, spiky=True) == 0.010
+    assert primary_band_tolerance(ShareBand.MID, spiky=False) == 0.025
+    assert primary_band_tolerance(ShareBand.MID, spiky=True) is None
+    assert primary_band_tolerance(ShareBand.HEADLINE, spiky=False) is None
+    assert primary_band_tolerance(ShareBand.HEADLINE, spiky=True) is None
+
+
+def test_primary_allowances_hold_the_ruled_constants() -> None:
+    """Calm 0/0/0, spiky 0/0.017/0.127 — the stage-1 splits' shipped values."""
+    for band in ShareBand:
+        assert primary_shipped_allowance(band, spiky=False) == 0.0
+    assert primary_shipped_allowance(ShareBand.TAIL, spiky=True) == 0.0
+    assert primary_shipped_allowance(ShareBand.MID, spiky=True) == 0.017
+    assert primary_shipped_allowance(ShareBand.HEADLINE, spiky=True) == 0.127
 
 
 def test_share_band_edges_are_inclusive_above() -> None:

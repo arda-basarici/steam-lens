@@ -102,6 +102,47 @@ def share_band(share: float) -> ShareBand:
     return ShareBand.HEADLINE
 
 
+_PRIMARY_ALLOWANCES: Final[dict[bool, dict[ShareBand, float]]] = {
+    False: {ShareBand.TAIL: 0.000, ShareBand.MID: 0.000, ShareBand.HEADLINE: 0.000},
+    True: {ShareBand.TAIL: 0.000, ShareBand.MID: 0.017, ShareBand.HEADLINE: 0.127},
+}
+"""The primary path's shipped constants, keyed by spikiness (the stage-1
+splits ruling, 2026-08-03) — re-derivable from the run of record via
+``scripts/mint_allowances.py``; these literals are the ruled values, recorded
+in DESIGN's long-tail stage-1 entry."""
+
+_PRIMARY_TOLERANCES: Final[dict[bool, dict[ShareBand, float | None]]] = {
+    False: {ShareBand.TAIL: 0.010, ShareBand.MID: 0.025, ShareBand.HEADLINE: None},
+    True: {ShareBand.TAIL: 0.010, ShareBand.MID: None, ShareBand.HEADLINE: None},
+}
+"""The ruled share-error tolerances (the curves checkpoint, 2026-08-02;
+spiky mid joined the headline's tolerance-free treatment at the stage-1
+splits, 2026-08-03). ``None`` means the band's promise is the calibrated
+interval alone — a tolerance there would either restate the interval width
+or claim a precision the windowed draw cannot deliver."""
+
+
+def primary_band_tolerance(band: ShareBand, *, spiky: bool) -> float | None:
+    """The ruled share-error tolerance for one band under one regime.
+
+    ``None`` for the interval-governed cells (headline everywhere, spiky
+    mid): those displayed numbers carry no separate error tolerance, so a
+    gate over them reads coverage only.
+    """
+    return _PRIMARY_TOLERANCES[spiky][band]
+
+
+def primary_shipped_allowance(band: ShareBand, *, spiky: bool) -> float:
+    """The primary path's shipped half-width constant for one band and regime.
+
+    The number added to Wilson's half-width in the shipped interval; a draw
+    is covered by the shipped interval exactly when its ``needed_inflation``
+    is at or under this constant — the same centered reading the constants
+    were minted from.
+    """
+    return _PRIMARY_ALLOWANCES[spiky][band]
+
+
 def needed_inflation(error: float, width: float) -> float:
     """The flat half-width addition that would have covered this draw's truth.
 

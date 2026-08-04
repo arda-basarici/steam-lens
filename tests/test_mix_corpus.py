@@ -17,11 +17,15 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from steamlens.contracts import Review
+from steamlens.core.intervals import Interval
+from steamlens.studies.allowance import ShareBand
 from steamlens.studies.marked_pool import MarkedPool
+from steamlens.studies.measure import AspectMeasurement, IntervalReading
 from steamlens.studies.mix_corpus import (
     GameMix,
     MixConfig,
     derive_mix_seed,
+    gate_summaries,
     merged_aspect_index,
     mix_game,
 )
@@ -182,3 +186,75 @@ def test_empty_pool_fails_loud() -> None:
     """Mixing over nothing is a caller bug, never a run."""
     with pytest.raises(ValueError, match="empty review pool"):
         mix_game((), {}, [_marked_source()], _cfg())
+
+
+def _measurement(aspect: str, reference: float, error: float, width: float) -> AspectMeasurement:
+    reading = IntervalReading(interval=Interval(low=0.1, high=0.1 + width), covered=True)
+    return AspectMeasurement(
+        aspect=aspect,
+        sample_share=reference + error,
+        reference_share=reference,
+        error=error,
+        wilson=reading,
+        bootstrap=reading,
+        stratified=None,
+    )
+
+
+def test_gate_summaries_read_the_ruled_gates_per_draw() -> None:
+    """Calm mid: tolerance ±2.5pts and a zero allowance; the rates count draws.
+
+    Draw one (error 2pts, width 5pts) is within tolerance and its centered
+    inflation is zero — covered under the calm allowance of zero. Draw two
+    (error 3pts, width 2pts) breaks the tolerance and needs 2pts of
+    inflation — uncovered.
+    """
+    draws = [
+        (_measurement("a", 0.10, 0.02, 0.05),),
+        (_measurement("a", 0.10, 0.03, 0.02),),
+    ]
+    gate = gate_summaries(draws, spiky=False)[0]
+    assert gate.band is ShareBand.MID
+    assert gate.within_tolerance_rate == 0.5
+    assert gate.shipped_coverage_rate == 0.5
+
+
+def test_gate_summaries_spiky_mid_is_interval_governed() -> None:
+    """Spiky mid rules no tolerance; the allowance widens to the ruled 0.017."""
+    draws = [
+        (_measurement("a", 0.10, 0.02, 0.05),),  # inflation 0.0 — covered
+        (_measurement("a", 0.10, 0.03, 0.02),),  # inflation 0.02 > 0.017 — uncovered
+    ]
+    gate = gate_summaries(draws, spiky=True)[0]
+    assert gate.within_tolerance_rate is None
+    assert gate.shipped_coverage_rate == 0.5
+
+
+def test_rows_carry_aligned_gate_reads() -> None:
+    """The bomb aspect's gates collapse with contamination and pass clean at zero.
+
+    A fabricated tail aspect: at share 0 the sample share is 0 (no error, a
+    zero-width lower edge — covered); at share 0.5 every draw errs by 50pts —
+    outside the ±1pt tail tolerance and far past the zero tail allowance.
+    """
+    result = _mix()
+    by_share = {row.share: row for row in result.rows}
+    assert all(not row.spiky for row in result.rows)
+    for row in result.rows:
+        assert [g.aspect for g in row.gates] == [s.aspect for s in row.summaries]
+    bomb_zero = next(g for g in by_share[0.0].gates if g.aspect == "bomb_aspect")
+    bomb_half = next(g for g in by_share[0.5].gates if g.aspect == "bomb_aspect")
+    assert bomb_zero.band is ShareBand.TAIL
+    assert bomb_zero.within_tolerance_rate == 1.0
+    assert bomb_zero.shipped_coverage_rate == 1.0
+    assert bomb_half.within_tolerance_rate == 0.0
+    assert bomb_half.shipped_coverage_rate == 0.0
+
+
+def test_concentrated_pool_is_spiky() -> None:
+    """A pool whose one month holds everything crosses the 2/3 regime boundary."""
+    pool = tuple(_review(f"b{i}", i % 20, app_id=10) for i in range(40))
+    index = {"combat": frozenset(r.review_id for i, r in enumerate(pool) if i % 2 == 0)}
+    result = mix_game(pool, index, [_marked_source()], _cfg(sample_size=10, take_all_cutoff=30))
+    assert result.rows
+    assert all(row.spiky for row in result.rows)

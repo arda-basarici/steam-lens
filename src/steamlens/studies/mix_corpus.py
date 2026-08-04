@@ -26,7 +26,11 @@ time-proportional plan draw; each share then runs seeded repeat blends of
 that one fixed sample, seeds derived from the full cell identity — any cell
 reproduces in isolation from the manifest's base seed. The share-0 cell is
 recorded once per source as the curve's own drift-free baseline, and the run
-opens with the sweep's census-fold wiring guard. Aspects are measured over
+opens with the sweep's census-fold wiring guard. Every cell row also carries
+gate-ready rates — per-draw tolerance and shipped-interval-coverage reads
+reduced against the ruled constants while the draws still exist — because
+the certified gates read per draw, and a summary of means and quantiles
+cannot answer the register after the fact. Aspects are measured over
 the union of the base game's and the source's pinned vocabularies: an aspect
 the base pool never mentions holds a true zero reference, so bomb material
 inventing an aspect (the fresh buy's ``platform_access`` signature) is
@@ -70,10 +74,19 @@ from steamlens.dispatch.narration import TeeSink
 from steamlens.ontology import load_ontology_version
 from steamlens.store import Store
 from steamlens.studies.aggregate_corpus import mint_census_aggregates
+from steamlens.studies.allowance import (
+    ShareBand,
+    is_spiky_regime,
+    needed_inflation,
+    primary_band_tolerance,
+    primary_shipped_allowance,
+    share_band,
+)
 from steamlens.studies.marked_pool import MarkedPool, load_marked_pools
-from steamlens.studies.measure import measure_draw
+from steamlens.studies.measure import AspectMeasurement, measure_draw
 from steamlens.studies.mixing import contaminate
 from steamlens.studies.sample_corpus import corpus_histogram, execute_plan
+from steamlens.studies.shape import peak_window_share
 from steamlens.studies.sweep_corpus import (
     AnchorGrid,
     CellSummary,
@@ -106,8 +119,34 @@ _STAGE: Final = "m2.mix"
 
 
 @dataclass(frozen=True, slots=True)
+class GateSummary:
+    """One aspect's certified-promise reads over a cell's draws.
+
+    The run-of-record motivation: the certified gates read *per draw* — share
+    error within the band tolerance, needed inflation at or under the shipped
+    allowance — and the summary row collapses draws, so these rates are
+    minted while the draws still exist; a post-hoc analyzer cannot recover
+    them from means and quantiles. ``within_tolerance_rate`` is ``None``
+    exactly when the band carries no share tolerance under the cell's regime
+    (headline everywhere, spiky mid — interval-governed numbers);
+    ``shipped_coverage_rate`` is the fraction of draws the shipped interval
+    (Wilson plus the regime/band allowance) covered.
+    """
+
+    aspect: str
+    band: ShareBand
+    within_tolerance_rate: float | None
+    shipped_coverage_rate: float
+
+
+@dataclass(frozen=True, slots=True)
 class MixCellRow:
-    """One (game, anchor, source, share) cell with its per-aspect summaries."""
+    """One (game, anchor, source, share) cell with its per-aspect summaries.
+
+    ``summaries`` and ``gates`` are parallel, both in ``measure_draw``'s
+    sorted-aspect order; ``spiky`` is the anchor pool's allowance regime,
+    computed from the same histogram the plan compiled from.
+    """
 
     app_id: int
     anchor_quantile: float
@@ -116,7 +155,9 @@ class MixCellRow:
     source_app_id: int
     share: float
     size: int
+    spiky: bool
     summaries: tuple[CellSummary, ...]
+    gates: tuple[GateSummary, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -157,6 +198,53 @@ def derive_mix_seed(
     """
     key = f"{base_seed}|{app_id}|{quantile:.6f}|{source_app_id}|{share:.6f}|{repeat}"
     return int.from_bytes(hashlib.sha256(key.encode()).digest()[:8], "big")
+
+
+def gate_summaries(
+    draws: Sequence[tuple[AspectMeasurement, ...]], *, spiky: bool
+) -> tuple[GateSummary, ...]:
+    """Reduce a cell's draws against the ruled gates, aspect by aspect.
+
+    Per aspect: the band from its census reference share, then over the
+    draws the two per-draw reads — error at or under the band tolerance
+    (skipped entirely where the regime rules no tolerance), and needed
+    inflation at or under the shipped allowance, the exact centered reading
+    the constants were minted from. Same aspect-order contract as
+    ``summarize_cell``: every draw measured the same sorted aspects, and a
+    mix means the caller composed the cell wrong.
+    """
+    if not draws:
+        raise ValueError("cannot read gates over a cell with no draws")
+    aspect_orders = {tuple(m.aspect for m in draw) for draw in draws}
+    if len(aspect_orders) != 1:
+        raise ValueError("draws in one cell measured different aspect sets — a wiring bug")
+
+    summaries: list[GateSummary] = []
+    for index, first in enumerate(draws[0]):
+        rows = [draw[index] for draw in draws]
+        band = share_band(first.reference_share)
+        tolerance = primary_band_tolerance(band, spiky=spiky)
+        allowance = primary_shipped_allowance(band, spiky=spiky)
+        covered = sum(
+            needed_inflation(
+                row.error, row.wilson.interval.high - row.wilson.interval.low
+            ) <= allowance
+            for row in rows
+        )
+        within = (
+            None
+            if tolerance is None
+            else sum(row.error <= tolerance for row in rows) / len(rows)
+        )
+        summaries.append(
+            GateSummary(
+                aspect=first.aspect,
+                band=band,
+                within_tolerance_rate=within,
+                shipped_coverage_rate=covered / len(rows),
+            )
+        )
+    return tuple(summaries)
 
 
 def merged_aspect_index(
@@ -207,6 +295,7 @@ def mix_game(
             continue
         pool = truncate_pool(reviews, anchor.cutoff)
         histogram = corpus_histogram(pool)
+        spiky = is_spiky_regime(peak_window_share(histogram))
         plan = compile_plan(
             histogram,
             SamplingPolicy(kind=SamplingPolicyKind.TIME_PROPORTIONAL, target_size=cfg.sample_size),
@@ -244,7 +333,9 @@ def mix_game(
                         source_app_id=source.app_id,
                         share=share,
                         size=cfg.sample_size,
+                        spiky=spiky,
                         summaries=summarize_cell(draws),
+                        gates=gate_summaries(draws, spiky=spiky),
                     )
                 )
     return GameMix(rows=tuple(rows), grid=grid, skipped_take_all_anchors=skipped)
@@ -277,7 +368,12 @@ class RunConfig:
 def _row_lines(row: MixCellRow) -> list[str]:
     """One JSON line per (cell, aspect) — the measurements file's grain."""
     lines: list[str] = []
-    for summary in row.summaries:
+    for summary, gate in zip(row.summaries, row.gates, strict=True):
+        if summary.aspect != gate.aspect:
+            raise ValueError(
+                f"summary aspect {summary.aspect!r} misaligned with gate aspect "
+                f"{gate.aspect!r} — the parallel-order contract broke"
+            )
         payload: dict[str, object] = {
             "app_id": row.app_id,
             "anchor_quantile": row.anchor_quantile,
@@ -286,7 +382,11 @@ def _row_lines(row: MixCellRow) -> list[str]:
             "source_app_id": row.source_app_id,
             "share": row.share,
             "size": row.size,
+            "spiky": row.spiky,
             "aspect": summary.aspect,
+            "band": gate.band.value,
+            "within_tolerance_rate": gate.within_tolerance_rate,
+            "shipped_coverage_rate": gate.shipped_coverage_rate,
             "reference_share": summary.reference_share,
             "repeats": summary.repeats,
             "mean_sample_share": summary.mean_sample_share,
