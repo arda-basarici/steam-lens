@@ -155,6 +155,11 @@ class ExperimentCell:
     prompt_version: str
     batch_size: int
     scope: Scope
+    identity_tag: str | None = None
+    """An explicit pool-identity tag for cells whose batch-derived tag would
+    collide with an earlier cell's bought labels — a re-run under the same
+    triple would see them as settled and buy nothing (the selection is the
+    resume mechanism, working as designed)."""
 
 
 CELLS: Final[Mapping[str, ExperimentCell]] = {
@@ -165,6 +170,8 @@ CELLS: Final[Mapping[str, ExperimentCell]] = {
         ExperimentCell("compact-n10-sample", COMPACT_PROMPT_VERSION, 10, "sample"),
         ExperimentCell("compact-n1-sample", COMPACT_PROMPT_VERSION, 1, "sample"),
         ExperimentCell("full-n10-gold-recomposed", PROMPT_VERSION, 10, "gold-recomposed"),
+        ExperimentCell("full-n10-gold-recert-freshbuy", PROMPT_VERSION, 10,
+                       "gold-recomposed", identity_tag="recert-freshbuy"),
     )
 }
 """The closed cell registry — the registration, in code.
@@ -178,8 +185,19 @@ contingent lab-recomposition rerun, registered in DESIGN with its trigger
 and built 2026-07-25 when the trigger fired (the gold read's ΔF1 failed to
 exclude zero upward): each in-scope gold review re-labeled *today* embedded
 among fresh census neighbors, separating provider drift from batch
-composition on the acquittal branch. Free dials are deliberately absent —
-an unregistered condition should not be one typo away.
+composition on the acquittal branch. ``full-n10-gold-recert-freshbuy``
+(registered 2026-08-03) is the fresh-buy session's buy-time re-certification —
+the D2d rider made instrument: the recomposed scope re-dispatched under its
+own identity tag with a **fresh fillers seed**, never July's. The first
+attempt reused July's seed for identical composition and bought nothing —
+identical composition is identical request content, and the content-keyed
+cache replayed the July responses at $0 (cache_hit 1.0 on the run log; the
+replayed envelopes were deleted). A drift instrument must vary content; the
+composition acquittal (same-day composition comparisons all null) is what
+makes the fresh draw a fair price. Scored against gold, it certifies the
+annotator-of-the-day the fresh-buy labels were bought from. Free dials
+are deliberately absent — an unregistered condition should not be one typo
+away.
 """
 
 
@@ -188,10 +206,17 @@ def annotator_model_version(batch_size: int) -> str:
     return f"{MODEL_ID}@n{batch_size}"
 
 
+def cell_model_version(cell: ExperimentCell) -> str:
+    """The cell's pool identity — its explicit tag when registered, batch-derived otherwise."""
+    if cell.identity_tag is not None:
+        return f"{MODEL_ID}@{cell.identity_tag}"
+    return annotator_model_version(cell.batch_size)
+
+
 def cell_versions(cell: ExperimentCell, ontology_version: str) -> ClassifierVersions:
     """The versions triple a cell's envelopes and failure marks land under."""
     return ClassifierVersions(
-        model_version=annotator_model_version(cell.batch_size),
+        model_version=cell_model_version(cell),
         prompt_version=cell.prompt_version,
         ontology_version=ontology_version,
     )
@@ -563,7 +588,7 @@ def _config_hash(
     """A fingerprint of the decision-relevant config — checkable, never trusted."""
     return config_hash({
         "cell": cfg.cell.name,
-        "annotator_model_version": annotator_model_version(cfg.cell.batch_size),
+        "annotator_model_version": cell_model_version(cfg.cell),
         "wire_model": MODEL_ID,
         "prompt_version": cfg.cell.prompt_version,
         "batch_size": cfg.cell.batch_size,

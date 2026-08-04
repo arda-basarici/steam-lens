@@ -1270,6 +1270,25 @@ evidence)*.
   smaller). The D2d rider is binding: a fresh certification run against
   gold under the frozen triple accompanies the buy — the census's 0.766
   certifies only the census's labels, never these.
+- **Containment and the re-cert instrument (ruled 2026-08-03).** The fresh
+  labels land in **their own store** (`labels.sqlite3` inside the fetch
+  run's directory), never the production pool — containment by storage, so
+  the parked `Origin.EVAL` trigger's condition (non-census labels in the
+  production pool) never arises, and the census driver runs unchanged
+  (`--corpus` at the fetch run, `--expect-supply` 13,887 — the fresh usable
+  count through the corpus reader). The re-certification is a registered
+  D2d cell, `full-n10-gold-recert-freshbuy`: the recomposed scope
+  re-dispatched under its own identity tag (a same-tag re-run would resume,
+  not re-buy) with a **fresh fillers seed** — the first attempt reused
+  July's seed for exact-composition comparability and the content-keyed
+  cache replayed the July responses at $0 (identical composition IS
+  identical request content; the replayed envelopes were deleted). The
+  instrument stays comparable the honest way: same scope, fresh draw, with
+  the composition acquittal pricing the difference at null. Two runs of one
+  instrument remain a two-point drift series. Scored against gold by the certify
+  shell pointed at the tagged annotator; the number is the fresh buy's
+  buy-time certificate and lands in the M2 report's limitations beside the
+  reference-imperfection bound.
 
 > **Outcome.** The pick probe **PASSED** all three bomb games (2026-08-03,
 > finding 6): every mark exists, every window blanks by default and restores
