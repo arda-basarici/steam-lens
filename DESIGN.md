@@ -1329,6 +1329,31 @@ experiment's checkpoint)*.
   marked labels come from the fresh-buy run's own store, read through the
   same corpus reader the re-certification used.
 
+> **Outcome (ruled 2026-08-04): the marked-share floor is 2%.** Off the run
+> of record `m2mix-20260804T120612Z-c31f92fe` (49 games × anchors × the
+> three sources × the 8-share grid, 200 seeded blends per cell, base seed
+> 20260804; verdict and figures regenerable via
+> ``scripts/analyze_mix_floor.py``): the share-0 baselines restate the
+> certified promise (coverage 0.958–0.959, tolerance 0.982–0.983 — the run
+> agrees with the certification before any contamination), per-source
+> floors land at Borderlands 2 **0.02** / Book of Demons **0.02** /
+> The Witcher 3 **0.05**, and the worst source rules. The break is
+> grid-located: the promise holds at 2% and is broken by 5%; resolution
+> inside that interval was deliberately not bought, because no product
+> decision changes with it. Coverage is the binding gate everywhere —
+> headline intervals break their promise (0.93 at 5%, 0.78 at 10%
+> contamination) long before raw share errors grow conspicuous, the
+> silent-lying-error-bars failure mode. Product consequences: Steam's
+> default marked-window blanking, which the production fetch inherits and
+> the probes verified on the wire, is certified **load-bearing** — even a
+> 5% bomb admixture voids the calibrated bars — and marked windows stay
+> display-only episode markers, never folded into displayed numbers. Named
+> residual for the report's limitations: an **unmarked** bomb bypasses the
+> blanking and lands in samples as ordinary reviews; this experiment
+> measures that scenario's damage rate, not its frequency, which is
+> unmeasurable by construction (partially mitigated by the spiky-regime
+> allowance and the timeline markers).
+
 **The M2 report.** A standalone frozen PDF (the per-milestone precedent):
 the question · method (census as ground truth, the raced policies, the two
 gates, seeds) · the curves as centerpiece · the rulings that fell out (policy,
@@ -1390,12 +1415,14 @@ as code. The test for any addition stays: does *this product* need it?
   stage-1 splits (2026-08-03, same section): the allowance and the mid
   tolerance condition on the spikiness regime (peak window share ≥ 2/3).
   The stage-2 frame checks passed 2026-08-03 (same section): the long tail
-  is calm territory, the conditioning never extrapolates. Still ahead of
-  the study: the mixing floor and the closing test that validates the rule
-  held-out.
-- **Marked-share floor threshold** — tuning procedure ruled (the mixing
-  experiment, study-design section above); the value lands after the curves
-  checkpoint sets the tolerance it measures against.
+  is calm territory, the conditioning never extrapolates. The mixing floor
+  landed 2026-08-04 (the mixing-experiment outcome above). Still ahead of
+  the study: the closing test that validates the rule held-out.
+- **Marked-share floor threshold** — RESOLVED 2026-08-04 (the mixing
+  experiment's outcome, study-design section above): **2%**,
+  worst-source, grid-located (holds at 2%, broken by 5%). Steam's default
+  marked-window blanking is certified load-bearing; the unmarked-bomb
+  residual is a named report limitation.
 - **The human annotation track** — re-timed at the M2 design session
   (2026-08-02): the fresh v2 holdout folds into M2 (drawn across corpus + the
   fresh buys; its number bounds the reference's imperfection in the M2 report).

@@ -7,6 +7,112 @@ decisions it feeds.
 
 ---
 
+## 2026-08-04 — The mixing floor is 2%: the error bars break before the numbers look wrong
+
+*The mixing experiment (M2 ladder step 9), designed, built, and ruled in one
+session — the marked-share floor tuned from the fresh-buy material, entirely
+offline (resampling stored labels, zero LLM spend). Record: "The mixing
+experiment (step 9)" block and its Outcome in DESIGN.md's study-design
+section; run of record `m2mix-20260804T120612Z-c31f92fe` (data/runs/).
+Feeds: the M2 report's "mixing curves and the floor" section, its
+limitations (the unmarked-bomb residual), and the sampling-honesty post.*
+
+The corpus holds zero review-bomb reviews, so "how much bomb material can a
+sample tolerate?" was the study's one question that had to run on bought
+material — the fresh-buy session's 6,445 labeled marked-window reviews,
+blended into certified corpus draws at controlled shares. The design confirm
+had exactly one genuine fork: what does the drifted number measure
+*against*? Measuring against the unmixed sample's own conclusion isolates
+the marginal contamination effect — cleaner as a pure measurement — but it
+applies the checkpoint's tolerance to a quantity the tolerance was never
+minted for. Arda ruled the other way: the drifted number measures against
+the census share, the study's exact gates re-run with contamination, so the
+floor means "the last share at which the certified 95%-register promise
+still holds" — one honesty standard end to end, and the same pass/fail
+machinery production is certified by. The rest followed without a fight:
+replacement at fixed n (contamination is the same-size sample a report
+would take, with a fraction of it being bomb material — addition would
+entangle a size effect), three per-source curves with the floor read from
+the worst (the three bombs were picked to differ; pooling would average
+away exactly that), and the certified anchors-by-games population grid
+reused unchanged.
+
+One quiet design decision earned its keep within minutes of the first
+smoke. Bomb material does not just shift a game's existing aspects — it
+*invents* aspects the base game barely has: Borderlands 2's marked window
+is 25% `platform_access`, the April-2019 Epic-exclusivity protest's
+signature, an aspect most corpus games mention under half a percent.
+Measuring over the union of the base game's and the bomb game's
+vocabularies gives such aspects a true zero-ish reference, so fabrication
+scores as error instead of escaping measurement — in the smoke, an aspect
+sitting at 0.36% of the base game inflated to 12.4% of the sample at half
+contamination (run `m2mix-20260804T115547Z-3d42ce3f`), a fabricated
+headline complaint that a base-vocabulary measurement would simply never
+have looked at.
+
+The session's transferable lesson was a sequencing mistake, told here
+because the report's methodology section is exactly where it belongs. The
+full production sweep was fired the moment the runner worked — and while it
+ran, designing the analyzer revealed that its output could not answer the
+question. The certified gates read *per draw*: a draw passes when its share
+error sits within the band tolerance and when its needed inflation sits at
+or under the shipped allowance. The runner's rows summarized each cell's
+two hundred draws into means and quantiles, and no summary of means and
+quantiles can reconstruct per-draw pass rates after the fact. The running
+sweep was killed, the runner extended to mint the gate rates while the
+draws still existed in memory, and the run re-fired — deterministic by
+construction, so nothing was lost but minutes. The statement worth
+carrying: decide what question an artifact must answer before producing
+the artifact; a run of record is only "of record" for the questions its
+rows can still answer.
+
+The one-game smoke then delivered a small honesty lesson of its own: it was
+flattering. On the single smoke game, Book of Demons passed the 5% share
+(coverage 0.958); on the full 49-game population it fails the same read
+(0.940, run of record `m2mix-20260804T120612Z-c31f92fe`). A verdict quoted
+off a convenient slice would have handed that bomb three extra points of
+floor it does not deserve — which is why the floor only quotes off the full
+grid.
+
+The verdict itself: the share-0 baselines pass across all three sources
+(coverage 0.958–0.959, tolerance 0.982–0.983 — the run restates the
+checkpoint's certification before any contamination, so the floor is
+measured against a verified control), per-source floors land at
+Borderlands 2 0.02, Book of Demons 0.02, The Witcher 3 0.05, and the worst
+source rules: **the marked-share floor is 2%**. The break is grid-located —
+the promise holds at 2% and is broken by 5% — and resolution inside that
+interval was deliberately not bought, because no product decision changes
+with it.
+
+The mechanism is the finding the report should lead with. Coverage, not
+share error, is the binding gate everywhere: Wilson's interval width
+depends on the sample size, not on what contaminated the sample, so
+contamination shifts the displayed numbers while the error bars stay
+exactly as confident as before — headline-band coverage falls to 0.93 at
+5% contamination and 0.78 at 10%, long before the raw errors grow
+conspicuous. Error bars fail silently first; the numbers still *look*
+right while the bars around them have stopped being true.
+
+The product meaning closes the loop. Steam's default listings blank marked
+windows, production's fetch inherits that default, and the wire probes
+verified the blanking on the actual picks — so a production sample carries
+~0% marked material by construction, the passing column of every verdict
+table. What the floor changes is that exclusion's status: from an inherited
+default to a certified load-bearing requirement, with a number attached —
+even a 5% admixture voids the calibrated bars. Marked windows stay
+display-only episode markers on the timeline, never folded into displayed
+numbers. The named residual for the limitations section: an *unmarked*
+bomb bypasses the blanking and lands in samples as ordinary reviews; this
+experiment measures that scenario's damage rate, not its frequency, which
+is unmeasurable by construction (a bomb nobody labeled is a bomb no query
+can count).
+
+Figure: the two run-of-record renders — both gates vs marked share per
+source against the 95% rule (`figures/mix_register_curves.png`), and the
+p90 drift by display band with the ruled tolerances drawn
+(`figures/mix_drift_by_band.png`), both under the run directory and
+regenerable via `scripts/analyze_mix_floor.py`.
+
 ## 2026-08-03 — The instruments fought back: the wire corrected the research, the cache refused the re-buy, and the archive caught a race
 
 *The fresh-buy session (M2 ladder step 8), built end to end in one session —
