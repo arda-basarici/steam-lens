@@ -113,7 +113,7 @@ def execute_plan(reviews: Sequence[Review], plan: FetchPlan) -> tuple[Review, ..
             f"plan is for app_id {plan.app_id} but the pool holds reviews "
             f"from {sorted(mismatched)}"
         )
-    pool = _newest_first(reviews)
+    pool = newest_first(reviews)
     if plan.policy.kind is SamplingPolicyKind.CURSOR_PREFIX:
         return tuple(pool[: plan.policy.target_size])
 
@@ -152,18 +152,22 @@ def uniform_reference_draw(
         raise ValueError("cannot draw from an empty review pool")
     if target_size < 1:
         raise ValueError(f"target_size is {target_size} — a draw must ask for at least one review")
-    pool = _newest_first(reviews)
+    pool = newest_first(reviews)
     if target_size >= len(pool):
         return tuple(pool)
     return tuple(random.Random(seed).sample(pool, target_size))
 
 
-def _newest_first(reviews: Sequence[Review]) -> list[Review]:
+def newest_first(reviews: Sequence[Review]) -> list[Review]:
     """The pool in the simulation's canonical order — created-at descending.
 
     Models the API's newest-first return order offline. Ties (same second)
     break by review id, descending as strings — determinism is the point of
-    the tie-break, not chronology.
+    the tie-break, not chronology. Public because it *is* the study package's
+    canonical-order definition: every seeded operation over a pool (the draws
+    here, the mixing blend) sorts through this one function, so "depends only
+    on the pool's contents, never the caller's iteration order" stays a single
+    fact.
     """
     return sorted(reviews, key=lambda review: (review.created_at, review.review_id), reverse=True)
 

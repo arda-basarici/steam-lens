@@ -16,9 +16,11 @@ from steamlens.studies.measure import (
     measure_draw,
     mention_shares,
 )
+from steamlens.studies.mixing import contaminate
 from steamlens.studies.sample_corpus import (
     corpus_histogram,
     execute_plan,
+    newest_first,
     uniform_reference_draw,
 )
 
@@ -27,8 +29,10 @@ __all__ = [
     "mint_census_aggregates",
     "MarkedPool",
     "load_marked_pools",
+    "contaminate",
     "corpus_histogram",
     "execute_plan",
+    "newest_first",
     "uniform_reference_draw",
     "AspectMeasurement",
     "IntervalReading",
