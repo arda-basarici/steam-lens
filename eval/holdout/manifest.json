@@ -1,0 +1,23 @@
+{
+ "drawn_at": "2026-08-04",
+ "seed": 20260804,
+ "code_version": "c6723d9+dirty",
+ "config_hash": "41c46d8ce330dbcd9d855f29d489a71657c94a39f77107d28fc57ad5ce64fe42",
+ "strata": {
+  "corpus": 60,
+  "marked-window": 45,
+  "long-tail": 45
+ },
+ "corpus_db": "data\\steamlens.sqlite3",
+ "freshbuy_run": "freshbuy-20260803T110347Z-bccdb631",
+ "marked_app_ids": [
+  49520,
+  292030,
+  449960
+ ],
+ "longtail_app_ids": [
+  247000,
+  1863430,
+  1918680
+ ]
+}
