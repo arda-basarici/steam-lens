@@ -161,11 +161,14 @@ def read_fetch_manifest(run_dir: Path) -> FetchManifest:
         raise ValueError(f"{path}: manifest is missing 'run_id' or 'games'")
     games: list[FetchManifestGame] = []
     for entry in cast(list[dict[str, object]], games_raw):
-        windows = entry.get("windows")
-        if not isinstance(windows, list) or len(windows) != 1:
+        windows_raw = entry.get("windows")
+        windows = (
+            cast(list[object], windows_raw) if isinstance(windows_raw, list) else None
+        )
+        if windows is None or len(windows) != 1:
             raise ValueError(
                 f"{path}: app_id {entry.get('app_id')} carries "
-                f"{len(windows) if isinstance(windows, list) else 'no'} windows — "
+                f"{'no' if windows is None else len(windows)} windows — "
                 "a fetch-run game walks exactly one"
             )
         window = cast(dict[str, object], windows[0])

@@ -102,12 +102,15 @@ def register_reads(rows: Iterable[GateRow]) -> dict[tuple[int, float], RegisterR
     for key, members in grouped.items():
         coverage_draws = sum(m.repeats for m in members)
         coverage_hits = sum(m.shipped_coverage_rate * m.repeats for m in members)
-        tolerance_members = [m for m in members if m.within_tolerance_rate is not None]
-        tolerance_draws = sum(m.repeats for m in tolerance_members)
+        tolerance_pairs = [
+            (m.within_tolerance_rate, m.repeats)
+            for m in members
+            if m.within_tolerance_rate is not None
+        ]
+        tolerance_draws = sum(repeats for _, repeats in tolerance_pairs)
         tolerance_rate = (
-            sum(m.within_tolerance_rate * m.repeats for m in tolerance_members)  # type: ignore[misc]
-            / tolerance_draws
-            if tolerance_members
+            sum(rate * repeats for rate, repeats in tolerance_pairs) / tolerance_draws
+            if tolerance_pairs
             else None
         )
         reads[key] = RegisterRead(
