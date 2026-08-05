@@ -206,7 +206,7 @@ def plot_signed_bias(rows: list[dict[str, object]], sizes: list[int], out: Path)
         ax.set_xlabel("sample size", color=_INK, fontsize=9)
     axes[0].set_ylabel("sample share − census share\n(median, p10–p90 band)",
                        color=_INK, fontsize=9)
-    fig.suptitle("Signed bias per policy — direction the |error| pooling can hide",
+    fig.suptitle("Signed bias per policy: direction the |error| pooling can hide",
                  color=_INK, fontsize=11)
     fig.tight_layout()
     fig.savefig(out, bbox_inches="tight")
@@ -265,7 +265,7 @@ def plot_error_by_share_band(
 
     _facet_p90_error(
         rows, sizes, out, band, ["share < 5%", "share 5–15%", "share ≥ 15%"],
-        "Convergence by census share — one tolerance means different things per band",
+        "Convergence by census share: one tolerance means different things per band",
     )
 
 
@@ -337,9 +337,11 @@ def plot_coverage_by_share_band(
         ax.set_title(f"{band_name}  (~{cells:,} cells)", color=_INK, fontsize=10)
         ax.set_xlabel("sample size", color=_INK, fontsize=9)
     axes[0].set_ylabel("measured coverage", color=_INK, fontsize=9)
-    axes[-1].legend(fontsize=8, frameon=False, loc="lower right")
+    # framed with a white background so curves passing under it stay legible
+    axes[-1].legend(fontsize=8, frameon=True, facecolor="white", edgecolor="none",
+                    framealpha=0.85, loc="lower right")
     fig.suptitle(
-        "Coverage by census share under time-proportional draws — the promise where it's loudest",
+        "Coverage by census share under time-proportional draws: the promise where it's loudest",
         color=_INK, fontsize=11,
     )
     fig.tight_layout()

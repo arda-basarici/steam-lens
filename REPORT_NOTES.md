@@ -127,6 +127,11 @@ autocorrect — sits between the labeler's eyes and the bytes under test.
 
 ## 2026-08-04 — The closing test passes: the size rule survives three games it never trained on
 
+> ⚠ CORRECTION (2026-08-05, report drafting): this entry's "51 cells resolve a
+> true-0.95 rate to about ±3 points" conflates one standard error with a
+> confidence width — ±3 is the SE; 95% resolution is roughly ±6. Caught by an
+> external read of the M2 report draft; the report states it correctly.
+
 *The committed closing test (M2 ladder step 10), the staged long-tail
 evidence's final stage — the finished size rule validated off-corpus on the
 three fresh long-tail games bought and fully labeled at the step-8 session,

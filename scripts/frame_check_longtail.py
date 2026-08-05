@@ -347,7 +347,8 @@ def plot_ecdf(
                         linewidth=2, label=band.value)
         ax.axvline(2 / 3, color=_INK, linewidth=1, linestyle=":")
         ax.annotate("spiky ≥ 2/3", xy=(2 / 3, 0.93), fontsize=7, color=_INK,
-                    xytext=(3, 0), textcoords="offset points")
+                    xytext=(3, 0), textcoords="offset points",
+                    bbox=dict(facecolor="white", edgecolor="none", alpha=0.85, pad=1))
         ax.set_title(title, color=_INK, fontsize=10)
         ax.set_xlabel("peak window share", color=_INK, fontsize=9)
         ax.set_xlim(0, 1)
@@ -387,7 +388,7 @@ def plot_scatter(
     ax.set_ylabel("peak window share (native)", color=_INK, fontsize=9)
     ax.set_ylim(0, 1)
     ax.legend(fontsize=8, frameon=False, loc="upper right")
-    ax.set_title("Fresh units against the corpus cloud — the 2/3 regime line",
+    ax.set_title("Fresh units against the corpus cloud: the 2/3 regime line",
                  color=_INK, fontsize=10)
     fig.tight_layout()
     fig.savefig(out, bbox_inches="tight")
