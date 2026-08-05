@@ -7,6 +7,124 @@ decisions it feeds.
 
 ---
 
+## 2026-08-05 — Two human instruments, one verdict: the model reads polarity reliably and fumbles label ownership
+
+*The human-eval track's two parallel items, both completed in one marathon
+session (2026-08-04/05): the 150-review fresh holdout — Arda labeling blind
+under frozen codebook v2, scored strict-envelope against production (run of
+record `holdout-20260804T215600Z-c0edb01a`, journaled in the census store's
+eval_runs and mirrored in `eval/holdout/agreement.json`) — and the 100-claim
+misattribution audit (`eval/audits/misattribution/report.json`). Pass rulings
+and process disclosures live in a NOTES.md beside each sheet. Feeds: the M2
+report's limitations section (the reference-imperfection bound and the
+misattribution caveat's measured size) and the sampling-honesty post.*
+
+The sampling study's numbers all lean on a machine-labeled reference, so two
+human instruments were built to price that lean: a holdout asking "how far is
+production from a careful human read?" and an audit asking "when the model
+quotes a review verbatim, is the quote attached to the right claim?" They
+measure different things through different designs — and they converged on
+the same diagnosis, which is what makes the finding worth a report section
+rather than a footnote.
+
+The holdout's headline is strict-envelope agreement **0.557 [0.477–0.634]**
+over 149 reviews (one non-English skip): a review counts as agreement only
+when production's pinned aspect set *and* every matched sentiment equal the
+human's. That binary was chosen deliberately as the harshest honest bound —
+one extra or missing aspect fails the whole review — so the limitations
+number cannot flatter. The report must not let it sit next to the mention-
+level certification F1 of 0.766 as if they shared a ruler; a single
+ten-mention review needs all ten to match to score one agreement. The number
+that decomposes the headline is the one to quote beside it:
+sentiment-given-matched-aspects is **0.988**. When the two readers agree on
+*what* a review discusses, they almost never disagree on how the reviewer
+feels about it. The entire disagreement is aspect selection.
+
+The stratum gradient is the study-design payoff. The draw deliberately
+oversampled fresh material (45 marked-window + 45 long-tail against 60
+corpus) precisely because it is out-of-distribution against gold's
+popular-game 250 — and agreement falls exactly there: corpus 0.678,
+marked-window 0.511, long-tail 0.444. The reference is weakest exactly where
+the study newly trusts it. That sentence, with its Wilson intervals, is the
+limitations section's spine.
+
+The audit landed **11.6% [6.6–19.6]** misattribution over 95 decidable
+claims — the share of verbatim-true quotes attached to the wrong aspect or a
+sentiment the review doesn't carry. Its decomposition matches the holdout
+from the other side: aspect-side failures 10.4%, sentiment-side 3.1%. And the
+failure *profile* is the interesting part: nearly every aspect miss is
+close-family routing — crashes filed under `bugs` where the codebook's line
+puts hard failures under `stability`, developer-incompetence rants filed as
+`updates`, enemy stat-tuning filed as `ai_behavior` where the codebook routes
+number-blame to `balance` — plus a small class of wish-quotes (feature
+requests read as evaluations). Zero far-field misreads: no music quote
+labeled as graphics anywhere in the sample. The model's failure mode is
+boundary confusion between sibling labels, not fabricated meaning.
+
+Two process stories from the passes deserve preserving. First, the audit's
+frame nearly measured the wrong thing: judging the bare bracketed span,
+"performance related" carries no sentiment and would fail — the settled
+frame (the sheet's own "sarcasm and context count" parenthetical decides)
+judges the quote *in its review's context*, so a minimal span whose
+surrounding sentence says "my only complaints are…" passes. Under the
+bare-span reading the rate would have measured how tersely the model quotes;
+under the in-context reading it measures actual misreading. Same sheet, two
+different numbers — the frame debate flipped what 11.6% means. Second, the
+annotator-drift worry got a cheap mechanical guard: any mid-pass labeling
+ruling gets checked against gold's recorded applications before adoption
+(new territory rules freely; contradicting demonstrated precedent is drift).
+Its first live use flipped the question that prompted it — the contested
+"fun with friends → multiplayer" ruling turned out to *be* gold precedent,
+twice over. And the guard cut both ways between the two readers: gold
+evidence overturned two of Arda's instincts, while Arda overturned one of
+Claude's flags with a grammatical counter-parse of a run-on review — the
+ruling became "two readers, two parses → genuinely ambiguous → unclear",
+with the disagreement itself as the evidence.
+
+Figure: the three-stratum agreement gradient (corpus / marked-window /
+long-tail) with Wilson bars — the limitations story in one chart.
+
+## 2026-08-04 — A formatter ate the labeling sheet: byte-fidelity is part of the eval contract
+
+*The holdout labeling pass's opening incident (M2 human-eval track). Record:
+the `.prettierignore` widening commit (2026-08-04) and the process section of
+`eval/holdout/NOTES.md`. Feeds: the M2 report's methods/hygiene aside;
+candidate material for a standalone tooling post.*
+
+Two reviews into the 150-review holdout pass, Arda flagged that saving the
+sheet had reformatted the whole file: the diff weighed 3,047 changed lines
+for a two-review edit. Prettier's format-on-save had rewrapped the document —
+and, the damaging part, stripped trailing whitespace *inside* the fenced
+review texts. Twenty-one of the 150 fences no longer byte-matched the machine
+record (`eval/holdout/sample.jsonl`). That matters because the fences are the
+copy-paste surface for evidence spans, and the whole eval chain rests on
+evidence being a verbatim substring of the stored review text — it is what
+lets the fabricated-quote metric say "zero, verified" instead of "zero,
+assumed." An evidence span copied across one of those stripped line-ends
+would have failed the verbatim gate through no fault of the labeler.
+
+The galling detail: this was the *second* live catch of the class. During
+gold labeling (2026-07-17, batch 02) prettier had rewritten emphasis markers
+inside a workbook sheet, and the fix then was a `.prettierignore` scoped to
+`eval/gold/` — the exact directory that had been bitten. The holdout sheet
+lived one directory over, unprotected. The mutation was new, too: gold's
+incident was emphasis rewriting, this one was trailing-whitespace stripping —
+same formatter, different edit, which is why patching per-directory (or
+per-symptom) fails. The widened rule ignores the entire `eval/` tree, on the
+principle that every human labeling surface is verbatim-sensitive, present
+and future.
+
+Recovery was its own small lesson: the sheet was restored from the committed
+render via `git show` — bytes from history, not from any editor buffer that
+might already be formatter-touched — verified byte-identical against the
+machine record, and Arda's two labeled reviews were re-applied on top. The
+incident cost minutes because it was caught at review two; caught at review
+150, with spans copied from drifted fences throughout, it would have cost the
+pass. The report's hygiene aside writes itself: an evaluation that certifies
+verbatim quotes must treat its labeling surfaces as byte-true artifacts, and
+anything that silently "improves" text on save — formatters, linters,
+autocorrect — sits between the labeler's eyes and the bytes under test.
+
 ## 2026-08-04 — The closing test passes: the size rule survives three games it never trained on
 
 *The committed closing test (M2 ladder step 10), the staged long-tail

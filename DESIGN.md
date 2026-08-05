@@ -695,6 +695,17 @@ stratification, self-weighting, so the audited rate estimates the population rat
 with no reweighting. 100 primary + 10 ordered reserves in
 `eval/audits/misattribution/`; the rate+CI scorer builds after the audit.
 
+> **Outcome.** The audit landed 2026-08-05 (Arda's pass, 100 claims; two
+> non-English primaries skipped and replaced from the ordered reserves):
+> misattribution **11.6% [6.6–19.6]** Wilson over 95 decidable claims, 5
+> undecided disclosed. Decomposed: aspect-side 10.4% vs sentiment-side 3.1% —
+> and the aspect misses are dominated by close-family routing
+> (bugs↔stability, updates↔developer_conduct, ai_behavior↔balance
+> number-tuning) plus wish-quotes, with zero far-field misreads. Verdict-frame
+> rulings (quote-judged-in-context, field independence, the wish-rule) in
+> `eval/audits/misattribution/NOTES.md`; regenerable numbers + failing claims
+> in `report.json` beside the sheet, both pinned by sha256.
+
 **The numeric-grounding checker is deferred to its first consumer.** Its input
 contract — what a numeric claim *is* — is undiscoverable until composed prose
 exists (M3's composer at the earliest); building it now would freeze a guessed
@@ -1015,6 +1026,17 @@ classifier is newly trusted — and its number lands in the report's limitations
 as the measured bound on the reference's imperfection. The misattribution audit,
 self-relabel subset, and judge-disagreement adjudication stay the parallel
 human-time track, not gating M2.
+
+> **Outcome.** The holdout landed 2026-08-04/05 (Arda's 150-review pass under
+> frozen v2, batch-reviewed; run of record `holdout-20260804T215600Z-c0edb01a`,
+> journaled + mirrored in `eval/holdout/agreement.json`): strict-envelope
+> review-level agreement **0.557 [0.477–0.634]** over 149 scored (one
+> non-English skip). The stratum gradient is the finding — corpus 0.678,
+> marked-window 0.511, long-tail 0.444: the reference is weakest exactly where
+> the study newly trusts it, which is the limitations sentence the report
+> quotes. Sentiment-given-matched-aspects 0.988 — aspect-set selection is the
+> entire disagreement; polarity is near-noise-free. Pass rulings + the
+> batch-review disclosure in `eval/holdout/NOTES.md`.
 
 **The replication unit: query anchors × games × aspects** *(ruled 2026-08-02,
 the step-4 design pass — settling the question the build flagged)*. Windowed
