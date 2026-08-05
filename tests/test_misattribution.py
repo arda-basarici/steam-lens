@@ -81,15 +81,15 @@ def _sample_file(tmp_path: Path) -> Path:
         {"item": 1, "role": "primary", "review_id": "r1", "mention_id": 11},
         {"item": 2, "role": "primary", "review_id": "r2", "mention_id": 22},
         {"item": 3, "role": "primary", "review_id": "r3", "mention_id": 33},
-        {"item": 101, "role": "reserve", "review_id": "r9", "mention_id": 99},
+        {"item": 1, "role": "reserve", "review_id": "r9", "mention_id": 99},
     ]
     path.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
     return path
 
 
 def test_filled_sheet_parses_with_case_insensitive_verdicts(tmp_path: Path) -> None:
-    verdicts, violations = parse_audit_sheet(_write(tmp_path, _SHEET))
-    assert violations == ()
+    verdicts, skips, violations = parse_audit_sheet(_write(tmp_path, _SHEET))
+    assert violations == () and skips == ()
     assert [v.item for v in verdicts] == [1, 2, 3]
     assert verdicts[0].sentiment_supported == "yes"  # the hand-typed "Yes"
     assert verdicts[0].note is None  # empty note is no note
@@ -100,7 +100,7 @@ def test_filled_sheet_parses_with_case_insensitive_verdicts(tmp_path: Path) -> N
 def test_unfilled_and_foreign_verdicts_are_named_violations(tmp_path: Path) -> None:
     broken = _SHEET.replace("- aspect_supported: no", "- aspect_supported:")
     broken = broken.replace("- sentiment_supported: unclear", "- sentiment_supported: maybe", 1)
-    verdicts, violations = parse_audit_sheet(_write(tmp_path, broken))
+    verdicts, _, violations = parse_audit_sheet(_write(tmp_path, broken))
     assert [v.item for v in verdicts] == [1, 3]  # claim 002 does not score
     assert len(violations) == 2
     assert "claim 002 unfilled verdict aspect_supported" in violations[0]
@@ -109,22 +109,76 @@ def test_unfilled_and_foreign_verdicts_are_named_violations(tmp_path: Path) -> N
 
 def test_missing_id_line_is_a_violation(tmp_path: Path) -> None:
     broken = _SHEET.replace("review `r3` · mention `33`", "")
-    verdicts, violations = parse_audit_sheet(_write(tmp_path, broken))
+    verdicts, _, violations = parse_audit_sheet(_write(tmp_path, broken))
     assert [v.item for v in verdicts] == [1, 2]
     assert any("claim 003 has no id line" in v for v in violations)
 
 
 def test_join_stops_on_coverage_and_identity_drift(tmp_path: Path) -> None:
-    verdicts, _ = parse_audit_sheet(_write(tmp_path, _SHEET))
+    verdicts, _, _ = parse_audit_sheet(_write(tmp_path, _SHEET))
     sample = _sample_file(tmp_path)
-    assert verify_against_sample(verdicts, sample) == ()
-    # reserves are not sheet material, so their absence is not a gap
+    assert verify_against_sample(verdicts, (), sample) == ()
+    # reserves are not sheet material by default, so their absence is not a gap
     short = [v for v in verdicts if v.item != 3]
-    (coverage,) = verify_against_sample(short, sample)
+    (coverage,) = verify_against_sample(short, (), sample)
     assert "missing [3]" in coverage
     drifted = [*short, ClaimVerdict(3, "r3", 44, "yes", "yes", None)]
-    violations = verify_against_sample(drifted, sample)
+    violations = verify_against_sample(drifted, (), sample)
     assert any("claim 003 identity drift" in v for v in violations)
+
+
+_SKIP_BLOCK = """## 002 · Game B — **music** (pinned), sentiment **positive**
+
+review `r2` · mention `22`
+
+> Another ⟦quote⟧.
+
+SKIP: non_english
+
+---
+"""
+
+_RESERVE_BLOCK = """
+## 101 · Game R — **story** (pinned), sentiment **positive**
+
+review `r9` · mention `99`
+
+> Reserve ⟦quote⟧.
+
+- aspect_supported: yes
+- sentiment_supported: yes
+- note:
+"""
+
+
+def _skip_sheet(tmp_path: Path, *, with_reserve: bool) -> Path:
+    start = _SHEET.index("## 002")
+    end = _SHEET.index("## 003")
+    sheet = _SHEET[:start] + _SKIP_BLOCK + "\n" + _SHEET[end:]
+    if with_reserve:
+        sheet += _RESERVE_BLOCK
+    return _write(tmp_path, sheet)
+
+
+def test_skip_consumes_the_next_reserve_in_order(tmp_path: Path) -> None:
+    verdicts, skips, violations = parse_audit_sheet(_skip_sheet(tmp_path, with_reserve=True))
+    assert violations == ()
+    assert skips == ((2, "non_english"),)
+    assert [v.item for v in verdicts] == [1, 3, 101]
+    sample = _sample_file(tmp_path)
+    assert verify_against_sample(verdicts, skips, sample) == ()
+    # the reserve claim joins identity-checked like any primary
+    drifted = [v if v.item != 101 else ClaimVerdict(101, "r9", 98, "yes", "yes", None)
+               for v in verdicts]
+    assert any("claim 101 identity drift" in v
+               for v in verify_against_sample(drifted, skips, sample))
+
+
+def test_skip_without_replacement_is_a_scoring_stop(tmp_path: Path) -> None:
+    verdicts, skips, violations = parse_audit_sheet(_skip_sheet(tmp_path, with_reserve=False))
+    assert violations == ()
+    (replacement,) = verify_against_sample(verdicts, skips, _sample_file(tmp_path))
+    assert "replacement mismatch" in replacement and "[1]" in replacement
 
 
 def test_fold_implements_the_definite_only_ruling() -> None:

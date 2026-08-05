@@ -15,8 +15,8 @@ review `225822507` · mention `121714`
 
 > An absolutely stunning game that runs deeper than you initially think possible. I love chilling out and exploring planets in my minotaur mech suit, detailing my freighter base and floating in space while taking in the scale of everything. I have sunk so much time into this and I feel like I've still barely scratched the surface! My only complaints are ⟦performace related⟧ but I trust the team at Hello Games will fix it, just like they did with the rest of the game. 10/10
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -31,9 +31,9 @@ review `11981432` · mention `5537`
 > 
 > So, yes, buy this game and relive the eighties in style.
 
-- aspect_supported:
-- sentiment_supported:
-- note:
+- aspect_supported: yes
+- sentiment_supported: yes
+- note: this can be count under graphics without a new candidate. even with this, this review should include graphics aspect.
 
 ---
 
@@ -43,8 +43,8 @@ review `221250095` · mention `72379`
 
 > ⟦can t even start the game with that secure boot crap⟧
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -55,8 +55,8 @@ review `227759573` · mention `160179`
 
 > does a good job of fleshing out such an open map, ⟦great ost⟧, visuals and gameplay 10/10
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -67,8 +67,8 @@ review `117656944` · mention `4738`
 
 > The game is honestly great. If you played wasteland 2 its even better, but even if you didn't play number or dont know anything about wasteland its a well done turn based strategy game, with easy crafting and ⟦nice character and vehicle customization⟧, the music is done brilliantly and the story is very satisfying and funny.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes 
+- sentiment_supported: yes
 - note:
 
 ---
@@ -81,8 +81,8 @@ review `214759986` · mention `54860`
 > 
 > also if you're dumb like me you can try going for relics and leveling every single job as you progress the MSQ so you end up with 1.2k hours and not even done with Shadowbringers :3
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes 
+- sentiment_supported: yes
 - note:
 
 ---
@@ -93,8 +93,8 @@ review `63691872` · mention `166121`
 
 > Short and sweet game with a ⟦great soundtrack⟧ and challenging levels!
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -106,8 +106,8 @@ review `195725643` · mention `36233`
 > A great little game if you enjoy a single player, low-stress game in the style of Plate Up!/Overcooked. 
 > ⟦Simple but enjoyable design⟧ for what's essentially another logistics sim with solid incentives like quests and a research tree to keep you playing.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -122,8 +122,8 @@ review `226782390` · mention `140550`
 > 
 > I've played for years and watched this game go from something I genuinely enjoyed to something I can barely tolerate. Between the state of Overwatch 2 and the Battle.net experience, I can't recommend this game to anyone. Save yourself the frustration and spend your time elsewhere.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -134,8 +134,8 @@ review `226038625` · mention `135278`
 
 > left 4 dead is one of my favorite games. i love the zombie genre but this is different. each special zombie is its own infection. if you want a game that is fun and actually challenging i highly recommend this one. ⟦you can play online and offline⟧. I prefer a game like this over the new zombie stuff they got out.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -148,8 +148,8 @@ review `208421786` · mention `48301`
 > Story: Great, i love it. very well written and relly fun to experience.
 > Gameplay: ME1 is the best part, but a bit bland and old feeling. ME2 is just stupidly boring and aged worse than ME1. ME3 is litteral ♥♥♥♥♥♥♥. ⟦The dodge and cover systems got way worse and on insane it is a real nightmare to play, because it keeps bugging out on you in the worst way possible.⟧
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -160,8 +160,8 @@ review `227597890` · mention `157013`
 
 > This is probably one of my favorite games of all time. And they ⟦added the warsails update which adds more content⟧. Easy 10/10 for me.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -180,9 +180,9 @@ review `226787104` · mention `140579`
 > 
 > (PPPPS, I WILL SAY THO game def not bad, just need working)
 
-- aspect_supported:
-- sentiment_supported:
-- note:
+- aspect_supported: unclear
+- sentiment_supported: yes
+- note: can be about progression, pacing or grinding 
 
 ---
 
@@ -196,8 +196,8 @@ review `137839672` · mention `11788`
 > 
 > The abilities are fun though, at least Devinder's abilities. His shock javelin has a fairly low cooldown so you can use it multiple times in engagements, the blacklight staff was also super dope. Very satisfying to AOE 4-5 vamps at once. Teleport was meh, more coop focused but still nice. The worldbuilding and setting are also extremely well done. I love the environmental storytelling, seeing a blood trail go down into the basement, or some groups final stand with backs (bodies) against a wall. But there is a tonnn of notes scattered about to accompany that, a bit too much imo. I've done mostly solo so can't comment on the team synergy too much but there is definitely coop only skills in the skilltree. I could see coop being more fun than solo. Prey is still my top Arkane game.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -208,8 +208,8 @@ review `226051365` · mention `131678`
 
 >  its ⟦cozy⟧, fun, and energetic! i recommend it a lot
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -220,8 +220,8 @@ review `153400623` · mention `18425`
 
 > this game has alot of glitches i have screen shots of big heads no heads... lag is insuferable the zombies take lots of bullets and if u get hit u bleed to death ... and dont get me started with the ⟦pvpers killilng u and taking all ur stuff⟧ .... the fix they say works best is delete character and start over lol no i would not recommend this game infact im hopeful for a refund
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -232,8 +232,8 @@ review `203652007` · mention `44093`
 
 > Its a good trilogy. ⟦The story is amazing with different endings based on your actions⟧, even early on in the first game. ME3 was the best game out of the 3 for me. ME2 was the slowest to get through and it felt like a drag. I know ME2 was just building up for ME3 but it was still way too slow. ME1 has the best gunplay on mouse and keyboard, while ME2 and ME3 plays better with a controller. Overall, I think Mass Effect Trilogy is good, it's money well spent. However, I don't feel the magic that puts this game to be one of my all time fav.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -244,8 +244,8 @@ review `120262660` · mention `5529`
 
 > This is one of the buggiest mess of a game I have ever had the unfortunate of putting 50 hours into. Shallow narrative, shallow characters, and an even shallower QA process. It's not so much awful as it is just boring. One ⟦mindless slog through fairly easy combat⟧ after the next, with nothing really of any interest. Stay away and play Divinity Original Sin instead for a better co-op CRPG, or just play Fallout 2 for a better post-apocalyptic one.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -271,9 +271,9 @@ review `226314502` · mention `131430`
 > 
 > I predict this game is shutting down in a solid year, and with it the always online BS and stop killing games will come too.
 
-- aspect_supported:
-- sentiment_supported:
-- note:
+- aspect_supported: no
+- sentiment_supported: yes
+- note: I would use updates label here.
 
 ---
 
@@ -289,8 +289,8 @@ review `140340140` · mention `14374`
 >  Overall, to finish this, its way better than I expected, but it could have been even better, not that I complain. A great experience for the turn based combat, with a great world and locations, awesome characters and choices, you never know what you can discover next and I love that feeling, but boring rangers and no romances. 8/10 from me
 >    Somehow way shorter than 2, but still very enjoyable and the serie could go on and on, Keep these games coming, I want moreeeeee !!!
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -306,8 +306,8 @@ review `218489844` · mention `63198`
 > 5.Repeat next year
 > 9/10
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -318,9 +318,9 @@ review `8490262` · mention `168394`
 
 > Best 49 cents I've ever spent :)  ⟦Absolute blast of frustration and delight⟧.
 
-- aspect_supported:
-- sentiment_supported:
-- note:
+- aspect_supported: unclear
+- sentiment_supported: yes
+- note: can be many reason for frustration here. story / diffuculty / community / updates etc etc.
 
 ---
 
@@ -330,8 +330,8 @@ review `10704021` · mention `1290`
 
 > ⟦Short⟧ fun game with great soundtrack!
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -344,8 +344,8 @@ review `225188082` · mention `109662`
 > 
 > As a 1700h+ diver, your stupid buffs and nerfs actually dont affect my completion rate at all. What just irritates me is that players who have completed these missions hundreds of times keep telling you 1+1 and you insist writing down every numbers except 2.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -356,8 +356,8 @@ review `227325756` · mention `151763`
 
 > best game for driving with peace u ⟦can add many mods⟧
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes 
+- sentiment_supported: yes
 - note:
 
 ---
@@ -368,8 +368,8 @@ review `172398820` · mention `23894`
 
 > This game is simply fantastic. ⟦There is so much to do⟧ and you will find yourself getting sucked in quickly. At the moment of writing, I have played for 30 hours and I still have a ton more to do. and find. The dev has added so many secrets and easter eggs all throughout the game as Warsim has clearly been developed with love. If you like games like Dwarf Fortress or Crusader Kings, you will like Warsim.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -380,9 +380,9 @@ review `224943175` · mention `110225`
 
 > Ive got 24 hours total on game and my game file (set to easy) is 12 hours cos all the other time ive spent dead . ⟦i found it quite hard⟧ the ap system and the way the map works i hate but everything else is great .the fallout series is amazing the graphics are brillaint and its alot of freedom would reccomend just with a tutorial or something
 
-- aspect_supported:
-- sentiment_supported:
-- note:
+- aspect_supported: unclear
+- sentiment_supported: yes
+- note: this maybe not about game difficulty , ı am not sure about the ap system, if it only mentioned map ı would say UI label more appropriate. saying hard doesnt always imply difficulty. 
 
 ---
 
@@ -392,8 +392,8 @@ review `183104786` · mention `27833`
 
 > Fantastic game, the art and music are beautiful, ⟦the voice acting is very well done⟧, 10/10.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -404,8 +404,8 @@ review `226771421` · mention `140303`
 
 > Great core game, ⟦terrible developers⟧.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -416,9 +416,9 @@ review `227667982` · mention `158318`
 
 > i like to play with mods more than vanilla because ⟦i like to cheat money and marry everyone and then divorce them so the whole town is basically miserable and i have a cute farm and am a billionaire⟧ so i recommend it, live your dreams
 
-- aspect_supported:
-- sentiment_supported:
-- note:
+- aspect_supported: no
+- sentiment_supported: yes
+- note: not cheating because this is not online game, it could count as bug. however this is about mod talking, this review should be labeled with mods. the quoted part, is talking about mods, not cheating or bugs or glitches.
 
 ---
 
@@ -493,8 +493,8 @@ review `224424392` · mention `93735`
 > - There are a few bugs, (not many) though it needed looking up outside the game to determine if what was happening (or not happening) was part of the game experience or a known bug. 
 > 
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -505,8 +505,8 @@ review `220837259` · mention `70962`
 
 > Wish i could recommend it because i would like the game quite a bit. I say would because getting this game to run is a massive headache. Nearly every chapter has a scripted event fail, so i get locked. Most of them have been softlocks that could be fixed by reloading the chapter, but at the moment i have run into a ⟦hardlock with no fix⟧. Litterily cannot finish the game even after trying a new game 3 times now. Typical for a 2K game though, seems like they never fix game breaking bugs. Really kills my hopes for the upcomming Bioshock 4.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -517,8 +517,8 @@ review `8524062` · mention `168533`
 
 > Nice game with an some nice ideas. But you ⟦the music is too loud for me and you can't turn down the volume⟧.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -529,9 +529,9 @@ review `227288289` · mention `151207`
 
 > Terrible Game I would never play ts again bro it was sooo ass bro its soo fricking bad and that one girl with the weird name lives wayyyyyyyyyyyyyy tooo long yo i tried killing her at the start but she still lives so like this game sucksss and ⟦i hope they add mods to kill her⟧.
 
-- aspect_supported:
-- sentiment_supported:
-- note:
+- aspect_supported: no
+- sentiment_supported: no
+- note: it is not talking about mods, there is nothing positive about this review.
 
 ---
 
@@ -544,8 +544,8 @@ review `225063623` · mention `98820`
 > If you're a prospective buyer looking for a new multiplayer game, try anything else. Your money would be better spent on a Helldivers 1 than this mess.
 > 
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -556,9 +556,9 @@ review `222232974` · mention `76441`
 
 > A great game that tests your sanity. I ⟦raised my heroes to level 6, applied great trinkets, maxed out skills and upgrades on heroes⟧, thought of insane synergies and attempted the darkest dungeon for the first time hoping to beat it. Here i am now writing this review after failing to beat the first darkest dungeon level 3 times. Bruh i am legit talking to myself and getting angry at the game and at my self. I will beat it i promise. Idk if i will be sane after beating it though. Good game. Lots of suffering.
 
-- aspect_supported:
-- sentiment_supported:
-- note:
+- aspect_supported: yes
+- sentiment_supported: unclear
+- note: quote's subject is progression activity, but it is narration - not sure a positive evaluation of the progression system is carried; the review's point is difficulty.
 
 ---
 
@@ -568,8 +568,8 @@ review `223021448` · mention `81552`
 
 > Cinematic A treat for visual calculus. ⟦The story to everything so well done A Masterpiece⟧.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -580,9 +580,9 @@ review `214032413` · mention `53716`
 
 > Very replay-able and ⟦challenging⟧. Not for the faint of heart though. Your characters will die.
 
-- aspect_supported:
-- sentiment_supported:
-- note:
+- aspect_supported: yes
+- sentiment_supported: yes
+- note: hard-as-praise - "challenging" coordinated with "very replay-able" in a virtues pair.
 
 ---
 
@@ -592,8 +592,8 @@ review `223188511` · mention `83201`
 
 > The game used to be fun and worth the grind, but with having ⟦trolls or bots 80% of the matches⟧, it's unbearable to play anymore. Devs don't seem to do anything about trolls, even if there's an option to report someone for intentionally idling or math throwing. I'll admit that RLCS is the only E-Sports I can watch and find entertaining, but playing it myself? Tbh it just ain't worth the time no more.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -604,9 +604,9 @@ review `224050717` · mention `90100`
 
 > One of the most unique experiences I've had playing a game. If you like linear story games, this WILL be for you. It's only a couple of hours playtime and ⟦it's a very accessible game⟧. Anyone can enjoy this even when they're not into gaming. Would recommend this game to anyone
 
-- aspect_supported:
-- sentiment_supported:
-- note:
+- aspect_supported: no
+- sentiment_supported:  yes
+- note: not about learning_curve, I think it is saying the audience of the game is everyone.
 
 ---
 
@@ -638,9 +638,9 @@ review `224064509` · mention `90276`
 > [*]The game has some frustrating stability issues on certain setups, causing frequent crashes after about an hour of playtime on my laptop.
 > [/olist]
 
-- aspect_supported:
-- sentiment_supported:
-- note:
+- aspect_supported: yes
+- sentiment_supported: yes
+- note: I might pick art_style because of the following sentence.
 
 ---
 
@@ -668,9 +668,7 @@ review `222899651` · mention `80470`
 > 
 > Несмотря на все досадные минусы, игра лично мне очень даже зашла, особенно учитывая тот самый факт, что после восьмого «Драгон Квеста» в жанре джРПГ я не нашёл для себя совершенно ничего интересного. Эта же игра совершенно точно заслуживает потраченных на неё времени и средств.
 
-- aspect_supported:
-- sentiment_supported:
-- note:
+SKIP: non_english
 
 ---
 
@@ -681,8 +679,8 @@ review `193014630` · mention `34137`
 > Very good game,
 > Although not for everyone, this game offers a ⟦realistic glimpse into the life of a border inspector⟧, forcing you to make difficult decisions, conflicting your moral code and the rules of the checkpoint. There is a multitude of endings (20) to be achieved. One note I have is that there are not enough steam achievements, some good ones could be added, like for example: "green stamp the denial only paper", "process 15 people in a single day without any mistake" etc. Overall 8/10 would recommend.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -753,9 +751,9 @@ review `153342625` · mention `17652`
 > 
 > Best of luck!
 
-- aspect_supported:
-- sentiment_supported:
-- note:
+- aspect_supported: no
+- sentiment_supported: yes
+- note: I would pick balance, not about behaviour. health / speed / strength type of things should be counted as balance not behaviour.
 
 ---
 
@@ -765,8 +763,8 @@ review `226312532` · mention `131118`
 
 > Great game, only issue is it ⟦took me a bit to find gameplay settings that didn't freeze up⟧, still recommend though.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -783,8 +781,8 @@ review `226416876` · mention `127471`
 > 
 > Giving this a rating is rather difficult but I lean towards “Not Recommeneded”.  The game is subpar in many areas, but that doesn’t mean there isn’t some fun to be had in it, so it depends what you are looking for as to whether you will enjoy your time with it.  That being said, this is clearly Bethseda’s worst modern open world RPG.  Whatever you think of Morrowind, Oblivion, Skyrim, the Fallouts… they are just much better games.  Although I played this game to the end, and had an enjoyable time as time went on, I can’t really recommend this.  If you mostly just want to do the main content, you should have a good enough time.  If you want a sandbox to play around in, this game will fall very short though.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -820,8 +818,8 @@ review `100915977` · mention `112`
 > 
 > Short, but well worth the money. A must-have for any platformer fan, or just a fan of games. Pick it up when you can!
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: no
+- sentiment_supported: yes
 - note:
 
 ---
@@ -842,8 +840,8 @@ review `225139761` · mention `112465`
 > 
 > This game was first released in 2020(?) and it's now in a worse state than in 2020.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -854,9 +852,9 @@ review `225344634` · mention `94628`
 
 > One of our favorite games we always come back to. ⟦Can you make it multiplayer in a shared screen kind of diablo ps one set up?⟧ Imagine 4 people trying to coordinate... what are you guys working on?
 
-- aspect_supported:
-- sentiment_supported:
-- note:
+- aspect_supported: no 
+- sentiment_supported: no
+- note: this is a suggestion, not even a aspect of the game.
 
 ---
 
@@ -866,8 +864,8 @@ review `193857366` · mention `34608`
 
 > Constants and variables. Finished the Main Story and DLCs. It was definitely a ride. One of the best shooter games I've played for the Characters, Story, and World Building. ⟦A bit of a bitter sweet ending and now I feel empty⟧.....
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -878,8 +876,8 @@ review `226677324` · mention `138351`
 
 > Good game.  It ⟦takes time to get used to certain aspects of it⟧; but once you do, it is worthwhile.  If you focus on the sandbox nature of the game in a relaxed and casual way, it pays off.  It will be very interesting to see the full modding potential for this game over time.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -890,8 +888,8 @@ review `224370238` · mention `92946`
 
 > Super cool game that’s put Diablo 2 back into the “uninstalled” category on my Steam Deck.  Excellent that the ⟦basic game is free⟧ and I’m certainly going to support it going forward
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -902,8 +900,8 @@ review `227426636` · mention `153732`
 
 > This used to be one of my favorite games, although it was sometimes repetitive (especially if you are playing singleplayer), it still had a beautiful personality to it that no other game can recreate. Everything was great, and then the game started to change. Ever since the Player Character Update released, the game was close to unplayable, so many glitches, unwanted changes, and a game that just doesn't work. It feels like the developers lost respect for their community, they put out an update that made the game worse, it feels like they didn't even test it. The game is so bad that I couldn't even play because ⟦some of the ghosts abilities were broken⟧. The game's current state is unacceptable, I can't recommend it.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -922,8 +920,8 @@ review `220726430` · mention `70539`
 > 
 > -Signed, a fan that makes Conrad Verner look tame
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -944,8 +942,8 @@ review `224446327` · mention `93706`
 > 
 > I can understand people not liking Cuphead - it's a style of game that is literally not for everyone. But even those who hate this game must surely respect the attention and skill put into it. This is an objectively brilliant game.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -956,8 +954,8 @@ review `209366185` · mention `49224`
 
 > such a great trilogy. The First game is ⟦a bit dated from a combat/gameplay standpoint⟧, but the story is fantastic. 2 and 3 get progressively better, re:gameplay. If you take your time and get to know your squadmates, it really is a wonderful story that you will definitely get invested in.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -971,8 +969,8 @@ review `198265245` · mention `38464`
 > Don’t get me wrong, it was a good game, and I liked the style and the way it tells the story, 
 > but it wasn’t life-changing.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -987,8 +985,8 @@ review `139647475` · mention `14079`
 > 
 > TLDR : If you enjoy turn based fights and a story driven RPG with good freedom of choices. You should not miss this game.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -999,8 +997,8 @@ review `131211958` · mention `7955`
 
 > Very enjoyable. ⟦Some bugs still even now⟧, but it has a lot going for it.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1011,8 +1009,8 @@ review `220437878` · mention `69457`
 
 > ⟦gets better with every update⟧, also devs are goated
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1046,9 +1044,9 @@ review `106780566` · mention `1222`
 > 
 > All in all - it's just not worth it.
 
-- aspect_supported:
-- sentiment_supported:
-- note:
+- aspect_supported: yes
+- sentiment_supported: yes
+- note: 
 
 ---
 
@@ -1059,8 +1057,8 @@ review `123733575` · mention `6393`
 > This game is a masterpiece- a brilliant blend of strategy, adventure and humor, all mixed in perfect proportions. It has it's own niche, it's own thing going on. ⟦Well, well, well, worth the price⟧. And the guy just keeps adding the stuff all the time! 
 > Obviously a work of passion and if nothing else- it gets my approval for that alone.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1071,9 +1069,9 @@ review `223401566` · mention `85277`
 
 > Very fun game if you like a challenge, the bosses are very replayable on their own even without the extensive list of charms and weapons. The base game has ⟦good bosses⟧ on its own, especially bosses like the Devil or Dr. Kahl, but the DLC has more fun bosses in my opinion. Definitely try if you like customizing your weapons and taking on hard bosses.
 
-- aspect_supported:
-- sentiment_supported:
-- note:
+- aspect_supported: yes
+- sentiment_supported: yes
+- note: I can consider also level design here as a label instead of combat
 
 ---
 
@@ -1083,8 +1081,8 @@ review `221312689` · mention `72800`
 
 > Originally I had made it to the boss of the first palace, lost, forgot I had not saved and it ruined my desire to play again. After starting 4 on my switch, I decided to give 5 Royal a try again, with a new found understanding of the mechanics of the game. I am SO glad I did. This game is phenomenal. I have been sucked into this world, and while it has its faults with some of the confidants story lines, the story is exceptional. ⟦I spent every day the last 2 weeks wanting to play. Work at 6 am? I stayed up until 1 am playing because I could not put it down⟧. At work all I could think about was when I was going to play again. The writing is great, some of the moments are genuinely hilarious and I loved every single minute of this experience. I cannot wait to experience it all again in another play through and delve into other confidants more. Hope 6 comes out soon lol
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1101,8 +1099,8 @@ review `226392062` · mention `129189`
 > 
 > I like this game a lot. I've loved this game for a long time, but I really can't recommend you pick up, or play the game in its current state.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1113,8 +1111,8 @@ review `225683370` · mention `121630`
 
 > While it only allows for good or bad reviews and having played it through almost twice I really like the graphics and gameplay that was solid.  That said ⟦the writing did it in for me⟧ the only give bad options to win. The good ending is bland I'm pretty sure on purpose. They gendered swap all the female and male roles. Omeluum should of been a third option at the end. Total Recall was a terrible plot. The end game plot was slapped together with duck tape. Lazy writing is what it amounts too.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1125,8 +1123,8 @@ review `223063583` · mention `81984`
 
 > Cities: Skylines is easily my favorite game, and after 500+ hours, it still feels fresh every time I play. What keeps me hooked is the ⟦perfect mix of creativity and problem-solving⟧. You get full freedom to design your city however you want, but you also have to deal with real challenges like traffic, budgeting, and city services. Fixing a massive traffic jam or finally seeing your public transport system run smoothly is incredibly satisfying. The modding community also adds a ton of depth, turning the game into almost anything you want it to be. It’s not perfect, performance can dip with big cities or heavy mods, but that hasn’t stopped me from losing track of time playing it. It’s the kind of game where you start with a small town and suddenly realize hours have passed, and honestly, that’s why I love it so much.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1137,8 +1135,8 @@ review `147917252` · mention `16322`
 
 > After patch 2 and now that the performance has been fixed, I can say that Redfall is a good game that deserves a second chance. It's not Arkane's best work but as long as you take the game for what it is, there is a lot of enjoyment to be found in ⟦the setting⟧, the atmosphere, the environment design, the shooting and the story. Do not go in expecting a frantic co-op looter shooter, Redfall excells in the quiet moments that let you soak in its unique atmosphere.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1149,9 +1147,9 @@ review `216677086` · mention `57946`
 
 > ⟦add more baddies⟧ plzplzplz
 
-- aspect_supported:
-- sentiment_supported:
-- note:
+- aspect_supported: unclear
+- sentiment_supported: unclear
+- note: too short, and not clear what it is about.
 
 ---
 
@@ -1165,9 +1163,9 @@ review `226376546` · mention `126817`
 > 
 > ⟦The game has been "early access" for six years⟧, and this is the best they've got?
 
-- aspect_supported:
-- sentiment_supported:
-- note:
+- aspect_supported: no
+- sentiment_supported: yes
+- note: developer_conduct is more suitable here.
 
 ---
 
@@ -1179,8 +1177,8 @@ review `174983151` · mention `24613`
 > 
 > On the technical aspect it never once crashed or slowed down. Unlike bioshock 2 that crashes whenever there's too many enemies or a gentle breeze hits it. The game was more linear than the previous games but enjoyable throughout the eight or so hours that i spent playing, not counting the dlc. Over all i loved this series and while this one war narratively weaker, it's still worth a shot.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1191,9 +1189,9 @@ review `218361459` · mention `62796`
 
 > ⟦its crushing while entering or exiting in doors⟧ 
 
-- aspect_supported:
-- sentiment_supported:
-- note:
+- aspect_supported: no
+- sentiment_supported: yes
+- note: stability is the correct label for the crashes.
 
 ---
 
@@ -1209,8 +1207,8 @@ review `217576446` · mention `59996`
 > I was not a great programmer. I would never have made the Bethesda team, not at the height of my powers, long ago. But I know what a solid image feels like to the user. This is junky. Clunky. Funky. My last fifty Saves are named LOOKUP FAILED! Is that okay, Bethesday? For a plus ten-year-old game that's still making money? Really. 
 > It's still fun. Keep your install crystal clean, never fail to restart your device between opens; maybe your games will still be fun at level 60, I dunno. But expect goofy dumb stuff to happen, and you won't be disappointed.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1221,8 +1219,8 @@ review `227292094` · mention `151257`
 
 > ⟦will cause sleep deprivation⟧
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1246,8 +1244,8 @@ review `220644129` · mention `70213`
 > 
 > Warmly recommended 👍
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1279,9 +1277,9 @@ review `223268923` · mention `84253`
 > 
 > Overall Starfield and its expansions are worth it and should be played by anyone even remotely interested in RPGs.
 
-- aspect_supported:
-- sentiment_supported:
-- note:
+- aspect_supported: yes
+- sentiment_supported: yes
+- note: quote is literally about space exploration; pinning vs candidate is a routing/alias gap, not misattribution.
 
 ---
 
@@ -1291,8 +1289,8 @@ review `221864550` · mention `74709`
 
 > one of the ⟦most engaging co-op story game⟧ i've ever played, bittersweet ending , totally recommend it
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1303,8 +1301,8 @@ review `222847310` · mention `79785`
 
 > One of the best RPGs ever made. ⟦The replayability is absolutely crazy⟧. Wish I played it sooner :)
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1315,8 +1313,8 @@ review `215154461` · mention `55463`
 
 > Once I watched like 3 hours of videos explaining the gameplay, I was hooked. I relate it to those TV shows your friends tell you to watch where they are like "you have to stick with it through episode 8, then it gets good." If you don't want to play the tutorials, still be confused, then ⟦wade through a sea of sub par Youtubers to find the few gems that make it make sense⟧, I completely understand - but for some of us, it ends up being enjoyable. What can I say - glutton for punishment? History nerd? All of the above? 5 stars.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1329,9 +1327,9 @@ review `224992327` · mention `99588`
 > 
 > I love this game a lot, but the current state is TERRIBLE. I highly recommend playing when either the update is run back or fully patched to be in a playable state.
 
-- aspect_supported:
-- sentiment_supported:
-- note:
+- aspect_supported: yes
+- sentiment_supported: yes
+- note: balance can be more suitable here. customization is there, but balance is broken.
 
 ---
 
@@ -1348,8 +1346,8 @@ review `121751317` · mention `5995`
 > 
 > Overall a great game and if you can get it on sale (sub 18 with DLC) its a ⟦great co op game⟧!
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1376,8 +1374,8 @@ review `223475139` · mention `85798`
 > 
 > I fully recommend this game to everyone who likes exploration, random adventures and sandboxing.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1388,8 +1386,8 @@ review `227164832` · mention `148455`
 
 > The best lineup of bosses in the Fromsoft lineup so far. My biggest gripe is the step-back in interconnectivity and creative level design of Dark Souls 1, and the ⟦lack of color⟧ of Dark Souls 2; it still is a fantastic game that will likely hold up for decades to come. Demon's Souls<Dark Souls 2<Dark Souls 3<Dark Souls
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1409,8 +1407,8 @@ review `227245230` · mention `150413`
 > 
 > overall great game, worth it.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1441,8 +1439,8 @@ review `45211831` · mention `164025`
 > 
 > Great game, but if you're not a big roleplayer and you don't like super complicated games, then this isn't the game for you. If you are, but find that the concept is difficult to grasp, I don't blame you. For some though, I can tell this would be a game people can love and hate. I happened to be one of the one in the latter.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1476,9 +1474,9 @@ review `138215839` · mention `13332`
 > 10.Peoples hands are huge like why?
 > {GAME DIED IN A YEAR N NO MORE UPDATES AND THEY LIED BOUT PRE-ORDER BONUS OF 2 EXTRA CHARACTERS}
 
-- aspect_supported:
-- sentiment_supported:
-- note:
+- aspect_supported: yes
+- sentiment_supported: yes
+- note: it is in between ai_behaviour and balance.
 
 ---
 
@@ -1488,8 +1486,8 @@ review `226167083` · mention `128512`
 
 > One of the best games i have ever played. Amazing graphics, world building and design absolutely top tier, the main story is amazing with its side stories and quests. Combat is similar to others but has its uniques twist to it, and even ⟦the music TwT⟧.  You cant get enough of it
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1507,8 +1505,8 @@ review `226254763` · mention `125701`
 > 
 > There's not much I can say about it. It does what it does solidly, and it's no surprise that it still has a strong following to this day and has established a very strong foundation for the hero shooter genre.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1519,8 +1517,8 @@ review `227291286` · mention `151455`
 
 > Aside from the bugs (Except getting stuck behind a toilet and dying one time), this game is tons of fun. ⟦I really enjoy playing this with my husband and our son⟧ when we can convince him to join us. It was a little scary at first but once I got into the flow, it was highly enjoyable.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1531,8 +1529,8 @@ review `204221380` · mention `44669`
 
 > ⟦servers are turned off and nothings works⟧. Scam.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1543,9 +1541,9 @@ review `227025441` · mention `145584`
 
 > Unique and amazing experience. Lore-rich world and exceptionally written dialogue. ⟦Hardcore to the Mega!⟧
 
-- aspect_supported:
-- sentiment_supported:
-- note:
+- aspect_supported: no
+- sentiment_supported: yes
+- note: not about difficulty. 
 
 ---
 
@@ -1557,8 +1555,8 @@ review `224085436` · mention `90312`
 > 
 > I enjoyed playing this game with the keyboard and mouse.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1583,8 +1581,8 @@ review `225991786` · mention `127263`
 > 
 > TLDR: Amazing game, first act is meh, second and third are amazing, I really like how you level up and become stronger.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1596,8 +1594,8 @@ review `137870667` · mention `12006`
 > I have not had any issues (other than framedrops) that people have been running into myself, so i can't but say that this game is an enjoyable experience so far for me.
 > I think people should give the game a chance ⟦when it goes on sale⟧ i guess. Sadly there is no between yes and no for reviews. otherwise would give it a Mixed recommendation.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1608,9 +1606,9 @@ review `223346472` · mention `84652`
 
 > IT'S A TERRIBLE GAME! ⟦TALKS OF SUICIDE, GUN VIOLENCE, BUYING DRUGS OFF OF THE STREETS⟧! ATLUS SHOULD BE ASHAMED OF MAKING A GAME LIKE THAT!!!!!!!!! >:( I HATE IT!!!!
 
-- aspect_supported:
-- sentiment_supported:
-- note:
+- aspect_supported: yes
+- sentiment_supported: yes
+- note: themes-objection reads as a hostile evaluation of story content.
 
 ---
 
@@ -1620,8 +1618,8 @@ review `187375282` · mention `30855`
 
 > The game feels strange: on the one hand - ⟦its story is absolutely wonderful⟧, interesting characters and relationships, but at the same time there is insanely stupid gameplay 99% consisting of unpleasant shooting with huge mouse sensivity and uncomfortable fov. Could't finish this because on the later chapters amount of enemies exceeded all acceptable limits while the story all the time was about to finish.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1632,8 +1630,8 @@ review `225892362` · mention `116051`
 
 > ⟦Very Moddable⟧
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1644,9 +1642,9 @@ review `204323105` · mention `44760`
 
 > Old, just very old.  Thankfully it was ⟦discounted to $8.99 and I did not waste a lot of money⟧
 
-- aspect_supported:
-- sentiment_supported:
-- note:
+- aspect_supported: yes
+- sentiment_supported: no
+- note: the whole sentiment of the review negative. just saying I didnt waste a lot of money, but still a waste. 
 
 ---
 
@@ -1656,8 +1654,8 @@ review `116826070` · mention `4528`
 
 > I am really impressed!  I found Wasteland 2 to be a bit rough around the edges, but most of the things I disliked have been either streamlined or improved in this version!  A bit ⟦less micromanagement is required⟧, the combat difficulty is a bit more scaled, the graphics are great... I've been really enjoying this one.
 
-- aspect_supported:
-- sentiment_supported:
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
 ---
@@ -1668,7 +1666,30 @@ review `227120421` · mention `147624`
 
 > Melhor história, melhores interações, ⟦batalhas epicas⟧... nao tem o que falar mal!
 
-- aspect_supported:
-- sentiment_supported:
+SKIP: non_english
+
+
+## 101 · What Remains of Edith Finch — **story** (pinned), sentiment **positive**
+
+> (reserve 1, replacing skipped claim 042)
+
+review `186613820` · mention `30563`
+
+> ⟦A fun story to walk through⟧, there isn't any challenge but there are some cool interactions and a fun story, i finished it in about 2 hours.
+> Well worth the money (i got it during a sale)
+
+- aspect_supported: yes
+- sentiment_supported: yes
 - note:
 
+## 102 · Papers, Please — **emotional_impact** (pinned), sentiment **positive**
+
+> (reserve 2, replacing skipped claim 100)
+
+review `185033140` · mention `29287`
+
+> A game that really makes you feel like a civil servant in a fascist nation. ⟦You feel the pressure to follow the rules of the regime but, at the same time, you feel tempted to disobey because you have a family at home to take care of⟧. You really feel like you're in that position. My rating isn't higher because, for me, it's more of an experience than a game. It can take 10 minutes or it can take 5 hours, it all depends on your decisions. I'm marking it as complete because I reached one of the 20 endings the game has. But maybe I'll revisit the game in the future to have the experience again and see what other endings I can get.
+
+- aspect_supported: yes
+- sentiment_supported: yes
+- note:

@@ -1,0 +1,137 @@
+{
+  "purpose": "misattribution audit: the share of evidence-carrying mentions whose verbatim-true quote is attached to the wrong aspect or an uncarried sentiment",
+  "created_at": "2026-08-05T00:23:17.415055+00:00",
+  "code_version": "cabbfe7+dirty",
+  "sheet_path": "eval/audits/misattribution/SHEET.md",
+  "sheet_sha256": "3b6b98288a04646605bea18aa0e84efde7df32f15b28746dc1465aba660b2c7d",
+  "sample_path": "eval/audits/misattribution/sample.jsonl",
+  "sample_sha256": "c74628b96d87bbcf081f7a68926cee3511f6e816f6632db20ae3cbe295eb63e0",
+  "skips": [
+    {
+      "item": 42,
+      "cause": "non_english",
+      "replacement_reserve": 1
+    },
+    {
+      "item": 100,
+      "cause": "non_english",
+      "replacement_reserve": 2
+    }
+  ],
+  "n_claims": 100,
+  "misattribution": {
+    "n_yes": 84,
+    "n_no": 11,
+    "n_unclear": 0,
+    "rate": 0.11578947368421053,
+    "ci_low": 0.06589857581116428,
+    "ci_high": 0.19554494322443078
+  },
+  "n_undecided": 5,
+  "aspect_supported": {
+    "n_yes": 86,
+    "n_no": 10,
+    "n_unclear": 4,
+    "rate": 0.10416666666666667,
+    "ci_low": 0.057571532417443415,
+    "ci_high": 0.18122164130321652
+  },
+  "sentiment_supported": {
+    "n_yes": 95,
+    "n_no": 3,
+    "n_unclear": 2,
+    "rate": 0.030612244897959183,
+    "ci_low": 0.010464891082493703,
+    "ci_high": 0.0861702016847983
+  },
+  "misattributed_claims": [
+    {
+      "item": 19,
+      "review_id": "226314502",
+      "mention_id": 131430,
+      "aspect_supported": "no",
+      "sentiment_supported": "yes",
+      "note": "I would use updates label here."
+    },
+    {
+      "item": 30,
+      "review_id": "227667982",
+      "mention_id": 158318,
+      "aspect_supported": "no",
+      "sentiment_supported": "yes",
+      "note": "not cheating because this is not online game, it could count as bug. however this is about mod talking, this review should be labeled with mods. the quoted part, is talking about mods, not cheating or bugs or glitches."
+    },
+    {
+      "item": 34,
+      "review_id": "227288289",
+      "mention_id": 151207,
+      "aspect_supported": "no",
+      "sentiment_supported": "no",
+      "note": "it is not talking about mods, there is nothing positive about this review."
+    },
+    {
+      "item": 40,
+      "review_id": "224050717",
+      "mention_id": 90100,
+      "aspect_supported": "no",
+      "sentiment_supported": "yes",
+      "note": "not about learning_curve, I think it is saying the audience of the game is everyone."
+    },
+    {
+      "item": 44,
+      "review_id": "153342625",
+      "mention_id": 17652,
+      "aspect_supported": "no",
+      "sentiment_supported": "yes",
+      "note": "I would pick balance, not about behaviour. health / speed / strength type of things should be counted as balance not behaviour."
+    },
+    {
+      "item": 47,
+      "review_id": "100915977",
+      "mention_id": 112,
+      "aspect_supported": "no",
+      "sentiment_supported": "yes",
+      "note": null
+    },
+    {
+      "item": 49,
+      "review_id": "225344634",
+      "mention_id": 94628,
+      "aspect_supported": "no",
+      "sentiment_supported": "no",
+      "note": "this is a suggestion, not even a aspect of the game."
+    },
+    {
+      "item": 70,
+      "review_id": "226376546",
+      "mention_id": 126817,
+      "aspect_supported": "no",
+      "sentiment_supported": "yes",
+      "note": "developer_conduct is more suitable here."
+    },
+    {
+      "item": 72,
+      "review_id": "218361459",
+      "mention_id": 62796,
+      "aspect_supported": "no",
+      "sentiment_supported": "yes",
+      "note": "stability is the correct label for the crashes."
+    },
+    {
+      "item": 91,
+      "review_id": "227025441",
+      "mention_id": 145584,
+      "aspect_supported": "no",
+      "sentiment_supported": "yes",
+      "note": "not about difficulty."
+    },
+    {
+      "item": 98,
+      "review_id": "204323105",
+      "mention_id": 44760,
+      "aspect_supported": "yes",
+      "sentiment_supported": "no",
+      "note": "the whole sentiment of the review negative. just saying I didnt waste a lot of money, but still a waste."
+    }
+  ]
+}

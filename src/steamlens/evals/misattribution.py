@@ -17,6 +17,13 @@ decidable claims: any ``no`` decides a claim misattributed, a double ``yes``
 decides it supported, anything else is undecided and disclosed. Intervals
 are Wilson at 95%.
 
+An unauditable primary (a non-English review that slipped the language
+filter) is SKIPped on the sheet and replaced from the draw's ordered
+reserves — the gold-workbook pattern. A replacement renders as item
+``100 + reserve_number`` and must be consumed strictly in reserve order, so
+the audited set stays a deterministic function of the draw and the skip
+causes, never a choice.
+
 An audit has no measuring stick, so per the eval-harness ruling it stays out
 of ``eval_runs`` and renders as a regenerable report — a table on the
 console and ``report.json`` beside the sheet, both carrying the sheet and
@@ -40,9 +47,14 @@ from steamlens.dispatch import code_version
 
 VERDICT_WORDS: Final = frozenset({"yes", "no", "unclear"})
 
+RESERVE_ITEM_BASE: Final = 100
+"""Sheet item numbers above this map to reserves (sheet 101 = reserve 1), so
+replacement blocks join the sample without renumbering the draw."""
+
 _HEADER_RE = re.compile(r"^## (\d+) ·")
 _IDS_RE = re.compile(r"^review `(\S+)` · mention `(\d+)`$")
 _FIELD_RE = re.compile(r"^- (aspect_supported|sentiment_supported|note):\s*(.*)$")
+_SKIP_RE = re.compile(r"^SKIP: (non_english|empty_text)\.?$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -139,26 +151,42 @@ def compute_reading(verdicts: Sequence[ClaimVerdict]) -> AuditReading:
     )
 
 
-def parse_audit_sheet(path: Path) -> tuple[tuple[ClaimVerdict, ...], tuple[str, ...]]:
-    """Parse the edited audit sheet into claim verdicts plus violations.
+def parse_audit_sheet(
+    path: Path,
+) -> tuple[tuple[ClaimVerdict, ...], tuple[tuple[int, str], ...], tuple[str, ...]]:
+    """Parse the edited audit sheet into (claim verdicts, skips, violations).
 
     Line-shaped like the labeling-sheet grammar: claim headers, an id line,
     ``- <field>: <value>`` verdict lines; blockquotes (the claim's context),
-    ``---`` separators, and blanks are ignored. Verdict words are matched
-    case-insensitively after stripping (a hand-filled ``Yes`` is a verdict,
-    not a violation) but an empty or foreign value is a violation naming its
-    line — the pass is incomplete or drifted, and either must be fixed at
-    the sheet, never patched at the parser.
+    ``---`` separators, and blanks are ignored. A ``SKIP: <cause>`` line
+    marks the claim unauditable — it lands in ``skips`` as ``(item, cause)``
+    and must carry no verdicts (both is a violation: a skipped claim was not
+    judged). Verdict words are matched case-insensitively after stripping (a
+    hand-filled ``Yes`` is a verdict, not a violation) but an empty or
+    foreign value is a violation naming its line — the pass is incomplete or
+    drifted, and either must be fixed at the sheet, never patched at the
+    parser.
     """
     violations: list[str] = []
     claims: list[ClaimVerdict] = []
+    skips: list[tuple[int, str]] = []
     item: int | None = None
     ids: tuple[str, int] | None = None
     fields: dict[str, str | None] = {}
+    skip_cause: str | None = None
 
     def close_block(where: str) -> None:
-        nonlocal item, ids, fields
+        nonlocal item, ids, fields, skip_cause
         if item is None:
+            return
+        if skip_cause is not None:
+            if any(v for v in (fields.get("aspect_supported"), fields.get("sentiment_supported"))):
+                violations.append(
+                    f"{where}: claim {item:03d} is SKIPped but carries verdicts"
+                )
+            else:
+                skips.append((item, skip_cause))
+            item, ids, fields, skip_cause = None, None, {}, None
             return
         if ids is None:
             violations.append(f"{where}: claim {item:03d} has no id line")
@@ -188,7 +216,7 @@ def parse_audit_sheet(path: Path) -> tuple[tuple[ClaimVerdict, ...], tuple[str, 
                         note=fields.get("note") or None,
                     )
                 )
-        item, ids, fields = None, None, {}
+        item, ids, fields, skip_cause = None, None, {}, None
 
     for lineno, raw_line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         where = f"{path.name}:{lineno}"
@@ -204,6 +232,10 @@ def parse_audit_sheet(path: Path) -> tuple[tuple[ClaimVerdict, ...], tuple[str, 
         if id_match:
             ids = (id_match.group(1), int(id_match.group(2)))
             continue
+        skip = _SKIP_RE.match(line)
+        if skip:
+            skip_cause = skip.group(1)
+            continue
         field = _FIELD_RE.match(line)
         if field:
             name, value = field.group(1), field.group(2).strip()
@@ -211,35 +243,55 @@ def parse_audit_sheet(path: Path) -> tuple[tuple[ClaimVerdict, ...], tuple[str, 
             continue
         violations.append(f"{where}: unparseable line: {line!r}")
     close_block(f"{path.name}:EOF")
-    return tuple(claims), tuple(violations)
+    return tuple(claims), tuple(skips), tuple(violations)
 
 
 def verify_against_sample(
-    verdicts: Sequence[ClaimVerdict], sample_path: Path
+    verdicts: Sequence[ClaimVerdict],
+    skips: Sequence[tuple[int, str]],
+    sample_path: Path,
 ) -> tuple[str, ...]:
-    """Check the parsed sheet covers the sample's primaries exactly, ids agreeing.
+    """Check coverage and identity: primaries filled-or-skipped, reserves in order.
 
-    The sheet renders the 100 primary claims; the ordered reserves live only
-    in ``sample.jsonl``. Coverage or identity drift means the sheet was
-    edited structurally, not just filled — a scoring stop, not a warning.
+    The sheet renders the 100 primary claims; a skipped primary consumes the
+    next ordered reserve, rendered as item ``RESERVE_ITEM_BASE + n``. Exactly
+    the first ``len(skips)`` reserves must be filled — consuming them out of
+    order (or over- or under-consuming) would make the audited set a choice
+    instead of a rule. Coverage or identity drift means the sheet was edited
+    structurally, not just filled — a scoring stop, not a warning.
     """
     primaries: dict[int, dict[str, object]] = {}
+    reserves: dict[int, dict[str, object]] = {}
     with sample_path.open(encoding="utf-8") as f:
         for line in f:
             record = json.loads(line)
-            if record["role"] == "primary":
-                primaries[record["item"]] = record
+            (primaries if record["role"] == "primary" else reserves)[record["item"]] = record
     violations: list[str] = []
-    seen = [v.item for v in verdicts]
-    if sorted(seen) != sorted(primaries):
-        missing = sorted(set(primaries) - set(seen))
-        extra = sorted(set(seen) - set(primaries))
+    skipped = {item for item, _ in skips}
+    if not skipped <= set(primaries):
+        violations.append(f"skipped items are not primaries: {sorted(skipped - set(primaries))}")
+    filled_primary = {v.item for v in verdicts if v.item <= RESERVE_ITEM_BASE}
+    expected_primary = set(primaries) - skipped
+    if filled_primary != expected_primary:
+        missing = sorted(expected_primary - filled_primary)
+        extra = sorted(filled_primary - expected_primary)
         violations.append(
             f"claim coverage mismatch vs the sample's primaries "
             f"(missing {missing[:5]}, extra {extra[:5]})"
         )
+    filled_reserve = {v.item - RESERVE_ITEM_BASE for v in verdicts if v.item > RESERVE_ITEM_BASE}
+    expected_reserve = set(range(1, len(skips) + 1))
+    if filled_reserve != expected_reserve:
+        violations.append(
+            f"replacement mismatch: {len(skips)} skip(s) must consume reserves "
+            f"{sorted(expected_reserve)} in order, sheet has {sorted(filled_reserve)}"
+        )
     for v in verdicts:
-        record = primaries.get(v.item)
+        record = (
+            primaries.get(v.item)
+            if v.item <= RESERVE_ITEM_BASE
+            else reserves.get(v.item - RESERVE_ITEM_BASE)
+        )
         if record is None:
             continue
         if record["review_id"] != v.review_id or record["mention_id"] != v.mention_id:
@@ -263,9 +315,14 @@ def _field_json(reading: FieldReading) -> dict[str, object]:
 
 
 def render_report(
-    reading: AuditReading, *, sheet_path: Path, sample_path: Path, created_at: datetime
+    reading: AuditReading,
+    *,
+    sheet_path: Path,
+    sample_path: Path,
+    created_at: datetime,
+    skips: Sequence[tuple[int, str]] = (),
 ) -> str:
-    """The audit as regenerable JSON — pins, rates, and the failing claims."""
+    """The audit as regenerable JSON — pins, rates, skips, and the failing claims."""
     return json.dumps(
         {
             "purpose": "misattribution audit: the share of evidence-carrying mentions "
@@ -277,6 +334,10 @@ def render_report(
             "sheet_sha256": hashlib.sha256(sheet_path.read_bytes()).hexdigest(),
             "sample_path": sample_path.as_posix(),
             "sample_sha256": hashlib.sha256(sample_path.read_bytes()).hexdigest(),
+            "skips": [
+                {"item": item, "cause": cause, "replacement_reserve": n + 1}
+                for n, (item, cause) in enumerate(skips)
+            ],
             "n_claims": reading.n_claims,
             "misattribution": _field_json(reading.combined),
             "n_undecided": reading.n_undecided,
@@ -343,8 +404,8 @@ def main() -> None:
 
     sheet_path = args.audit_dir / "SHEET.md"
     sample_path = args.audit_dir / "sample.jsonl"
-    verdicts, violations = parse_audit_sheet(sheet_path)
-    problems = list(violations) + list(verify_against_sample(verdicts, sample_path))
+    verdicts, skips, violations = parse_audit_sheet(sheet_path)
+    problems = list(violations) + list(verify_against_sample(verdicts, skips, sample_path))
     if problems:
         print(f"{len(problems)} FINDING(S):")
         for p in problems:
@@ -353,6 +414,8 @@ def main() -> None:
 
     reading = compute_reading(verdicts)
     print(render_table(reading))
+    for item, cause in skips:
+        print(f"  skipped {item:03d} ({cause}), replaced from the ordered reserve")
     if args.dry_run:
         print("dry run — report.json not written")
         return
@@ -363,6 +426,7 @@ def main() -> None:
             sheet_path=sheet_path,
             sample_path=sample_path,
             created_at=datetime.now(UTC),
+            skips=skips,
         )
         + "\n",
         encoding="utf-8",
