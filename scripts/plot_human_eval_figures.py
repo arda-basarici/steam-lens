@@ -102,7 +102,7 @@ def plot_gradient(rows: list[dict], overall: dict, path: Path) -> None:
                 yerr=[[r["value"] - r["lo"] for r in rows],
                       [r["hi"] - r["value"] for r in rows]],
                 fmt="none", ecolor=CONTRAST, elinewidth=2, capsize=4)
-    for x, r in zip(xs, rows):
+    for x, r in zip(xs, rows, strict=True):
         ax.annotate(f"{r['value']:.3f}", xy=(x, r["lo"]),
                     xytext=(0, -12), textcoords="offset points",
                     ha="center", color="#333333", fontsize=9)
@@ -126,7 +126,7 @@ def plot_certificates(rows: list[dict], path: Path) -> None:
                 fmt="o", color=ACCENT, ecolor=ACCENT,
                 elinewidth=1.4, capsize=4,
                 markersize=6, markeredgecolor="white", markeredgewidth=0.5)
-    for x, r in zip(xs, rows):
+    for x, r in zip(xs, rows, strict=True):
         ax.annotate(f"{r['value']:.3f}", xy=(x, r["value"]),
                     xytext=(8, 6), textcoords="offset points",
                     color="#333333", fontsize=9)

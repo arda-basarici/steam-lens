@@ -20,6 +20,7 @@ every page carries a DRAFT footer.
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from pathlib import Path
 
@@ -247,8 +248,6 @@ def verify_data() -> None:
 
 
 # ---------------------------------------------------------------- md-lite -> reportlab markup
-
-import re
 
 _MD_RULES = [
     (re.compile(r"\*\*(.+?)\*\*", re.S), r"<b>\1</b>"),
@@ -572,7 +571,8 @@ INSTRUMENT = [
           "is containment by storage: nothing non-census can reach the production pool, so "
           "the two-track wall (displayed numbers come from the survey mint only) holds by "
           "construction. And because the census's certificate certifies only the census's "
-          "labels, the buy, the paid labeling run, carried its own: a fresh certification against gold under the "
+          "labels, the buy, the paid labeling run, carried its own: a fresh certification "
+          "against gold under the "
           "frozen triple, F1 0.776 [0.727\u20130.818] beside July's 0.791 "
           "[0.742\u20130.836]. Two runs of one instrument make a two-point drift series, "
           "consistent with the standing buy-time-variance rule from Milestone 1."),
@@ -596,7 +596,8 @@ Q1 = [
           "ladder densified at the low end (100 / 250 / 500 / 750 / 1,000 / 1,500 / "
           "2,000 / 3,000 / 5,000). The windowed policies are deterministic, one draw per cell, "
           "with the anchor grid supplying the replication; only the uniform reference "
-          "repeats, at 200 seeded draws per cell. The census pays its dividend here: a simulated draw resamples stored labels, CPU "
+          "repeats, at 200 seeded draws per cell. The census pays its dividend here: a "
+          "simulated draw resamples stored labels, CPU "
           "only, zero LLM spend, so density costs minutes rather than dollars. The full "
           "sweep, 49 games × anchors × 4 policies × the nine-size ladder "
           "(5,476 cells, 255,744 persisted measurement rows), ran in about five minutes "
@@ -772,7 +773,8 @@ Q3 = [
     ("p", "Three candidate formulas were computed on every simulated draw. Wilson, the "
           "design-naive binomial interval, held roughly 92\u201397% measured coverage "
           "pooled across all policies and sizes. Bootstrap-over-reviews collapsed at small "
-          "samples, near 60% coverage at n = 100: with few expected successes per draw the resampled "
+          "samples, near 60% coverage at n = 100: with few expected successes per draw "
+          "the resampled "
           "statistic collapses onto a few lattice points and the percentile interval "
           "degenerates. The design-aware stratified interval with its finite-population "
           "correction, the sophisticated candidate, under-covered persistently (roughly "
@@ -820,7 +822,8 @@ Q3 = [
           "applied once more: the whole race had been about pricing pretenses (Wilson won "
           "it because its pretense was least wrong), so the consistent move is to pay for "
           "the windowed pretense explicitly. The shipped interval quotes Wilson's width "
-          "plus a measured per-band constant allowance. The signed-bias view (question 1) made the shape "
+          "plus a measured per-band constant allowance. The signed-bias view (question 1) "
+          "made the shape "
           "clean: no policy hides a net direction, so there is nothing to re-center; the "
           "point estimate stands and only the width inflates. Take-all pools quote the "
           "exact number and no interval at all."),
@@ -1049,7 +1052,8 @@ Q5 = [
           "review, and a ten-mention review needs all ten matches to score one agreement, "
           "so it does not share a ruler with the mention-level certification F1 of 0.766. "
           "And its decomposition changes what it means: **sentiment-given-matched-aspects "
-          "is 0.988** (83 of the 84 aspect-matched reviews). When the two readers agree on what a review discusses, they almost "
+          "is 0.988** (83 of the 84 aspect-matched reviews). When the two readers agree "
+          "on what a review discusses, they almost "
           "never disagree on how the reviewer feels about it. The entire disagreement is "
           "aspect selection."),
     ("p", "The stratum gradient is the study-design payoff, and the limitations section's "
@@ -1086,7 +1090,8 @@ Q5 = [
           "skip-and-replace under a coverage-enforcing reserve). The decomposition matches "
           "the holdout from the other side: aspect-side failures 10.4%, sentiment-side "
           "3.1% (two claims fail both sides, so the sub-rates overlap rather than "
-          "sum to the total). And the failure profile is the interesting part. Nearly every aspect miss "
+          "sum to the total). And the failure profile is the interesting part. Nearly "
+          "every aspect miss "
           "is close-family routing: crashes filed under `bugs` where the codebook puts "
           "hard failures under `stability`, developer-incompetence rants filed as "
           "`updates`, enemy stat-tuning filed as `ai_behavior` where the codebook routes "
