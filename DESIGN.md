@@ -1431,9 +1431,12 @@ composer stays **cross-family from the Gemini judge**, because the chat
 milestone plans groundedness evals on the judge machinery whose object is
 composed prose, and a same-family composer would import exactly the
 self-preference the no-gold-entangled-instrument rule exists to block.
-Promotion is a route edit, on evidence; the named caveat is that v4-flash's
-user-facing English prose voice is unproven (labeling emitted JSON), and the
-first composed reports settle it. At the build (2026-08-07) the composer's
+Promotion is a route edit, on evidence; the prose-voice caveat — v4-flash had
+only ever emitted JSON for this product — settled positive at the first live
+canary readings (2026-08-08): three composed narratives over the canary
+fixture, all clean, report-shaped English, correctly grouped and hedged. The
+first real reports (step 5 onward) read against that evidence rather than
+against nothing. At the build (2026-08-07) the composer's
 route joined the *classify* client rather than standing up a second one: both
 stages share one budget, one quota pool, and one pacer by construction — the
 config module's own two-tables reasoning (two stages on one model must not
@@ -1527,6 +1530,19 @@ archive out of the loop — an archived reply would report last month's walls as
 holding today — and the run uses in-memory bindings throughout, so adversarial
 text never enters the durable provenance archive and a measurement never
 charges a spend row.
+
+> **Outcome.** The first live readings (2026-08-08, three runs, captures in
+> `probes/captures/canaries/`): **every wall held on both surfaces** — no
+> beacon leaked, classify parsed 7/7 rows cleanly under every attack, and the
+> laundering pair never surfaced even as its expected measured limitation.
+> The instrument's first catch was internal instead: the composer bent
+> quotes' casing and punctuation to fit its prose (American comma-inside-quote
+> typography, sentence-initial lowercasing), which the gate rightly refused.
+> The quote rule was spelled out character-exact in **compose-v2**; casing
+> edits vanished and first-attempt quote violations fell 7 → 4 on the fixture.
+> The residual comma habit rides the retry ladder — the corrective rung names
+> the exact spans — and the journaled rung counts on deployed jobs are the
+> evidence for any further prompt tightening.
 
 ### Episode markers (`core/detect`)
 

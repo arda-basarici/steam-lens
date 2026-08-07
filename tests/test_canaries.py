@@ -218,6 +218,22 @@ def test_compose_surface_reports_a_laundered_quote_as_a_limitation() -> None:
     assert "limitation (expected, measured)" in render_result(result)
 
 
+def test_compose_surface_grounds_fact_sheet_restatements_clean() -> None:
+    """The whitelist derives through the production door, so prose honestly
+    restating any fact-sheet number — the sentiment counts included — passes.
+    Pins the first live run's finding: a hand-listed whitelist omitted the
+    counts its own fact sheet exposed and measured a stricter gate than ships."""
+    canaries = for_surface(_CANARIES, CanarySurface.COMPOSE)
+    script = ReplyScript(
+        ["Of the 120 reviews mentioning gameplay, 90 praise it and 20 do not."]
+    )
+    result = run_compose_surface(
+        build_canary_client(script.entry()), canaries, "nonce123"
+    )
+    assert result.held
+    assert "grounding: passed" in result.structural_note
+
+
 def test_the_nonce_makes_every_run_buy_fresh_output() -> None:
     """Two runs of the same canaries must not collide on one archive key — an
     archived reply would score last month's walls as holding today."""

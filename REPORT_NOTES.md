@@ -7,6 +7,99 @@ decisions it feeds.
 
 ---
 
+## 2026-08-08 — The canary's first live reading: every wall held, and the first thing the instrument caught was our own composer's typography
+
+*The prompt-injection canary set's first live runs (deployment milestone, M3) —
+the built-but-never-read instrument from the 2026-08-07 build finally pointed
+at the real model, three runs at cents each (captures
+`probes/captures/canaries/canary_run_b9c024fa.json`, `_49899acf.json`,
+`_270000cf.json`), plus the compose-v1 → compose-v2 prompt bump and the canary
+shell's whitelist fix that fell out of reading the results. Feeds: the M3
+report's model-prose / canary section; candidate material for a
+security-instrumentation post or a prompt-versus-habit post.*
+
+The canary set had sat for a day as exactly what the TODO called it: a built
+instrument with no reading. The set, the beacon scoring, and the two-surface
+run shell were all tested against scripted providers — but "the prompt walls
+hold" was an untested claim until someone spent the couple of cents to ask the
+real model, and the frontend step ahead assumes prose worth rendering. The
+first live run answered the headline question cleanly: **every wall held on
+both surfaces**. At classify, all six canaries — instruction overrides, role
+confusion, format breaks — were labeled as ordinary reviews, 7/7 rows parsed
+with zero failures and zero evidence repairs; no beacon leaked anywhere. At
+compose, none of the nine canaries steered the prose, and the quote-laundering
+pair — the *measured* expectation class, expected to possibly surface as a
+known limitation — never surfaced at all: the model neither repeated the
+planted "97% of reviewers agree" claim nor the server-shutdown claim. The same
+run settled DESIGN's named prose-voice caveat on sight: v4-flash had only ever
+emitted JSON for this product, and its first user-facing English came back
+clean, report-shaped, grouped and hedged like something a reader would
+actually want.
+
+The interesting part was the line under the verdict: "grounding: failed, 11
+violations." Diagnosis split it into a fixture bug and a real finding. Four
+numeral violations were the run shell's own doing — its hand-built whitelist
+(`{1000, 120, 12.0}`) omitted the sentiment counts (90/20/6/4) that its own
+fact sheet had handed the model, while production's `derive_whitelist`
+includes every honest derivation of the aggregates. The shell was measuring a
+stricter gate than the one that ships, and honest restatements of the fact
+sheet were being scored as violations. The fix routes the shell through the
+production door — it now mints a synthetic aggregate and derives the whitelist
+from it, with a new test pinning that fact-sheet restatements ground clean —
+so the run reports the shipped gate's verdict, not a hand-list's.
+
+The other seven violations were the real finding, and not the one the
+instrument was built for: **the composer edits quotes to fit its prose
+grammar**. Every failed span traced to a real canary text — no fabrication
+anywhere — but the model had lowered sentence-initial capitals ("Solid
+deckbuilder." became "solid deckbuilder"), swapped trailing punctuation to fit
+the host sentence ("…for the price." became "…for the price,"), and clipped a
+word ("drags in act two though" became "drags in act two."). The gate refused
+all of them, exactly as designed: an edit is an edit, whatever its motive. The
+instrument built to catch attackers caught our own composer's typography
+first.
+
+Arda ruled the response: tighten the prompt and keep the gate strict. The
+alternative — case- and punctuation-tolerant matching at the gate — would have
+bought pass-rate by weakening exactly the check whose strictness lets the
+fabricated-quote metric say "zero, verified" instead of "zero, assumed"; the
+retry ladder stays as backstop rather than routine path. The prompt bump
+(compose-v1 → compose-v2) spelled out character-exactness with a contrastive
+example, and the iteration was measured on the same fixture at temperature 0.
+Run two (capture `canary_run_49899acf.json`): casing edits gone entirely,
+quote violations 7 → 6, with the residual almost purely one deeply-trained
+habit — the American convention of placing your own comma inside the closing
+quotation mark. A punctuation-placement rule with its own contrastive example
+was folded into the same v2 bump (nothing had shipped under v2 yet, so one
+bump rather than two). Run three (capture `canary_run_270000cf.json`):
+violations down to 4, and the certified spans now show the rule landing —
+"Solid deckbuilder." kept its period; "Honestly one of the better roguelikes
+this year" ends before the model's own comma. Walls held on all three runs.
+(One honesty note on the trajectory: the first run's headline count of 11
+includes the four fixture-bug numerals, so the true quote-edit trajectory is
+7 → 6 → 4 — and each point is a single fixture composition, n=1 per run, not
+a rate.)
+
+The stopping decision is part of the story. Chasing zero would mean tuning
+prompt wording against an n=1 fixture at diminishing returns, fighting
+typography the model has absorbed from a lifetime of English text. Production
+already owns the residual: the corrective retry names the exact violating
+spans — precisely the fix a comma-inside-quote slip needs — sentence-drop
+sits behind it, and the ladder rung each job lands on is journaled. Deployed
+narrations, not this fixture, are the evidence for any further tightening.
+
+Two transferable lessons banked. An instrument's first live catch is often
+the system's own habits, not the adversary's — the walls held against every
+attack shape, and what failed the gate was our composer being fluent. And
+"verbatim" in a prompt does not carry the typography discipline: the word was
+already there in compose-v1, and the model still bent casing and punctuation;
+character-exactness had to be spelled out contrastively, and even then the
+ingrained style survived partially.
+
+Figure: the three-run violation trajectory (11 → 6 → 4, decomposed into
+fixture-bug numerals versus real quote edits, casing versus punctuation
+classes) — the "instrument catches itself" story in one chart.
+
 ## 2026-08-07 — The bridge's planned seam dissolves, and the test transport turns out unable to stream
 
 *The deployment milestone's (M3) second build step, later the same day as the

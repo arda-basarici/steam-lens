@@ -14,7 +14,11 @@ numeral in prose dies there.
 The prompt is a versioned artifact under the classify precedent:
 ``COMPOSE_PROMPT_VERSION`` names the annotation contract and a golden test pins
 a content hash of the render, so a silent wording edit fails CI instead of
-quietly shifting the composed voice under a stable version. Layout is
+quietly shifting the composed voice under a stable version (v2 spelled out
+character-exactness in the quote rule after the first live canary run showed
+the composer bending quotes' casing and punctuation to fit its sentences —
+edits the gate rightly refuses, so the prompt now forbids them explicitly
+rather than paying the retry ladder for them routinely). Layout is
 stable-prefix / variable-suffix — framing and rules precede the per-job fact
 sheet and evidence — for the provider's prefix cache.
 
@@ -43,7 +47,7 @@ from steamlens.contracts import (
     SentimentCounts,
 )
 
-COMPOSE_PROMPT_VERSION: Final = "compose-v1"
+COMPOSE_PROMPT_VERSION: Final = "compose-v2"
 
 # The quote length band: below the floor a span carries no context worth
 # quoting ("gorgeous"), above the cap it stops being a quote and starts being
@@ -192,9 +196,15 @@ Rules:
    honestly rounded ("27.3%" may appear as "27%"). Never introduce a number
    from anywhere else, and never estimate — "roughly 40%" is a violation
    unless 40% is on the sheet.
-2. Quotes: you may quote player wording only from the evidence block, verbatim,
-   wrapped in straight double quotes ("..."). Shortening to a clean sub-span is
-   fine; altering, splicing, or inventing a quotation is not.
+2. Quotes: you may quote player wording only from the evidence block, wrapped
+   in straight double quotes ("..."). A quotation must be a character-exact
+   span of one evidence text — capitalization and punctuation included, so
+   "Solid game." may not become "solid game". Shortening to a clean sub-span
+   is fine; altering, splicing, or inventing a quotation is not. Punctuation
+   of your own always goes outside the closing quote: write the quote "solid
+   game", then your comma — never "solid game," with a comma the player did
+   not write. When a span's casing or punctuation does not fit your sentence,
+   reshape the sentence, never the span.
 3. The recurring themes listed beyond the calibrated vocabulary are
    uncalibrated: you may name them as things players bring up, but never
    attach a number to them.

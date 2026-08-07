@@ -40,6 +40,9 @@ from pathlib import Path
 from typing import Final
 
 from steamlens.contracts import (
+    AspectAggregate,
+    AspectSlot,
+    ClassifierVersions,
     EvidenceQuote,
     LlmRequest,
     LlmStage,
@@ -49,7 +52,7 @@ from steamlens.contracts import (
 )
 from steamlens.core.classify import build_classify_prompt, parse_classify_response
 from steamlens.core.compose import AspectBrief, ComposeFacts, build_compose_prompt
-from steamlens.core.grounding import ground, normalize_quotes
+from steamlens.core.grounding import derive_whitelist, ground, normalize_quotes
 from steamlens.core.normalize import build_surface_index
 from steamlens.dispatch import code_version
 from steamlens.dispatch.census_arm import KEY_ENV, MODEL_ID, PROVIDER
@@ -153,7 +156,11 @@ def run_compose_surface(
     quotable. The grounding gate then runs over the reply as it would in a
     job, and its verdict rides in the structural note — a beacon that arrives
     *as a verified quotation* is the laundering case, and the note is where
-    that shows.
+    that shows. The whitelist derives from the fixture aggregate through
+    ``derive_whitelist`` — the production derivation, not a hand-list — so
+    the note reports the shipped gate's verdict rather than a stricter one
+    (the first live run's hand-list omitted the fact sheet's own sentiment
+    counts and mislabeled honest restatements as violations).
     """
     quotes = tuple(
         EvidenceQuote(
@@ -164,16 +171,30 @@ def run_compose_surface(
         )
         for canary in canaries
     )
+    aggregate = AspectAggregate(
+        app_id=0,
+        aspect=_CANARY_ASPECT,
+        slot=AspectSlot.PINNED,
+        reviews_with_aspect=_CANARY_MENTIONS,
+        counts=SentimentCounts(positive=90, negative=20, mixed=6, neutral=4),
+        sample_size=_SAMPLE_SIZE,
+        versions=ClassifierVersions(
+            model_version=MODEL_ID,
+            prompt_version="canary-fixture",
+            ontology_version="canary-fixture",
+        ),
+        manifest_id=f"canary-{nonce}",
+    )
     facts = ComposeFacts(
         game_name=f"Canary Run {nonce}",
-        sample_size=_SAMPLE_SIZE,
+        sample_size=aggregate.sample_size,
         take_all=False,
         aspects=(
             AspectBrief(
-                aspect=_CANARY_ASPECT,
-                reviews_with_aspect=_CANARY_MENTIONS,
-                share_pct=_CANARY_MENTIONS / _SAMPLE_SIZE * 100,
-                counts=SentimentCounts(positive=90, negative=20, mixed=6, neutral=4),
+                aspect=aggregate.aspect,
+                reviews_with_aspect=aggregate.reviews_with_aspect,
+                share_pct=aggregate.reviews_with_aspect / aggregate.sample_size * 100,
+                counts=aggregate.counts,
                 quotes=quotes,
             ),
         ),
@@ -182,7 +203,7 @@ def run_compose_surface(
     prompt = build_compose_prompt(facts)
     response = client.complete(LlmRequest(stage=LlmStage.COMPOSE, prompt=prompt))
     prose = normalize_quotes(response.text.strip())
-    whitelist = frozenset({float(_SAMPLE_SIZE), float(_CANARY_MENTIONS), 12.0})
+    whitelist = derive_whitelist([aggregate], sample_size=aggregate.sample_size)
     grounding = ground(prose, whitelist, quotes)
     note = (
         f"grounding: {'passed' if grounding.passed else 'failed'}, "

@@ -231,6 +231,6 @@ def test_prompt_content_pinned_to_version() -> None:
     render = build_compose_prompt(_FIXTURE_FACTS)
     content_hash = hashlib.sha256(render.encode("utf-8")).hexdigest()
     assert (COMPOSE_PROMPT_VERSION, content_hash) == (
-        "compose-v1",
-        "6968155c846fcf14a7549e85635c24e59b2e5bae0362490b8ed9bfddd77b139a",
+        "compose-v2",
+        "388841550482b21ab4c516bba369273e064e8c22d849fb2984ccd407e4bc862c",
     ), "prompt content changed: bump COMPOSE_PROMPT_VERSION and re-pin this hash"
