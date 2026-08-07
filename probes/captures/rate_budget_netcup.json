@@ -1,0 +1,2122 @@
+{
+  "egress_ip": "188.68.41.104",
+  "paced": {
+    "summary": {
+      "sent": 200,
+      "ok": 200,
+      "status_counts": {
+        "200": 200
+      },
+      "latency_ms": {
+        "p50": 236,
+        "p95": 308,
+        "max": 406
+      },
+      "first_non_200": null
+    },
+    "records": [
+      {
+        "seq": 0,
+        "appid": 440,
+        "t_offset_s": 0.28,
+        "elapsed_ms": 276,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 1,
+        "appid": 49520,
+        "t_offset_s": 1.83,
+        "elapsed_ms": 329,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 2,
+        "appid": 227300,
+        "t_offset_s": 3.23,
+        "elapsed_ms": 232,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 3,
+        "appid": 236850,
+        "t_offset_s": 4.77,
+        "elapsed_ms": 272,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 4,
+        "appid": 252950,
+        "t_offset_s": 6.31,
+        "elapsed_ms": 313,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 5,
+        "appid": 750920,
+        "t_offset_s": 7.77,
+        "elapsed_ms": 269,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 6,
+        "appid": 1091500,
+        "t_offset_s": 9.24,
+        "elapsed_ms": 245,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 7,
+        "appid": 440,
+        "t_offset_s": 10.72,
+        "elapsed_ms": 217,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 8,
+        "appid": 49520,
+        "t_offset_s": 12.24,
+        "elapsed_ms": 244,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 9,
+        "appid": 227300,
+        "t_offset_s": 13.74,
+        "elapsed_ms": 240,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 10,
+        "appid": 236850,
+        "t_offset_s": 15.31,
+        "elapsed_ms": 306,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 11,
+        "appid": 252950,
+        "t_offset_s": 16.8,
+        "elapsed_ms": 305,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 12,
+        "appid": 750920,
+        "t_offset_s": 18.23,
+        "elapsed_ms": 227,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 13,
+        "appid": 1091500,
+        "t_offset_s": 19.75,
+        "elapsed_ms": 250,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 14,
+        "appid": 440,
+        "t_offset_s": 21.2,
+        "elapsed_ms": 203,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 15,
+        "appid": 49520,
+        "t_offset_s": 22.74,
+        "elapsed_ms": 241,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 16,
+        "appid": 227300,
+        "t_offset_s": 24.23,
+        "elapsed_ms": 234,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 17,
+        "appid": 236850,
+        "t_offset_s": 25.73,
+        "elapsed_ms": 232,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 18,
+        "appid": 252950,
+        "t_offset_s": 27.21,
+        "elapsed_ms": 209,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 19,
+        "appid": 750920,
+        "t_offset_s": 28.79,
+        "elapsed_ms": 290,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 20,
+        "appid": 1091500,
+        "t_offset_s": 30.23,
+        "elapsed_ms": 234,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 21,
+        "appid": 440,
+        "t_offset_s": 31.7,
+        "elapsed_ms": 199,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 22,
+        "appid": 49520,
+        "t_offset_s": 33.23,
+        "elapsed_ms": 226,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 23,
+        "appid": 227300,
+        "t_offset_s": 34.73,
+        "elapsed_ms": 231,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 24,
+        "appid": 236850,
+        "t_offset_s": 36.29,
+        "elapsed_ms": 285,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 25,
+        "appid": 252950,
+        "t_offset_s": 37.77,
+        "elapsed_ms": 272,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 26,
+        "appid": 750920,
+        "t_offset_s": 39.26,
+        "elapsed_ms": 261,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 27,
+        "appid": 1091500,
+        "t_offset_s": 40.72,
+        "elapsed_ms": 222,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 28,
+        "appid": 440,
+        "t_offset_s": 42.29,
+        "elapsed_ms": 287,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 29,
+        "appid": 49520,
+        "t_offset_s": 43.75,
+        "elapsed_ms": 253,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 30,
+        "appid": 227300,
+        "t_offset_s": 45.22,
+        "elapsed_ms": 224,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 31,
+        "appid": 236850,
+        "t_offset_s": 46.75,
+        "elapsed_ms": 245,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 32,
+        "appid": 252950,
+        "t_offset_s": 48.22,
+        "elapsed_ms": 215,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 33,
+        "appid": 750920,
+        "t_offset_s": 49.75,
+        "elapsed_ms": 252,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 34,
+        "appid": 1091500,
+        "t_offset_s": 51.21,
+        "elapsed_ms": 208,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 35,
+        "appid": 440,
+        "t_offset_s": 52.75,
+        "elapsed_ms": 252,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 36,
+        "appid": 49520,
+        "t_offset_s": 54.23,
+        "elapsed_ms": 227,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 37,
+        "appid": 227300,
+        "t_offset_s": 55.76,
+        "elapsed_ms": 259,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 38,
+        "appid": 236850,
+        "t_offset_s": 57.2,
+        "elapsed_ms": 203,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 39,
+        "appid": 252950,
+        "t_offset_s": 58.71,
+        "elapsed_ms": 211,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 40,
+        "appid": 750920,
+        "t_offset_s": 60.29,
+        "elapsed_ms": 293,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 41,
+        "appid": 1091500,
+        "t_offset_s": 61.74,
+        "elapsed_ms": 244,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 42,
+        "appid": 440,
+        "t_offset_s": 63.22,
+        "elapsed_ms": 219,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 43,
+        "appid": 49520,
+        "t_offset_s": 64.79,
+        "elapsed_ms": 293,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 44,
+        "appid": 227300,
+        "t_offset_s": 66.21,
+        "elapsed_ms": 206,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 45,
+        "appid": 236850,
+        "t_offset_s": 67.77,
+        "elapsed_ms": 269,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 46,
+        "appid": 252950,
+        "t_offset_s": 69.23,
+        "elapsed_ms": 229,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 47,
+        "appid": 750920,
+        "t_offset_s": 70.74,
+        "elapsed_ms": 238,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 48,
+        "appid": 1091500,
+        "t_offset_s": 72.22,
+        "elapsed_ms": 216,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 49,
+        "appid": 440,
+        "t_offset_s": 73.83,
+        "elapsed_ms": 328,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 50,
+        "appid": 49520,
+        "t_offset_s": 75.22,
+        "elapsed_ms": 215,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 51,
+        "appid": 227300,
+        "t_offset_s": 76.73,
+        "elapsed_ms": 226,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 52,
+        "appid": 236850,
+        "t_offset_s": 78.22,
+        "elapsed_ms": 217,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 53,
+        "appid": 252950,
+        "t_offset_s": 79.76,
+        "elapsed_ms": 257,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 54,
+        "appid": 750920,
+        "t_offset_s": 81.24,
+        "elapsed_ms": 240,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 55,
+        "appid": 1091500,
+        "t_offset_s": 82.77,
+        "elapsed_ms": 275,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 56,
+        "appid": 440,
+        "t_offset_s": 84.24,
+        "elapsed_ms": 239,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 57,
+        "appid": 49520,
+        "t_offset_s": 85.74,
+        "elapsed_ms": 242,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 58,
+        "appid": 227300,
+        "t_offset_s": 87.27,
+        "elapsed_ms": 269,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 59,
+        "appid": 236850,
+        "t_offset_s": 88.73,
+        "elapsed_ms": 226,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 60,
+        "appid": 252950,
+        "t_offset_s": 90.25,
+        "elapsed_ms": 250,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 61,
+        "appid": 750920,
+        "t_offset_s": 91.71,
+        "elapsed_ms": 209,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 62,
+        "appid": 1091500,
+        "t_offset_s": 93.22,
+        "elapsed_ms": 215,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 63,
+        "appid": 440,
+        "t_offset_s": 94.73,
+        "elapsed_ms": 231,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 64,
+        "appid": 49520,
+        "t_offset_s": 96.24,
+        "elapsed_ms": 237,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 65,
+        "appid": 227300,
+        "t_offset_s": 97.73,
+        "elapsed_ms": 227,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 66,
+        "appid": 236850,
+        "t_offset_s": 99.25,
+        "elapsed_ms": 248,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 67,
+        "appid": 252950,
+        "t_offset_s": 100.8,
+        "elapsed_ms": 297,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 68,
+        "appid": 750920,
+        "t_offset_s": 102.22,
+        "elapsed_ms": 216,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 69,
+        "appid": 1091500,
+        "t_offset_s": 103.77,
+        "elapsed_ms": 265,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 70,
+        "appid": 440,
+        "t_offset_s": 105.29,
+        "elapsed_ms": 288,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 71,
+        "appid": 49520,
+        "t_offset_s": 106.75,
+        "elapsed_ms": 254,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 72,
+        "appid": 227300,
+        "t_offset_s": 108.28,
+        "elapsed_ms": 281,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 73,
+        "appid": 236850,
+        "t_offset_s": 109.72,
+        "elapsed_ms": 217,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 74,
+        "appid": 252950,
+        "t_offset_s": 111.24,
+        "elapsed_ms": 236,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 75,
+        "appid": 750920,
+        "t_offset_s": 112.74,
+        "elapsed_ms": 238,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 76,
+        "appid": 1091500,
+        "t_offset_s": 114.2,
+        "elapsed_ms": 202,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 77,
+        "appid": 440,
+        "t_offset_s": 115.76,
+        "elapsed_ms": 260,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 78,
+        "appid": 49520,
+        "t_offset_s": 117.23,
+        "elapsed_ms": 230,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 79,
+        "appid": 227300,
+        "t_offset_s": 118.72,
+        "elapsed_ms": 224,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 80,
+        "appid": 236850,
+        "t_offset_s": 120.32,
+        "elapsed_ms": 315,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 81,
+        "appid": 252950,
+        "t_offset_s": 121.73,
+        "elapsed_ms": 235,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 82,
+        "appid": 750920,
+        "t_offset_s": 123.22,
+        "elapsed_ms": 223,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 83,
+        "appid": 1091500,
+        "t_offset_s": 124.72,
+        "elapsed_ms": 222,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 84,
+        "appid": 440,
+        "t_offset_s": 126.27,
+        "elapsed_ms": 265,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 85,
+        "appid": 49520,
+        "t_offset_s": 127.72,
+        "elapsed_ms": 224,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 86,
+        "appid": 227300,
+        "t_offset_s": 129.26,
+        "elapsed_ms": 255,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 87,
+        "appid": 236850,
+        "t_offset_s": 130.73,
+        "elapsed_ms": 232,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 88,
+        "appid": 252950,
+        "t_offset_s": 132.22,
+        "elapsed_ms": 217,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 89,
+        "appid": 750920,
+        "t_offset_s": 133.72,
+        "elapsed_ms": 221,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 90,
+        "appid": 1091500,
+        "t_offset_s": 135.21,
+        "elapsed_ms": 213,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 91,
+        "appid": 440,
+        "t_offset_s": 136.74,
+        "elapsed_ms": 235,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 92,
+        "appid": 49520,
+        "t_offset_s": 138.23,
+        "elapsed_ms": 235,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 93,
+        "appid": 227300,
+        "t_offset_s": 139.73,
+        "elapsed_ms": 231,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 94,
+        "appid": 236850,
+        "t_offset_s": 141.22,
+        "elapsed_ms": 220,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 95,
+        "appid": 252950,
+        "t_offset_s": 142.81,
+        "elapsed_ms": 305,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 96,
+        "appid": 750920,
+        "t_offset_s": 144.21,
+        "elapsed_ms": 213,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 97,
+        "appid": 1091500,
+        "t_offset_s": 145.74,
+        "elapsed_ms": 240,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 98,
+        "appid": 440,
+        "t_offset_s": 147.21,
+        "elapsed_ms": 207,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 99,
+        "appid": 49520,
+        "t_offset_s": 148.74,
+        "elapsed_ms": 239,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 100,
+        "appid": 227300,
+        "t_offset_s": 150.23,
+        "elapsed_ms": 226,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 101,
+        "appid": 236850,
+        "t_offset_s": 151.74,
+        "elapsed_ms": 241,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 102,
+        "appid": 252950,
+        "t_offset_s": 153.25,
+        "elapsed_ms": 246,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 103,
+        "appid": 750920,
+        "t_offset_s": 154.74,
+        "elapsed_ms": 235,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 104,
+        "appid": 1091500,
+        "t_offset_s": 156.22,
+        "elapsed_ms": 220,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 105,
+        "appid": 440,
+        "t_offset_s": 157.75,
+        "elapsed_ms": 253,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 106,
+        "appid": 49520,
+        "t_offset_s": 159.36,
+        "elapsed_ms": 358,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 107,
+        "appid": 227300,
+        "t_offset_s": 160.75,
+        "elapsed_ms": 250,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 108,
+        "appid": 236850,
+        "t_offset_s": 162.41,
+        "elapsed_ms": 406,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 109,
+        "appid": 252950,
+        "t_offset_s": 163.75,
+        "elapsed_ms": 254,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 110,
+        "appid": 750920,
+        "t_offset_s": 165.23,
+        "elapsed_ms": 227,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 111,
+        "appid": 1091500,
+        "t_offset_s": 166.72,
+        "elapsed_ms": 222,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 112,
+        "appid": 440,
+        "t_offset_s": 168.24,
+        "elapsed_ms": 239,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 113,
+        "appid": 49520,
+        "t_offset_s": 169.76,
+        "elapsed_ms": 263,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 114,
+        "appid": 227300,
+        "t_offset_s": 171.24,
+        "elapsed_ms": 242,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 115,
+        "appid": 236850,
+        "t_offset_s": 172.75,
+        "elapsed_ms": 249,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 116,
+        "appid": 252950,
+        "t_offset_s": 174.27,
+        "elapsed_ms": 270,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 117,
+        "appid": 750920,
+        "t_offset_s": 175.77,
+        "elapsed_ms": 267,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 118,
+        "appid": 1091500,
+        "t_offset_s": 177.21,
+        "elapsed_ms": 214,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 119,
+        "appid": 440,
+        "t_offset_s": 178.73,
+        "elapsed_ms": 226,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 120,
+        "appid": 49520,
+        "t_offset_s": 180.22,
+        "elapsed_ms": 217,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 121,
+        "appid": 227300,
+        "t_offset_s": 181.78,
+        "elapsed_ms": 277,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 122,
+        "appid": 236850,
+        "t_offset_s": 183.24,
+        "elapsed_ms": 237,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 123,
+        "appid": 252950,
+        "t_offset_s": 184.72,
+        "elapsed_ms": 222,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 124,
+        "appid": 750920,
+        "t_offset_s": 186.23,
+        "elapsed_ms": 229,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 125,
+        "appid": 1091500,
+        "t_offset_s": 187.79,
+        "elapsed_ms": 291,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 126,
+        "appid": 440,
+        "t_offset_s": 189.21,
+        "elapsed_ms": 212,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 127,
+        "appid": 49520,
+        "t_offset_s": 190.85,
+        "elapsed_ms": 354,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 128,
+        "appid": 227300,
+        "t_offset_s": 192.22,
+        "elapsed_ms": 221,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 129,
+        "appid": 236850,
+        "t_offset_s": 193.71,
+        "elapsed_ms": 208,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 130,
+        "appid": 252950,
+        "t_offset_s": 195.27,
+        "elapsed_ms": 267,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 131,
+        "appid": 750920,
+        "t_offset_s": 196.75,
+        "elapsed_ms": 247,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 132,
+        "appid": 1091500,
+        "t_offset_s": 198.23,
+        "elapsed_ms": 234,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 133,
+        "appid": 440,
+        "t_offset_s": 199.76,
+        "elapsed_ms": 263,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 134,
+        "appid": 49520,
+        "t_offset_s": 201.24,
+        "elapsed_ms": 243,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 135,
+        "appid": 227300,
+        "t_offset_s": 202.73,
+        "elapsed_ms": 226,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 136,
+        "appid": 236850,
+        "t_offset_s": 204.25,
+        "elapsed_ms": 248,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 137,
+        "appid": 252950,
+        "t_offset_s": 205.72,
+        "elapsed_ms": 215,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 138,
+        "appid": 750920,
+        "t_offset_s": 207.28,
+        "elapsed_ms": 275,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 139,
+        "appid": 1091500,
+        "t_offset_s": 208.82,
+        "elapsed_ms": 318,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 140,
+        "appid": 440,
+        "t_offset_s": 210.21,
+        "elapsed_ms": 213,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 141,
+        "appid": 49520,
+        "t_offset_s": 211.71,
+        "elapsed_ms": 213,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 142,
+        "appid": 227300,
+        "t_offset_s": 213.23,
+        "elapsed_ms": 226,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 143,
+        "appid": 236850,
+        "t_offset_s": 214.83,
+        "elapsed_ms": 332,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 144,
+        "appid": 252950,
+        "t_offset_s": 216.24,
+        "elapsed_ms": 241,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 145,
+        "appid": 750920,
+        "t_offset_s": 217.72,
+        "elapsed_ms": 221,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 146,
+        "appid": 1091500,
+        "t_offset_s": 219.24,
+        "elapsed_ms": 240,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 147,
+        "appid": 440,
+        "t_offset_s": 220.72,
+        "elapsed_ms": 224,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 148,
+        "appid": 49520,
+        "t_offset_s": 222.33,
+        "elapsed_ms": 328,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 149,
+        "appid": 227300,
+        "t_offset_s": 223.72,
+        "elapsed_ms": 217,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 150,
+        "appid": 236850,
+        "t_offset_s": 225.25,
+        "elapsed_ms": 255,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 151,
+        "appid": 252950,
+        "t_offset_s": 226.75,
+        "elapsed_ms": 245,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 152,
+        "appid": 750920,
+        "t_offset_s": 228.25,
+        "elapsed_ms": 255,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 153,
+        "appid": 1091500,
+        "t_offset_s": 229.73,
+        "elapsed_ms": 229,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 154,
+        "appid": 440,
+        "t_offset_s": 231.21,
+        "elapsed_ms": 215,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 155,
+        "appid": 49520,
+        "t_offset_s": 232.71,
+        "elapsed_ms": 214,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 156,
+        "appid": 227300,
+        "t_offset_s": 234.24,
+        "elapsed_ms": 237,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 157,
+        "appid": 236850,
+        "t_offset_s": 235.72,
+        "elapsed_ms": 220,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 158,
+        "appid": 252950,
+        "t_offset_s": 237.22,
+        "elapsed_ms": 222,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 159,
+        "appid": 750920,
+        "t_offset_s": 238.76,
+        "elapsed_ms": 256,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 160,
+        "appid": 1091500,
+        "t_offset_s": 240.26,
+        "elapsed_ms": 259,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 161,
+        "appid": 440,
+        "t_offset_s": 241.73,
+        "elapsed_ms": 234,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 162,
+        "appid": 49520,
+        "t_offset_s": 243.23,
+        "elapsed_ms": 231,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 163,
+        "appid": 227300,
+        "t_offset_s": 244.74,
+        "elapsed_ms": 242,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 164,
+        "appid": 236850,
+        "t_offset_s": 246.21,
+        "elapsed_ms": 214,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 165,
+        "appid": 252950,
+        "t_offset_s": 247.79,
+        "elapsed_ms": 288,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 166,
+        "appid": 750920,
+        "t_offset_s": 249.23,
+        "elapsed_ms": 227,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 167,
+        "appid": 1091500,
+        "t_offset_s": 250.73,
+        "elapsed_ms": 229,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 168,
+        "appid": 440,
+        "t_offset_s": 252.24,
+        "elapsed_ms": 243,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 169,
+        "appid": 49520,
+        "t_offset_s": 253.74,
+        "elapsed_ms": 244,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 170,
+        "appid": 227300,
+        "t_offset_s": 255.29,
+        "elapsed_ms": 285,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 171,
+        "appid": 236850,
+        "t_offset_s": 256.73,
+        "elapsed_ms": 233,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 172,
+        "appid": 252950,
+        "t_offset_s": 258.21,
+        "elapsed_ms": 205,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 173,
+        "appid": 750920,
+        "t_offset_s": 259.81,
+        "elapsed_ms": 308,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 174,
+        "appid": 1091500,
+        "t_offset_s": 261.27,
+        "elapsed_ms": 271,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 175,
+        "appid": 440,
+        "t_offset_s": 262.72,
+        "elapsed_ms": 219,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 176,
+        "appid": 49520,
+        "t_offset_s": 264.22,
+        "elapsed_ms": 223,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 177,
+        "appid": 227300,
+        "t_offset_s": 265.73,
+        "elapsed_ms": 226,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 178,
+        "appid": 236850,
+        "t_offset_s": 267.23,
+        "elapsed_ms": 226,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 179,
+        "appid": 252950,
+        "t_offset_s": 268.77,
+        "elapsed_ms": 273,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 180,
+        "appid": 750920,
+        "t_offset_s": 270.25,
+        "elapsed_ms": 246,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 181,
+        "appid": 1091500,
+        "t_offset_s": 271.72,
+        "elapsed_ms": 216,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 182,
+        "appid": 440,
+        "t_offset_s": 273.22,
+        "elapsed_ms": 218,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 183,
+        "appid": 49520,
+        "t_offset_s": 274.74,
+        "elapsed_ms": 244,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 184,
+        "appid": 227300,
+        "t_offset_s": 276.23,
+        "elapsed_ms": 228,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 185,
+        "appid": 236850,
+        "t_offset_s": 277.72,
+        "elapsed_ms": 219,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 186,
+        "appid": 252950,
+        "t_offset_s": 279.21,
+        "elapsed_ms": 205,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 187,
+        "appid": 750920,
+        "t_offset_s": 280.76,
+        "elapsed_ms": 265,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 188,
+        "appid": 1091500,
+        "t_offset_s": 282.23,
+        "elapsed_ms": 229,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 189,
+        "appid": 440,
+        "t_offset_s": 283.77,
+        "elapsed_ms": 266,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 190,
+        "appid": 49520,
+        "t_offset_s": 285.22,
+        "elapsed_ms": 225,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 191,
+        "appid": 227300,
+        "t_offset_s": 286.74,
+        "elapsed_ms": 236,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 192,
+        "appid": 236850,
+        "t_offset_s": 288.21,
+        "elapsed_ms": 212,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 193,
+        "appid": 252950,
+        "t_offset_s": 289.72,
+        "elapsed_ms": 223,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 194,
+        "appid": 750920,
+        "t_offset_s": 291.23,
+        "elapsed_ms": 230,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 195,
+        "appid": 1091500,
+        "t_offset_s": 292.72,
+        "elapsed_ms": 218,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 196,
+        "appid": 440,
+        "t_offset_s": 294.29,
+        "elapsed_ms": 290,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 197,
+        "appid": 49520,
+        "t_offset_s": 295.73,
+        "elapsed_ms": 225,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 198,
+        "appid": 227300,
+        "t_offset_s": 297.26,
+        "elapsed_ms": 263,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 199,
+        "appid": 236850,
+        "t_offset_s": 298.8,
+        "elapsed_ms": 302,
+        "status": 200,
+        "success_flag": 1
+      }
+    ]
+  },
+  "burst": {
+    "summary": {
+      "sent": 60,
+      "ok": 60,
+      "status_counts": {
+        "200": 60
+      },
+      "latency_ms": {
+        "p50": 217,
+        "p95": 263,
+        "max": 358
+      },
+      "first_non_200": null
+    },
+    "records": [
+      {
+        "seq": 0,
+        "appid": 440,
+        "t_offset_s": 0.22,
+        "elapsed_ms": 221,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 1,
+        "appid": 49520,
+        "t_offset_s": 0.44,
+        "elapsed_ms": 215,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 2,
+        "appid": 227300,
+        "t_offset_s": 0.65,
+        "elapsed_ms": 212,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 3,
+        "appid": 236850,
+        "t_offset_s": 0.85,
+        "elapsed_ms": 199,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 4,
+        "appid": 252950,
+        "t_offset_s": 1.06,
+        "elapsed_ms": 207,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 5,
+        "appid": 750920,
+        "t_offset_s": 1.3,
+        "elapsed_ms": 244,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 6,
+        "appid": 1091500,
+        "t_offset_s": 1.52,
+        "elapsed_ms": 220,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 7,
+        "appid": 440,
+        "t_offset_s": 1.73,
+        "elapsed_ms": 212,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 8,
+        "appid": 49520,
+        "t_offset_s": 1.94,
+        "elapsed_ms": 207,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 9,
+        "appid": 227300,
+        "t_offset_s": 2.19,
+        "elapsed_ms": 247,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 10,
+        "appid": 236850,
+        "t_offset_s": 2.43,
+        "elapsed_ms": 239,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 11,
+        "appid": 252950,
+        "t_offset_s": 2.64,
+        "elapsed_ms": 216,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 12,
+        "appid": 750920,
+        "t_offset_s": 2.89,
+        "elapsed_ms": 244,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 13,
+        "appid": 1091500,
+        "t_offset_s": 3.15,
+        "elapsed_ms": 263,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 14,
+        "appid": 440,
+        "t_offset_s": 3.35,
+        "elapsed_ms": 203,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 15,
+        "appid": 49520,
+        "t_offset_s": 3.56,
+        "elapsed_ms": 203,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 16,
+        "appid": 227300,
+        "t_offset_s": 3.77,
+        "elapsed_ms": 214,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 17,
+        "appid": 236850,
+        "t_offset_s": 3.98,
+        "elapsed_ms": 210,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 18,
+        "appid": 252950,
+        "t_offset_s": 4.19,
+        "elapsed_ms": 206,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 19,
+        "appid": 750920,
+        "t_offset_s": 4.41,
+        "elapsed_ms": 217,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 20,
+        "appid": 1091500,
+        "t_offset_s": 4.68,
+        "elapsed_ms": 276,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 21,
+        "appid": 440,
+        "t_offset_s": 4.88,
+        "elapsed_ms": 199,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 22,
+        "appid": 49520,
+        "t_offset_s": 5.11,
+        "elapsed_ms": 234,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 23,
+        "appid": 227300,
+        "t_offset_s": 5.33,
+        "elapsed_ms": 215,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 24,
+        "appid": 236850,
+        "t_offset_s": 5.53,
+        "elapsed_ms": 202,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 25,
+        "appid": 252950,
+        "t_offset_s": 5.86,
+        "elapsed_ms": 330,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 26,
+        "appid": 750920,
+        "t_offset_s": 6.1,
+        "elapsed_ms": 233,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 27,
+        "appid": 1091500,
+        "t_offset_s": 6.31,
+        "elapsed_ms": 216,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 28,
+        "appid": 440,
+        "t_offset_s": 6.54,
+        "elapsed_ms": 230,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 29,
+        "appid": 49520,
+        "t_offset_s": 6.76,
+        "elapsed_ms": 216,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 30,
+        "appid": 227300,
+        "t_offset_s": 6.97,
+        "elapsed_ms": 209,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 31,
+        "appid": 236850,
+        "t_offset_s": 7.21,
+        "elapsed_ms": 245,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 32,
+        "appid": 252950,
+        "t_offset_s": 7.45,
+        "elapsed_ms": 232,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 33,
+        "appid": 750920,
+        "t_offset_s": 7.8,
+        "elapsed_ms": 358,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 34,
+        "appid": 1091500,
+        "t_offset_s": 8.05,
+        "elapsed_ms": 249,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 35,
+        "appid": 440,
+        "t_offset_s": 8.27,
+        "elapsed_ms": 214,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 36,
+        "appid": 49520,
+        "t_offset_s": 8.47,
+        "elapsed_ms": 204,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 37,
+        "appid": 227300,
+        "t_offset_s": 8.67,
+        "elapsed_ms": 202,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 38,
+        "appid": 236850,
+        "t_offset_s": 8.89,
+        "elapsed_ms": 213,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 39,
+        "appid": 252950,
+        "t_offset_s": 9.13,
+        "elapsed_ms": 243,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 40,
+        "appid": 750920,
+        "t_offset_s": 9.34,
+        "elapsed_ms": 209,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 41,
+        "appid": 1091500,
+        "t_offset_s": 9.58,
+        "elapsed_ms": 241,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 42,
+        "appid": 440,
+        "t_offset_s": 9.79,
+        "elapsed_ms": 205,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 43,
+        "appid": 49520,
+        "t_offset_s": 9.99,
+        "elapsed_ms": 200,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 44,
+        "appid": 227300,
+        "t_offset_s": 10.22,
+        "elapsed_ms": 237,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 45,
+        "appid": 236850,
+        "t_offset_s": 10.43,
+        "elapsed_ms": 205,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 46,
+        "appid": 252950,
+        "t_offset_s": 10.66,
+        "elapsed_ms": 229,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 47,
+        "appid": 750920,
+        "t_offset_s": 10.9,
+        "elapsed_ms": 248,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 48,
+        "appid": 1091500,
+        "t_offset_s": 11.14,
+        "elapsed_ms": 237,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 49,
+        "appid": 440,
+        "t_offset_s": 11.36,
+        "elapsed_ms": 219,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 50,
+        "appid": 49520,
+        "t_offset_s": 11.58,
+        "elapsed_ms": 216,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 51,
+        "appid": 227300,
+        "t_offset_s": 11.81,
+        "elapsed_ms": 235,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 52,
+        "appid": 236850,
+        "t_offset_s": 12.04,
+        "elapsed_ms": 228,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 53,
+        "appid": 252950,
+        "t_offset_s": 12.24,
+        "elapsed_ms": 197,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 54,
+        "appid": 750920,
+        "t_offset_s": 12.47,
+        "elapsed_ms": 235,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 55,
+        "appid": 1091500,
+        "t_offset_s": 12.68,
+        "elapsed_ms": 207,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 56,
+        "appid": 440,
+        "t_offset_s": 12.9,
+        "elapsed_ms": 219,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 57,
+        "appid": 49520,
+        "t_offset_s": 13.14,
+        "elapsed_ms": 240,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 58,
+        "appid": 227300,
+        "t_offset_s": 13.37,
+        "elapsed_ms": 231,
+        "status": 200,
+        "success_flag": 1
+      },
+      {
+        "seq": 59,
+        "appid": 236850,
+        "t_offset_s": 13.58,
+        "elapsed_ms": 209,
+        "status": 200,
+        "success_flag": 1
+      }
+    ]
+  },
+  "verdict": {
+    "budget_ok": true,
+    "burst_first_refusal": null,
+    "saw_429": false
+  }
+}

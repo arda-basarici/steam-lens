@@ -1,0 +1,104 @@
+{
+  "egress_ip": "188.68.41.104",
+  "appid": 440,
+  "histogram": {
+    "endpoint": "appreviewhistogram",
+    "elapsed_ms": 201,
+    "status": 200,
+    "rollup_type": "month",
+    "rollup_buckets": 191,
+    "recent_buckets": 30
+  },
+  "cursor_walk": [
+    {
+      "page": 1,
+      "elapsed_ms": 342,
+      "status": 200,
+      "reviews_returned": 100,
+      "success_flag": 1
+    },
+    {
+      "page": 2,
+      "elapsed_ms": 539,
+      "status": 200,
+      "reviews_returned": 100,
+      "success_flag": 1
+    },
+    {
+      "page": 3,
+      "elapsed_ms": 477,
+      "status": 200,
+      "reviews_returned": 100,
+      "success_flag": 1
+    },
+    {
+      "page": 4,
+      "elapsed_ms": 540,
+      "status": 200,
+      "reviews_returned": 100,
+      "success_flag": 1
+    },
+    {
+      "page": 5,
+      "elapsed_ms": 474,
+      "status": 200,
+      "reviews_returned": 100,
+      "success_flag": 1
+    }
+  ],
+  "windowed_walk": [
+    {
+      "page": 1,
+      "elapsed_ms": 573,
+      "status": 200,
+      "reviews_returned": 100,
+      "success_flag": 1,
+      "all_inside_window": true
+    },
+    {
+      "page": 2,
+      "elapsed_ms": 518,
+      "status": 200,
+      "reviews_returned": 100,
+      "success_flag": 1,
+      "all_inside_window": true
+    }
+  ],
+  "marked_window": {
+    "appid": 49520,
+    "histogram_elapsed_ms": 260,
+    "past_events": [
+      {
+        "type": 0,
+        "start_date": 1554249600,
+        "end_date": 1555286400
+      }
+    ],
+    "default_listing": [
+      {
+        "page": 1,
+        "elapsed_ms": 235,
+        "status": 200,
+        "reviews_returned": 0,
+        "success_flag": 1
+      }
+    ],
+    "unfiltered_listing": [
+      {
+        "page": 1,
+        "elapsed_ms": 333,
+        "status": 200,
+        "reviews_returned": 100,
+        "success_flag": 1,
+        "all_inside_window": true
+      }
+    ]
+  },
+  "verdict": {
+    "pages_attempted": 5,
+    "pages_ok": 5,
+    "all_ok": true,
+    "windowed_ok": true,
+    "offtopic_filter_ok": true
+  }
+}
