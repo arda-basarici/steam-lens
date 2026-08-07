@@ -61,15 +61,15 @@ class PrintSink:
 
 
 @pytest.fixture(scope="module")
-def client() -> SteamClient:
-    return SteamClient(SteamClientConfig(), PrintSink())
+def transport() -> SteamTransport:
+    """The module's ONE pacer — the client and the raw reads share it, so the
+    whole smoke run holds a single politeness budget against live Steam."""
+    return SteamTransport(SteamClientConfig(), PrintSink())
 
 
 @pytest.fixture(scope="module")
-def transport() -> SteamTransport:
-    """A raw transport for the reads the client deliberately won't make
-    (the blanked default fetch) and the forced fallback walk."""
-    return SteamTransport(SteamClientConfig(), PrintSink())
+def client(transport: SteamTransport) -> SteamClient:
+    return SteamClient(transport)
 
 
 @_GATE

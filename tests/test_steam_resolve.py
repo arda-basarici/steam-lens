@@ -22,6 +22,7 @@ from steamlens.steam_client import (
     SteamClient,
     SteamClientConfig,
     SteamResponseError,
+    SteamTransport,
     identity_verdict,
     normalize_name,
     parse_appdetails,
@@ -40,11 +41,13 @@ class Harness:
             return next(feed)
 
         self.client = SteamClient(
-            SteamClientConfig(),
-            NullSink(),
-            transport=httpx.MockTransport(handler),
-            sleep=lambda _: None,
-            monotonic=lambda: 100.0,
+            SteamTransport(
+                SteamClientConfig(),
+                NullSink(),
+                transport=httpx.MockTransport(handler),
+                sleep=lambda _: None,
+                monotonic=lambda: 100.0,
+            )
         )
 
 

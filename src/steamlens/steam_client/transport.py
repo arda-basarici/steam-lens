@@ -35,6 +35,11 @@ _RETRYABLE_STATUSES = frozenset({429, 500, 502, 503, 504})
 class SteamTransport:
     """The one place Steam is actually spoken to — paced, retried, parsed.
 
+    This instance IS the politeness budget: every ``SteamClient`` built over
+    it shares one pacing clock, so one transport per process is the intended
+    shape — the composition root constructs it, owns its lifetime, and hands
+    it to whoever speaks to Steam (two transports would be two budgets).
+
     Construction binds the dial and the seams: ``transport`` is httpx's test
     seam (an ``httpx.MockTransport`` serves scripted responses with no
     network), ``sleep`` and ``monotonic`` let tests observe pacing and backoff
@@ -64,6 +69,16 @@ class SteamTransport:
         )
         self._last_request_at: float | None = None
         self._retries_spent = 0
+
+    @property
+    def config(self) -> SteamClientConfig:
+        """The dial this transport was constructed with — shared with its clients."""
+        return self._config
+
+    @property
+    def sink(self) -> Sink:
+        """The narration sink this transport emits on — shared with its clients."""
+        return self._sink
 
     @property
     def retries_spent(self) -> int:

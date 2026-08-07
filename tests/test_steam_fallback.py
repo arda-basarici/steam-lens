@@ -24,7 +24,7 @@ from steamlens.contracts import (
     RollupUnit,
     StageEvent,
 )
-from steamlens.steam_client import SteamClient, SteamClientConfig
+from steamlens.steam_client import SteamClient, SteamClientConfig, SteamTransport
 from steamlens.steam_client.feasibility import estimate_skip_pages
 
 _START = datetime(2026, 6, 1, tzinfo=UTC)
@@ -133,11 +133,13 @@ class Harness:
             return httpx.Response(200, text=next(feed))
 
         self.client = SteamClient(
-            SteamClientConfig(),
-            self.sink,
-            transport=httpx.MockTransport(handler),
-            sleep=lambda _: None,
-            monotonic=lambda: 100.0,
+            SteamTransport(
+                SteamClientConfig(),
+                self.sink,
+                transport=httpx.MockTransport(handler),
+                sleep=lambda _: None,
+                monotonic=lambda: 100.0,
+            ),
             now=lambda: _NOW,
         )
 

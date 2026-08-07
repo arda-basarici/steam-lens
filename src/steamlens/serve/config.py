@@ -1,0 +1,40 @@
+"""The serving runner's dials — the numbers the design ruled tunable, in one place.
+
+Structure now, numbers later (the deployment ruling): the runner's spine —
+overlap seam, serialization, the retry ladder — is architecture and lives in
+code; everything a deployed timing might legitimately move is here, each
+default carrying the evidence it was set from. The skeleton's own narration
+timings are the instrument that tunes these.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True, slots=True)
+class ServeConfig:
+    """One serving process's runner dials.
+
+    ``take_all_cutoff`` and ``sample_target`` are the sampling study's (M2)
+    shipped size rule — take all at pool ≤ 2,000, otherwise sample n = 1,000
+    time-proportional — certified held-out by the closing test, so changing
+    either is a re-ruling, not a tune. ``batch_n`` is the certified reviews-
+    per-request (N=10, the census dispatch config). ``classify_workers``
+    paces the classify leg: the census dispatched at 10 and the provider
+    tolerated 30, so 10 is evidence-backed headroom, not a guess.
+    ``job_budget_usd`` caps one job's spend the same way every dispatch
+    driver caps a run's — a public-facing job must not be an unbounded
+    buy (a 2,000-review take-all prices ~$0.12 at census rates, so 1.00
+    is an order-of-magnitude ceiling, no legitimate job approaches it).
+    ``window_buffer`` bounds the fetch→classify hand-off queue, in windows:
+    the producer stalls rather than racing unboundedly ahead of a slow
+    classify leg.
+    """
+
+    take_all_cutoff: int = 2_000
+    sample_target: int = 1_000
+    batch_n: int = 10
+    classify_workers: int = 10
+    job_budget_usd: float = 1.0
+    window_buffer: int = 2

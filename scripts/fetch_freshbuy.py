@@ -53,7 +53,12 @@ from steamlens.contracts import (
 from steamlens.dispatch.narration import TeeSink, narrate
 from steamlens.dispatch.run_shell import write_manifest
 from steamlens.dispatch.stamp import code_version, config_hash, mint_run_id
-from steamlens.steam_client import SteamClient, SteamClientConfig, SteamClientError
+from steamlens.steam_client import (
+    SteamClient,
+    SteamClientConfig,
+    SteamClientError,
+    SteamTransport,
+)
 
 _STAGE: Final = "m2.freshbuy.fetch"
 
@@ -263,7 +268,8 @@ def main() -> int:
         config = SteamClientConfig()
         narrate(sink, _STAGE, StageKind.STARTED,
                 f"run {run_id} · code {code} · {len(PICKS)} picks")
-        client = SteamClient(config, sink)
+        transport = SteamTransport(config, sink)
+        client = SteamClient(transport)
         try:
             for pick in PICKS:
                 games.append(fetch_pick(client, sink, pick, run_dir, started))
@@ -272,7 +278,7 @@ def main() -> int:
         except SteamClientError as exc:
             aborted = f"{type(exc).__name__}: {exc}"
         finally:
-            client.close()
+            transport.close()
 
         collected_total = sum(
             int(cast(int, w["collected"]))

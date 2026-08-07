@@ -2,33 +2,30 @@
 
 ``SteamClient`` is the surface callers hold: resolve a game (appdetails + the
 identity guard + the one-request totals read), snapshot its review histogram,
-and fetch a date window of reviews. Every operation speaks through the shared
-``SteamTransport``, so pacing, retries, and the typed failure taxonomy are
-inherited by construction — no operation can be impolite or trust a transient.
-The construction seams (``transport``, ``sleep``, ``monotonic``, ``now``) are
-for tests: scripted wire sequences, a frozen clock, and no real waiting.
+and fetch a date window of reviews. Every operation speaks through an
+injected ``SteamTransport``, so pacing, retries, and the typed failure
+taxonomy are inherited by construction — no operation can be impolite or
+trust a transient, and every client built over the same transport shares one
+politeness budget (the deployment rider: the server, the live smoke test,
+and any future caller pace against one clock instead of each minting its
+own). The composition root owns the transport's lifetime; the client is a
+view over it and holds nothing to close.
 """
 
 from __future__ import annotations
 
-import time
 from collections.abc import Callable
 from datetime import UTC, datetime
-from types import TracebackType
 from typing import Final
-
-import httpx
 
 from steamlens.contracts import (
     GameRef,
     HistogramSnapshot,
     PathOutcome,
-    Sink,
     StageEvent,
     StageKind,
     WindowFetchResult,
 )
-from steamlens.steam_client.config import SteamClientConfig
 from steamlens.steam_client.feasibility import estimate_skip_pages
 from steamlens.steam_client.identity import identity_verdict
 from steamlens.steam_client.parse import (
@@ -66,42 +63,23 @@ def _utc_now() -> datetime:
 class SteamClient:
     """The one door to live Steam — every operation paced and typed by the transport.
 
-    Holds the shared ``SteamTransport`` (and with it the single pacing clock),
-    so one client instance per process is the intended shape: two clients
-    would be two politeness budgets.
+    Construction takes the process's ``SteamTransport`` and reads the config
+    and sink off it, so a client cannot be wired to a different dial or a
+    different narration surface than the pacer it shares — the one-budget
+    property holds by construction, not by discipline. ``now`` is the test
+    seam for the histogram snapshot's freshness stamp.
     """
 
     def __init__(
         self,
-        config: SteamClientConfig,
-        sink: Sink,
+        transport: SteamTransport,
         *,
-        transport: httpx.BaseTransport | None = None,
-        sleep: Callable[[float], None] = time.sleep,
-        monotonic: Callable[[], float] = time.monotonic,
         now: Callable[[], datetime] = _utc_now,
     ) -> None:
-        self._config = config
-        self._sink = sink
-        self._transport = SteamTransport(
-            config, sink, transport=transport, sleep=sleep, monotonic=monotonic
-        )
+        self._transport = transport
+        self._config = transport.config
+        self._sink = transport.sink
         self._now = now
-
-    def close(self) -> None:
-        """Release the transport's pooled connections; unusable afterwards."""
-        self._transport.close()
-
-    def __enter__(self) -> SteamClient:
-        return self
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc: BaseException | None,
-        tb: TracebackType | None,
-    ) -> None:
-        self.close()
 
     def resolve_game(self, app_id: int, expected_name: str) -> GameRef:
         """What the store says ``app_id`` is — guard verdict and totals included.

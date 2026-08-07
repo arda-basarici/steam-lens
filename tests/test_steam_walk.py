@@ -26,6 +26,7 @@ from steamlens.steam_client import (
     SteamClient,
     SteamClientConfig,
     SteamResponseError,
+    SteamTransport,
 )
 from steamlens.steam_client.walk import walk_pages
 
@@ -248,11 +249,13 @@ def test_fetch_window_sends_the_ruled_params_and_stamps_provenance() -> None:
         return httpx.Response(200, text=next(pages))
 
     client = SteamClient(
-        SteamClientConfig(),
-        NullSink(),
-        transport=httpx.MockTransport(handler),
-        sleep=lambda _: None,
-        monotonic=lambda: 100.0,
+        SteamTransport(
+            SteamClientConfig(),
+            NullSink(),
+            transport=httpx.MockTransport(handler),
+            sleep=lambda _: None,
+            monotonic=lambda: 100.0,
+        )
     )
     result = client.fetch_window(440, _START, _END)
 
@@ -290,13 +293,15 @@ def test_windowed_truncation_is_warn_narrated() -> None:
     )
     sink = CollectingSink()
     client = SteamClient(
-        SteamClientConfig(),
-        sink,
-        transport=httpx.MockTransport(
-            lambda request: httpx.Response(200, text=next(pages))
-        ),
-        sleep=lambda _: None,
-        monotonic=lambda: 100.0,
+        SteamTransport(
+            SteamClientConfig(),
+            sink,
+            transport=httpx.MockTransport(
+                lambda request: httpx.Response(200, text=next(pages))
+            ),
+            sleep=lambda _: None,
+            monotonic=lambda: 100.0,
+        )
     )
     result = client.fetch_window(440, _START, _END)
 
@@ -314,8 +319,9 @@ def test_windowed_truncation_is_warn_narrated() -> None:
 def test_fetch_window_refuses_naive_and_inverted_windows() -> None:
     """A naive datetime would silently shift by the machine's zone on its way
     to epoch seconds; an inverted window is a caller bug — both loud."""
-    client = SteamClient(SteamClientConfig(), NullSink(), transport=httpx.MockTransport(
-        lambda request: httpx.Response(200, text="{}")
+    client = SteamClient(SteamTransport(
+        SteamClientConfig(), NullSink(),
+        transport=httpx.MockTransport(lambda request: httpx.Response(200, text="{}")),
     ))
     with pytest.raises(ValueError, match="timezone-aware"):
         client.fetch_window(440, _START.replace(tzinfo=None), _END)
