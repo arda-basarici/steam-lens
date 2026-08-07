@@ -36,7 +36,12 @@ class ServeConfig:
     bucket (~190 for a monthly-rollup veteran, hundreds for weekly-served
     long-lived games), so 600 admits every realistic plan while capping a
     job's fetch leg at ~15 minutes of pacing floor — a box-safety ceiling,
-    not a tuning.
+    not a tuning. ``sse_tick_s`` is the SSE follower's poll cadence over a
+    job's event history: narration lands at seconds scale, so a quarter-second
+    tick is invisible to a viewer and costs one snapshot per tick per viewer.
+    ``sse_heartbeat_s`` paces the keep-alive comments on a quiet stream —
+    it only needs to sit safely under proxy idle timeouts (minutes-scale for
+    the Caddy front), and 15 s is the conventional SSE keep-alive.
     """
 
     take_all_cutoff: int = 2_000
@@ -46,3 +51,5 @@ class ServeConfig:
     job_budget_usd: float = 1.0
     window_buffer: int = 2
     fetch_page_budget: int = 600
+    sse_tick_s: float = 0.25
+    sse_heartbeat_s: float = 15.0

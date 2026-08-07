@@ -7,6 +7,167 @@ decisions it feeds.
 
 ---
 
+## 2026-08-07 — The bridge's planned seam dissolves, and the test transport turns out unable to stream
+
+*The deployment milestone's (M3) second build step, later the same day as the
+runner: the SSE narration bridge — wire encoding, the replay-then-follow
+stream, the FastAPI intake — landed as the two bridge commits (`serve/sse.py`
+with `tests/test_serve_sse.py`, then `serve/app.py` with the queue's
+read-only lookup, the SSE dials in `ServeConfig`, and the fastapi + uvicorn
+dependency add), with the narrowings recorded in DESIGN's "Narration streams
+over SSE" ruling (build notes dated 2026-08-07). Feeds: the M3 report's
+serving-skeleton section; a candidate post on testing at honest boundaries.*
+
+Two reminders from Arda mid-build set the frame before any code: the serve
+layer is portfolio work, so the backend pieces hold the same structural bar
+as the rest of the project — and even though nothing scales past one box
+today, "how would this scale" should stay answerable at every seam. Both
+shaped what followed. The design had planned the async/sync touchpoint as a
+dedicated thread-safe event queue — the job's sink pushes events in, the SSE
+generator drains them out. At build the seam dissolved: step 1's `Job`
+already holds the replayable event history under a lock, precisely so a
+viewer attaching mid-run can see the story from the start, which makes
+replay and live-follow *one read path* — snapshot the history, remember the
+length, resume from there. The generator therefore polls snapshots at a
+sub-second config tick instead of registering per-viewer listener queues.
+The case wasn't only that narration lands at seconds scale (so listener
+machinery would buy imperceptible latency at the cost of subscriber
+lifecycle and cleanup) — it's that polling binds the bridge to nothing but a
+snapshot surface (`events()`, `state`, `error`), which an external event log
+behind several web replicas would satisfy unchanged, where subscriber
+registration would have hard-bound it to process locality. The scaling
+answer is kept by seam choice, not by machinery built ahead of need.
+
+The wire details each carry a why. The stream closes with an in-band
+terminal frame because browser `EventSource` otherwise reconnects forever
+after a server close — the protocol has no other way to say "the story is
+over." A quiet stream emits comment heartbeats (a long fetch window can
+narrate nothing for tens of seconds; the proxy in front must not idle the
+connection out). And the ending is race-free by an ordering fact rather than
+a lock dance: `Job` appends its terminal narration *before* flipping to a
+settled state, so a generator that observes DONE/FAILED and then snapshots
+is guaranteed the complete story — the stream cannot drop the tail. The
+HTTP surface split by verb: `POST /analyses` is the only creator, and since
+submit-or-attach is the queue's own semantics, the POST is idempotent per
+live app; the events `GET` is side-effect-free through a new read-only
+`live()` lookup — a GET must never mint a minutes-long, money-spending job —
+and a *finished* job deliberately 404s there, its report being the
+persistence layer's to serve (build step 5).
+
+The session's surprise came from the test side. The route tests drive the
+real app over httpx's in-process ASGI transport (no server, no sockets — and
+httpx was already a dependency), but the first streaming test failed
+strangely: the gated pipeline timed out waiting for a release that was
+conditioned on reading a frame. A direct probe explained it — a two-chunk
+stream with a one-second gap between chunks arrived as a single burst at
+1.01 s — and a second probe sharpened the finding: a design that released
+the gate upon *entering* the response deadlocked outright, because
+`ASGITransport` runs the ASGI app to completion before returning even the
+response headers. Client-side live delivery is simply unprovable through the
+in-process transport, no matter how the test is written. The turnaround was
+to move each claim to where it is honestly observable: live-follow is pinned
+frame-by-frame at the generator (`tests/test_serve_sse.py` drives it with
+`anext` while emitting between frames — the generator suspends in its poll
+sleep, so the test controls exactly what the next snapshot sees), and the
+HTTP test claims composition only — a GET that *verifiably* attached mid-run
+receives the complete story with the end frame last. "Verifiably" needed a
+server-side observable, since no client-side signal can exist: a test queue
+subclass whose `live()` lookup sets an event, the race-free moment to
+release the gate. True end-to-end liveness is deferred to the real-server
+deployment smoke, where uvicorn actually streams. The suite closed at 586
+passed with ruff and pyright strict clean.
+
+Figure: before/after seam sketch — the planned bridge (sink → hand-off queue
+→ SSE generator) against the built one (sink → the job's own history ←
+generator polling snapshots), one arrow fewer and one owner fewer.
+
+## 2026-08-07 — The runner build surfaces the study's quiet assumption: certified draws speak English, the live wire doesn't
+
+*The deployment milestone's (M3) first build session, later the same day as
+the entry gates: the serving skeleton's step 1 — the shared-pacer transport
+rider, the one-cold-job-at-a-time queue, and the cold-analysis runner —
+landed across six commits, with the build-time rulings recorded in DESIGN's
+"Deployment (M3)" section as the live executor's English-pool semantics
+block (2026-08-07). Feeds: the M3 report's serving-skeleton section; a
+candidate post on what happens when a certified instrument meets the
+production wire.*
+
+The sampling study (M2) certified its draws over English-only pools —
+"English-only stands everywhere" was a settled ruling — and nobody had to
+notice that the certification carried a quiet assumption: the corpus was
+English-only from ingest, so every histogram the plan compiler ever saw and
+every pool the simulator ever drew from was already English. The live wire
+is not. Live histograms count all languages and the production fetch is
+deliberately all-language (the unfiltered trio is a data-integrity rule),
+so the moment the runner had to execute the size rule *before fetching
+anything*, the gap opened: branch take-all-versus-sample on which pool?
+Four rulings closed it, all four recommendations accepted as proposed: the
+size rule branches on the English pool, read pre-fetch by a new
+language-filtered totals query; take-all fetches one whole-life window
+through the already-validated windowed path and filters English after; a
+sampled plan compiles at the certified n = 1,000 against the all-language
+histogram and *discloses* the resulting English shortfall (the realized n
+is honest, Wilson at the actual n errs conservative) rather than inflating
+the target by an uncertified share correction — that inflation is parked as
+a re-ruling candidate for when deployed narrations show real language
+mixes; and a page-budget guard prices every plan before fetching, degrading
+an over-budget take-all to the sampled draw and refusing a still-over-budget
+plan outright.
+
+The new totals read sat outside the probes' recorded parameter surface, so
+it was probed before any code trusted it — and the probe had unusually good
+references to check against: the fresh-buy run (2026-08-03) had fetched
+three games whole-life and counted English rows one by one. The wire agreed
+exactly where it mattered: Sword and Fairy Inn 2 — the designated language
+case, 36 usable English reviews inside a 2,277-review game — returned 36
+against the reference 36; Dragonkin drifted +6 and Talisman +2, days of new
+reviews, not disagreement (`probes/english_totals_probe.py` ·
+`probes/captures/english_totals_summary.json`). The probe's branch preview
+also showed the ruling doing its work before it existed in code: both
+long-tail games flip to take-all under English branching where all-language
+branching would have sampled them — precisely the "take-all over a tiny
+English pool is the honest production behavior" the closing test had
+already certified.
+
+The build's second discovery came from reading the plan compiler with
+executor eyes. Compiled windows are bucket-wide — one window per non-empty
+rollup bucket, tiling the game's whole lifetime — so the naive executor
+(fetch each window whole, truncate to quota) would walk a veteran game's
+entire history: ~1.2 million reviews for Team Fortress 2 in service of a
+1,000-review sample. The escape was already written into the contract:
+"newest-first, in the API's return order, up to quota" executes literally
+as an *early walk stop* — Steam serves windows newest-first, so stopping
+the walk the moment the quota fills IS the certified selection rule, at a
+cost proportional to quota rather than volume. The walk engine grew a
+`stop_after` seam and the test pins the cost claim directly: an
+over-supplied window's second page is never requested. A sibling narrowing
+hit the overlap seam — the design prose said the fetch producer streams
+"review pages" to classify workers, but a windowed walk that goes dirty
+discards its pages and re-walks via the cursor fallback, so a page's sample
+membership is not final until its whole window's path outcome is known;
+completed windows, not pages, are the streaming unit. The overlap itself is
+tested by construction: the suite gates the final window's wire response on
+the classify provider having already received a batch, so a
+sequential-runner regression cannot pass.
+
+Two honesty items round the session out. The cost shape found at build
+time: a sampled plan's floor cost is one page per populated bucket, so a
+monthly-rollup veteran pays ~190 pages ≈ 5 minutes of paced fetch — above
+the design session's 1.5–2.5-minute cold-report estimate, and it means
+fetch, not classify, binds for old games; the skeleton's own narration
+timings are the ruled instrument for deciding whether that matters. And a
+verification with a bonus: Arda paused the build to re-confirm the M2 size
+rule from source ("was it 1,000 or 2,000?") — both numbers are real, n =
+1,000 sampled above a 2,000 take-all cutoff deliberately shaped as 2×n —
+and the check surfaced that the study module pinning those constants names
+the runtime as their source-of-truth once deployment wires the policy. That
+must-match claim is now an enforced test against the serving config's
+defaults, not a docstring hope.
+
+Figure: the branch-flip table — per probe game, the English and
+all-language pools side by side with the branch each would take; three rows
+tell the whole English-pool ruling.
+
 ## 2026-08-07 — The deployment milestone opens: a purchase gate arrives to find the purchase already made, and flips to validation
 
 *The deployment milestone's (M3) entry session, same day the sampling study

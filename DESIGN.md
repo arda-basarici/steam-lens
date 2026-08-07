@@ -1361,14 +1361,31 @@ with built-in reconnect. WebSockets were rejected as bidirectional weight
 nothing uses — even the chat milestone's shape (post a question, stream the
 answer) fits SSE. On connect or reconnect the server replays the job's event
 history from the start, then follows live — the job holds its event list in
-memory anyway.
+memory anyway. Two wire details settled at the bridge build (2026-08-07):
+the stream closes with an in-band terminal frame carrying the settled state,
+because browser ``EventSource`` otherwise reconnects forever after a server
+close, and a quiet stream emits comment heartbeats well inside proxy idle
+timeouts (a long fetch window can narrate nothing for tens of seconds). The
+HTTP surface split by verb the same day: ``POST /analyses`` is the only job
+creator — submit-or-attach is the queue's own semantics, making the POST
+idempotent per live app — while the events ``GET`` attaches through a
+read-only queue lookup and 404s without a live job; a *finished* job's
+absence there is by design, its report being the persistence layer's to
+serve.
 
 **The sync pipeline runs untouched under the async shell.** FastAPI owns
 HTTP (request intake, cache reads, the SSE response); the whole certified
 sync pipeline runs in a plain worker thread; the only place the two worlds
-touch is a thread-safe event queue — the job's narration sink pushes typed
-events in, the SSE generator drains them out. No async creeps into core or
-the shells. The composition rider lands here: `SteamClient`'s transport
+touch is the job's thread-safe event history — the narration sink appends
+typed events, the SSE generator polls snapshots out at a config tick
+(narrowed at the bridge build from the planned separate hand-off queue: the
+job already holds the replayable history, so replay and live-follow become
+one read path, and narration lands at seconds scale, making a sub-second poll
+invisible while per-viewer listener registration would be lifecycle machinery
+buying imperceptible latency — and would bind the bridge to process locality,
+where the polled snapshot surface is exactly what an external event log
+behind several web replicas would satisfy unchanged). No async creeps into
+core or the shells. The composition rider lands here: `SteamClient`'s transport
 becomes injectable, so the server, the live smoke test, and any future caller
 share one pacer by construction instead of each minting a second politeness
 budget.

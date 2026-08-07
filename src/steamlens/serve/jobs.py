@@ -173,6 +173,17 @@ class JobQueue:
             self._wake.notify()
             return job
 
+    def live(self, app_id: int) -> Job | None:
+        """The queued-or-running job for ``app_id``, or ``None`` — never creates.
+
+        The side-effect-free read the SSE route attaches through: a GET must
+        not mint a job, so lookup and submission are separate surfaces. A
+        finished job is absent by design — its report is the persistence
+        layer's to serve, not the queue's.
+        """
+        with self._wake:
+            return self._live.get(app_id)
+
     def position(self, job: Job) -> int:
         """How many jobs run before ``job``: 0 means running (or already finished)."""
         with self._wake:
