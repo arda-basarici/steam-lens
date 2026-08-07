@@ -7,6 +7,65 @@ decisions it feeds.
 
 ---
 
+## 2026-08-07 — The deployment milestone opens: a purchase gate arrives to find the purchase already made, and flips to validation
+
+*The deployment milestone's (M3) entry session, same day the sampling study
+(M2) closed: both entry gates run from the production host and passed
+(captures `probes/captures/reachability_datacenter_netcup.json` and
+`probes/captures/rate_budget_netcup.json`; probe code
+`probes/reachability/app.py` reused unchanged and the new
+`probes/rate_budget/probe.py`). Feeds: the M3 report's entry-gates /
+hosting-decision section; possibly a deployment post.*
+
+The entry plan staged at the sampling study's close was built around a
+purchase gate: netcup bills hourly at €0.01/hr, so the sequence was rent for
+an afternoon → probe Steam reachability from their datacenter → only then
+commit to a term. Arda short-circuited it — the session opened with the VPS
+already bought (VPS Lite 1 G12s, 2 vCPU / 4 GB / 80 GB SSD, Nürnberg,
+6-month term at €4.10/mo — below the €4.88 the 2026-07-28 hosting read had
+noted). That inverted the gates' character without hurting their value: they
+flipped from purchase decision to validation on an owned box. The inversion
+was rationally cheap because the guarded downside was always small — a
+failed probe now costs the ~€25 full term instead of a few cents, against a
+gate ceremony that had its own cost in rented-box setup. The gates still ran
+first, before anything was built on the host: sunk cost doesn't excuse
+building on an unvalidated premise.
+
+Gate one was free. The smoke-test milestone's (M0) reachability probe was
+built dual-mode — local and datacenter runs are the same file — precisely so
+it could be pointed at whatever host came later, and that design paid off a
+second time: the file ran unchanged on the netcup box and returned every
+verdict true (`all_ok`, `windowed_ok`, `offtopic_filter_ok`) from egress IP
+188.68.41.104, the capture carrying its own proof of where it ran. Steam's
+store API answers normally from the production host, on the plain walk, the
+date-windowed production path, and the marked-window filter behavior alike.
+
+Gate two needed new code: nothing in the repo had ever stressed the
+community-known ~200-requests-per-5-minutes store-API budget — the M0 pass
+confirmed reachability, not rate. The new probe is a sibling in the same
+probe-grade style (sequential, no retries, per-request records), with three
+design choices worth keeping: requests round-robin over seven appids so a
+response cache can't quietly absorb the load and flatter the result; the
+paced phase schedules by wall clock rather than sleeping a fixed interval,
+so request latency can't compress the cadence; and the over-budget burst
+aborts on the first non-200 as an explicit politeness contract — one data
+point, not a fight with Valve. The verdict: 200 requests at the budget
+cadence all returned 200 (`budget_ok: true`), the 60-request unpaced burst
+drew zero refusals (`burst_first_refusal: null`), and no 429 appeared
+anywhere (`saw_429: false`) — so the settled ruling declining 429 on the
+5xx retry ladder (2026-07-28, no 429 ever observed) stays closed, now with
+host-local evidence rather than absence-from-elsewhere. The burst result
+also says the enforcement edge sits comfortably above the app's operating
+point — though sixty requests is a peek over the fence, not a map of it.
+
+The session itself was a deliberate inversion of the usual division of
+labor: Arda drove every command hands-on as ops reps — panel provisioning,
+SSH key forensics (including a passphrase lost to a years-old wizard and
+recovered from memory mid-session), the full hardening pass, then the
+gates — with the assistant navigating. The deployment milestone is
+portfolio material as much as infrastructure, and the reps are part of the
+deliverable.
+
 ## 2026-08-05 — Two human instruments, one verdict: the model reads polarity reliably and fumbles label ownership
 
 *The human-eval track's two parallel items, both completed in one marathon

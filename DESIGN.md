@@ -1265,6 +1265,257 @@ regenerable. No artifact references REPORT_NOTES.md.
 
 ---
 
+## Deployment (M3)
+
+*(Entry gates passed and design session held 2026-08-07. The rulings below are
+the deployment design; build decomposition follows them. Worker counts, pacing,
+and thresholds are deliberately config — the skeleton's own narration timings
+are the instrument that tunes them.)*
+
+**The entry state.** The box is a netcup VPS Lite 1 G12s (2 vCPU / 4 GB / 80 GB
+SSD, 6-month term, €4.10/mo), bought outright and hardened hands-on: key-only
+SSH, root login off, ufw default-deny, unattended-upgrades — verified by
+test-the-lockout, with the provider web console as the emergency path. Both
+entry gates passed from the host itself: the reused M0 reachability probe
+all-true (egress 188.68.41.104,
+`probes/captures/reachability_datacenter_netcup.json`), and the rate-budget
+probe clean — 200 requests at the 1.5 s cadence all 200, a 60-request unpaced
+burst refused nothing, no 429 ever seen
+(`probes/captures/rate_budget_netcup.json`). The settled
+429-on-the-5xx-ladder ruling stays closed, now with host-local evidence.
+
+### The serving skeleton
+
+**One in-process job queue; one cold analysis at a time.** A *job* is the
+minutes-long, money-spending pipeline (fetch → classify → mint → detect →
+compose); only jobs serialize. A request for the game a job is already
+analyzing attaches to that job's narration stream — one fetch, one spend, any
+number of viewers; a cached game bypasses the queue entirely and renders
+instantly; only a cold request for a *different* game waits, behind an honest
+position-and-ETA message. Serialization is the honest shape for one box:
+concurrent jobs would share the single Steam politeness budget anyway, making
+both slower and the narration timings misleading. External queue machinery
+(Redis, Celery) buys nothing at this scale; the accepted cost is that a
+deploy kills a running job — jobs are re-runnable and the content-keyed
+archive makes the re-run nearly free. The concurrency constant is config, not
+architecture.
+
+**Fetch and classify overlap inside the job.** A bounded producer-consumer
+queue feeds arriving review pages to classify workers batching as they land —
+total time becomes max(fetch leg, classify leg) rather than their sum, and
+the first narrated labels appear seconds after the request. Two receipts make
+the overlap safe: sample membership is fixed by the fetch plan and manifest,
+never by classification order, so nothing statistical moves; and
+arrival-order batch composition is exactly the freedom the registered
+composition experiments measured as null. Census ledger evidence sizes the
+legs: ~9 s per batch call at N=10 (the census ran up to 30 workers against
+the provider without complaint), so a 1,000-review report classifies in
+~1.5 min at 10 workers and a cold report lands in roughly 1.5–2.5 min
+end-to-end. Structure now, numbers later: the overlap seam is built in from
+the start (retrofitting it into a sequential runner would rework the runner's
+spine), while worker count and pacing stay tunable config.
+
+**The Steam cadence stays at the certified 1.5 s.** Dialing to 1.0 s was
+considered and declined: under overlap the fetch leg hides behind
+classification, so the dial buys almost no wall-clock — and 1.5 s is the
+cadence the rate-budget gate actually certified from this host. If deployed
+timings ever show fetch binding, the move is to re-run the existing probe at
+the faster cadence first, then edit the config — evidence before dial.
+
+**Narration streams over SSE, with history replay.** The stream is
+one-directional typed events, which is precisely what server-sent events are:
+plain HTTP that Caddy proxies without ceremony, browser-native `EventSource`
+with built-in reconnect. WebSockets were rejected as bidirectional weight
+nothing uses — even the chat milestone's shape (post a question, stream the
+answer) fits SSE. On connect or reconnect the server replays the job's event
+history from the start, then follows live — the job holds its event list in
+memory anyway.
+
+**The sync pipeline runs untouched under the async shell.** FastAPI owns
+HTTP (request intake, cache reads, the SSE response); the whole certified
+sync pipeline runs in a plain worker thread; the only place the two worlds
+touch is a thread-safe event queue — the job's narration sink pushes typed
+events in, the SSE generator drains them out. No async creeps into core or
+the shells. The composition rider lands here: `SteamClient`'s transport
+becomes injectable, so the server, the live smoke test, and any future caller
+share one pacer by construction instead of each minting a second politeness
+budget.
+
+### Serving persistence
+
+**Three layers, two of them already ruled.** The labels layer persists by
+construction — the cold job writes reviews, envelopes (survey origin), and
+raw provider bodies through the existing store surfaces, so the expensive
+asset is durable the moment it is bought and a crashed job resumes nearly
+free. The aggregates layer is the mint rule firing at its first real
+consumer: serving a stranger *is* publication, so the folded per-(app,
+aspect, slot) numbers persist at job completion as a provenance-stamped
+snapshot — the frozen numbers this report displays, not a live cache. The
+report layer is one row per completed analysis holding everything the user
+sees as **structured data, never rendered HTML**: the gate-passed prose, the
+aggregates reference, the histogram snapshot and episode markers, and the
+full provenance stamp (versions triple, fetch path, language mix,
+marked-window counts, sample size or take-all). Caching content rather than
+presentation means the frontend iterates freely without invalidating or
+lying about a single cached report; each layer regenerates from the one
+below.
+
+**Staleness: serve as-is, date worn openly.** A cached report serves
+unchanged with its analysis date and sample provenance displayed on the
+page — a dated report served as dated is a frozen artifact being cited, not
+a stale answer. A user-facing refresh is deferred deliberately: a public
+refresh button is a spend amplifier, and the trigger should not exist until
+it is decided who may pull it. When added, it is structurally free — a
+refresh is a new job for the same game, minting a new report row beside the
+old.
+
+### Model prose
+
+**The composer routes to the survey labeler's model, cross-family from the
+judge.** Composition is one call per report over the mint's aggregates and
+selected quotes — orders of magnitude cheaper than labeling, so the tier
+rule's cost pressure vanishes and the choice is quality per call. DeepSeek
+v4-flash starts: phrasing is the tier rule's named near-zero-gap stage, the
+model is fenced on both sides by deterministic gates so its failures become
+retries rather than corruption, and — the load-bearing constraint — the
+composer stays **cross-family from the Gemini judge**, because the chat
+milestone plans groundedness evals on the judge machinery whose object is
+composed prose, and a same-family composer would import exactly the
+self-preference the no-gold-entangled-instrument rule exists to block.
+Promotion is a route edit, on evidence; the named caveat is that v4-flash's
+user-facing English prose voice is unproven (labeling emitted JSON), and the
+first composed reports settle it.
+
+**The numeric-grounding gate runs once, at job time, before the report row
+persists** — cached prose is verified prose by construction. The gate
+derives a whitelist of every number the prose may say from the job's own
+outputs (aggregates snapshot, histogram and episode values, sample counts)
+and requires every numeral in the composed text to match a whitelisted value
+at the numeral's own precision — honest rounding passes, "roughly 40%" over
+a 27% aggregate has no match and dies, which is the laundering case the
+check exists for. Numerals inside verbatim quotes are exempt (the quote
+verifier owns those spans, and reviewers say "60 fps" constantly); the
+composer's prompt keeps numbers to mint citations anyway, making the gate
+backstop rather than primary discipline. The failure ladder degrades
+honestly: one corrective retry naming the violations — legitimate here where
+corrective prompting was rejected for classify, because naming violations
+*changes the request* at temperature 0 — then offending sentences drop and
+survivors render, and past that the report renders aggregates-and-quotes-only
+with a disclosed line. The numbers and evidence are the product; prose is
+garnish; failure counts journal through the sink.
+
+**The prompt-injection canary set lands with this milestone** — the first
+surface rendering model prose, over a product whose entire input is
+attacker-controlled text. A small versioned set of synthetic adversarial
+reviews (committed like gold; synthetic so no real review is enrolled as an
+attacker) covers the distinct shapes: direct instruction override, role
+confusion, parser format-breaking, quote-laundering, and markup payloads
+aimed at the render layer. The model-side run needs fresh output, so it is a
+harness probe at prompt/model-change cadence — the evals-in-CI
+deterministic-re-score boundary stays intact — while the render-side half
+*is* deterministic and gates in CI: every review-sourced string renders
+escaped, payloads inert. The set does not add a defense; it measures whether
+the existing walls hold.
+
+### Episode markers (`core/detect`)
+
+**Spike-versus-trailing-median on the native histogram, kept deliberately
+dumb.** A bucket flags when its volume exceeds k× the trailing median of
+preceding buckets (a median resists being dragged by the spike itself);
+adjacent flags merge into one episode span. The transform is pure core —
+histogram in, episode list out, no LLM — and computes on the native rollup
+unit, never a hardcoded month. The threshold is picked by looking, not
+guessing: an offline pass over the 49 corpus histograms plus the long-tail
+frame-check snapshots shows what k separates known events from noise, and k
+ships as config carrying that provenance. Markers render observations only —
+span, magnitude, review count, and overlap with a Valve-marked window stated
+as fact — with no causal noun anywhere: "review activity spike," never
+"backlash," because an unverified cause in the flagship timeline is the
+fluent-wrong-answer failure the English-first ruling refused. A one-line
+legend states the discipline ("statistical detection over all-language
+volume; no cause attributed"), turning the absence of explanation into
+visible method. The chat milestone becomes where "what happened here?" gets
+asked — with receipts.
+
+### The frontend
+
+**Server-rendered pages plus a small vanilla-JS layer; no SPA, no bundler.**
+The product is two pages — search and report — with one dynamic surface, the
+narration stream, which browser-native `EventSource` and DOM code handle in
+tens of lines. A SPA would be toolchain weight signaling nothing this
+milestone needs (the portfolio pillar here is the ops story, not framework
+fluency); hypermedia libraries solve interactivity this page doesn't have.
+Jinja2 rendering keeps the persistence seam clean: the report row's
+structured content renders server-side, presentation iterates freely.
+Skeleton first, polish after it demonstrably works; the app-UI aesthetics
+plugin styles the shell at build time and the dataviz conventions own the
+charts.
+
+**The report page, top to bottom:** header with capsule art and the
+provenance one-liner (analysis date, sample-of-population, path, language
+note); the composed narrative with mint citations rendered visually distinct
+from prose — the reader sees what is model voice versus minted fact; the
+aspect table as share bars with interval whiskers drawn (Wilson plus the
+regime allowance; take-all games show no whisker and read "complete count"),
+each aspect expanding to verbatim evidence quotes, the candidate stratum
+below honestly marked emergent-uncalibrated; the all-language timeline with
+episode markers and Valve-marked windows as separate layers; and the trust
+panel — the protected element under any schedule pressure — carrying the
+sample method, the interval regime this game got, language mix, marked-share
+state against the 2% floor, the published instrument numbers (classifier F1
+with CI, misattribution rate, judge agreement), the versions triple, and the
+methodology link. During a cold job the page *is* the narration: stage
+progress streaming, sections filling in as their data lands. The parked
+micro-window variant gets its trigger judged here, at real rendered
+whiskers — calm ±2.5 and spiky ±15 seen with eyes, reopened only if that
+judgment fails.
+
+### The box
+
+**Docker Compose behind one shared Caddy; SQLite bind-mounted on the host.**
+Each project on the box is a self-contained compose stack; Caddy runs once as
+the box-owned proxy (automatic HTTPS, an SSE-clean config measured in lines)
+on a shared Docker network, and a new project is a new compose file plus one
+Caddyfile stanza — the multi-project box made mechanical. Containers on an
+owned box earn their ~250 MB: the deploy unit becomes an image, so what CI
+tested is byte-for-byte what runs; rollback is the previous tag; and the
+compose files are themselves the provision-as-code portfolio artifact. The
+database lives on the host filesystem bind-mounted in, outliving every
+container rebuild, readable by backups without entering Docker.
+
+**The domain is deferred to launch.** The skeleton serves on the bare IP;
+a free dynamic-DNS subdomain gives Caddy a real hostname for Let's Encrypt
+if a shareable HTTPS link is wanted mid-build; the bought domain plus
+Cloudflare free tier (DNS + proxy, hiding the box's IP) land when the
+public-URL moment actually approaches. Nothing built earlier changes — the
+Caddy config swaps a hostname. GitHub Pages was considered for an interim
+front and rejected on mechanics: static hosting cannot run the server that
+renders the report or hold the SSE stream open; the portfolio site's role is
+the project page that links to the deployed app.
+
+**Deploy: CI builds the image, the box pulls it.** GitHub Actions builds on
+push to main and pushes to GHCR; a short deploy script on the box pulls and
+restarts — triggered manually at first, automatable later. The box only ever
+runs an image that passed CI, and the 4 GB box is never a build server.
+
+**Monitoring lives off the box.** A `/healthz` endpoint checks the real
+things cheaply (database opens, job worker alive); an external free pinger
+watches it — a monitor self-hosted beside the app dies with it. The richer
+observability — spend totals, job history, failure rates — is the in-app ops
+dashboard reading the same store, a product page rather than infrastructure.
+
+**Backups: nightly `sqlite3 .backup`, gzipped, off-box to Drive via
+rclone** — the corpus and study-run precedent extended to the live store.
+The online-backup API is used deliberately (a plain copy of a live file can
+snapshot a torn state); retention keeps roughly seven dailies and four
+weeklies; the file carries the always-keep class — the label pool and the
+response archive, the genuinely unreproducible layer. The discipline that
+makes it real: verified by restore at setup, not by upload — a backup never
+restored is a hope. Litestream stays parked; its trigger remains the chat
+milestone's write pattern.
+
+---
+
 ## Standing rules
 
 **The post ships with the milestone.** Every milestone's public artifact ships when
@@ -1296,17 +1547,17 @@ as code. The test for any addition stays: does *this product* need it?
 
 ## Open questions / deferred
 
-- **Cache persistence on an ephemeral host** — decided in the deployment
-  milestone's (M3) design (bake-into-image / dataset sync / paid storage).
-- **LLM tier for the remaining stages** — per stage, at each stage's design point
-  (the tier rule above). The survey-labeling stage is decided (the labeler ruling);
-  the phrasing/composition stage and the chat's stages decide at M3/M4. The judge
-  stays exempt: always a stronger model than the one it grades.
-- **Hosting shape** — decided at deployment (M3). The free-host premise fell
-  2026-07-09 (compute Spaces are PRO-gated), so hosting costs money on either fork
-  and a cheap VPS is the cheaper option as well as the stronger DevOps signal; a
-  provider direction exists and is re-decided at M3 entry, gated on a
-  reachability probe from the actual host.
+- **LLM tier for the chat's stages** — decided at the chat milestone's (M4)
+  design session, per the tier rule. The survey-labeling stage is decided (the
+  labeler ruling); the composition stage is decided (the deployment design:
+  v4-flash, cross-family from the judge). The judge stays exempt: always a
+  stronger model than the one it grades. *(Resolved at M3: cache persistence —
+  the ephemeral-host premise dissolved with the bought box, the serving
+  persistence rulings cover it; hosting shape — the netcup box, the entry
+  state above.)*
+- **The user-facing report refresh** — deferred from the staleness ruling: a
+  public refresh trigger is a spend amplifier, added only once it is decided
+  who may pull it. Structurally free when taken (a new job, a new report row).
 - **The human annotation track's parallel remainder** — never gating any
   milestone: the self-relabel consistency subset · judge-disagreement
   adjudication (sheet seeded from the top-disagreement exemplars; decides
