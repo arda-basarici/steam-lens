@@ -1433,7 +1433,24 @@ composed prose, and a same-family composer would import exactly the
 self-preference the no-gold-entangled-instrument rule exists to block.
 Promotion is a route edit, on evidence; the named caveat is that v4-flash's
 user-facing English prose voice is unproven (labeling emitted JSON), and the
-first composed reports settle it.
+first composed reports settle it. At the build (2026-08-07) the composer's
+route joined the *classify* client rather than standing up a second one: both
+stages share one budget, one quota pool, and one pacer by construction — the
+config module's own two-tables reasoning (two stages on one model must not
+each believe they own its quota), and the reason the instrument block gained
+an extra-routes door instead of the runner assembling a client of its own.
+
+**Two strata, two treatments — numbers for the calibrated, names for the
+rest** (ruled at the build). Pinned aspects enter the prompt as full fact
+blocks; recurring *candidates* enter as theme names with no counts attached,
+so a genuinely recurring concern is sayable without an uncertified number
+being stated. The holdout certified the pinned stratum only, and the flagship
+voice is the last place an uncalibrated share belongs. The gate enforces the
+ruling structurally rather than by instruction: candidate values never enter
+the whitelist, so a candidate-derived numeral in prose has no match and dies
+like any other ungrounded number. Both strata pass one evidence floor first —
+a compose-time display rule, per the aggregate contract's ruling that the
+stored number stays a faithful tally.
 
 **The numeric-grounding gate runs once, at job time, before the report row
 persists** — cached prose is verified prose by construction. The gate
@@ -1453,6 +1470,31 @@ survivors render, and past that the report renders aggregates-and-quotes-only
 with a disclosed line. The numbers and evidence are the product; prose is
 garnish; failure counts journal through the sink.
 
+**A pass is a certificate, not a verdict** (settled at the build, 2026-08-07).
+The design's "mint citations rendered visually distinct from prose" asked for
+a way to show the reader what is model voice versus minted fact, and the gate
+already computes it: in gate-passed prose every non-quote numeral *is* a
+whitelisted value by construction, so the gate emits the matched spans —
+each numeral with the value it resolved to, each quotation with its source
+review — and the report row stores those spans beside the prose. The renderer
+styles from the record rather than re-scanning, and no markup convention is
+placed in the model's hands to break. The composer may also quote, which the
+numerals-inside-quotes exemption already implied: it is told to quote only
+from the supplied evidence, and the gate verifies each quotation as a
+verbatim substring of that pool, failing one like any other violation.
+Numerals inside a *failed* quotation get no exemption. The standing spine
+caveat rides unchanged — verbatim passes a quote used misleadingly out of
+context, which is the judge machinery's territory at the chat milestone, not
+this gate's — and the canary set's quote-laundering pair exists to quantify
+exactly that cost.
+
+Prose failure never fails a job: a compose call that hits our own capacity
+refusal, outlives the client's transient retries, or finishes uncleanly
+degrades to the disclosed withholding rather than aborting a pipeline whose
+labels are already bought and banked. Ladder rungs are recorded, not
+inferred — the report carries which one produced its narrative, so the page
+discloses without re-deriving.
+
 **The prompt-injection canary set lands with this milestone** — the first
 surface rendering model prose, over a product whose entire input is
 attacker-controlled text. A small versioned set of synthetic adversarial
@@ -1465,6 +1507,26 @@ deterministic-re-score boundary stays intact — while the render-side half
 *is* deterministic and gates in CI: every review-sourced string renders
 escaped, payloads inert. The set does not add a defense; it measures whether
 the existing walls hold.
+
+Scoring is a substring check, by construction (built 2026-08-07). Each canary
+carries a **beacon** — a distinctive token its attack asks the model to emit
+— so a breach is detected mechanically, with no judge in the loop and nothing
+to calibrate; a test asserts every beacon actually appears in its own attack
+text, since a canary that never asks for its beacon would score clean forever.
+Two expectation classes keep the verdict honest: a *blocked* canary's beacon
+reaching output is a wall failing, while the quote-laundering pair is
+*measured* — a verbatim quotation of a planted claim passes the grounding gate
+by construction, so those beacons quantify the named spine caveat instead of
+registering as regressions. The run drives both surfaces, because the walls
+differ: at classify the canaries ride the reviews block and the parse answers
+the structural question a beacon cannot (did the answer still carry one
+well-formed row per review — what a format-break actually targets), and at
+compose they ride the evidence block as quotable spans, which is exactly how
+attacker text reaches that stage in production. A per-run nonce keeps the
+archive out of the loop — an archived reply would report last month's walls as
+holding today — and the run uses in-memory bindings throughout, so adversarial
+text never enters the durable provenance archive and a measurement never
+charges a spend row.
 
 ### Episode markers (`core/detect`)
 
