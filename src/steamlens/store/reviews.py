@@ -1,10 +1,12 @@
 """The reviews surface — the corpus snapshot, and the selection query C1 loops on.
 
 ``ReviewStore`` owns the ``reviews`` table and everything that answers in
-``Review`` records — including ``unlabeled_under``, the driver's selection
-query, which anti-joins the label pool's tables (which reviews still need
-labeling is a question *about reviews*; the pool's own surface is
-``LabelPool``). Ingest is idempotent by ``review_id``: re-ingesting the same
+``Review`` records — including the two selection queries, ``unlabeled_under``
+(the census driver's) and ``members_unlabeled_under`` (the serving runner's,
+scoped to a stored sample manifest), which anti-join the label pool's tables
+(which reviews still need labeling is a question *about reviews*; the pool's
+own surface is ``LabelPool``). Ingest is idempotent by ``review_id``:
+re-ingesting the same
 frozen corpus inserts nothing and is safe to repeat on every driver start.
 Content drift under an existing id is deliberately not detected here — the
 M1 corpus is frozen files; the live door revisits that question when reviews
@@ -169,5 +171,46 @@ class ReviewStore:
             )
             * 2
             + scope_params,
+        ).fetchall()
+        return tuple(_review_from_row(row) for row in rows)
+
+    def members_unlabeled_under(
+        self, run_id: str, versions: ClassifierVersions
+    ) -> tuple[Review, ...]:
+        """The sample members of ``run_id`` still owed a verdict under ``versions``.
+
+        The serving runner's classify selection — ``unlabeled_under``'s shape
+        scoped to a stored sample manifest instead of the whole table. Members
+        holding an envelope or a durable failure mark under exactly this
+        versions triple are excluded whichever run bought them: that skip is
+        the collision fix and the resumes-nearly-free promise in one query (a
+        second job on the same game pays only for reviews never labeled).
+        Ordered by ``review_id`` for the same deterministic-batching reason as
+        the census selection.
+        """
+        qualified = ", ".join(f"r.{column}" for column in _REVIEW_COLUMNS.split(", "))
+        rows = self._conn.execute(
+            f"""
+            SELECT {qualified} FROM reviews r
+            JOIN sample_members s ON s.review_id = r.review_id AND s.run_id = ?
+            WHERE NOT EXISTS (
+                    SELECT 1 FROM classifications c
+                    WHERE c.review_id = r.review_id
+                      AND c.model_version = ? AND c.prompt_version = ? AND c.ontology_version = ?
+                  )
+              AND NOT EXISTS (
+                    SELECT 1 FROM classification_failures f
+                    WHERE f.review_id = r.review_id
+                      AND f.model_version = ? AND f.prompt_version = ? AND f.ontology_version = ?
+                  )
+            ORDER BY r.review_id
+            """,
+            (run_id,)
+            + (
+                versions.model_version,
+                versions.prompt_version,
+                versions.ontology_version,
+            )
+            * 2,
         ).fetchall()
         return tuple(_review_from_row(row) for row in rows)

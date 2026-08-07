@@ -6,10 +6,13 @@ attributes — the durable ``SqliteResponseArchive``/``SqliteSpendLedger`` pair
 that binds into the LLM client's constructor slots where the in-memory pair
 binds for tests, ``ReviewStore`` (the corpus snapshot and the labeling
 driver's selection query), ``LabelPool`` (envelopes, mentions, runs,
-failure marks), and ``EvalRunLog`` (the certification journal —
-``eval_runs``/``eval_metrics``, the runs of record the CI gate regenerates).
-Typed failures in ``errors``. Design record: the store decisions in
-DESIGN's labeling-engine section (settled 2026-07-14).
+failure marks), ``EvalRunLog`` (the certification journal —
+``eval_runs``/``eval_metrics``, the runs of record the CI gate regenerates),
+``SampleManifest`` (the serving runs' stored sample memberships), and
+``ReportLog`` (published analyses: report rows plus their frozen aggregate
+snapshots). Typed failures in ``errors``. Design record: the store decisions
+in DESIGN's labeling-engine section (settled 2026-07-14) and the serving-
+persistence section (the report layer, designed 2026-08-08).
 """
 
 from steamlens.store.archive import SqliteResponseArchive
@@ -18,7 +21,9 @@ from steamlens.store.errors import SchemaVersionError, StoreDataError, StoreErro
 from steamlens.store.eval_runs import EvalRunLog
 from steamlens.store.labels import LabelPool
 from steamlens.store.ledger import SqliteSpendLedger
+from steamlens.store.reports import ReportLog
 from steamlens.store.reviews import ReviewStore
+from steamlens.store.samples import SampleManifest
 from steamlens.store.store import Store
 
 __all__ = [
@@ -31,6 +36,8 @@ __all__ = [
     "ReviewStore",
     "LabelPool",
     "EvalRunLog",
+    "SampleManifest",
+    "ReportLog",
     # the canonical timestamp codec (the CI fixture exporter's handshake)
     "utc_isoformat",
     "parse_utc_isoformat",

@@ -44,6 +44,13 @@ from steamlens.contracts.llm import (
 )
 from steamlens.contracts.ontology import AspectDef, AspectOntology, OntologyVersion
 from steamlens.contracts.provenance import ClassifierVersions, Provenance
+from steamlens.contracts.report import (
+    EpisodeMarker,
+    LanguageCount,
+    MarkedWindowCount,
+    Report,
+    WindowAccount,
+)
 from steamlens.contracts.reviews import Review
 from steamlens.contracts.sampling import FetchPlan, PlannedWindow, SamplingPolicy
 from steamlens.contracts.steam import (
@@ -99,6 +106,12 @@ __all__ = [
     "EvidenceQuote",
     "GroundedSpan",
     "ComposedNarrative",
+    # report
+    "Report",
+    "WindowAccount",
+    "LanguageCount",
+    "EpisodeMarker",
+    "MarkedWindowCount",
     # evaluation
     "EvalRun",
     "EvalMetric",

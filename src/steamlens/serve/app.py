@@ -8,12 +8,17 @@ surface imports FastAPI, and the routes hold to one abstraction level:
 validate at the boundary, delegate to the queue, serialize a typed receipt.
 
 Intake and streaming are deliberately separate surfaces with separate verbs.
-``POST /analyses`` is the only creator — submit-or-attach is the queue's own
-semantics, which makes the POST idempotent per app id while a job is live.
-``GET /analyses/{app_id}/events`` is side-effect-free: it attaches to a live
-job's stream through the queue's read-only lookup and 404s otherwise — a GET
-must never mint a minutes-long, money-spending job, and a *finished* job's
-absence here is by design (its report is the persistence layer's to serve).
+``POST /analyses`` is the only creator, and it consults the persistence layer
+before creating: a game with a published report answers 200 with the
+cached-game receipt — no job, no spend, the analysis date worn openly — which
+also means the POST alone never refreshes a game (the refresh trigger is
+deferred until it is decided who may pull it). Only an unanalyzed game queues;
+submit-or-attach is the queue's own semantics, which makes the POST idempotent
+per app id while a job is live. ``GET /analyses/{app_id}/events`` is
+side-effect-free: it attaches to a live job's stream through the queue's
+read-only lookup and 404s otherwise — a GET must never mint a minutes-long,
+money-spending job, and a *finished* job's absence here is by design (its
+report is the persistence layer's to serve).
 
 The scaling seam, stated once: routes talk only to the queue's
 ``submit``/``live``/``position`` surface and the stream generator's snapshot
@@ -23,11 +28,14 @@ an external job queue, an external event log — with the routes untouched.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.responses import StreamingResponse
 
+from steamlens.contracts import Report
 from steamlens.serve.config import ServeConfig
 from steamlens.serve.jobs import JobQueue, JobState
 from steamlens.serve.sse import stream_job
@@ -61,21 +69,58 @@ class AnalysisAccepted:
     events_url: str
 
 
-def create_app(queue: JobQueue, config: ServeConfig) -> FastAPI:
+@dataclass(frozen=True, slots=True)
+class ReportReady:
+    """The cached-game receipt: a published report already answers this game.
+
+    No job, no stream — the client reads the report instead of attaching to
+    SSE. ``analyzed_at`` is the staleness ruling made visible: the report
+    serves as-is with its date worn openly, and the receipt carries what the
+    client needs to say so. ``run_id`` names the exact publication (multiple
+    reports per game are the refresh-ready shape; this one is the newest).
+    """
+
+    app_id: int
+    game_name: str
+    analyzed_at: datetime
+    sample_size: int
+    run_id: str
+
+
+def create_app(
+    queue: JobQueue,
+    config: ServeConfig,
+    latest_report: Callable[[int], Report | None],
+) -> FastAPI:
     """The served app over an already-composed queue — the one HTTP seam.
 
     The caller owns the queue's lifecycle (construction and drain-close live
     with the composition root, not the web framework); the factory only wires
-    routes over it. ``config`` carries the SSE dials so a test can tighten the
-    poll tick without touching production defaults.
+    routes over it. ``latest_report`` is the persistence layer's instant read
+    (``ReportLog.latest_report`` behind whatever store lifetime the
+    composition root chooses) — injected as a callable so this module keeps
+    zero knowledge of SQLite. ``config`` carries the SSE dials so a test can
+    tighten the poll tick without touching production defaults.
     """
     app = FastAPI(title="steam-lens")
 
     # The route functions are "unused" to a type checker — the decorators
     # register them with the app; the suppressions state that, nothing more.
     @app.post("/analyses", status_code=202)
-    def submit_analysis(request: AnalysisRequest) -> AnalysisAccepted:  # pyright: ignore[reportUnusedFunction]
-        """Queue a cold analysis — or attach to the live one for this app."""
+    def submit_analysis(  # pyright: ignore[reportUnusedFunction]
+        request: AnalysisRequest, response: Response
+    ) -> ReportReady | AnalysisAccepted:
+        """Answer from the published report, or queue/attach a cold analysis."""
+        cached = latest_report(request.app_id)
+        if cached is not None:
+            response.status_code = 200
+            return ReportReady(
+                app_id=cached.app_id,
+                game_name=cached.game_name,
+                analyzed_at=cached.created_at,
+                sample_size=cached.sample_size,
+                run_id=cached.run.run_id,
+            )
         job = queue.submit(request.app_id, request.requested_name)
         return AnalysisAccepted(
             app_id=job.app_id,

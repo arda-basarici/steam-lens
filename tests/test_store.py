@@ -20,25 +20,41 @@ import pytest
 from fakes import NullSink
 
 from steamlens.contracts import (
+    AspectAggregate,
     AspectMention,
     AspectSlot,
     ClassifierVersions,
+    ComposedNarrative,
+    EpisodeMarker,
     EvalMetric,
     EvalRun,
     FinishReason,
+    GroundedSpan,
+    HistogramBucket,
+    HistogramSnapshot,
+    LanguageCount,
     LlmRequest,
     LlmResponse,
     LlmStage,
+    MarkedWindowCount,
+    NarrativeOutcome,
     Origin,
+    PathOutcome,
     Provenance,
     ReferenceKind,
+    Report,
     ResponseArchive,
     Review,
     ReviewClassification,
+    ReviewEvent,
+    RollupUnit,
     Sentiment,
+    SentimentCounts,
+    SpanKind,
     SpendLedger,
     SpendRecord,
     TokenUsage,
+    WindowAccount,
 )
 from steamlens.llm_client import (
     InMemoryResponseArchive,
@@ -652,3 +668,385 @@ class TestEvalRunLog:
             conn.close()
         with Store(path) as store, pytest.raises(StoreDataError, match="vibes"):
             store.eval_runs.get("certify-1")
+
+
+# --- the serving-persistence surfaces: manifests, member folds, and reports ---
+
+
+def _record_run(store: Store, run_id: str) -> None:
+    store.labels.record_run(_provenance(run_id))
+
+
+class TestSampleManifest:
+    def test_membership_round_trip(self, store: Store) -> None:
+        _seed(store, "r1", "r2")
+        store.sample_members.add_members("run-1", ["r2", "r1"])
+        assert store.sample_members.member_ids("run-1") == ("r1", "r2")
+        assert store.sample_members.count("run-1") == 2
+
+    def test_duplicate_member_fails_loud(self, store: Store) -> None:
+        _seed(store, "r1")
+        store.sample_members.add_members("run-1", ["r1"])
+        with pytest.raises(StoreError, match="duplicate"):
+            store.sample_members.add_members("run-1", ["r1"])
+
+    def test_membership_for_unrecorded_run_is_rejected(self, store: Store) -> None:
+        store.reviews.put_many([_review("r1")])
+        with pytest.raises(StoreError, match="not recorded"):
+            store.sample_members.add_members("run-1", ["r1"])
+
+    def test_membership_for_unrecorded_review_is_rejected(self, store: Store) -> None:
+        store.labels.record_run(_provenance())
+        with pytest.raises(StoreError, match="not recorded"):
+            store.sample_members.add_members("run-1", ["ghost"])
+
+    def test_failed_batch_writes_nothing(self, store: Store) -> None:
+        """One bad id in a window's batch must not leave half a window filed."""
+        _seed(store, "r1", "r2")
+        with pytest.raises(StoreError):
+            store.sample_members.add_members("run-1", ["r1", "ghost", "r2"])
+        assert store.sample_members.count("run-1") == 0
+
+
+class TestMemberSelection:
+    """``members_unlabeled_under`` — the collision fix as a query."""
+
+    def test_only_members_still_owed_a_verdict_are_selected(self, store: Store) -> None:
+        """An envelope bought by a PRIOR run excludes the member — labels re-used,
+        never re-bought — while an unlabeled non-member never enters the job."""
+        _seed(store, "r1", "r2", "r3", "r4")  # records run-1, the prior buyer
+        _record_run(store, "serve-2")
+        store.sample_members.add_members("serve-2", ["r1", "r2", "r3"])
+        store.labels.put(_classification("r1"))  # bought by run-1
+        store.labels.record_failure("r2", _versions(), "serve-2", "unclassifiable alone")
+
+        remaining = store.reviews.members_unlabeled_under("serve-2", _versions())
+        assert [r.review_id for r in remaining] == ["r3"]
+
+    def test_version_bump_reopens_members(self, store: Store) -> None:
+        _seed(store, "r1")
+        _record_run(store, "serve-2")
+        store.sample_members.add_members("serve-2", ["r1"])
+        store.labels.put(_classification("r1"))
+        assert store.reviews.members_unlabeled_under("serve-2", _versions()) == ()
+        bumped = _versions(prompt_version="classify-v2")
+        reopened = store.reviews.members_unlabeled_under("serve-2", bumped)
+        assert [r.review_id for r in reopened] == ["r1"]
+
+
+class TestMemberFolds:
+    """The mint reads fold membership + label pool — whoever bought the label."""
+
+    def test_prior_runs_labels_count_for_this_runs_members(self, store: Store) -> None:
+        _seed(store, "r1")  # the envelope below is bought by run-1
+        _record_run(store, "serve-2")
+        store.sample_members.add_members("serve-2", ["r1"])
+        store.labels.put(_classification("r1"))
+
+        assert store.labels.count_member_envelopes("serve-2", _versions()) == 1
+        mentions = list(store.labels.iter_member_mentions("serve-2", _versions()))
+        assert {(m[0], m[1]) for m in mentions} == {("r1", "gunplay"), ("r1", "netcode")}
+        evidence = list(store.labels.iter_member_evidence("serve-2", _versions()))
+        assert evidence == [("r1", "gunplay", Sentiment.POSITIVE, "great gunplay")]
+
+    def test_non_members_and_off_version_labels_stay_out(self, store: Store) -> None:
+        _seed(store, "r1", "r2")
+        _record_run(store, "serve-2")
+        store.sample_members.add_members("serve-2", ["r1"])
+        store.labels.put(_classification("r1"))
+        store.labels.put(_classification("r2"))  # labeled, but not a member
+
+        assert store.labels.count_member_envelopes("serve-2", _versions()) == 1
+        assert all(
+            m[0] == "r1"
+            for m in store.labels.iter_member_mentions("serve-2", _versions())
+        )
+        bumped = _versions(prompt_version="classify-v2")
+        assert store.labels.count_member_envelopes("serve-2", bumped) == 0
+
+    def test_investigation_labels_never_enter_the_fold(self, store: Store) -> None:
+        """The two-track wall asserted at this fold boundary like every other."""
+        _seed(store, "r1")
+        _record_run(store, "serve-2")
+        store.sample_members.add_members("serve-2", ["r1"])
+        store.labels.put(
+            ReviewClassification(
+                review_id="r1",
+                origin=Origin.INVESTIGATION,
+                versions=_versions(),
+                run=_provenance(),
+                mentions=_MENTIONS,
+            )
+        )
+        assert store.labels.count_member_envelopes("serve-2", _versions()) == 0
+        assert list(store.labels.iter_member_mentions("serve-2", _versions())) == []
+
+
+def _histogram(app_id: int = 440) -> HistogramSnapshot:
+    return HistogramSnapshot(
+        app_id=app_id,
+        rollup_unit=RollupUnit.MONTH,
+        rollups=(
+            HistogramBucket(datetime(2026, 5, 1, tzinfo=UTC), 40, 10),
+            HistogramBucket(datetime(2026, 6, 1, tzinfo=UTC), 900, 300),
+        ),
+        recent_daily=(HistogramBucket(datetime(2026, 7, 13, tzinfo=UTC), 5, 1),),
+        past_events=(
+            ReviewEvent(
+                event_type=1,
+                start=datetime(2026, 6, 5, tzinfo=UTC),
+                end=datetime(2026, 6, 20, tzinfo=UTC),
+            ),
+        ),
+        fetched_at=_NOON,
+    )
+
+
+def _narrative() -> ComposedNarrative:
+    prose = 'Gunplay leads with 12 mentions. "great gunplay" is typical.'
+    return ComposedNarrative(
+        prose=prose,
+        spans=(
+            GroundedSpan(
+                start=prose.index("12"), end=prose.index("12") + 2,
+                text="12", kind=SpanKind.NUMERAL, value=12.0,
+            ),
+            GroundedSpan(
+                start=prose.index("great gunplay"),
+                end=prose.index("great gunplay") + len("great gunplay"),
+                text="great gunplay", kind=SpanKind.QUOTE, review_id="r1",
+            ),
+        ),
+        outcome=NarrativeOutcome.COMPOSED,
+    )
+
+
+def _report(
+    run_id: str = "serve-1",
+    *,
+    app_id: int = 440,
+    created_at: datetime = _NOON,
+    sample_size: int = 20,
+    narrative: ComposedNarrative | None = None,
+    histogram: HistogramSnapshot | None = None,
+) -> Report:
+    return Report(
+        run=_provenance(run_id),
+        app_id=app_id,
+        game_name="Team Fortress 2",
+        created_at=created_at,
+        versions=_versions(),
+        sample_size=sample_size,
+        take_all=False,
+        windows=(
+            WindowAccount(
+                datetime(2026, 5, 1, tzinfo=UTC),
+                datetime(2026, 6, 1, tzinfo=UTC),
+                PathOutcome.WINDOWED,
+            ),
+            WindowAccount(
+                datetime(2026, 6, 1, tzinfo=UTC),
+                datetime(2026, 7, 1, tzinfo=UTC),
+                PathOutcome.FALLBACK_WALKED,
+            ),
+        ),
+        language_mix=(LanguageCount("english", 18), LanguageCount("schinese", 4)),
+        narrative=narrative if narrative is not None else _narrative(),
+        histogram=histogram if histogram is not None else _histogram(app_id),
+        episodes=(
+            EpisodeMarker(
+                start=datetime(2026, 6, 1, tzinfo=UTC),
+                end=datetime(2026, 7, 1, tzinfo=UTC),
+                buckets=1,
+                reviews=1200,
+                peak_multiple=4.8,
+                overlaps_marked_window=True,
+            ),
+        ),
+        marked_window_counts=(
+            MarkedWindowCount(
+                start=datetime(2026, 6, 5, tzinfo=UTC),
+                end=datetime(2026, 6, 20, tzinfo=UTC),
+                members_inside=3,
+            ),
+        ),
+    )
+
+
+def _aggregate(
+    run_id: str = "serve-1",
+    *,
+    aspect: str = "gunplay",
+    app_id: int = 440,
+    sample_size: int = 20,
+) -> AspectAggregate:
+    return AspectAggregate(
+        app_id=app_id,
+        aspect=aspect,
+        slot=AspectSlot.PINNED,
+        reviews_with_aspect=12,
+        counts=SentimentCounts(positive=9, negative=1, mixed=1, neutral=1),
+        sample_size=sample_size,
+        versions=_versions(),
+        manifest_id=run_id,
+    )
+
+
+class TestReportLog:
+    """Published once, whole; served as-is; re-proved by reconstruction on read."""
+
+    def _publish(self, store: Store, run_id: str = "serve-1") -> Report:
+        _record_run(store, run_id)
+        report = _report(run_id)
+        store.reports.put(report, [_aggregate(run_id), _aggregate(run_id, aspect="netcode")])
+        return report
+
+    def test_publish_round_trip(self, store: Store) -> None:
+        report = self._publish(store)
+        assert store.reports.get("serve-1") == report
+
+    def test_snapshot_rebuilds_full_aggregates_in_write_order(self, store: Store) -> None:
+        self._publish(store)
+        assert store.reports.get_snapshot("serve-1") == (
+            _aggregate("serve-1"),
+            _aggregate("serve-1", aspect="netcode"),
+        )
+
+    def test_missing_report_and_empty_snapshot_answer_quietly(self, store: Store) -> None:
+        assert store.reports.get("absent") is None
+        assert store.reports.latest_report(440) is None
+        assert store.reports.get_snapshot("absent") == ()
+
+    def test_latest_report_picks_the_newest_completion(self, store: Store) -> None:
+        _record_run(store, "serve-1")
+        _record_run(store, "serve-2")
+        older = _report("serve-1", created_at=_NOON)
+        newer = _report("serve-2", created_at=_NOON + timedelta(days=2))
+        store.reports.put(older, [_aggregate("serve-1")])
+        store.reports.put(newer, [_aggregate("serve-2")])
+        latest = store.reports.latest_report(440)
+        assert latest is not None
+        assert latest.run.run_id == "serve-2"
+
+    def test_duplicate_report_fails_loud(self, store: Store) -> None:
+        self._publish(store)
+        with pytest.raises(StoreError, match="serve-1"):
+            store.reports.put(_report("serve-1"), [_aggregate("serve-1")])
+
+    def test_report_for_unrecorded_run_is_rejected(self, store: Store) -> None:
+        with pytest.raises(StoreError, match="not recorded"):
+            store.reports.put(_report("serve-1"), [_aggregate("serve-1")])
+
+    def test_duplicate_snapshot_row_rolls_back_the_whole_publish(self, store: Store) -> None:
+        _record_run(store, "serve-1")
+        doubled = [_aggregate("serve-1"), _aggregate("serve-1")]
+        with pytest.raises(StoreError):
+            store.reports.put(_report("serve-1"), doubled)
+        assert store.reports.get("serve-1") is None  # no half-published state
+
+    def test_disagreeing_aggregate_is_stopped_at_the_door(self, store: Store) -> None:
+        _record_run(store, "serve-1")
+        with pytest.raises(ValueError, match="disagrees"):
+            store.reports.put(
+                _report("serve-1"), [_aggregate("serve-1", sample_size=999)]
+            )
+        assert store.reports.get("serve-1") is None
+
+    def test_foreign_histogram_is_stopped_at_the_door(self, store: Store) -> None:
+        _record_run(store, "serve-1")
+        with pytest.raises(ValueError, match="histogram"):
+            store.reports.put(
+                _report("serve-1", histogram=_histogram(app_id=730)),
+                [_aggregate("serve-1")],
+            )
+
+    def test_withheld_narrative_with_prose_is_stopped_at_the_door(self, store: Store) -> None:
+        _record_run(store, "serve-1")
+        lying = ComposedNarrative(
+            prose="prose that claims to be withheld", spans=(),
+            outcome=NarrativeOutcome.WITHHELD,
+        )
+        with pytest.raises(ValueError, match="contradicts"):
+            store.reports.put(_report("serve-1", narrative=lying), [_aggregate("serve-1")])
+
+    def test_withheld_report_round_trips(self, store: Store) -> None:
+        """The honest floor is publishable: no prose, disclosed outcome."""
+        _record_run(store, "serve-1")
+        withheld = ComposedNarrative(prose="", spans=(), outcome=NarrativeOutcome.WITHHELD)
+        report = _report("serve-1", narrative=withheld)
+        store.reports.put(report, [_aggregate("serve-1")])
+        assert store.reports.get("serve-1") == report
+
+
+class TestReportReadBoundary:
+    """A stored report re-proves itself by full reconstruction — edits fail loud."""
+
+    def _published(self, tmp_path: Path) -> Path:
+        path = tmp_path / "steamlens.sqlite3"
+        with Store(path) as store:
+            store.labels.record_run(_provenance("serve-1"))
+            store.reports.put(_report("serve-1"), [_aggregate("serve-1")])
+        return path
+
+    def _mangle(self, path: Path, sql: str) -> None:
+        conn = sqlite3.connect(path)
+        try:
+            conn.execute(sql)
+            conn.commit()
+        finally:
+            conn.close()
+
+    def test_edited_span_breaks_the_certificate(self, tmp_path: Path) -> None:
+        """Editing a certified span's text alone: the prose no longer signs it."""
+        path = self._published(tmp_path)
+        self._mangle(
+            path,
+            "UPDATE reports SET narrative_json ="
+            """ replace(narrative_json, '"text": "12"', '"text": "13"')""",
+        )
+        with Store(path) as store, pytest.raises(StoreDataError, match="certificate"):
+            store.reports.get("serve-1")
+
+    def test_corrupt_narrative_outcome_fails_loud(self, tmp_path: Path) -> None:
+        path = self._published(tmp_path)
+        self._mangle(path, "UPDATE reports SET narrative_outcome = 'glorious'")
+        with Store(path) as store, pytest.raises(StoreDataError, match="glorious"):
+            store.reports.get("serve-1")
+
+    def test_path_totals_disagreeing_with_windows_fail_loud(self, tmp_path: Path) -> None:
+        path = self._published(tmp_path)
+        self._mangle(path, "UPDATE reports SET windowed_windows = 5")
+        with Store(path) as store, pytest.raises(StoreDataError, match="path totals"):
+            store.reports.get("serve-1")
+
+    def test_unparseable_payload_fails_loud_naming_the_column(self, tmp_path: Path) -> None:
+        path = self._published(tmp_path)
+        self._mangle(path, "UPDATE reports SET episodes_json = 'not json'")
+        with Store(path) as store, pytest.raises(StoreDataError, match="episodes_json"):
+            store.reports.get("serve-1")
+
+    def test_corrupt_snapshot_slot_fails_loud(self, tmp_path: Path) -> None:
+        path = self._published(tmp_path)
+        self._mangle(path, "UPDATE aggregate_snapshots SET slot = 'vibes'")
+        with Store(path) as store, pytest.raises(StoreDataError, match="vibes"):
+            store.reports.get_snapshot("serve-1")
+
+    def test_v3_file_upgrades_in_place_and_publishes(self, tmp_path: Path) -> None:
+        """The pre-step-4 DB's shape: a v3 file gains the serving tables on open."""
+        path = tmp_path / "steamlens.sqlite3"
+        conn = sqlite3.connect(path)
+        for step in MIGRATION_STEPS[:3]:
+            for statement in step:
+                conn.execute(statement)
+        conn.execute("PRAGMA user_version = 3")
+        conn.commit()
+        conn.close()
+        with Store(path) as store:
+            store.labels.record_run(_provenance("serve-1"))
+            store.reports.put(_report("serve-1"), [_aggregate("serve-1")])
+            assert store.reports.latest_report(440) is not None
+        conn = sqlite3.connect(path)
+        try:
+            assert conn.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION
+        finally:
+            conn.close()

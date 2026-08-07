@@ -1,18 +1,24 @@
 """The cold-analysis runner — one job's pipeline over the certified seams.
 
 The serving skeleton's spine: resolve → size the English pool → plan → fetch
-and classify overlapped → mint → compose, narrated end to end over the job's
-sink. Everything statistical is a certified seam composed, never
+and classify overlapped → mint → compose → publish, narrated end to end over
+the job's sink. Everything statistical is a certified seam composed, never
 reimplemented — the plan comes from ``core/sampling``'s compiler (the study's
 certification target), the fetch runs the validated windowed path with the
 plan contract's quota stop, and the classify leg is the census instrument
 verbatim (same worker, same model identity, same three-pass retry ladder).
-The mint folds the run's own labels read back from the store
-(regenerate-from-the-layer-below — a resumed job mints identically to a fresh
-one), and the compose stage rides the same client as classify (one budget,
-one quota pool) fenced by the grounding ladder. Detect and the report row's
-persistence land with their own build steps; today the narrative's story
-reaches a viewer through the narration sink alone.
+Each window's members file into the stored sample manifest as they arrive,
+and everything downstream is membership-scoped: classify selects the members
+still owed a verdict under the versions triple (a label or durable failure
+bought by ANY prior run is skipped, never re-paid — the re-run collision fix
+and the resumes-nearly-free promise are the same query), and the mint folds
+membership ∩ label pool read back from the store (regenerate-from-the-layer-
+below — a resumed job mints identically to a fresh one). The compose stage
+rides the same client as classify (one budget, one quota pool) fenced by the
+grounding ladder. Episode markers detect off the planning histogram and
+narrate mid-job, and completion publishes the report row with its aggregate
+snapshot in one transaction — the store's instant read path for every later
+request on this game.
 
 The overlap seam is the runner's one piece of concurrency: a fetch producer
 thread pushes each *completed window* into a bounded queue while the job
@@ -46,28 +52,35 @@ from queue import Empty, Full, Queue
 from typing import Final
 
 from steamlens.contracts import (
+    AspectAggregate,
     AspectSlot,
     ClassifierVersions,
     ComposedNarrative,
+    EpisodeMarker,
     EvidenceQuote,
     HistogramSnapshot,
     IdentityVerdict,
+    LanguageCount,
     LlmStage,
+    MarkedWindowCount,
     NarrativeOutcome,
     Origin,
     PathOutcome,
     Provenance,
+    Report,
     Review,
     ReviewClassification,
     SamplingPolicy,
     SamplingPolicyKind,
     Sink,
     StageKind,
+    WindowAccount,
     WindowFetchResult,
 )
 from steamlens.core.aggregate import MentionRow, aggregate
 from steamlens.core.classify import PROMPT_VERSION
 from steamlens.core.compose import COMPOSE_PROMPT_VERSION, select_facts
+from steamlens.core.detect import detect_episodes, overlaps_marked_window
 from steamlens.core.grounding import derive_whitelist
 from steamlens.core.normalize import build_surface_index
 from steamlens.core.sampling import compile_plan
@@ -123,6 +136,31 @@ class _WindowSpec:
     quota: int | None
 
 
+@dataclass(frozen=True, slots=True)
+class _FetchAccount:
+    """What the fetch leg hands the report: provenance the trust panel shows.
+
+    ``windows`` at the ruled grain (per-window path outcomes), ``language_mix``
+    over everything fetched, and each member's creation instant — kept so the
+    marked-window disclosure counts sampled reviews inside Valve-marked spans
+    without re-reading the store.
+    """
+
+    windows: tuple[WindowAccount, ...]
+    language_mix: tuple[LanguageCount, ...]
+    member_times: tuple[datetime, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class _MintOutcome:
+    """The mint's product held for publication: the numbers, their denominator,
+    and the fenced narrative that rode on them."""
+
+    aggregates: tuple[AspectAggregate, ...]
+    sample_size: int
+    narrative: ComposedNarrative
+
+
 class AnalysisRunner:
     """One process's runner: composed once, executing one cold job at a time.
 
@@ -159,17 +197,19 @@ class AnalysisRunner:
         )
 
     def run(self, app_id: int, requested_name: str, sink: Sink) -> None:
-        """One cold analysis end to end, narrated over ``sink``.
+        """One cold analysis end to end, narrated over ``sink`` and published whole.
 
-        Fetch → classify → mint → compose; detect slots in with its build
-        step, and the report row's persistence is the next layer's — until it
-        lands, the narrative reaches a viewer through the sink alone. Raises
-        on the honest aborts — an over-budget sampled plan, the refusal
-        breaker, provider trouble outliving retries, annotator drift mid-job
-        — and the job queue records the failure; labels bought before an
-        abort are already banked and make the re-run nearly free. A compose
-        failure never aborts: prose is garnish, and its ladder degrades to a
-        disclosed withholding instead.
+        Fetch → classify → mint → compose → publish: at completion the report
+        row and its aggregate snapshot commit in one transaction, so the next
+        request for this game reads instantly and no half-published state
+        exists. Episode markers detect off the planning histogram and narrate
+        mid-job. Raises on the honest aborts — an over-budget sampled plan,
+        the refusal breaker, provider trouble outliving retries, annotator
+        drift mid-job — and the job queue records the failure; labels bought
+        before an abort are already banked and make the re-run nearly free. A
+        compose failure never aborts: prose is garnish, and its ladder
+        degrades to a disclosed withholding that publishes like any other
+        outcome. Only a job that classified nothing publishes no report.
         """
         started = datetime.now(UTC)
         run = Provenance(
@@ -198,6 +238,7 @@ class AnalysisRunner:
             )
             histogram = self._steam.fetch_histogram(app_id)
             specs = self._plan(english_claim, all_claim, histogram, sink)
+            episodes = _detect_markers(histogram, sink)
 
             driver_store.labels.record_run(run)
             client = build_client(
@@ -205,18 +246,45 @@ class AnalysisRunner:
                 client_store, sink,
                 extra_routes={LlmStage.COMPOSE: compose_route()},
             )
-            self._fetch_and_classify(
+            account = self._fetch_and_classify(
                 app_id, specs, client, driver_store, run, sink, started
             )
-            self._mint_and_compose(
+            game_name = ref.store_name or requested_name
+            minted = self._mint_and_compose(
                 app_id,
-                ref.store_name or requested_name,
+                game_name,
                 run,
                 client,
                 driver_store,
                 sink,
                 take_all=all(spec.quota is None for spec in specs),
                 job_values=(float(all_claim), float(english_claim)),
+            )
+            if minted is None:
+                return
+            report = Report(
+                run=run,
+                app_id=app_id,
+                game_name=game_name,
+                created_at=datetime.now(UTC),
+                versions=self._versions,
+                sample_size=minted.sample_size,
+                take_all=all(spec.quota is None for spec in specs),
+                windows=account.windows,
+                language_mix=account.language_mix,
+                narrative=minted.narrative,
+                histogram=histogram,
+                episodes=episodes,
+                marked_window_counts=_marked_window_counts(
+                    histogram, account.member_times
+                ),
+            )
+            driver_store.reports.put(report, minted.aggregates)
+            narrate(
+                sink, "serve.report", StageKind.DONE,
+                f"report published ({minted.narrative.outcome.value} narrative, "
+                f"n={minted.sample_size:,}) — the next request for app {app_id} "
+                f"reads it instantly",
             )
 
     def _config_hash(self) -> str:
@@ -321,18 +389,21 @@ class AnalysisRunner:
         run: Provenance,
         sink: Sink,
         started: datetime,
-    ) -> None:
+    ) -> _FetchAccount:
         """The overlap seam: windows stream from the producer, batches classify as they land.
 
         The producer thread fetches window by window into a bounded queue (the
         bound stalls fetching rather than racing unboundedly ahead); the job
         thread files each completed window's English-usable members into the
-        reviews table, batches them to the classify pool, and consumes
-        outcomes as futures finish. After production ends, the census's
-        rebatch → isolate ladder runs on the same pool. A producer failure
-        surfaces on the job thread before the ladder — no retrying into a
-        dead fetch; a job-thread abort releases the producer via the cancel
-        event so neither side can deadlock on the bounded queue.
+        reviews table and the run's sample manifest, batches the members
+        still owed a verdict to the classify pool (the membership-scoped
+        selection — a verdict bought by any prior run is re-used, narrated,
+        never re-paid), and consumes outcomes as futures finish. After
+        production ends, the census's rebatch → isolate ladder runs on the
+        same pool. A producer failure surfaces on the job thread before the
+        ladder — no retrying into a dead fetch; a job-thread abort releases
+        the producer via the cancel event so neither side can deadlock on the
+        bounded queue.
         """
         window_queue: Queue[tuple[_WindowSpec, WindowFetchResult] | None] = Queue(
             maxsize=self._config.window_buffer
@@ -360,9 +431,12 @@ class AnalysisRunner:
         totals = RunTotals()
         drift = DriftWatch()
         languages: Counter[str] = Counter()
+        accounts: list[WindowAccount] = []
+        member_times: list[datetime] = []
         buffer: list[Review] = []
         failed: list[Review] = []
         members_total = 0
+        reused_total = 0
         windows_done = 0
         pending: set[Future[BatchOutcome]] = set()
 
@@ -389,13 +463,32 @@ class AnalysisRunner:
                                 spec, result = item
                                 windows_done += 1
                                 members = _usable_english(result.reviews)
+                                accounts.append(
+                                    WindowAccount(spec.start, spec.end, result.outcome)
+                                )
                                 languages.update(r.language for r in result.reviews)
+                                member_times.extend(r.created_at for r in members)
                                 members_total += len(members)
                                 self._narrate_window(
                                     sink, spec, result, members, windows_done, len(specs)
                                 )
                                 driver_store.reviews.put_many(members)
-                                buffer.extend(members)
+                                driver_store.sample_members.add_members(
+                                    run.run_id, (r.review_id for r in members)
+                                )
+                                # The membership-scoped selection, narrowed to
+                                # this window: earlier windows' members are
+                                # in flight without envelopes yet, so the
+                                # store-wide query alone would re-offer them.
+                                owed_ids = {
+                                    r.review_id
+                                    for r in driver_store.reviews.members_unlabeled_under(
+                                        run.run_id, self._versions
+                                    )
+                                }
+                                fresh = [r for r in members if r.review_id in owed_ids]
+                                reused_total += len(members) - len(fresh)
+                                buffer.extend(fresh)
                                 while len(buffer) >= self._config.batch_n:
                                     batch = tuple(buffer[: self._config.batch_n])
                                     del buffer[: self._config.batch_n]
@@ -454,12 +547,23 @@ class AnalysisRunner:
             f"{language} {count:,}"
             for language, count in languages.most_common(3)
         )
+        reused_note = (
+            f" · {reused_total:,} verdicts re-used from the pool" if reused_total else ""
+        )
         narrate(
             sink, "serve.runner", StageKind.DONE,
             f"labels banked: {totals.labeled:,} labeled (empty {totals.empty_envelopes:,}, "
-            f"failed durable {totals.failed_durable}) · {english_note} · "
+            f"failed durable {totals.failed_durable}){reused_note} · {english_note} · "
             f"language mix: {mix or 'none fetched'} · ${run_cost:.4f} this job · "
             f"run {run.run_id}",
+        )
+        return _FetchAccount(
+            windows=tuple(accounts),
+            language_mix=tuple(
+                LanguageCount(language, count)
+                for language, count in languages.most_common()
+            ),
+            member_times=tuple(member_times),
         )
 
     def _mint_and_compose(
@@ -473,19 +577,21 @@ class AnalysisRunner:
         *,
         take_all: bool,
         job_values: tuple[float, ...],
-    ) -> ComposedNarrative | None:
-        """Mint the job's numbers from its own labels, then compose the fenced narrative.
+    ) -> _MintOutcome | None:
+        """Mint the job's numbers over its stored sample, then compose the fenced narrative.
 
-        The fold reads back what the run wrote (the regenerate-from-the-layer-
-        below read; a resumed job mints identically to a fresh one), and the
-        run id stands as the mint's manifest id — the run names this job's
-        exact sample until the report-persistence step gives it a stored home.
-        ``job_values`` carries the job-level numbers the whitelist may admit
-        beyond the aggregates (the claimed totals). Returns ``None`` when the
-        job labeled nothing; a below-floor selection returns the disclosed
-        ``WITHHELD`` narrative without ever calling the composer.
+        The fold reads membership ∩ label pool under the pinned versions (the
+        regenerate-from-the-layer-below read) — a verdict bought by any prior
+        run counts, so a re-run or resumed job mints identically to a fresh
+        one while paying only for reviews never labeled. The run id is the
+        mint's manifest id, and since the manifest is stored it names this
+        job's exact sample durably. ``job_values`` carries the job-level
+        numbers the whitelist may admit beyond the aggregates (the claimed
+        totals). Returns ``None`` when the sample holds no classified member;
+        a below-floor selection returns the disclosed ``WITHHELD`` narrative
+        without ever calling the composer.
         """
-        sample_size = store.labels.count_run_envelopes(run.run_id)
+        sample_size = store.labels.count_member_envelopes(run.run_id, self._versions)
         if sample_size == 0:
             narrate(
                 sink, "serve.mint", StageKind.WARN,
@@ -497,8 +603,8 @@ class AnalysisRunner:
                 app_id=app_id, review_id=review_id, aspect=aspect,
                 slot=slot, sentiment=sentiment,
             )
-            for review_id, aspect, slot, sentiment in store.labels.iter_run_mentions(
-                run.run_id
+            for review_id, aspect, slot, sentiment in store.labels.iter_member_mentions(
+                run.run_id, self._versions
             )
         )
         aggregates = aggregate(
@@ -521,8 +627,8 @@ class AnalysisRunner:
             EvidenceQuote(
                 review_id=review_id, aspect=aspect, sentiment=sentiment, text=text
             )
-            for review_id, aspect, sentiment, text in store.labels.iter_run_evidence(
-                run.run_id
+            for review_id, aspect, sentiment, text in store.labels.iter_member_evidence(
+                run.run_id, self._versions
             )
         )
         cfg = self._config
@@ -542,14 +648,17 @@ class AnalysisRunner:
                 f"no aspect cleared the evidence floor ({cfg.compose_floor}) — "
                 "narrative withheld; the report renders numbers and quotes only",
             )
-            return ComposedNarrative(prose="", spans=(), outcome=NarrativeOutcome.WITHHELD)
+            withheld = ComposedNarrative(
+                prose="", spans=(), outcome=NarrativeOutcome.WITHHELD
+            )
+            return _MintOutcome(aggregates, sample_size, withheld)
         whitelist = derive_whitelist(
             aggregates, sample_size=sample_size, extra_values=job_values
         )
         narrative = compose_narrative(client, facts, whitelist, sink)
         if narrative.prose:
             narrate(sink, COMPOSE_STAGE, StageKind.PROGRESS, narrative.prose)
-        return narrative
+        return _MintOutcome(aggregates, sample_size, narrative)
 
     def _narrate_window(
         self,
@@ -650,6 +759,68 @@ class AnalysisRunner:
             else:
                 retry.append(review)
         return retry
+
+
+def _detect_markers(
+    histogram: HistogramSnapshot, sink: Sink
+) -> tuple[EpisodeMarker, ...]:
+    """Detect episode markers off the planning histogram and narrate the finding.
+
+    Display projections only: each detected span plus the Valve-overlap fact,
+    in the render rule's vocabulary — "unusual review volume," no causal noun,
+    because the detector cannot know why. An empty result narrates too; "no
+    unusual spans" is a finding, not silence.
+    """
+    markers = tuple(
+        EpisodeMarker(
+            start=episode.start,
+            end=episode.end,
+            buckets=episode.buckets,
+            reviews=episode.reviews,
+            peak_multiple=episode.peak_multiple,
+            overlaps_marked_window=overlaps_marked_window(episode, histogram),
+        )
+        for episode in detect_episodes(histogram)
+    )
+    if not markers:
+        narrate(
+            sink, "serve.detect", StageKind.DONE,
+            "episode markers: no spans of unusual review volume",
+        )
+        return markers
+    marked = sum(1 for m in markers if m.overlaps_marked_window)
+    peak = max(m.peak_multiple for m in markers)
+    overlap_note = (
+        f", {marked} overlapping a Valve-marked window" if marked else ""
+    )
+    narrate(
+        sink, "serve.detect", StageKind.DONE,
+        f"episode markers: {len(markers)} span(s) of unusual review volume "
+        f"(peak {peak:.1f}× baseline{overlap_note})",
+    )
+    return markers
+
+
+def _marked_window_counts(
+    histogram: HistogramSnapshot, member_times: tuple[datetime, ...]
+) -> tuple[MarkedWindowCount, ...]:
+    """How many sample members fall inside each Valve-marked window.
+
+    The trust panel's disclosure: marked-window reviews are kept in the
+    numbers (the unfiltered-fetch ruling), so the report states how many, per
+    window — zero included, because "none sampled inside" is itself the
+    disclosure a reader wants.
+    """
+    return tuple(
+        MarkedWindowCount(
+            start=event.start,
+            end=event.end,
+            members_inside=sum(
+                1 for created in member_times if event.start <= created < event.end
+            ),
+        )
+        for event in histogram.past_events
+    )
 
 
 def _put_unless_cancelled(

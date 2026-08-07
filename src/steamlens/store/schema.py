@@ -176,7 +176,79 @@ _STEP_3: tuple[str, ...] = (
     "ALTER TABLE eval_runs ADD COLUMN reference_kind TEXT NOT NULL DEFAULT 'gold-file'",
 )
 
-MIGRATION_STEPS: tuple[tuple[str, ...], ...] = (_STEP_1, _STEP_2, _STEP_3)
+# Step 4 — serving persistence (the M3 report layer, designed 2026-08-08).
+# Three tables, one design: the stored sample manifest that fixes the re-run
+# collision (a job's mint folds membership ∩ label pool instead of run-scoped
+# envelopes, so labels bought by a prior run count), the normalized aggregate
+# snapshot (the citable publication mint — consumers reach inside, so rows,
+# not JSON), and the report row (scalars a query may filter on; display-only
+# structures as JSON columns validated by reconstruction at read).
+_STEP_4: tuple[str, ...] = (
+    # One row per (run, member review): which exact reviews a serving run's
+    # sample holds. Written as each window's members are filed, so the
+    # manifest exists before any label is bought against it; the run_id *is*
+    # the mint's manifest_id once this table gives it a referent.
+    """
+    CREATE TABLE sample_members (
+        run_id    TEXT NOT NULL REFERENCES runs (run_id),
+        review_id TEXT NOT NULL REFERENCES reviews (review_id),
+        PRIMARY KEY (run_id, review_id)
+    ) WITHOUT ROWID
+    """,
+    # One report per completed analysis, PK run_id. Scalar columns are what a
+    # query filters or displays cheaply — including the fetch-path totals
+    # (the ruled trust-panel grain: totals plus per-window path outcomes,
+    # never per-window English detail). The *_json columns hold display-only
+    # structure nothing ever queries inside; the read boundary validates them
+    # by full reconstruction. Multiple rows per app are the refresh-ready
+    # shape — latest_report reads newest by (app_id, created_at).
+    """
+    CREATE TABLE reports (
+        run_id              TEXT    PRIMARY KEY REFERENCES runs (run_id),
+        app_id              INTEGER NOT NULL,
+        game_name           TEXT    NOT NULL,
+        created_at          TEXT    NOT NULL,
+        model_version       TEXT    NOT NULL,
+        prompt_version      TEXT    NOT NULL,
+        ontology_version    TEXT    NOT NULL,
+        sample_size         INTEGER NOT NULL,
+        take_all            INTEGER NOT NULL CHECK (take_all IN (0, 1)),
+        windowed_windows    INTEGER NOT NULL,
+        fallback_windows    INTEGER NOT NULL,
+        skipped_windows     INTEGER NOT NULL,
+        narrative_outcome   TEXT    NOT NULL,
+        narrative_json      TEXT    NOT NULL,
+        histogram_json      TEXT    NOT NULL,
+        episodes_json       TEXT    NOT NULL,
+        language_mix_json   TEXT    NOT NULL,
+        marked_windows_json TEXT    NOT NULL,
+        fetch_windows_json  TEXT    NOT NULL
+    ) WITHOUT ROWID
+    """,
+    "CREATE INDEX idx_reports_app_created ON reports (app_id, created_at)",
+    # The publication mint, normalized per (run, aspect, slot): the frozen
+    # citable numbers a report displays. References reports, not runs — a
+    # snapshot without its report cannot exist (they commit in one
+    # transaction, report row first). sample_size rides on every row so each
+    # is a self-contained citable number (the step-5 design's shape).
+    """
+    CREATE TABLE aggregate_snapshots (
+        id                  INTEGER PRIMARY KEY,
+        run_id              TEXT    NOT NULL REFERENCES reports (run_id),
+        aspect              TEXT    NOT NULL,
+        slot                TEXT    NOT NULL,
+        reviews_with_aspect INTEGER NOT NULL,
+        positive            INTEGER NOT NULL,
+        negative            INTEGER NOT NULL,
+        mixed               INTEGER NOT NULL,
+        neutral             INTEGER NOT NULL,
+        sample_size         INTEGER NOT NULL,
+        UNIQUE (run_id, aspect, slot)
+    )
+    """,
+)
+
+MIGRATION_STEPS: tuple[tuple[str, ...], ...] = (_STEP_1, _STEP_2, _STEP_3, _STEP_4)
 
 SCHEMA_VERSION = len(MIGRATION_STEPS)
 

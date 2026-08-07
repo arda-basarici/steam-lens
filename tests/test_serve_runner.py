@@ -22,7 +22,7 @@ from urllib.parse import parse_qs
 
 import httpx
 import pytest
-from fakes import CollectingSink, FakeProvider
+from fakes import CollectingSink, FakeProvider, prompt_batch
 
 from steamlens.contracts import ClassifierVersions, StageEvent
 from steamlens.core.classify import PROMPT_VERSION
@@ -77,7 +77,10 @@ def _totals_body(total: int) -> str:
     )
 
 
-def _histogram_body(buckets: list[tuple[datetime, int]]) -> str:
+def _histogram_body(
+    buckets: list[tuple[datetime, int]],
+    events: list[tuple[datetime, datetime]] | None = None,
+) -> str:
     return json.dumps(
         {
             "success": 1,
@@ -93,6 +96,14 @@ def _histogram_body(buckets: list[tuple[datetime, int]]) -> str:
                 ],
                 "recent": [],
             },
+            "past_events": [
+                {
+                    "type": 1,
+                    "start_date": int(start.timestamp()),
+                    "end_date": int(end.timestamp()),
+                }
+                for start, end in (events or [])
+            ],
         }
     )
 
@@ -116,10 +127,11 @@ class SteamWire:
         buckets: list[tuple[datetime, int]],
         pages: dict[int | None, list[str]],
         page_hooks: dict[int, Callable[[], None]] | None = None,
+        events: list[tuple[datetime, datetime]] | None = None,
     ) -> None:
         self.requests: list[httpx.Request] = []
         self._totals = {"all": totals_all, "english": totals_english}
-        self._histogram = _histogram_body(buckets)
+        self._histogram = _histogram_body(buckets, events)
         self._pages = {key: iter(script) for key, script in pages.items()}
         self._hooks = dict(page_hooks or {})
         self._lock = threading.Lock()
@@ -422,6 +434,129 @@ def test_below_floor_selection_withholds_without_a_compose_call(tmp_path: Path) 
         for m in _stage_messages(sink, "serve.compose")
     )
     assert all("<evidence>" not in p for p in provider.prompts)
+
+
+def test_completed_job_publishes_the_report_whole(tmp_path: Path) -> None:
+    """Completion publishes everything the page shows in one transaction: the
+    report row (narrative outcome recorded, fetch provenance at the ruled
+    grain, language mix), the frozen aggregate snapshot, detected episode
+    markers with the Valve-overlap fact, and the members-inside count per
+    marked window — and the instant read path serves it back whole."""
+    quiet = [(datetime(2026, month, 1, tzinfo=UTC), 50) for month in range(1, 7)]
+    event = (_JULY.replace(day=5), _JULY.replace(day=20))
+    inside = [
+        _wire_review(f"in{i}", _JULY.replace(day=10), text=f"quotable gameplay wow {i}")
+        for i in range(2)
+    ]
+    outside = [
+        _wire_review(f"out{i}", _JUNE.replace(day=10), text=f"quotable gameplay yes {i}")
+        for i in range(3)
+    ]
+    wire = SteamWire(
+        totals_all=5,
+        totals_english=5,
+        buckets=[*quiet, (_JULY, 900)],
+        pages={None: [_page_body([*inside, *outside], None, 5)]},
+        events=[event],
+    )
+    sink = CollectingSink()
+    db_path = tmp_path / "serve.sqlite3"
+    runner = _runner(
+        wire, FakeProvider(), ServeConfig(batch_n=2, classify_workers=2), db_path
+    )
+    runner.run(_APP, "Test Game", sink)
+
+    assert any(
+        "1 span(s) of unusual review volume" in m
+        for m in _stage_messages(sink, "serve.detect")
+    )
+    assert any("report published" in m for m in _stage_messages(sink, "serve.report"))
+    with Store(db_path) as store:
+        report = store.reports.latest_report(_APP)
+        assert report is not None
+        assert report.game_name == "Test Game"
+        assert report.sample_size == 5
+        assert report.take_all is True
+        assert report.versions == _versions()
+        assert [w.outcome.value for w in report.windows] == ["windowed"]
+        assert report.language_mix[0].language == "english"
+        assert report.narrative.outcome.value == "composed"
+        assert "gameplay" in report.narrative.prose
+        [episode] = report.episodes
+        assert episode.start == _JULY
+        assert episode.reviews == 900
+        assert episode.overlaps_marked_window is True
+        [marked] = report.marked_window_counts
+        assert (marked.start, marked.end) == event
+        assert marked.members_inside == 2
+        [aggregate] = store.reports.get_snapshot(report.run.run_id)
+        assert aggregate.aspect == "gameplay"
+        assert aggregate.reviews_with_aspect == 5
+        assert aggregate.sample_size == 5
+        assert aggregate.manifest_id == report.run.run_id
+
+
+def test_job_that_classified_nothing_publishes_no_report(tmp_path: Path) -> None:
+    """No members, no numbers, no report row — the next request re-queues
+    honestly instead of reading an empty publication."""
+    wire = SteamWire(
+        totals_all=1,
+        totals_english=0,
+        buckets=[(_JUNE, 1)],
+        pages={None: [_page_body([_wire_review("g1", _JUNE, language="german")], None, 1)]},
+    )
+    db_path = tmp_path / "serve.sqlite3"
+    runner = _runner(wire, FakeProvider(), ServeConfig(batch_n=2), db_path)
+    runner.run(_APP, "Test Game", CollectingSink())
+    with Store(db_path) as store:
+        assert store.reports.latest_report(_APP) is None
+
+
+def test_second_job_reuses_labels_and_pays_only_for_new_reviews(tmp_path: Path) -> None:
+    """The re-run collision fix end to end: a second job on the same game
+    files its own manifest, skips every member the pool already answers for
+    (no duplicate-envelope death, no re-buy), classifies only the genuinely
+    new reviews, and still mints the FULL sample's numbers — prior runs'
+    labels count through membership."""
+    texts = [f"quotable gameplay that keeps pulling me back {i}" for i in range(5)]
+    first_batch = [_wire_review(f"e{i}", _JUNE, text=text) for i, text in enumerate(texts)]
+    db_path = tmp_path / "serve.sqlite3"
+    config = ServeConfig(batch_n=2, classify_workers=2)
+
+    first_wire = SteamWire(
+        totals_all=5, totals_english=5, buckets=[(_JUNE, 5)],
+        pages={None: [_page_body(first_batch, None, 5)]},
+    )
+    _runner(first_wire, FakeProvider(), config, db_path).run(
+        _APP, "Test Game", CollectingSink()
+    )
+
+    new_reviews = [
+        _wire_review("n1", _JULY, text="fresh gameplay six"),
+        _wire_review("n2", _JULY, text="fresh gameplay seven"),
+    ]
+    second_wire = SteamWire(
+        totals_all=7, totals_english=7, buckets=[(_JUNE, 5), (_JULY, 2)],
+        pages={None: [_page_body([*new_reviews, *first_batch], None, 7)]},
+    )
+    second_provider = FakeProvider()
+    sink = CollectingSink()
+    _runner(second_wire, second_provider, config, db_path).run(_APP, "Test Game", sink)
+
+    classify_prompts = [p for p in second_provider.prompts if "<evidence>" not in p]
+    dispatched = [
+        text for prompt in classify_prompts for _, text in prompt_batch(prompt)
+    ]
+    assert sorted(dispatched) == ["fresh gameplay seven", "fresh gameplay six"]
+    done = _stage_messages(sink, "serve.runner")
+    assert any(
+        "labels banked: 2 labeled" in m and "5 verdicts re-used" in m for m in done
+    )
+    assert any("gameplay 7/7" in m for m in _stage_messages(sink, "serve.mint"))
+    with Store(db_path) as store:
+        latest = store.reports.latest_report(_APP)
+        assert latest is not None
+        assert latest.sample_size == 7  # both jobs published; newest row serves
 
 
 def test_serve_defaults_match_the_studies_ruled_pins() -> None:

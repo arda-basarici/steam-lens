@@ -5,7 +5,9 @@ hands its connection to small tenant surfaces exposed as attributes: the
 durable ``responses``/``spend_ledger`` pair binds into the LLM client's
 constructor slots (the client never learns SQLite exists), ``reviews`` holds
 the corpus snapshot and the driver's selection query, ``labels`` is the label
-pool, ``eval_runs`` is the certification journal. One owner, dumb tenants:
+pool, ``eval_runs`` is the certification journal, ``sample_members`` is the
+serving runs' stored sample manifests, ``reports`` the published analyses
+with their aggregate snapshots. One owner, dumb tenants:
 pragmas and migrations run once per open instead of once per surface, and
 "which connection has WAL set" stays a single fact.
 
@@ -31,7 +33,9 @@ from steamlens.store.archive import SqliteResponseArchive
 from steamlens.store.eval_runs import EvalRunLog
 from steamlens.store.labels import LabelPool
 from steamlens.store.ledger import SqliteSpendLedger
+from steamlens.store.reports import ReportLog
 from steamlens.store.reviews import ReviewStore
+from steamlens.store.samples import SampleManifest
 from steamlens.store.schema import apply_migrations
 
 
@@ -81,6 +85,8 @@ class Store:
         self.reviews = ReviewStore(self._conn)
         self.labels = LabelPool(self._conn)
         self.eval_runs = EvalRunLog(self._conn)
+        self.sample_members = SampleManifest(self._conn)
+        self.reports = ReportLog(self._conn)
 
     def close(self) -> None:
         """Close the underlying connection; the instance is unusable afterwards."""

@@ -11,7 +11,7 @@ and the replay-then-follow stream) import the jobs layer; jobs, runner, and
 config never import them.
 """
 
-from steamlens.serve.app import AnalysisAccepted, AnalysisRequest, create_app
+from steamlens.serve.app import AnalysisAccepted, AnalysisRequest, ReportReady, create_app
 from steamlens.serve.config import ServeConfig
 from steamlens.serve.jobs import Job, JobQueue, JobState
 from steamlens.serve.runner import AnalysisRunner
@@ -23,6 +23,7 @@ __all__ = [
     "Job",
     "JobQueue",
     "JobState",
+    "ReportReady",
     "ServeConfig",
     "create_app",
 ]

@@ -1418,6 +1418,33 @@ it is decided who may pull it. When added, it is structurally free — a
 refresh is a new job for the same game, minting a new report row beside the
 old.
 
+**Build-time narrowings (step 5, landed 2026-08-08).** The stored sample
+manifest is the piece the design prose implied but never named: a
+`sample_members` table filed window by window as members land, which gives
+the mint's `manifest_id` (the run id) a stored referent. Membership scopes
+both sides of the label economy — classify selects the members still owed a
+verdict under the versions triple, the mint folds membership ∩ label pool —
+so a verdict bought by any prior run counts for this job's numbers, which is
+simultaneously the re-run collision fix (a selection that skips
+already-answered members cannot die on a duplicate envelope) and the
+resumes-nearly-free promise made real. The aggregate snapshot persists
+normalized per (run, aspect, slot) with the sample size on every row: each
+row a self-contained citable number. The report row keeps a scalar/JSON
+split: columns a query may touch (identity, the versions triple, sample size,
+take-all, the fetch-path totals, the narrative's recorded ladder rung) are
+scalar; display-only structure (prose with its span certificate, the
+histogram, episode markers, language mix, marked-window member counts,
+per-window path outcomes) stores as JSON validated by full reconstruction at
+read — including that the certificate still lands on the exact prose it
+signs, and that the stored path totals re-derive from the stored windows.
+Fetch provenance persists at the ruled trust-panel grain: totals plus
+per-window path outcomes, no per-window realized-English detail. Snapshot
+rows and the report row commit in one transaction; a job that classified
+nothing publishes no report, so the next request re-queues honestly. The
+cached-game read is POST-level: a published report answers 200 with a
+receipt naming the run and wearing its date — no job, no spend — which also
+settles that the POST alone never refreshes a game.
+
 ### Model prose
 
 **The composer routes to the survey labeler's model, cross-family from the

@@ -23,10 +23,21 @@ import asyncio
 import threading
 import time
 from collections.abc import Callable
+from datetime import UTC, datetime
 
 from httpx import ASGITransport, AsyncClient
 
-from steamlens.contracts import StageEvent, StageKind
+from steamlens.contracts import (
+    ClassifierVersions,
+    ComposedNarrative,
+    HistogramSnapshot,
+    NarrativeOutcome,
+    Provenance,
+    Report,
+    RollupUnit,
+    StageEvent,
+    StageKind,
+)
 from steamlens.serve import Job, JobQueue, JobState, ServeConfig, create_app
 
 _CONFIG = ServeConfig(sse_tick_s=0.001, sse_heartbeat_s=60.0)
@@ -61,7 +72,7 @@ def test_submit_receipts_honestly_and_same_game_attaches() -> None:
     different game queues behind with its position told straight."""
     runner = GatedNarrator()
     queue = JobQueue(runner)
-    app = create_app(queue, _CONFIG)
+    app = create_app(queue, _CONFIG, lambda _: None)
 
     async def drive() -> None:
         transport = ASGITransport(app=app)
@@ -118,7 +129,7 @@ def test_a_mid_run_attach_streams_the_complete_story_to_the_end_frame() -> None:
     by the terminal end frame, on one connection."""
     runner = GatedNarrator()
     queue = AttachObservableQueue(runner)
-    app = create_app(queue, _CONFIG)
+    app = create_app(queue, _CONFIG, lambda _: None)
 
     async def collect(client: AsyncClient) -> list[str]:
         async with client.stream("GET", "/analyses/440/events") as response:
@@ -150,13 +161,80 @@ def test_a_mid_run_attach_streams_the_complete_story_to_the_end_frame() -> None:
     queue.close()
 
 
+def _cached_report(app_id: int = 440) -> Report:
+    """A minimal published report — the bypass seam needs identity + provenance,
+    not the display structures, so those stay empty."""
+    stamp = datetime(2026, 8, 1, tzinfo=UTC)
+    return Report(
+        run=Provenance(
+            run_id="serve-old", code_version="abc1234", created_at=stamp,
+            config_hash="cfg",
+        ),
+        app_id=app_id,
+        game_name="Team Fortress 2",
+        created_at=stamp,
+        versions=ClassifierVersions(
+            model_version="m", prompt_version="p", ontology_version="v"
+        ),
+        sample_size=250,
+        take_all=False,
+        windows=(),
+        language_mix=(),
+        narrative=ComposedNarrative(prose="", spans=(), outcome=NarrativeOutcome.WITHHELD),
+        histogram=HistogramSnapshot(
+            app_id=app_id, rollup_unit=RollupUnit.MONTH, rollups=(),
+            recent_daily=(), past_events=(), fetched_at=stamp,
+        ),
+        episodes=(),
+        marked_window_counts=(),
+    )
+
+
+def test_cached_game_answers_200_without_minting_a_job() -> None:
+    """The cached-game bypass: a published report answers the POST instantly —
+    200 with the report's identity and its date worn openly, no job, no spend —
+    while an unanalyzed game still queues with the 202 receipt."""
+    runner = GatedNarrator()
+    runner.release.set()
+    queue = JobQueue(runner)
+    app = create_app(
+        queue, _CONFIG, lambda app_id: _cached_report() if app_id == 440 else None
+    )
+
+    async def drive() -> None:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            cached = await client.post(
+                "/analyses", json={"app_id": 440, "requested_name": "Team Fortress 2"}
+            )
+            assert cached.status_code == 200
+            body = cached.json()
+            assert body["run_id"] == "serve-old"
+            assert body["sample_size"] == 250
+            assert body["analyzed_at"].startswith("2026-08-01")
+            assert queue.live(440) is None, "the cached answer must not have queued a job"
+
+            fresh = await client.post(
+                "/analyses", json={"app_id": 570, "requested_name": "Dota 2"}
+            )
+            assert fresh.status_code == 202
+            assert fresh.json()["events_url"] == "/analyses/570/events"
+
+    asyncio.run(asyncio.wait_for(drive(), timeout=10.0))
+    deadline = time.monotonic() + 5.0
+    while queue.live(570) is not None and time.monotonic() < deadline:
+        time.sleep(0.005)
+    assert runner.order == [570], "only the unanalyzed game may have run"
+    queue.close()
+
+
 def test_events_is_read_only_and_404s_without_a_live_job() -> None:
     """GET never mints a job: unknown apps 404, and a *finished* job 404s too —
     its report belongs to the persistence layer, not the queue."""
     runner = GatedNarrator()
     runner.release.set()
     queue = JobQueue(runner)
-    app = create_app(queue, _CONFIG)
+    app = create_app(queue, _CONFIG, lambda _: None)
 
     async def drive() -> None:
         transport = ASGITransport(app=app)
