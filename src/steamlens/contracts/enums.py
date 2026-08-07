@@ -119,6 +119,26 @@ class SpanKind(StrEnum):
     QUOTE = "quote"
 
 
+class NarrativeOutcome(StrEnum):
+    """Which rung of the grounding ladder produced the narrative a report carries.
+
+    The compose stage degrades honestly rather than failing: ``COMPOSED``
+    passed the gate first try, ``RETRIED`` passed after the one corrective
+    retry, ``TRIMMED`` renders the sentences that survived the violation cut,
+    and ``WITHHELD`` renders no prose at all — the report shows aggregates and
+    quotes with a disclosed line. Recorded beside the prose so the page can
+    disclose its rung without re-deriving anything.
+
+    >>> NarrativeOutcome.WITHHELD == "withheld"
+    True
+    """
+
+    COMPOSED = "composed"
+    RETRIED = "retried"
+    TRIMMED = "trimmed"
+    WITHHELD = "withheld"
+
+
 class FinishReason(StrEnum):
     """How a generation ended, normalized across providers — the truncation guard's read.
 

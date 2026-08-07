@@ -360,6 +360,70 @@ def test_page_budget_degrades_take_all_and_refuses_a_heavy_plan(tmp_path: Path) 
         refusing.run(_APP, "Test Game", CollectingSink())
 
 
+def test_mint_and_compose_extend_the_spine(tmp_path: Path) -> None:
+    """After labels bank, the mint folds the run's own labels read back from
+    the store and the fenced narrative composes over them: the mint narration
+    carries the top aspect at its true count, the compose prompt offers the
+    stored evidence spans, and the gate-passed prose (numerals absent, the
+    quotation verbatim from evidence) reaches the sink."""
+    texts = [f"quotable gameplay that keeps pulling me back {i}" for i in range(5)]
+    reviews = [
+        _wire_review(f"e{i}", _JUNE, text=text) for i, text in enumerate(texts)
+    ]
+    wire = SteamWire(
+        totals_all=5,
+        totals_english=5,
+        buckets=[(_JUNE, 5)],
+        pages={None: [_page_body(reviews, None, 5)]},
+    )
+    sink = CollectingSink()
+    provider = FakeProvider(
+        compose_prose='Players say "quotable gameplay that keeps pulling me back" often.'
+    )
+    runner = _runner(
+        wire, provider, ServeConfig(batch_n=2, classify_workers=2),
+        tmp_path / "serve.sqlite3",
+    )
+    runner.run(_APP, "Test Game", sink)
+
+    assert any("gameplay 5/5" in m for m in _stage_messages(sink, "serve.mint"))
+    compose = _stage_messages(sink, "serve.compose")
+    assert any("narrative grounded clean" in m for m in compose)
+    assert provider.compose_prose in compose  # the PROGRESS event carrying the prose
+    compose_prompts = [p for p in provider.prompts if "<evidence>" in p]
+    assert len(compose_prompts) == 1
+    assert "quotable gameplay that keeps pulling me back 0" in compose_prompts[0]
+    assert "complete count of all 5 reviews" in compose_prompts[0]
+
+
+def test_below_floor_selection_withholds_without_a_compose_call(tmp_path: Path) -> None:
+    """Three mentions under the default floor of five: the mint still narrates,
+    the narrative is withheld disclosed, and no compose prompt is ever paid."""
+    reviews = [
+        _wire_review(f"e{i}", _JUNE, text=f"great gameplay {i}") for i in range(3)
+    ]
+    wire = SteamWire(
+        totals_all=3,
+        totals_english=3,
+        buckets=[(_JUNE, 3)],
+        pages={None: [_page_body(reviews, None, 3)]},
+    )
+    sink = CollectingSink()
+    provider = FakeProvider()
+    runner = _runner(
+        wire, provider, ServeConfig(batch_n=2, classify_workers=2),
+        tmp_path / "serve.sqlite3",
+    )
+    runner.run(_APP, "Test Game", sink)
+
+    assert any("minted 1 aspect" in m for m in _stage_messages(sink, "serve.mint"))
+    assert any(
+        "no aspect cleared the evidence floor" in m
+        for m in _stage_messages(sink, "serve.compose")
+    )
+    assert all("<evidence>" not in p for p in provider.prompts)
+
+
 def test_serve_defaults_match_the_studies_ruled_pins() -> None:
     """The study modules pin the curves-checkpoint values locally and name
     the runtime as the source once deployment wires the policy — this is

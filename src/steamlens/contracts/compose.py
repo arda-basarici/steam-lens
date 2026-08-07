@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from steamlens.contracts.enums import Sentiment, SpanKind
+from steamlens.contracts.enums import NarrativeOutcome, Sentiment, SpanKind
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,3 +55,20 @@ class GroundedSpan:
     kind: SpanKind
     value: float | None = None
     review_id: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ComposedNarrative:
+    """The compose stage's product: gate-passed prose with its certificate.
+
+    ``prose`` is the quote-normalized text that passed the grounding gate —
+    empty exactly when ``outcome`` is ``WITHHELD``; ``spans`` is the
+    certificate over that exact text (offsets refer to it, and to nothing
+    else); ``outcome`` names the ladder rung that produced it. This record is
+    what the report row persists and the renderer styles — no rendered
+    narrative ever bypasses it.
+    """
+
+    prose: str
+    spans: tuple[GroundedSpan, ...]
+    outcome: NarrativeOutcome

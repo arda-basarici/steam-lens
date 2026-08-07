@@ -234,6 +234,70 @@ class LabelPool:
                 parse_enum(Sentiment, str(row[3]), context="mentions.sentiment"),
             )
 
+    def iter_run_mentions(
+        self, run_id: str
+    ) -> Iterator[tuple[str, str, AspectSlot, Sentiment]]:
+        """Stream one run's survey mentions as ``(review_id, aspect, slot, sentiment)``.
+
+        The serving mint's input: a job folds exactly its own sample by
+        reading back what its run wrote — the regenerate-from-the-layer-below
+        read, which also makes a resumed job's mint identical to a fresh one
+        by construction. Origin still filters to survey even though a serving
+        run only writes survey: the two-track wall is asserted at every fold
+        boundary, never assumed. Enums re-validate on the way out.
+        """
+        cursor = self._conn.execute(
+            "SELECT c.review_id, m.aspect, m.slot, m.sentiment"
+            " FROM mentions m JOIN classifications c ON c.id = m.classification_id"
+            " WHERE c.run_id = ? AND c.origin = ?",
+            (run_id, Origin.SURVEY),
+        )
+        for row in cursor:
+            yield (
+                str(row[0]),
+                str(row[1]),
+                parse_enum(AspectSlot, str(row[2]), context="mentions.slot"),
+                parse_enum(Sentiment, str(row[3]), context="mentions.sentiment"),
+            )
+
+    def count_run_envelopes(self, run_id: str) -> int:
+        """One run's survey-envelope count, empties included — the mint denominator.
+
+        Counts envelopes, not mentions: the ~46% of reviews that yield nothing
+        still sit in the denominator, which is what keeps a job's sample size
+        "reviews we looked at" rather than "reviews that said something".
+        """
+        row = self._conn.execute(
+            "SELECT COUNT(*) FROM classifications WHERE run_id = ? AND origin = ?",
+            (run_id, Origin.SURVEY),
+        ).fetchone()
+        return int(row[0])
+
+    def iter_run_evidence(
+        self, run_id: str
+    ) -> Iterator[tuple[str, str, Sentiment, str]]:
+        """Stream one run's evidence-carrying survey mentions as
+        ``(review_id, aspect, sentiment, evidence)``.
+
+        The compose stage's quotable pool — every span here passed the
+        write-time verbatim check, so quoting from it can only restate a
+        reviewer. Mentions without a span don't appear: an honest "no clean
+        span" has nothing to quote.
+        """
+        cursor = self._conn.execute(
+            "SELECT c.review_id, m.aspect, m.sentiment, m.evidence"
+            " FROM mentions m JOIN classifications c ON c.id = m.classification_id"
+            " WHERE c.run_id = ? AND c.origin = ? AND m.evidence IS NOT NULL",
+            (run_id, Origin.SURVEY),
+        )
+        for row in cursor:
+            yield (
+                str(row[0]),
+                str(row[1]),
+                parse_enum(Sentiment, str(row[2]), context="mentions.sentiment"),
+                str(row[3]),
+            )
+
     def iter_survey_envelope_review_ids(self, versions: ClassifierVersions) -> Iterator[str]:
         """Stream each survey, version-matched envelope's review id — empties included.
 

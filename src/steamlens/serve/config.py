@@ -42,6 +42,14 @@ class ServeConfig:
     ``sse_heartbeat_s`` paces the keep-alive comments on a quiet stream —
     it only needs to sit safely under proxy idle timeouts (minutes-scale for
     the Caddy front), and 15 s is the conventional SSE keep-alive.
+    ``compose_floor`` is the evidence floor the narrative applies at compose
+    time (the stored aggregate stays a faithful tally): below ~5 distinct
+    reviews of a 1,000-sample a share is noise dressed as signal, so such
+    aspects stay out of the prompt. ``compose_quotes_per_aspect`` and
+    ``compose_max_themes`` bound what the prompt offers — a couple of verbatim
+    spans per aspect, a handful of candidate theme names (names only, never
+    numbers); all three get judged against real rendered reports at the
+    frontend step.
     """
 
     take_all_cutoff: int = 2_000
@@ -53,3 +61,6 @@ class ServeConfig:
     fetch_page_budget: int = 600
     sse_tick_s: float = 0.25
     sse_heartbeat_s: float = 15.0
+    compose_floor: int = 5
+    compose_quotes_per_aspect: int = 2
+    compose_max_themes: int = 5

@@ -69,15 +69,25 @@ class FakeProvider:
     """A scripted DeepSeek stand-in: answers per review text, records dispatches.
 
     ``send`` extracts the batch from the prompt's data channel and answers one
-    row per idx — empty aspects by default, a ``gameplay`` mention when the
-    review text asks for one, and *no row at all* for texts carrying ``FAIL``
-    (the driver's re-batch path runs on missing idxs). Texts carrying
-    ``REFUSE`` raise the request-level rejection. ``model_version`` for each
-    call comes from ``version_for`` so drift is scriptable per call.
+    row per idx — empty aspects by default, a ``gameplay`` mention (with a
+    verbatim evidence span when the text carries one) when the review text
+    asks for one, and *no row at all* for texts carrying ``FAIL`` (the
+    driver's re-batch path runs on missing idxs). Texts carrying ``REFUSE``
+    raise the request-level rejection. A *compose* prompt (recognized by its
+    ``<evidence>`` channel) answers ``compose_prose`` instead — the default is
+    numeral-free, quote-free prose that passes the grounding gate untouched.
+    ``model_version`` for each call comes from ``version_for`` so drift is
+    scriptable per call.
     """
 
-    def __init__(self, version_for: list[str] | None = None) -> None:
+    def __init__(
+        self,
+        version_for: list[str] | None = None,
+        *,
+        compose_prose: str = "Players keep coming back to the gameplay.",
+    ) -> None:
         self.prompts: list[str] = []
+        self.compose_prose = compose_prose
         self._versions = version_for or []
         self._lock = threading.Lock()
 
@@ -97,17 +107,20 @@ class FakeProvider:
         return {"model": model, "prompt": prompt}
 
     def _send(self, *, model: str, payload: ProviderPayload) -> str:
+        prompt = str(payload["prompt"])
         with self._lock:
             call_index = len(self.prompts)
-            self.prompts.append(str(payload["prompt"]))
-        if "REFUSE" in str(payload["prompt"]):
+            self.prompts.append(prompt)
+        if "REFUSE" in prompt:
             raise ProviderPermanentError("HTTP 400: Content Exists Risk")
         version = (
             self._versions[call_index] if call_index < len(self._versions) else MODEL_ID
         )
+        if "<evidence>" in prompt:
+            return json.dumps({"model_version": version, "prose": self.compose_prose})
         answers = [
             {"idx": idx, "aspects": self._aspects_for(text)}
-            for idx, text in prompt_batch(str(payload["prompt"]))
+            for idx, text in prompt_batch(prompt)
             if "FAIL" not in text
         ]
         return json.dumps({"model_version": version, "answers": answers})
@@ -115,12 +128,25 @@ class FakeProvider:
     @staticmethod
     def _aspects_for(text: str) -> list[dict[str, str]]:
         if "gameplay" in text:
-            return [{"aspect": "gameplay", "sentiment": "positive"}]
+            mention = {"aspect": "gameplay", "sentiment": "positive"}
+            if "quotable" in text:
+                # Opt-in evidence: the whole review text as the verbatim span,
+                # so compose-stage tests exercise the stored-evidence pool
+                # without changing what every other suite's envelopes hold.
+                mention["evidence"] = text
+            return [mention]
         return []
 
     @staticmethod
     def _parse(raw: str) -> LlmResponse:
         body = json.loads(raw)
+        if "prose" in body:
+            return LlmResponse(
+                text=str(body["prose"]),
+                model_version=str(body["model_version"]),
+                finish_reason=FinishReason.STOP,
+                usage=TokenUsage(prompt_tokens=200, output_tokens=60, thinking_tokens=0),
+            )
         return LlmResponse(
             text=json.dumps(body["answers"]),
             model_version=str(body["model_version"]),

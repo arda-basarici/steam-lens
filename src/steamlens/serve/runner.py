@@ -1,14 +1,18 @@
 """The cold-analysis runner — one job's pipeline over the certified seams.
 
 The serving skeleton's spine: resolve → size the English pool → plan → fetch
-and classify overlapped → labels persisted, narrated end to end over the
-job's sink. Everything statistical is a certified seam composed, never
+and classify overlapped → mint → compose, narrated end to end over the job's
+sink. Everything statistical is a certified seam composed, never
 reimplemented — the plan comes from ``core/sampling``'s compiler (the study's
 certification target), the fetch runs the validated windowed path with the
 plan contract's quota stop, and the classify leg is the census instrument
 verbatim (same worker, same model identity, same three-pass retry ladder).
-Mint, detect, and compose land with their own build steps; the spine ends at
-the label pool today.
+The mint folds the run's own labels read back from the store
+(regenerate-from-the-layer-below — a resumed job mints identically to a fresh
+one), and the compose stage rides the same client as classify (one budget,
+one quota pool) fenced by the grounding ladder. Detect and the report row's
+persistence land with their own build steps; today the narrative's story
+reaches a viewer through the narration sink alone.
 
 The overlap seam is the runner's one piece of concurrency: a fetch producer
 thread pushes each *completed window* into a bounded queue while the job
@@ -42,9 +46,14 @@ from queue import Empty, Full, Queue
 from typing import Final
 
 from steamlens.contracts import (
+    AspectSlot,
     ClassifierVersions,
+    ComposedNarrative,
+    EvidenceQuote,
     HistogramSnapshot,
     IdentityVerdict,
+    LlmStage,
+    NarrativeOutcome,
     Origin,
     PathOutcome,
     Provenance,
@@ -56,7 +65,10 @@ from steamlens.contracts import (
     StageKind,
     WindowFetchResult,
 )
+from steamlens.core.aggregate import MentionRow, aggregate
 from steamlens.core.classify import PROMPT_VERSION
+from steamlens.core.compose import COMPOSE_PROMPT_VERSION, select_facts
+from steamlens.core.grounding import derive_whitelist
 from steamlens.core.normalize import build_surface_index
 from steamlens.core.sampling import compile_plan
 from steamlens.dispatch import (
@@ -76,6 +88,7 @@ from steamlens.dispatch.census_arm import MODEL_ID, build_client
 from steamlens.llm_client import LlmClient, ProviderEntry
 from steamlens.ontology import load_ontology, load_ontology_version
 from steamlens.serve.config import ServeConfig
+from steamlens.serve.narrative import COMPOSE_STAGE, compose_narrative, compose_route
 from steamlens.steam_client import SteamClient
 from steamlens.store import Store
 
@@ -148,12 +161,15 @@ class AnalysisRunner:
     def run(self, app_id: int, requested_name: str, sink: Sink) -> None:
         """One cold analysis end to end, narrated over ``sink``.
 
-        Fetch → classify today; the mint, detect, and compose stages slot in
-        after the classify account when their build steps land. Raises on the
-        honest aborts — an over-budget sampled plan, the refusal breaker,
-        provider trouble outliving retries, annotator drift mid-job — and the
-        job queue records the failure; labels bought before an abort are
-        already banked and make the re-run nearly free.
+        Fetch → classify → mint → compose; detect slots in with its build
+        step, and the report row's persistence is the next layer's — until it
+        lands, the narrative reaches a viewer through the sink alone. Raises
+        on the honest aborts — an over-budget sampled plan, the refusal
+        breaker, provider trouble outliving retries, annotator drift mid-job
+        — and the job queue records the failure; labels bought before an
+        abort are already banked and make the re-run nearly free. A compose
+        failure never aborts: prose is garnish, and its ladder degrades to a
+        disclosed withholding instead.
         """
         started = datetime.now(UTC)
         run = Provenance(
@@ -187,9 +203,20 @@ class AnalysisRunner:
             client = build_client(
                 self._entry, self._config.job_budget_usd, self._config.batch_n,
                 client_store, sink,
+                extra_routes={LlmStage.COMPOSE: compose_route()},
             )
             self._fetch_and_classify(
                 app_id, specs, client, driver_store, run, sink, started
+            )
+            self._mint_and_compose(
+                app_id,
+                ref.store_name or requested_name,
+                run,
+                client,
+                driver_store,
+                sink,
+                take_all=all(spec.quota is None for spec in specs),
+                job_values=(float(all_claim), float(english_claim)),
             )
 
     def _config_hash(self) -> str:
@@ -198,6 +225,7 @@ class AnalysisRunner:
         return config_hash({
             "model": MODEL_ID,
             "prompt_version": PROMPT_VERSION,
+            "compose_prompt_version": COMPOSE_PROMPT_VERSION,
             "ontology_version": self._stamp.version,
             "ontology_content_hash": self._stamp.content_hash,
             "take_all_cutoff": cfg.take_all_cutoff,
@@ -207,6 +235,9 @@ class AnalysisRunner:
             "job_budget_usd": cfg.job_budget_usd,
             "fetch_page_budget": cfg.fetch_page_budget,
             "num_per_page": self._steam.config.num_per_page,
+            "compose_floor": cfg.compose_floor,
+            "compose_quotes_per_aspect": cfg.compose_quotes_per_aspect,
+            "compose_max_themes": cfg.compose_max_themes,
         })
 
     def _plan(
@@ -430,6 +461,95 @@ class AnalysisRunner:
             f"language mix: {mix or 'none fetched'} · ${run_cost:.4f} this job · "
             f"run {run.run_id}",
         )
+
+    def _mint_and_compose(
+        self,
+        app_id: int,
+        game_name: str,
+        run: Provenance,
+        client: LlmClient,
+        store: Store,
+        sink: Sink,
+        *,
+        take_all: bool,
+        job_values: tuple[float, ...],
+    ) -> ComposedNarrative | None:
+        """Mint the job's numbers from its own labels, then compose the fenced narrative.
+
+        The fold reads back what the run wrote (the regenerate-from-the-layer-
+        below read; a resumed job mints identically to a fresh one), and the
+        run id stands as the mint's manifest id — the run names this job's
+        exact sample until the report-persistence step gives it a stored home.
+        ``job_values`` carries the job-level numbers the whitelist may admit
+        beyond the aggregates (the claimed totals). Returns ``None`` when the
+        job labeled nothing; a below-floor selection returns the disclosed
+        ``WITHHELD`` narrative without ever calling the composer.
+        """
+        sample_size = store.labels.count_run_envelopes(run.run_id)
+        if sample_size == 0:
+            narrate(
+                sink, "serve.mint", StageKind.WARN,
+                "no labeled reviews — mint and narrative skipped",
+            )
+            return None
+        rows = (
+            MentionRow(
+                app_id=app_id, review_id=review_id, aspect=aspect,
+                slot=slot, sentiment=sentiment,
+            )
+            for review_id, aspect, slot, sentiment in store.labels.iter_run_mentions(
+                run.run_id
+            )
+        )
+        aggregates = aggregate(
+            rows, {app_id: sample_size},
+            versions=self._versions, manifest_id=run.run_id,
+        )
+        pinned = sorted(
+            (a for a in aggregates if a.slot is AspectSlot.PINNED),
+            key=lambda a: -a.reviews_with_aspect,
+        )
+        top = ", ".join(
+            f"{a.aspect} {a.reviews_with_aspect}/{sample_size}" for a in pinned[:3]
+        )
+        narrate(
+            sink, "serve.mint", StageKind.DONE,
+            f"minted {len(aggregates)} aspect numbers over n={sample_size:,}"
+            + (f" — top: {top}" if top else ""),
+        )
+        quotes = tuple(
+            EvidenceQuote(
+                review_id=review_id, aspect=aspect, sentiment=sentiment, text=text
+            )
+            for review_id, aspect, sentiment, text in store.labels.iter_run_evidence(
+                run.run_id
+            )
+        )
+        cfg = self._config
+        facts = select_facts(
+            aggregates,
+            quotes,
+            game_name=game_name,
+            sample_size=sample_size,
+            take_all=take_all,
+            floor=cfg.compose_floor,
+            quotes_per_aspect=cfg.compose_quotes_per_aspect,
+            max_themes=cfg.compose_max_themes,
+        )
+        if not facts.aspects:
+            narrate(
+                sink, COMPOSE_STAGE, StageKind.WARN,
+                f"no aspect cleared the evidence floor ({cfg.compose_floor}) — "
+                "narrative withheld; the report renders numbers and quotes only",
+            )
+            return ComposedNarrative(prose="", spans=(), outcome=NarrativeOutcome.WITHHELD)
+        whitelist = derive_whitelist(
+            aggregates, sample_size=sample_size, extra_values=job_values
+        )
+        narrative = compose_narrative(client, facts, whitelist, sink)
+        if narrative.prose:
+            narrate(sink, COMPOSE_STAGE, StageKind.PROGRESS, narrative.prose)
+        return narrative
 
     def _narrate_window(
         self,

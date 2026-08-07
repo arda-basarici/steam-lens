@@ -17,12 +17,13 @@ internal navigation aid, not part of the contract.
 
 from steamlens.contracts.aggregate import AspectAggregate, SentimentCounts
 from steamlens.contracts.classification import AspectMention, ReviewClassification
-from steamlens.contracts.compose import EvidenceQuote, GroundedSpan
+from steamlens.contracts.compose import ComposedNarrative, EvidenceQuote, GroundedSpan
 from steamlens.contracts.enums import (
     AspectSlot,
     FinishReason,
     IdentityVerdict,
     LlmStage,
+    NarrativeOutcome,
     Origin,
     PathOutcome,
     ReferenceKind,
@@ -68,6 +69,7 @@ __all__ = [
     "PathOutcome",
     "SamplingPolicyKind",
     "SpanKind",
+    "NarrativeOutcome",
     # provenance
     "Provenance",
     "ClassifierVersions",
@@ -96,6 +98,7 @@ __all__ = [
     # compose
     "EvidenceQuote",
     "GroundedSpan",
+    "ComposedNarrative",
     # evaluation
     "EvalRun",
     "EvalMetric",

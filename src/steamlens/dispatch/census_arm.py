@@ -12,6 +12,7 @@ into a driver's interior.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Final
 
 from steamlens.contracts import LlmStage, Sink
@@ -24,7 +25,10 @@ contracts; the provider-reported version is journaled per call instead)."""
 
 KEY_ENV: Final = "DEEPSEEK_API_KEY"
 
-_PROVIDER: Final = "deepseek"
+PROVIDER: Final = "deepseek"
+"""The registry name this instrument's entry binds under — public because a
+rider route (the serving composer) must name the same provider to share the
+same client."""
 # The bake-off's measured output sizing: the base holds one worst-case dense
 # review, the per-review term covers dense batches, the cap is DeepSeek's.
 _OUTPUT_BASE: Final = 2_048
@@ -38,22 +42,38 @@ _OUTPUT_USD_PER_1M: Final = 0.28
 
 
 def build_client(
-    entry: ProviderEntry, budget_usd: float, n: int, client_store: Store, sink: Sink
+    entry: ProviderEntry,
+    budget_usd: float,
+    n: int,
+    client_store: Store,
+    sink: Sink,
+    *,
+    extra_routes: Mapping[LlmStage, Route] | None = None,
 ) -> LlmClient:
-    """The dispatch-config client over the *client's* store connection."""
+    """The dispatch-config client over the *client's* store connection.
+
+    ``extra_routes`` lets a composing shell ride further stages on this same
+    client — the serving runner adds its compose route so classify and compose
+    share one budget and one real-world quota pool by construction (the config
+    module's own two-tables rationale). An extra route must name a model this
+    instrument block declares; anything else fails the config's reference
+    check at construction, never mid-run.
+    """
+    routes: dict[LlmStage, Route] = {
+        LlmStage.CLASSIFY: Route(
+            provider=PROVIDER,
+            model=MODEL_ID,
+            max_output_tokens=min(_OUTPUT_CAP, _OUTPUT_BASE + _OUTPUT_PER_REVIEW * n),
+            params={
+                "temperature": 0,
+                "response_format": {"type": "json_object"},
+                "thinking": {"type": "disabled"},
+            },
+        )
+    }
+    routes.update(extra_routes or {})
     config = LlmClientConfig(
-        routes={
-            LlmStage.CLASSIFY: Route(
-                provider=_PROVIDER,
-                model=MODEL_ID,
-                max_output_tokens=min(_OUTPUT_CAP, _OUTPUT_BASE + _OUTPUT_PER_REVIEW * n),
-                params={
-                    "temperature": 0,
-                    "response_format": {"type": "json_object"},
-                    "thinking": {"type": "disabled"},
-                },
-            )
-        },
+        routes=routes,
         models={
             MODEL_ID: ModelSpec(
                 rpm=_RPM,
@@ -69,5 +89,5 @@ def build_client(
         client_store.responses,
         client_store.spend_ledger,
         sink,
-        registry={_PROVIDER: entry},
+        registry={PROVIDER: entry},
     )
