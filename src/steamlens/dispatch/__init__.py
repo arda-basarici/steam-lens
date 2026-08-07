@@ -14,7 +14,13 @@ name the model under judgment without importing the labeling driver.
 """
 
 from steamlens.dispatch.abort import DriftWatch, RunAbort
-from steamlens.dispatch.batches import BatchOutcome, RunTotals, chunk, run_pass
+from steamlens.dispatch.batches import (
+    BatchOutcome,
+    RunTotals,
+    chunk,
+    classify_batch,
+    run_pass,
+)
 from steamlens.dispatch.narration import TeeSink, narrate
 from steamlens.dispatch.run_shell import run_context, write_manifest
 from steamlens.dispatch.stamp import code_version, config_hash, mint_run_id
@@ -37,5 +43,6 @@ __all__ = [
     "RunTotals",
     "BatchOutcome",
     "chunk",
+    "classify_batch",
     "run_pass",
 ]

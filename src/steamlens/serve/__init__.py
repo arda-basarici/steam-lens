@@ -11,8 +11,10 @@ imports it.
 
 from steamlens.serve.config import ServeConfig
 from steamlens.serve.jobs import Job, JobQueue, JobState
+from steamlens.serve.runner import AnalysisRunner
 
 __all__ = [
+    "AnalysisRunner",
     "Job",
     "JobQueue",
     "JobState",

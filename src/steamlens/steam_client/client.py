@@ -26,9 +26,11 @@ from steamlens.contracts import (
     StageKind,
     WindowFetchResult,
 )
+from steamlens.steam_client.config import SteamClientConfig
 from steamlens.steam_client.feasibility import estimate_skip_pages
 from steamlens.steam_client.identity import identity_verdict
 from steamlens.steam_client.parse import (
+    QuerySummary,
     ReviewPage,
     parse_appdetails,
     parse_histogram,
@@ -81,6 +83,11 @@ class SteamClient:
         self._sink = transport.sink
         self._now = now
 
+    @property
+    def config(self) -> SteamClientConfig:
+        """The shared dial (the transport's) — page size drives callers' cost estimates."""
+        return self._config
+
     def resolve_game(self, app_id: int, expected_name: str) -> GameRef:
         """What the store says ``app_id`` is — guard verdict and totals included.
 
@@ -96,11 +103,7 @@ class SteamClient:
             _APPDETAILS_URL, {"appids": app_id, "cc": "us", "l": "english"}
         )
         store_name = parse_appdetails(details, app_id)
-        totals_page = parse_review_page(
-            self._transport.get_json(_REVIEWS_URL.format(app_id=app_id), _TOTALS_PARAMS),
-            app_id,
-        )
-        summary = totals_page.summary
+        summary = self.fetch_totals(app_id)
         return GameRef(
             app_id=app_id,
             requested_name=expected_name,
@@ -110,6 +113,26 @@ class SteamClient:
             total_positive=summary.total_positive if summary else None,
             total_negative=summary.total_negative if summary else None,
         )
+
+    def fetch_totals(self, app_id: int, *, language: str = "all") -> QuerySummary | None:
+        """Steam's population claim for ``app_id`` — one paced totals-only read.
+
+        ``num_per_page=0`` returns ``query_summary`` alone. ``language`` is
+        the one filter a caller may legitimately narrow: the serving size
+        rule branches on the *English* pool (the sampling study certified
+        English-only draws), and this read is the only pre-fetch way to know
+        it — wire-validated against row-by-row fresh-buy counts
+        (``probes/english_totals_probe.py``, 2026-08-07). The unfiltered trio
+        otherwise stands; ``None`` means Steam reported no summary.
+        """
+        page = parse_review_page(
+            self._transport.get_json(
+                _REVIEWS_URL.format(app_id=app_id),
+                {**_TOTALS_PARAMS, "language": language},
+            ),
+            app_id,
+        )
+        return page.summary
 
     def fetch_histogram(self, app_id: int) -> HistogramSnapshot:
         """The game's review-volume histogram as Steam serves it right now.
@@ -125,9 +148,24 @@ class SteamClient:
         return parse_histogram(payload, app_id, self._now())
 
     def fetch_window(
-        self, app_id: int, window_start: datetime, window_end: datetime
+        self,
+        app_id: int,
+        window_start: datetime,
+        window_end: datetime,
+        *,
+        quota: int | None = None,
     ) -> WindowFetchResult:
         """Every review of ``app_id`` in the window (inclusive), with provenance.
+
+        ``quota`` bounds the collection to the window's newest-first prefix —
+        the sampling plan contract's selection rule executed as an early walk
+        stop, keeping a sampled window's cost proportional to its quota
+        rather than its volume. It bounds both paths (the windowed walk and
+        the cursor fallback count in-window reviews the same way), and a
+        quota'd walk skips the collected-versus-reported shortfall warning:
+        stopping early is the deliberate behavior, not a truncation
+        suspicion. The wire-level disclosures (empty-page exhaustion, the
+        dirty verdict) still apply unchanged.
 
         The primary path is the windowed-unfiltered walk: ``filter=recent``
         composed with the undocumented date-window params — the composition
@@ -173,9 +211,12 @@ class SteamClient:
         }
         retries_before = self._transport.retries_spent
 
-        windowed = self._walk(url, windowed_params, app_id, window_start, window_end, strict=True)
+        windowed = self._walk(
+            url, windowed_params, app_id, window_start, window_end,
+            strict=True, stop_after=quota,
+        )
         if windowed.out_of_window == 0:
-            self._disclose_windowed_trust(app_id, windowed)
+            self._disclose_windowed_trust(app_id, windowed, quota=quota)
             return self._result(
                 app_id, window_start, window_end, PathOutcome.WINDOWED, windowed,
                 retries=self._transport.retries_spent - retries_before,
@@ -209,7 +250,10 @@ class SteamClient:
             "filter": "recent",
             "num_per_page": self._config.num_per_page,
         }
-        fallback = self._walk(url, plain_params, app_id, window_start, window_end, strict=False)
+        fallback = self._walk(
+            url, plain_params, app_id, window_start, window_end,
+            strict=False, stop_after=quota,
+        )
         if fallback.stopped_on_empty_pages:
             self._warn(
                 f"fallback walk for app {app_id} ended on empty-page exhaustion — "
@@ -236,6 +280,7 @@ class SteamClient:
         window_end: datetime,
         *,
         strict: bool,
+        stop_after: int | None = None,
     ) -> WalkTally:
         """One engine run over ``params`` — the two paths differ only here."""
 
@@ -245,7 +290,8 @@ class SteamClient:
             )
 
         return walk_pages(
-            fetch_page, window_start, window_end, out_of_window_is_violation=strict
+            fetch_page, window_start, window_end,
+            out_of_window_is_violation=strict, stop_after=stop_after,
         )
 
     def _result(
@@ -270,20 +316,28 @@ class SteamClient:
             reviews=tally.reviews,
         )
 
-    def _disclose_windowed_trust(self, app_id: int, tally: WalkTally) -> None:
+    def _disclose_windowed_trust(
+        self, app_id: int, tally: WalkTally, *, quota: int | None = None
+    ) -> None:
         """WARN when a clean windowed walk is not beyond suspicion.
 
         An empty-page exhaustion stop or a shortfall against Steam's own
         window total means the collection may be truncated; both checks are
         windowed-only — the fallback's unwindowed summary describes the whole
-        game and supports neither.
+        game and supports neither. A quota'd walk skips the shortfall check:
+        collecting less than the window's total is the quota working, and the
+        plan-versus-delivered account belongs to the caller holding the plan.
         """
         if tally.stopped_on_empty_pages:
             self._warn(
                 f"windowed walk for app {app_id} ended on empty-page exhaustion — "
                 "the collection may be truncated, not proven complete"
             )
-        if tally.reported_total is not None and len(tally.reviews) < tally.reported_total:
+        if (
+            quota is None
+            and tally.reported_total is not None
+            and len(tally.reviews) < tally.reported_total
+        ):
             self._warn(
                 f"windowed walk for app {app_id} collected {len(tally.reviews)} of "
                 f"Steam's reported {tally.reported_total} for the window"

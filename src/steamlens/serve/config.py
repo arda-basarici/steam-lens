@@ -29,7 +29,14 @@ class ServeConfig:
     is an order-of-magnitude ceiling, no legitimate job approaches it).
     ``window_buffer`` bounds the fetch→classify hand-off queue, in windows:
     the producer stalls rather than racing unboundedly ahead of a slow
-    classify leg.
+    classify leg. ``fetch_page_budget`` caps one job's planned fetch cost, in
+    pages: a take-all whose pool implies more degrades to the sampling branch
+    (disclosed), and a sampled plan over it is refused loudly. The default's
+    shape: a sampled plan's floor cost is one page per populated histogram
+    bucket (~190 for a monthly-rollup veteran, hundreds for weekly-served
+    long-lived games), so 600 admits every realistic plan while capping a
+    job's fetch leg at ~15 minutes of pacing floor — a box-safety ceiling,
+    not a tuning.
     """
 
     take_all_cutoff: int = 2_000
@@ -38,3 +45,4 @@ class ServeConfig:
     classify_workers: int = 10
     job_budget_usd: float = 1.0
     window_buffer: int = 2
+    fetch_page_budget: int = 600

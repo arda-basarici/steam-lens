@@ -207,3 +207,31 @@ the stream FIXLOG, Grok's signup credit as candidate); English-only by design
 (multilingual claims are out of scope); 500 reviews — coverage points are noisy but
 the shape gap (28% vs the 90% criterion) dwarfs the noise; grouping is a reviewed
 artifact, not a seeded computation (`label_groups.json` carries its provenance).
+
+# Deployment findings (M3) — 2026-08-07
+
+## 7. Whole-game English totals read — PASS, exact against row-counted references
+
+The serving size rule branches on the English pool ("English-only stands
+everywhere"), and the only pre-fetch way to know it is a totals-only read
+(`num_per_page=0`) with `language=english` over the production param base.
+The bomb-pick probe had validated that read *windowed*; this one validates it
+whole-game, against the fresh-buy run's independently row-counted English
+totals (whole-life fetches, 2026-08-03):
+
+- Sword and Fairy Inn 2: wire 36 vs reference 36 — **exact**; all-language
+  2,278 vs 2,277 (+1, four days of drift).
+- Dragonkin: The Banished: 1,318 vs 1,312 (+6) · Talisman: 6,110 vs 6,108 (+2).
+- TF2 as the big-game coherence check: English 739,856 of 1,245,415.
+
+The branch preview shows the ruling doing its work: both long-tail games FLIP
+to take-all under English branching (all-language branching would sample
+them — the certified behavior for a tiny English pool is take-all), Talisman
+correctly samples either way. (`english_totals_probe.py` ·
+`captures/english_totals_summary.json`)
+
+*Limits of the claim:* one snapshot from a residential IP; the reference
+comparison covers pools up to ~10k (TF2 is coherence-only, no reference);
+Steam's English count may include empty-text rows the usable filter later
+drops — the branch reads Steam's claim, the realized sample is counted and
+disclosed at fetch time.

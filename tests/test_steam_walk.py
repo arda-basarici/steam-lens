@@ -130,6 +130,69 @@ def test_empty_page_retry_budget_resets_per_stretch() -> None:
     assert tally.stopped_on_empty_pages
 
 
+def test_quota_stop_ends_the_walk_and_truncates_the_prefix() -> None:
+    """The plan contract's quota executed as an early stop: the walk ends the
+    moment the collected in-window prefix reaches ``stop_after`` — a mid-page
+    overshoot is truncated, and the pages beyond are never paid for."""
+    feed = Feed(
+        [
+            _page(_in_window(100), "A", total=400),
+            _page(_in_window(100, offset_hours=48), "B"),
+            _page(_in_window(100, offset_hours=96), "C"),
+        ]
+    )
+    tally = walk_pages(
+        feed, _START, _END, out_of_window_is_violation=True, stop_after=150
+    )
+    assert len(tally.reviews) == 150
+    assert tally.pages_fetched == 2
+    assert feed.asked == ["*", "A"]
+    assert not tally.stopped_on_empty_pages
+
+
+def test_quota_overshoot_on_a_boundary_page_still_truncates() -> None:
+    """A single page can both overfill the quota and descend below the window
+    (the fallback's boundary page) — the past-the-window stop must not skip
+    the quota truncation."""
+    boundary_page = _page(
+        _in_window(3) + (_review(_START - timedelta(days=2), review_id="older"),),
+        "A",
+    )
+    tally = walk_pages(
+        Feed([boundary_page]), _START, _END,
+        out_of_window_is_violation=False, stop_after=2,
+    )
+    assert len(tally.reviews) == 2
+    assert tally.out_of_window == 0  # the fallback judges the descent expected
+
+
+def test_quota_fetch_window_skips_the_shortfall_disclosure() -> None:
+    """A quota'd windowed fetch collecting less than Steam's reported window
+    total is the quota working — the collected-versus-reported WARN must not
+    fire (the plan-versus-delivered account belongs to the plan's holder)."""
+    sink = CollectingSink()
+    pages = iter(
+        [_wire_page([_wire_review("a", _START + timedelta(days=1))], "")]
+    )
+    client = SteamClient(SteamTransport(
+        SteamClientConfig(), sink,
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(200, text=next(pages))
+        ),
+        sleep=lambda _: None,
+        monotonic=lambda: 100.0,
+    ))
+    result = client.fetch_window(440, _START, _END, quota=1)
+    assert result.outcome is PathOutcome.WINDOWED
+    assert len(result.reviews) == 1
+    warns = [
+        e.message
+        for e in sink.events
+        if isinstance(e, StageEvent) and e.kind is StageKind.WARN
+    ]
+    assert not any("collected 1 of Steam's reported" in m for m in warns)
+
+
 def test_repeated_cursor_stops() -> None:
     """A page pointing back at a cursor already walked would loop forever —
     trusted stop, page's reviews still kept."""

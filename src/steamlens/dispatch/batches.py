@@ -12,13 +12,31 @@ finality plumbing); the drift is now a parameter, not a fork.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from dataclasses import dataclass, field
 
-from steamlens.contracts import Review, Sink, StageKind, TokenUsage
-from steamlens.core.classify import BatchParseResult
+from steamlens.contracts import (
+    AspectOntology,
+    LlmRequest,
+    LlmStage,
+    Review,
+    Sink,
+    StageKind,
+    TokenUsage,
+)
+from steamlens.core.classify import (
+    BatchParseResult,
+    IdxFailure,
+    build_classify_prompt,
+    parse_classify_response,
+)
 from steamlens.dispatch.narration import narrate
+from steamlens.llm_client import (
+    GenerationIncompleteError,
+    LlmClient,
+    ProviderPermanentError,
+)
 
 
 @dataclass(slots=True)
@@ -62,6 +80,60 @@ class BatchOutcome:
 def chunk(reviews: Sequence[Review], n: int) -> list[tuple[Review, ...]]:
     """Consecutive batches of ``n`` (the last may be short), preserving order."""
     return [tuple(reviews[start : start + n]) for start in range(0, len(reviews), n)]
+
+
+def classify_batch(
+    client: LlmClient,
+    ontology: AspectOntology,
+    surface_index: Mapping[str, str],
+    batch: tuple[Review, ...],
+) -> BatchOutcome:
+    """One batch through prompt → door → parse; the worker-side unit of work.
+
+    Shared by every driver that labels with the production instrument (the
+    census driver and the serving runner today) — the worker is pure
+    instrument, all attempt semantics stay with each driver's consume side.
+
+    A truncated-or-refused generation is salvaged, not lost: its spend is
+    already journaled and cached, so the partial text is parsed and the finish
+    reason rides the outcome. A ``ProviderPermanentError`` — the provider
+    rejecting the request itself (DeepSeek's content filter, live-observed
+    2026-07-20) — becomes an all-rows-failed outcome so the ordinary sweep
+    isolates the offending review to its durable mark instead of the whole
+    run dying on one batch forever (composition is deterministic — an abort
+    here would re-form the same batch every relaunch). Provider trouble
+    outliving the client's retries and budget refusals still propagate —
+    those end the run, not the batch.
+    """
+    texts = [review.text for review in batch]
+    prompt = build_classify_prompt(texts, ontology)
+    try:
+        response = client.complete(LlmRequest(stage=LlmStage.CLASSIFY, prompt=prompt))
+        finish = response.finish_reason.value
+    except GenerationIncompleteError as exc:
+        response = exc.response
+        finish = f"incomplete:{exc.reason.value}"
+    except ProviderPermanentError as exc:
+        reason = f"provider refused the request: {exc}"
+        return BatchOutcome(
+            batch=batch,
+            parse=BatchParseResult(
+                parsed=(),
+                failures=tuple(IdxFailure(idx, reason) for idx in range(len(batch))),
+                repairs=(),
+            ),
+            model_version="",
+            finish="refused",
+            usage=TokenUsage(prompt_tokens=0, output_tokens=0, thinking_tokens=0),
+            refusal=str(exc),
+        )
+    return BatchOutcome(
+        batch=batch,
+        parse=parse_classify_response(response.text, texts, surface_index),
+        model_version=response.model_version,
+        finish=finish,
+        usage=response.usage,
+    )
 
 
 def run_pass(

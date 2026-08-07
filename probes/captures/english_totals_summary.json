@@ -1,0 +1,110 @@
+[
+ {
+  "app_id": 1918680,
+  "name": "Sword and Fairy Inn 2",
+  "all_total": 2278,
+  "english_total": 36,
+  "coherent": true,
+  "reference_all": 2277,
+  "reference_english": 36,
+  "english_branch": "take-all",
+  "all_language_branch": "sample (pool 2,278 > cutoff)",
+  "all_summary": {
+   "num_reviews": 0,
+   "review_score": 5,
+   "review_score_desc": "Mixed",
+   "total_positive": 1115,
+   "total_negative": 1163,
+   "total_reviews": 2278
+  },
+  "english_summary": {
+   "num_reviews": 0,
+   "review_score": 5,
+   "review_score_desc": "Mixed",
+   "total_positive": 23,
+   "total_negative": 13,
+   "total_reviews": 36
+  }
+ },
+ {
+  "app_id": 1863430,
+  "name": "Dragonkin: The Banished",
+  "all_total": 2632,
+  "english_total": 1318,
+  "coherent": true,
+  "reference_all": 2620,
+  "reference_english": 1312,
+  "english_branch": "take-all",
+  "all_language_branch": "sample (pool 2,632 > cutoff)",
+  "all_summary": {
+   "num_reviews": 0,
+   "review_score": 6,
+   "review_score_desc": "Mostly Positive",
+   "total_positive": 1953,
+   "total_negative": 679,
+   "total_reviews": 2632
+  },
+  "english_summary": {
+   "num_reviews": 0,
+   "review_score": 6,
+   "review_score_desc": "Mostly Positive",
+   "total_positive": 1026,
+   "total_negative": 292,
+   "total_reviews": 1318
+  }
+ },
+ {
+  "app_id": 247000,
+  "name": "Talisman: Digital Classic Edition",
+  "all_total": 10000,
+  "english_total": 6110,
+  "coherent": true,
+  "reference_all": 9997,
+  "reference_english": 6108,
+  "english_branch": "sample (pool 6,110 > cutoff)",
+  "all_language_branch": "sample (pool 10,000 > cutoff)",
+  "all_summary": {
+   "num_reviews": 0,
+   "review_score": 6,
+   "review_score_desc": "Mostly Positive",
+   "total_positive": 7828,
+   "total_negative": 2172,
+   "total_reviews": 10000
+  },
+  "english_summary": {
+   "num_reviews": 0,
+   "review_score": 6,
+   "review_score_desc": "Mostly Positive",
+   "total_positive": 4621,
+   "total_negative": 1489,
+   "total_reviews": 6110
+  }
+ },
+ {
+  "app_id": 440,
+  "name": "Team Fortress 2",
+  "all_total": 1245415,
+  "english_total": 739856,
+  "coherent": true,
+  "reference_all": null,
+  "reference_english": null,
+  "english_branch": "sample (pool 739,856 > cutoff)",
+  "all_language_branch": "sample (pool 1,245,415 > cutoff)",
+  "all_summary": {
+   "num_reviews": 0,
+   "review_score": 8,
+   "review_score_desc": "Very Positive",
+   "total_positive": 1133471,
+   "total_negative": 111944,
+   "total_reviews": 1245415
+  },
+  "english_summary": {
+   "num_reviews": 0,
+   "review_score": 8,
+   "review_score_desc": "Very Positive",
+   "total_positive": 665644,
+   "total_negative": 74212,
+   "total_reviews": 739856
+  }
+ }
+]

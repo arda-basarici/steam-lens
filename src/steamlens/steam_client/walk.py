@@ -74,6 +74,7 @@ def walk_pages(
     window_end: datetime,
     *,
     out_of_window_is_violation: bool,
+    stop_after: int | None = None,
 ) -> WalkTally:
     """Walk ``fetch_page`` from the first cursor until a trusted stop, judging
     every review against the window (inclusive on both ends).
@@ -84,10 +85,19 @@ def walk_pages(
     end of the first violating page (the count is evidence, not a census —
     one violation is all the dirty verdict needs), the fallback path treats
     out-of-window reviews as its expected approach and boundary phases (the
-    trim is the mechanism, not a defect). Raises
-    ``SteamResponseError`` on a ``success`` value that is neither 1 nor the
-    documented no-result 2 — new wire knowledge, surfaced rather than guessed
-    at.
+    trim is the mechanism, not a defect).
+
+    ``stop_after`` is the sampling contract's quota stop: the stream serves
+    newest-first, so ending the walk once that many in-window reviews are
+    collected (truncating a mid-page overshoot) IS the plan contract's
+    "newest-first, in the API's return order, up to quota" — and it is what
+    keeps a sampled window's cost proportional to its quota instead of its
+    volume. A deliberate quota stop is a trusted stop, not a truncation
+    suspicion; the violation and past-the-window judgments run first on any
+    page, so a dirty page still refutes the params even when it also fills
+    the quota. Raises ``SteamResponseError`` on a ``success`` value that is
+    neither 1 nor the documented no-result 2 — new wire knowledge, surfaced
+    rather than guessed at.
     """
     cursor = _FIRST_CURSOR
     seen_cursors = {_FIRST_CURSOR}
@@ -132,11 +142,17 @@ def walk_pages(
             break  # the newest-first stream has descended below the window
         if out_of_window_is_violation and out_of_window:
             break  # first dirty page: the params are refuted — stop paying the descent
+        if stop_after is not None and len(collected) >= stop_after:
+            break  # quota filled: the newest-first prefix is complete
         if page.cursor is None or page.cursor in seen_cursors:
             break
         seen_cursors.add(page.cursor)
         cursor = page.cursor
 
+    if stop_after is not None:
+        # One truncation for every exit path — a page can overshoot the quota
+        # mid-page, including on the same page that ends the walk another way.
+        del collected[stop_after:]
     return WalkTally(
         reviews=tuple(collected),
         pages_fetched=pages_fetched,

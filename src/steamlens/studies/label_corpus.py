@@ -24,7 +24,6 @@ from __future__ import annotations
 import argparse
 import os
 import traceback
-from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -32,10 +31,7 @@ from pathlib import Path
 from typing import Final
 
 from steamlens.contracts import (
-    AspectOntology,
     ClassifierVersions,
-    LlmRequest,
-    LlmStage,
     OntologyVersion,
     Origin,
     Provenance,
@@ -43,15 +39,8 @@ from steamlens.contracts import (
     ReviewClassification,
     Sink,
     StageKind,
-    TokenUsage,
 )
-from steamlens.core.classify import (
-    PROMPT_VERSION,
-    BatchParseResult,
-    IdxFailure,
-    build_classify_prompt,
-    parse_classify_response,
-)
+from steamlens.core.classify import PROMPT_VERSION
 from steamlens.core.normalize import build_surface_index
 from steamlens.corpus import EXCLUDED_APP_IDS, corpus_review_files, read_reviews_file
 from steamlens.dispatch import (
@@ -60,6 +49,7 @@ from steamlens.dispatch import (
     RunAbort,
     RunTotals,
     chunk,
+    classify_batch,
     code_version,
     config_hash,
     mint_run_id,
@@ -71,11 +61,8 @@ from steamlens.dispatch import (
 from steamlens.dispatch.census_arm import KEY_ENV, MODEL_ID, build_client
 from steamlens.llm_client import (
     AtCapacityError,
-    GenerationIncompleteError,
-    LlmClient,
     LlmUnavailableError,
     ProviderEntry,
-    ProviderPermanentError,
     openai_compat_entry,
 )
 from steamlens.llm_client.openai_compat import DEEPSEEK_BASE_URL
@@ -229,56 +216,6 @@ def ingest_corpus(cfg: RunConfig, store: Store, sink: Sink) -> None:
             f"supply assertion failed: reviews table holds {count:,}, the ruling "
             f"expects {cfg.expected_supply:,} — corpus or filter drifted; refusing to dispatch"
         )
-
-
-def classify_batch(
-    client: LlmClient,
-    ontology: AspectOntology,
-    surface_index: Mapping[str, str],
-    batch: tuple[Review, ...],
-) -> BatchOutcome:
-    """One batch through prompt → door → parse; the worker-side unit of work.
-
-    A truncated-or-refused generation is salvaged, not lost: its spend is
-    already journaled and cached, so the partial text is parsed and the finish
-    reason rides the outcome. A ``ProviderPermanentError`` — the provider
-    rejecting the request itself (DeepSeek's content filter, live-observed
-    2026-07-20) — becomes an all-rows-failed outcome so the ordinary sweep
-    isolates the offending review to its durable mark instead of the whole
-    run dying on one batch forever (composition is deterministic — an abort
-    here would re-form the same batch every relaunch). Provider trouble
-    outliving the client's retries and budget refusals still propagate —
-    those end the run, not the batch.
-    """
-    texts = [review.text for review in batch]
-    prompt = build_classify_prompt(texts, ontology)
-    try:
-        response = client.complete(LlmRequest(stage=LlmStage.CLASSIFY, prompt=prompt))
-        finish = response.finish_reason.value
-    except GenerationIncompleteError as exc:
-        response = exc.response
-        finish = f"incomplete:{exc.reason.value}"
-    except ProviderPermanentError as exc:
-        reason = f"provider refused the request: {exc}"
-        return BatchOutcome(
-            batch=batch,
-            parse=BatchParseResult(
-                parsed=(),
-                failures=tuple(IdxFailure(idx, reason) for idx in range(len(batch))),
-                repairs=(),
-            ),
-            model_version="",
-            finish="refused",
-            usage=TokenUsage(prompt_tokens=0, output_tokens=0, thinking_tokens=0),
-            refusal=str(exc),
-        )
-    return BatchOutcome(
-        batch=batch,
-        parse=parse_classify_response(response.text, texts, surface_index),
-        model_version=response.model_version,
-        finish=finish,
-        usage=response.usage,
-    )
 
 
 def _write_outcome(

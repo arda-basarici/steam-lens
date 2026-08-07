@@ -1301,9 +1301,13 @@ archive makes the re-run nearly free. The concurrency constant is config, not
 architecture.
 
 **Fetch and classify overlap inside the job.** A bounded producer-consumer
-queue feeds arriving review pages to classify workers batching as they land —
-total time becomes max(fetch leg, classify leg) rather than their sum, and
-the first narrated labels appear seconds after the request. Two receipts make
+queue feeds each completed *window's* reviews to classify workers batching as
+they land — total time becomes max(fetch leg, classify leg) rather than their
+sum, and the first narrated labels appear seconds after the request. (The
+streaming unit was narrowed from pages to windows at build time: a windowed
+walk that goes dirty discards its pages and re-walks via the cursor fallback,
+so a page's sample membership is not final until its whole window's path
+outcome is known.) Two receipts make
 the overlap safe: sample membership is fixed by the fetch plan and manifest,
 never by classification order, so nothing statistical moves; and
 arrival-order batch composition is exactly the freedom the registered
@@ -1321,6 +1325,34 @@ classification, so the dial buys almost no wall-clock — and 1.5 s is the
 cadence the rate-budget gate actually certified from this host. If deployed
 timings ever show fetch binding, the move is to re-run the existing probe at
 the faster cadence first, then edit the config — evidence before dial.
+
+**The live executor's English-pool semantics** *(ruled at the runner build,
+2026-08-07)*. The sampling study certified draws over English pools —
+"English-only stands everywhere" — a gap the design session never had to
+bridge because live histograms and fetches are all-language. Four rulings
+close it. The size rule branches on the **English pool**, read pre-fetch by
+a whole-game totals query with `language=english`: outside the probes'
+recorded surface until the English-totals probe validated it exactly against
+the fresh-buy run's row-counted references (36 = 36 on the language case,
+and both long-tail picks flip to take-all under English branching — exactly
+the "take-all over a tiny English pool" behavior the certification demands;
+`probes/captures/english_totals_summary.json`). **Take-all** fetches one
+whole-life window through the validated windowed path, English-filtering
+after. A **sampled plan** compiles at the certified n = 1,000 against the
+all-language histogram, and per-window quotas execute as an early walk stop —
+the contract's "newest-first, up to quota" read literally, which is what
+keeps a window's cost proportional to its quota rather than its volume
+(compiled windows tile the whole lifetime bucket-wide, so
+fetch-whole-then-truncate would walk the entire game). English members filter
+from the quota prefix *after* selection, so windows under-deliver English at
+any share below 100% — accepted and disclosed (the realized n is honest;
+Wilson at the actual n errs conservative) rather than inflated by an
+uncertified share correction, which stays parked as a candidate re-ruling
+once deployed narrations show real language mixes. A **page-budget guard**
+prices every plan before fetching: an over-budget take-all (a tiny English
+pool inside a huge all-language game) degrades to the sampled draw with
+disclosure, and a sampled plan still over budget refuses the job loudly — a
+public box never self-inflicts an hour-long fetch.
 
 **Narration streams over SSE, with history replay.** The stream is
 one-directional typed events, which is precisely what server-sent events are:
