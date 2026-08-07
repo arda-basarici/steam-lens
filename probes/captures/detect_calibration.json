@@ -1,0 +1,246 @@
+{
+  "window": 6,
+  "min_volume": 30,
+  "k_grid": [
+    2.0,
+    2.5,
+    3.0,
+    4.0,
+    5.0,
+    6.0,
+    8.0
+  ],
+  "readings": [
+    {
+      "k": 2.0,
+      "source": "freshbuy",
+      "games": 6,
+      "games_marked": 5,
+      "episodes": 40,
+      "bucket_share": 0.09686609686609686,
+      "median_peak_multiple": 4.294117647058823,
+      "marked_windows_available": 3,
+      "marked_windows_caught": 2
+    },
+    {
+      "k": 2.0,
+      "source": "live-corpus",
+      "games": 5,
+      "games_marked": 5,
+      "episodes": 29,
+      "bucket_share": 0.08617234468937876,
+      "median_peak_multiple": 3.4879585031493145,
+      "marked_windows_available": 0,
+      "marked_windows_caught": 0
+    },
+    {
+      "k": 2.0,
+      "source": "longtail",
+      "games": 24,
+      "games_marked": 21,
+      "episodes": 92,
+      "bucket_share": 0.06594488188976377,
+      "median_peak_multiple": 2.814814814814815,
+      "marked_windows_available": 0,
+      "marked_windows_caught": 0
+    },
+    {
+      "k": 2.5,
+      "source": "freshbuy",
+      "games": 6,
+      "games_marked": 5,
+      "episodes": 34,
+      "bucket_share": 0.07264957264957266,
+      "median_peak_multiple": 5.111111111111111,
+      "marked_windows_available": 3,
+      "marked_windows_caught": 2
+    },
+    {
+      "k": 2.5,
+      "source": "live-corpus",
+      "games": 5,
+      "games_marked": 5,
+      "episodes": 17,
+      "bucket_share": 0.04809619238476954,
+      "median_peak_multiple": 5.105263157894737,
+      "marked_windows_available": 0,
+      "marked_windows_caught": 0
+    },
+    {
+      "k": 2.5,
+      "source": "longtail",
+      "games": 24,
+      "games_marked": 19,
+      "episodes": 57,
+      "bucket_share": 0.040354330708661415,
+      "median_peak_multiple": 3.860215053763441,
+      "marked_windows_available": 0,
+      "marked_windows_caught": 0
+    },
+    {
+      "k": 3.0,
+      "source": "freshbuy",
+      "games": 6,
+      "games_marked": 5,
+      "episodes": 26,
+      "bucket_share": 0.05555555555555555,
+      "median_peak_multiple": 7.152522255192879,
+      "marked_windows_available": 3,
+      "marked_windows_caught": 2
+    },
+    {
+      "k": 3.0,
+      "source": "live-corpus",
+      "games": 5,
+      "games_marked": 5,
+      "episodes": 16,
+      "bucket_share": 0.04408817635270541,
+      "median_peak_multiple": 5.2605504587155965,
+      "marked_windows_available": 0,
+      "marked_windows_caught": 0
+    },
+    {
+      "k": 3.0,
+      "source": "longtail",
+      "games": 24,
+      "games_marked": 19,
+      "episodes": 43,
+      "bucket_share": 0.030019685039370077,
+      "median_peak_multiple": 4.185185185185185,
+      "marked_windows_available": 0,
+      "marked_windows_caught": 0
+    },
+    {
+      "k": 4.0,
+      "source": "freshbuy",
+      "games": 6,
+      "games_marked": 5,
+      "episodes": 22,
+      "bucket_share": 0.04131054131054131,
+      "median_peak_multiple": 7.45750452079566,
+      "marked_windows_available": 3,
+      "marked_windows_caught": 2
+    },
+    {
+      "k": 4.0,
+      "source": "live-corpus",
+      "games": 5,
+      "games_marked": 5,
+      "episodes": 13,
+      "bucket_share": 0.03406813627254509,
+      "median_peak_multiple": 5.396039603960396,
+      "marked_windows_available": 0,
+      "marked_windows_caught": 0
+    },
+    {
+      "k": 4.0,
+      "source": "longtail",
+      "games": 24,
+      "games_marked": 15,
+      "episodes": 25,
+      "bucket_share": 0.018208661417322834,
+      "median_peak_multiple": 5.913043478260869,
+      "marked_windows_available": 0,
+      "marked_windows_caught": 0
+    },
+    {
+      "k": 5.0,
+      "source": "freshbuy",
+      "games": 6,
+      "games_marked": 5,
+      "episodes": 18,
+      "bucket_share": 0.03276353276353276,
+      "median_peak_multiple": 8.222222222222221,
+      "marked_windows_available": 3,
+      "marked_windows_caught": 2
+    },
+    {
+      "k": 5.0,
+      "source": "live-corpus",
+      "games": 5,
+      "games_marked": 4,
+      "episodes": 9,
+      "bucket_share": 0.022044088176352707,
+      "median_peak_multiple": 6.435582822085889,
+      "marked_windows_available": 0,
+      "marked_windows_caught": 0
+    },
+    {
+      "k": 5.0,
+      "source": "longtail",
+      "games": 24,
+      "games_marked": 12,
+      "episodes": 18,
+      "bucket_share": 0.010826771653543307,
+      "median_peak_multiple": 8.333333333333334,
+      "marked_windows_available": 0,
+      "marked_windows_caught": 0
+    },
+    {
+      "k": 6.0,
+      "source": "freshbuy",
+      "games": 6,
+      "games_marked": 4,
+      "episodes": 14,
+      "bucket_share": 0.027065527065527065,
+      "median_peak_multiple": 9.565961278703286,
+      "marked_windows_available": 3,
+      "marked_windows_caught": 2
+    },
+    {
+      "k": 6.0,
+      "source": "live-corpus",
+      "games": 5,
+      "games_marked": 3,
+      "episodes": 5,
+      "bucket_share": 0.012024048096192385,
+      "median_peak_multiple": 9.683770883054892,
+      "marked_windows_available": 0,
+      "marked_windows_caught": 0
+    },
+    {
+      "k": 6.0,
+      "source": "longtail",
+      "games": 24,
+      "games_marked": 9,
+      "episodes": 13,
+      "bucket_share": 0.008366141732283465,
+      "median_peak_multiple": 10.08,
+      "marked_windows_available": 0,
+      "marked_windows_caught": 0
+    },
+    {
+      "k": 8.0,
+      "source": "freshbuy",
+      "games": 6,
+      "games_marked": 4,
+      "episodes": 11,
+      "bucket_share": 0.019943019943019943,
+      "median_peak_multiple": 12.31532104259377,
+      "marked_windows_available": 3,
+      "marked_windows_caught": 1
+    },
+    {
+      "k": 8.0,
+      "source": "live-corpus",
+      "games": 5,
+      "games_marked": 1,
+      "episodes": 3,
+      "bucket_share": 0.008016032064128256,
+      "median_peak_multiple": 9.757469244288226,
+      "marked_windows_available": 0,
+      "marked_windows_caught": 0
+    },
+    {
+      "k": 8.0,
+      "source": "longtail",
+      "games": 24,
+      "games_marked": 8,
+      "episodes": 11,
+      "bucket_share": 0.0063976377952755905,
+      "median_peak_multiple": 11.5,
+      "marked_windows_available": 0,
+      "marked_windows_caught": 0
+    }
+  ]
+}

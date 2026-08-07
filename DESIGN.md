@@ -1536,9 +1536,56 @@ preceding buckets (a median resists being dragged by the spike itself);
 adjacent flags merge into one episode span. The transform is pure core —
 histogram in, episode list out, no LLM — and computes on the native rollup
 unit, never a hardcoded month. The threshold is picked by looking, not
-guessing: an offline pass over the 49 corpus histograms plus the long-tail
-frame-check snapshots shows what k separates known events from noise, and k
-ships as config carrying that provenance. Markers render observations only —
+guessing: an offline pass over every histogram the project holds shows what
+each k would actually mark, and k ships as config carrying that provenance.
+
+**What the calibration pass found, including where this section's own
+premise failed** (built and run 2026-08-07, `studies/detect_corpus`, capture
+`probes/captures/detect_calibration.json`). Two planned inputs did not
+survive contact with the data, and the ruling rests on what did.
+
+The **49 corpus histograms are unusable for this**, and permanently so. The
+frozen corpus was built by the predecessor `steam-reviews` project by
+fetching each game's *recent* reviews directly — a newest-first prefix per
+game, not a draw across its lifetime (Arda's account, 2026-08-08, confirmed
+in the data: 48 of the 49 games' newest bucket falls in 2026-06, the fetch
+month, while their oldest scatters from 2011 to 2026-05). Rebuilt into
+histograms those slices span a median of five monthly buckets, with 29 of 49
+at six or fewer — fewer than the trailing window a baseline needs before
+anything can flag. Worse than short, they are *systematically* wrong for this
+question: because each game's prefix fills at a per-game cap, span runs
+inversely to review velocity, so the only corpus games with enough history to
+flag are the slow ones — exactly the population the volume floor exists to
+suppress. Calibrating there would have measured the corpus's fetch shape and
+called it game behavior. This is not a gap a later pass closes; the corpus
+holds recency prefixes by construction. The pass reads them only to report
+it, and the evidence base is the 35 live snapshots (24 long-tail, 5
+corpus-check, 6 fresh-buy), which carry all-language volume at the native
+rollup unit — the production instrument's own shape.
+
+The **Valve-marked windows cannot validate k either**, for a granularity
+reason worth stating: three exist on disk, one of them a degenerate
+four-year span that any detector "catches" for free, and the other two are
+sub-bucket events — a two-week window in a monthly series. The 2022 window on
+one fresh-buy game is never caught at any k, because a fortnight of bombing
+dilutes into a month that never triples. So marked-window overlap stays what
+the render rule always said it was — a fact stated when present — and is not
+evidence for a threshold. Claiming otherwise would have been the calibration
+flattering itself.
+
+What the live snapshots do support is a **marking-rate** ruling, and it is
+robust. Across k, the number of episodes a marked game carries barely moves
+(median 2 at k = 3, 4, and 5); what k actually controls is *how many games
+show any marker at all* — 29, 25, and 21 of 35. The choice is therefore about
+how often a timeline says anything, not about clutter. **k = 4** ships, with
+a trailing window of 6 buckets and an absolute floor of 30 reviews: roughly
+70% of games carry a marker, about two each, marked buckets are ~2.6% of a
+timeline (visually sparse), and the median flagged bucket runs ~6× its
+baseline — unmistakably a spike rather than a wobble. Sensitivity is
+reassuring rather than knife-edge: sweeping the window over 4/6/8 and the
+floor over 10/30/50 moves the marked-game count only between 22 and 28 of 35.
+The floor itself is load-bearing for the long tail, where a ratio over a
+near-zero baseline is arithmetic noise wearing a large number. Markers render observations only —
 span, magnitude, review count, and overlap with a Valve-marked window stated
 as fact — with no causal noun anywhere: "review activity spike," never
 "backlash," because an unverified cause in the flagship timeline is the
