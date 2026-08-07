@@ -7,7 +7,7 @@ the fixed vision-phase snapshot (2026-07-07) and is not updated as the design mo
 How it's built → ARCHITECTURE; the pitch → README. Executed experiments appear here
 as conclusions with citations to their runs of record.
 
-*Living snapshot · last updated 2026-07-30.*
+*Living snapshot · last updated 2026-08-07.*
 
 ---
 
@@ -146,10 +146,11 @@ membership join + origin predicate, label-pool keying, provenance stamps on ever
 persisted artifact, the event-status enum. Record field lists freeze when their first
 consumer lands — pre-building every contract at M1 was rejected after critique showed
 a pre-built M4 contract already missing what M4's own success criterion needs. The
-interval method for displayed shares is likewise the sampling study's (M2) output
-alongside the policy: a stratified design changes the variance math, so committing to
-a formula now would ship a wrong error bar in the product whose thesis is honest
-error bars.
+interval method for displayed shares was likewise deferred to the sampling study
+(M2) alongside the policy — a stratified design changes the variance math, and
+committing early would have shipped a wrong error bar in the product whose thesis
+is honest error bars; the study delivered Wilson plus a regime-conditioned
+allowance (the sampling-study rulings).
 
 **Ops conventions adopted from practitioner canon, fit-tested:** prompts as versioned
 files with content hashes; one spend-ledger table powering the caps, the M1 cost
@@ -212,8 +213,9 @@ about, while the story track owns the bomb *story*. Two amendments: (1)
 **membership is derived at read time** from the freshest
 `past_events` snapshot — Valve marks windows retroactively, so a fetch-time stamp goes
 stale exactly when it matters; (2) a **marked-share floor** — past a threshold
-(provisional now; tuned at the sampling study) the report degrades honestly rather
-than presenting a bomb-dominated sample at full confidence. The exclude-counterfactual
+(tuned by the sampling study's mixing experiment: 2% marked share) the report
+degrades honestly rather than presenting a bomb-dominated sample at full
+confidence. The exclude-counterfactual
 stays computable offline but is never displayed: at 500-review sample scale the delta
 is noise inside the interval.
 
@@ -628,10 +630,11 @@ It remains a versioned artifact; reopening requires new evidence, not new hope.
 blind-labeled before any model output — the safe direction — but the v2
 distillation was tuned *on* gold's 250 reviews, so every v2-on-gold number is
 **development-grade**: the instrument was refined against the set it is scored on.
-Standing mitigation: a fresh human holdout (~100–150 reviews, random + stratified,
-labeled under **frozen** v2 inside M1); hard cases feed v3 notes, never back-edits
-to v2 — a back-edit would restart the contamination clock. Until the holdout lands,
-every published v2-on-gold number carries the disclosure.
+The mitigation landed as the sampling study's 150-review holdout under **frozen**
+v2 (2026-08-04/05 — agreement 0.557 with a steep stratum gradient, the
+sampling-study outcome); hard cases feed v3 notes, never back-edits to v2 — a
+back-edit would restart the contamination clock. Published v2-on-gold numbers keep
+the development-grade disclosure, now read beside the held-out bound.
 
 ---
 
@@ -687,15 +690,14 @@ none) and render as regenerable health reports; per-game health carries no
 thresholds — inventing cutoffs before seeing the distribution tunes alarms to
 nothing.
 
-**The misattribution audit sample is minted, awaiting the human pass.** Unit: the
-claim — one evidence-carrying mention in its review; metric: the share whose
-verbatim-true quote is attached to the wrong aspect or an uncarried sentiment.
-The draw is a seeded systematic pass over the sorted frame — implicit proportional
-stratification, self-weighting, so the audited rate estimates the population rate
-with no reweighting. 100 primary + 10 ordered reserves in
-`eval/audits/misattribution/`; the rate+CI scorer builds after the audit.
+**The misattribution audit.** Unit: the claim — one evidence-carrying mention in
+its review; metric: the share whose verbatim-true quote is attached to the wrong
+aspect or an uncarried sentiment. The draw is a seeded systematic pass over the
+sorted frame — implicit proportional stratification, self-weighting, so the
+audited rate estimates the population rate with no reweighting. 100 primary + 10
+ordered reserves in `eval/audits/misattribution/`.
 
-> **Outcome.** The audit landed 2026-08-05 (Arda's pass, 100 claims; two
+> **Outcome.** The audit landed 2026-08-05 (the human pass, 100 claims; two
 > non-English primaries skipped and replaced from the ordered reserves):
 > misattribution **11.6% [6.6–19.6]** Wilson over 95 decidable claims, 5
 > undecided disclosed. Decomposed: aspect-side 10.4% vs sentiment-side 3.1% —
@@ -934,511 +936,313 @@ reopened as a retrieval signal.
 
 ---
 
-## The sampling study (M2) — the study design
+## The sampling study (M2)
 
-*(Ruled 2026-08-02. The design session's output: how the study runs and what gates
-its answers. The values themselves — the winning policy, the tolerance, the size
-rule, the floor — are the study's output, landed at the checkpoints below.)*
+*(Designed 2026-08-02; measurements complete 2026-08-04; report frozen
+2026-08-05. The design ruled how the study runs and what gates its answers;
+the values — the winning policy, the tolerance table, the size rule, the
+floor — are the study's measured output. Every constant and figure
+regenerates from a named run of record.)*
 
-**The convergence target: two gates, per displayed aspect.** A sample size is
-acceptable when, against the full-census fold as reference, (1) every per-aspect
-share the report would display lands within tolerance of the census share, and
-(2) the quoted interval covers the census value at its nominal rate — the error
-bar keeps its promise. Share error is what the displayed number claims; interval
-calibration is the product's actual thesis (honest error bars), and a policy can
-pass one while failing the other. Rank stability of the top aspects and
-praise/criticism direction are measured and reported but never gate — both follow
-from shares being right, so gating them adds criteria without information. The
-tolerance applies per share band and is certified at the **95% register** — 95%
-of population cells within tolerance (refined at the curves checkpoint,
-2026-08-02: deterministic draws offer no per-cell guarantee to certify, and the
-95% register puts both gates in one probability language, the same one the
-interval quotes). The display evidence floor still excludes the sparse tail
-before any promise applies.
+### The study design
 
-**Four raced policies; two diagnostic axes.** Raced: **uniform random** (not
-runtime-expressible — the textbook reference every other policy is judged
-against, free to simulate against a held corpus); **time-proportional windowed**
-(budget spread across date windows by review volume — the runtime primary path's
-hypothesis, approximating uniform random through windowed fetches);
-**equal-per-window** (over-represents quiet periods; likely rejected, and then
-the rejection carries numbers); **cursor-prefix** (the documented fallback as it
-actually behaves — a most-recent prefix, biased by construction; its measured
-bias becomes the trust-panel disclosure quoted whenever a report runs on the
-fallback path). Playtime and vote-type are *representativeness diagnostics* on
-the winner, not raced candidates: time is the axis the windowed path natively
-speaks, and runtime expressibility of the other axes is unverified against the
-probes' recorded parameter surface.
+**The convergence target: two gates, per displayed aspect, at the 95%
+register.** A sample size is acceptable when, against the full-census fold as
+reference, (1) every per-aspect share the report would display lands within
+tolerance of the census share, and (2) the quoted interval covers the census
+value at its nominal rate — the error bar keeps its promise. Share error is
+what the displayed number claims; interval calibration is the product's
+actual thesis, and a policy can pass one while failing the other. Rank
+stability and praise/criticism direction are measured and reported but never
+gate — both follow from shares being right. Certification reads at the **95%
+register** — 95% of population cells within tolerance — because deterministic
+draws offer no per-cell guarantee to certify, and the register puts both
+gates in one probability language, the one the interval quotes. The display
+evidence floor still excludes the sparse tail before any promise applies.
 
-**Curves first; the deliverable is a size rule.** The size ladder densifies at
-the low end (100 / 250 / 500 / 750 / 1000 / 1500 / 2000 / 3000 / 5000), a few
-hundred independent draws per game × policy × size — resampling stored labels is
-CPU-only, so density costs minutes. Tolerance and size are picked at a **review
-checkpoint over the real curves**, not fixed in advance: the tolerance is a
-product decision (promise strength vs. per-report fetch+classify cost) better
-made looking at reachable tradeoffs than guessed blind. The deliverable is a
-rule, not a number — games vary by orders of magnitude, so: take-all below a
-population cutoff, sample n by the winning policy above it; the curves locate
-the cutoff.
+**The replication unit: query anchors × games × aspects.** Windowed draws
+are fully deterministic — same corpus, same plan, same sample, true of the
+live runtime too — so error distributions and coverage rates need a
+population of report runs to be statements about. Each game's corpus
+truncates at fixed quantiles of its own review-time span (40/55/70/85/100% —
+never an absolute calendar grid, which would predate thin-coverage games),
+reproducing exactly what a live query at that moment would have seen. This
+makes the rulings claims about report runs generally rather than one
+snapshot date, and makes the closing test a genuine held-out draw from the
+certified population — a fresh game queried at a fresh time. Two disclosures
+ride the report: anchors within one game are nested, widening the population
+without being independent replications; and truncating today's corpus at T
+assumes Steam would have served the same rows at T — an approximation only
+the live tests ground.
 
-**Interval methods race inside the same simulation.** The candidate formulas —
-design-naive binomial, design-aware stratified, bootstrap-over-reviews — are all
-computed on every simulated draw, and the calibration gate is itself the test:
-ship the *simplest* method whose coverage is honest under the winning policy.
-Simplicity is the tiebreak because the formula ships in production; the fancier
-method earns its place only when the simple one's coverage measurably fails.
-Constraint carried from the eval harness: resampling intervals draw whole
-reviews, never mentions — mentions within one review move together, and
-treating them as independent fakes precision.
+**Four raced policies; two diagnostic axes.** Raced: **uniform random** (the
+textbook reference — not runtime-expressible, free to simulate against a
+held corpus) · **time-proportional windowed** (the runtime primary path's
+hypothesis) · **equal-per-window** · **cursor-prefix** (the documented
+fallback as it actually behaves — a most-recent prefix, biased by
+construction; its measured bias is the trust-panel disclosure whenever a
+report runs on the fallback path). Playtime and vote-type are
+representativeness diagnostics on the winner, not raced candidates — runtime
+expressibility of those axes is unverified against the probes' recorded
+parameter surface.
 
-**Long-tail transfer: staged evidence, ending in a held-out test.** The corpus
-is ~50 popular games in a recent window; the deployed app will be pointed at
-anything. Three stages: (1) **within-corpus splits** — convergence results split
-by game shape (population, temporal spikiness, aspect concentration); if curves
-vary with shape, the size rule conditions on it, and the transfer risk is
-measured rather than suspected; (2) **label-free frame checks** — fresh
-histograms for genuinely long-tail games through the existing sampler, no LLM
-spend, testing whether their temporal structures fall inside the range the
-corpus spans; (3) a **committed closing test** — ~3 long-tail games labeled
-fully under the frozen versions once the size rule exists, validating the
-finished rule off-corpus rather than arguing transfer. Fresh buys carry the
-buy-time re-certification rider (the D2d ruling).
+**Curves first; the deliverable is a rule, not a number.** The size ladder
+densifies at the low end (100–5,000, nine tiers), a few hundred seeded draws
+per game × policy × size — resampling stored labels is CPU-only. Tolerance
+and size were picked at a review checkpoint over the real curves, not fixed
+in advance: the tolerance is a product decision (promise strength vs.
+per-report fetch+classify cost) better made looking at reachable tradeoffs.
+Games vary by orders of magnitude, so the rule takes the form: take all
+below a population cutoff, sample above it. Interval methods raced inside
+the same simulation — design-naive binomial, design-aware stratified,
+bootstrap-over-reviews, all computed on every draw — with the calibration
+gate itself the test: ship the *simplest* method whose coverage is honest,
+because the formula ships in production. Resampling draws whole reviews,
+never mentions — mentions within one review move together, and treating them
+as independent fakes precision.
+
+**Long-tail transfer: staged evidence, ending in a held-out test.** The
+corpus is ~50 popular games in a recent window; the deployed app will be
+pointed at anything. Three stages: within-corpus convergence splits by game
+shape (if curves vary with shape, the rule conditions on it — the transfer
+risk measured rather than suspected); label-free frame checks on genuinely
+long-tail games (fresh histograms through the existing sampler, no LLM
+spend); and a committed closing test — three long-tail games labeled fully
+under the frozen versions, validating the finished rule off-corpus rather
+than arguing transfer.
 
 **The marked-share floor tunes by mixing experiment.** The corpus holds zero
-marked-window reviews, so this is the study's one path off stored labels: fetch
-marked windows fresh from 2–3 documented-bomb games through `steam_client`'s
-windowed path (the wire-level caveat parked in the probes' findings gets its
-check here), label ~1–2k marked-window reviews under the frozen versions, then
-blend them into normal samples at increasing shares offline. The floor is the
-marked share at which a sample's conclusions drift beyond **the same tolerance
-the curves checkpoint set** — one honesty standard end to end, replacing a
-guessed percentage. Sequencing falls out: the mixing experiment runs after the
-tolerance ruling and shares one fetch-and-label session with the long-tail
-closing test.
+marked-window reviews, so the floor is the study's one path off stored
+labels: fetch marked windows fresh from documented-bomb games, label under
+the frozen versions, then blend into normal samples offline at increasing
+shares (0–50%, densified at the low end). The floor is the marked share at
+which the certified 95%-register promise breaks — the same tolerance table,
+coverage gate, and pass/fail machinery, one honesty standard end to end
+replacing a guessed percentage. Blends replace members at fixed n (addition
+would grow the sample and entangle two effects); one curve per bomb game
+with the worst source ruling, because pooling would average away exactly the
+spread the picks were chosen to cover.
 
-**The human holdout folds into M2; the rest of the human track stays parallel.**
-The census reference is machine-labeled — the study measures *sampling* error
-while the classifier's own error rides silently on top. The fresh human holdout
-(~100–150 reviews under frozen v2) is drawn as an M2 step, scoped across corpus
-material *and* the fresh buys — marked-window and long-tail reviews are
-out-of-distribution against gold's popular-game 250, exactly where the
-classifier is newly trusted — and its number lands in the report's limitations
-as the measured bound on the reference's imperfection. The misattribution audit,
-self-relabel subset, and judge-disagreement adjudication stay the parallel
-human-time track, not gating M2.
+**The human holdout folds into M2; the rest of the human track stays
+parallel.** The census reference is machine-labeled — the study measures
+*sampling* error while the classifier's own error rides silently on top. A
+fresh 150-review human pass under frozen codebook v2 (60 corpus / 45
+marked-window / 45 long-tail, the fresh material deliberately oversampled —
+out-of-distribution against gold's popular-game 250 is exactly where the
+reference is newly trusted), labeled blind to machine labels, scored as
+review-level agreement against production with a Wilson interval; the number
+lands in the report's limitations as the measured bound on the reference's
+imperfection.
 
-> **Outcome.** The holdout landed 2026-08-04/05 (Arda's 150-review pass under
-> frozen v2, batch-reviewed; run of record `holdout-20260804T215600Z-c0edb01a`,
-> journaled + mirrored in `eval/holdout/agreement.json`): strict-envelope
-> review-level agreement **0.557 [0.477–0.634]** over 149 scored (one
-> non-English skip). The stratum gradient is the finding — corpus 0.678,
-> marked-window 0.511, long-tail 0.444: the reference is weakest exactly where
-> the study newly trusts it, which is the limitations sentence the report
-> quotes. Sentiment-given-matched-aspects 0.988 — aspect-set selection is the
-> entire disagreement; polarity is near-noise-free. Pass rulings + the
-> batch-review disclosure in `eval/holdout/NOTES.md`.
+> **Outcome.** The holdout landed 2026-08-04/05 (run of record
+> `holdout-20260804T215600Z-c0edb01a`, journaled + mirrored in
+> `eval/holdout/agreement.json`): strict-envelope review-level agreement
+> **0.557 [0.477–0.634]** over 149 scored. The stratum gradient is the
+> finding — corpus 0.678, marked-window 0.511, long-tail 0.444: the
+> reference is weakest exactly where the study newly trusts it, which is
+> the limitations sentence the report quotes. Sentiment-given-matched-
+> aspects 0.988 — aspect-set selection is the entire disagreement;
+> polarity is near-noise-free. Pass rulings + the batch-review disclosure
+> in `eval/holdout/NOTES.md`.
 
-**The replication unit: query anchors × games × aspects** *(ruled 2026-08-02,
-the step-4 design pass — settling the question the build flagged)*. Windowed
-draws are fully deterministic — same corpus, same plan, same sample, true of
-the live runtime too — so repeat-variance exists only for the uniform
-reference, and error distributions and coverage rates need a population of
-report runs to be statements about. The certified population is the composed
-one: **query anchors** (each game's corpus truncated at fixed quantiles of its
-own review-time span — 40/55/70/85/100%, never an absolute calendar grid that
-would predate thin-coverage games; compiling from the truncated histogram
-reproduces exactly what a live query at that moment would have seen) ×
-**games** × **displayed aspects**. This makes the checkpoint's rulings claims
-about report runs generally rather than one snapshot date, and makes the
-committed closing test a genuine held-out draw from the certified population —
-a fresh game queried at a fresh time. Two disclosures ride the report, not the
-code: anchors within one game are nested (later corpora contain earlier ones),
-widening the population without being independent replications; and truncating
-today's corpus at T assumes Steam would have served the same rows at T —
-edits and deletions make that an approximation only the live tests ground.
-Sweep hygiene falls out of the ruling: an anchor whose truncated pool
-duplicates an earlier anchor's is dropped (truncation is monotone — equal size
-is the identical pool, and re-measuring adds correlated copies), and a cell
-whose ladder size reaches its pool is recorded take-all and skipped — a
-take-all draw's zero error is free flattery for a convergence curve.
+### The rulings — the certified instrument
 
-**The curves checkpoint — the study's values, ruled 2026-08-02** *(over run of
-record `m2sweep-20260802T132010Z-2969bcab`: 49 games · 243 anchor pools ·
-255,744 cells; every figure and constant regenerable from the run)*.
+*(Ruled at the curves checkpoint, 2026-08-02, over run of record
+`m2sweep-20260802T132010Z-2969bcab` — 49 games · 243 anchor pools · 255,744
+cells; regime-refined 2026-08-03 at the long-tail splits, regenerable via
+``scripts/split_sweep_by_shape.py`` and ``scripts/mint_allowances.py``.
+Constants re-derive from the run of record, never hand-carried.)*
 
-- **Policy: time-proportional windowed is the primary path.** It dominated the
-  other implementable draws on every slice — pooled p90 error, per-band error,
-  and Wilson coverage at every n. Equal-per-window is eliminated: its
+- **Policy: time-proportional windowed is the primary path.** It dominated
+  every implementable rival on every slice — pooled p90 error, per-band
+  error, Wilson coverage at every n. Equal-per-window is eliminated: its
   quiet-month over-weighting never paid for itself anywhere. Cursor-prefix
-  keeps its designed fallback role; the sweep's signed-bias view showed **no
-  net direction for any policy** — misses are symmetric spread — so the
-  fallback's trust-panel disclosure is a spread statement, not a drift
-  correction.
-- **The big-share finding, and pricing it rather than fixing it.** The windowed
-  penalty concentrates almost entirely in **≥15%-share aspects**: p90 error
-  7–11 points, bias-dominated — a newest-first prefix's bias does not shrink
-  like √n, so the error curves run flat from n=100 to ~1500 and collapse only
-  when growing quotas swallow whole windows. In that band every interval
-  method under-covers, *worse as n grows* (Wilson ~88% at n=100 falling to
-  ~75–78% by 1500–2000): the width shrinks like 1/√n while the bias stays
-  put. The ruling follows the study's own thesis — price the pretense: the
-  shipped interval carries a measured bias allowance and the tolerance
-  conditions on share band. **Larger n is rejected** as an answer (the curves
-  are flat in n; the cost is linear). **The micro-window variant is parked** —
-  the one candidate that attacks the cause rather than repricing it, but it
-  carries an unsolved compiler question (windows mint from monthly rollups;
-  finer grain needs the deliberately-unused daily strips or a within-window
-  multi-cursor draw) and an unknown payoff without a re-sweep. Reopen
-  triggers: the closing test failing held-out, or the deployment milestone
-  (M3) finding the headline widths product-unacceptable.
-- **Interval method: Wilson plus a per-band constant allowance.** Bootstrap is
-  eliminated — the percentile interval collapses to lattice points at small
-  n·p̂ (measured ~60% coverage at n=100). Stratified-with-FPC is eliminated —
-  its within-window-SRS pretense is exactly what the prefix draw violates
-  (bias-centered intervals, and quota-1 windows reporting zero variance).
-  Form: one constant per share band added to Wilson's half-width on sampled
-  draws; **take-all pools quote the exact number and no sampling interval** —
-  a swallowed pool is a census of itself. Constants pin at the shipped n,
-  smoothed conservatively against order-statistic noise (the max of the
-  flat-inflation calibration over the shipped tier and its neighbors): **tail
-  0.000 · mid 0.005 · headline 0.073** — a headline aspect displays at roughly
-  ±10 points. The constants are self-calibrated on the study corpus; the
-  closing test is their held-out check, and they re-derive from the run of
-  record, never hand-carried. The fallback path, where its numbers quote an
-  interval, calibrates its own (larger) allowance from the same rows'
-  cursor-prefix column.
-- **Tolerance, band-conditioned at the 95% register:** tail (<5% census share)
-  **±1 point** · mid (5–15%) **±2.5 points** · headline (≥15%) carries **no
-  separate error tolerance** — its promise is the calibrated interval plus
-  take-all exactness; a tolerance number there would either restate the
-  interval width or claim a precision the windowed draw cannot deliver.
+  keeps its designed fallback role; the signed-bias view showed no net
+  direction for any policy — misses are symmetric spread — so the fallback's
+  disclosure is a spread statement, not a drift correction.
 - **Size rule: take all at pool ≤ 2,000; otherwise sample n = 1,000
-  time-proportional.** n=1,000 sits one tier above the smallest
-  tolerance-passing size (750 passes the mid band at 2.3 vs 2.5 — no margin
-  against off-corpus drift) and returns flatten beyond it (1,500 buys 0.2
-  points for 50% more cost). The cutoff takes the 2×n shape: below it,
-  sampling saves less than half the fetch+classify cost, so exactness —
-  including headline exactness — is nearly free; above it, per-report cost
-  caps at 2,000 fetched+classified reviews (the thesis made concrete: at most
-  2k reviews per report, not 250k). Pool size otherwise doesn't condition the
-  rule — the pool-size slice showed convergence rides absolute n, not
-  sampling fraction. At pools just over the cutoff, Wilson's missing FPC errs
-  conservative — over-covers, never under.
-
-**The long-tail stage-1 splits — the regime refinement, ruled 2026-08-03**
-*(over the same run of record; the splits, threshold sweep, and constants
-regenerable via ``scripts/split_sweep_by_shape.py`` and
-``scripts/mint_allowances.py``)*.
-
-- **The finding: the windowed penalty lives entirely in temporal
-  spikiness.** Convergence split by game shape at the (game, anchor) grain —
-  population, peak window share, headline-aspect count — showed all three
-  axes breaking the ruled tolerances in their top groups, but conditioning
-  untangles it: with spiky pools set aside, no band at any pool size needs
-  any allowance (constants 0.000 across pool terciles), while spiky pools
-  need roughly double the flat price. The checkpoint's flat constants were
-  an average of two regimes — over-covering calm pools (~100% measured
-  coverage, ±10-point headline bars where Wilson alone suffices) and
-  under-covering spiky ones (~87% at the shipped n) — the same dishonesty
-  the checkpoint refused, one level down.
-- **The ruling: the allowance conditions on the spikiness regime.** Boundary:
-  peak window share at or above **2/3** — the pool share of the busiest
-  histogram bucket, computable from the live histogram before any draw, so
-  the conditioning adds no data dependency. Ruled over a threshold sweep:
-  calm constants sit at zero for every candidate cut from 0.50 to 0.75, so
-  only the spiky side's calibration hinged on the choice, and 2/3 puts the
-  full measured price on the units that measured it (0.50 would dilute the
-  spiky calibration with borderline units that need nothing). The
-  regime-conditioned constants supersede the flat ones (kept above as the
-  checkpoint's record): primary path calm **0.000 / 0.000 / 0.000** and
+  time-proportional.** n = 1,000 sits one tier above the smallest
+  tolerance-passing size (750 passes with no margin against off-corpus
+  drift) and returns flatten beyond it (1,500 buys 0.2 points for 50% more
+  cost). The cutoff takes the 2×n shape: below it, sampling saves less than
+  half the fetch+classify cost, so exactness — including headline
+  exactness — is nearly free; above it, per-report cost caps at 2,000
+  fetched+classified reviews (the thesis made concrete: at most 2k reviews
+  per report, not 250k). Convergence rides absolute n, not sampling
+  fraction, so pool size doesn't otherwise condition the rule; at pools just
+  over the cutoff, Wilson's missing FPC errs conservative.
+- **Interval method: Wilson plus a per-band constant bias allowance on
+  sampled draws; take-all pools quote the exact number and no sampling
+  interval** — a swallowed pool is a census of itself. Bootstrap is
+  eliminated (the percentile interval collapses to lattice points at small
+  n·p̂ — ~60% measured coverage at n=100); stratified-with-FPC is eliminated
+  (its within-window-SRS pretense is exactly what a prefix draw violates).
+  The allowance exists because the windowed penalty concentrates in
+  **≥15%-share aspects** and is bias-dominated there: error runs flat from
+  n=100 to ~1500 while interval widths shrink like 1/√n, so coverage
+  *worsens* as n grows (Wilson ~88% at n=100 falling to ~75–78% by
+  1500–2000). The ruling follows the study's own thesis — price the
+  pretense: **larger n is rejected** as an answer (the curves are flat in n;
+  the cost is linear), and the **micro-window variant is parked** — the one
+  candidate attacking the cause rather than repricing it, but it carries an
+  unsolved compiler question (windows mint from monthly rollups) and an
+  unknown payoff without a re-sweep. Its closing-test reopen trigger fired
+  and did not trip; the remaining trigger is deployment (M3) finding the
+  headline widths product-unacceptable.
+- **The allowance and the mid tolerance condition on the spikiness regime.**
+  The long-tail splits located the entire windowed penalty in temporal
+  spikiness: with spiky pools set aside, no band at any pool size needs any
+  allowance, while spiky pools need roughly double the flat price — a flat
+  constant would over-cover calm pools and under-cover spiky ones, the same
+  dishonesty the checkpoint refused, one level down. Boundary: **peak window
+  share ≥ 2/3** — the pool share of the busiest histogram bucket, computable
+  from the live histogram before any draw, so the conditioning adds no data
+  dependency. Calm constants sit at zero for every candidate cut from 0.50
+  to 0.75, so only the spiky side's calibration hinged on the choice, and
+  2/3 puts the full measured price on the units that measured it. The
+  constants, smoothed conservatively against order-statistic noise
+  (tail / mid / headline): primary path calm **0.000 / 0.000 / 0.000**,
   spiky **0.000 / 0.017 / 0.127** — calm headline ships at roughly ±2.5
-  points, spiky headline at roughly ±15; fallback path calm
-  **0.000 / 0.004 / 0.065** and spiky **0.000 / 0.022 / 0.130** — the
-  cursor path's newest-first bias needs no spike, so even its calm regime
-  carries real allowances, and its disclosure stays regime-aware.
-- **Spiky mid joins the headline treatment.** In the spiky regime, mid
-  aspects carry no separate error tolerance — spiky-mid p95 error (~3.5
-  points) breaks ±2.5 regardless of the interval quoted, and a tolerance
-  minted to fit would restate the interval — the same reasoning that left
-  headline tolerance-free at the checkpoint. Calm mid keeps ±2.5 points,
-  tail keeps ±1 point everywhere; the tolerance table is regime-aware in
-  exactly one cell.
-- **Caveats carried to the report, not the code.** The spiky calibration
-  rests on thin cells (48 headline cells at the shipped tier; the smoothing
-  max is the deliberate conservatism), and the constants remain
-  self-calibrated on-corpus — the closing test and the fresh buys are the
-  held-out check of the *conditioned* constants now. Stage 2's label-free
-  frame checks gain a sharper question than they were designed with:
-  whether genuinely long-tail games land in the spiky regime at all — the
-  off-corpus regime distribution is the transfer risk that remains.
+  points, spiky at roughly ±15; fallback path calm **0.000 / 0.004 /
+  0.065**, spiky **0.000 / 0.022 / 0.130** — the cursor path's newest-first
+  bias needs no spike, so even its calm regime carries real allowances, and
+  its disclosure stays regime-aware.
+- **Tolerance, band-conditioned at the 95% register:** tail (<5% census
+  share) **±1 point** everywhere · mid (5–15%) **±2.5 points** in the calm
+  regime, with spiky mid joining the headline treatment (spiky-mid error
+  breaks ±2.5 regardless of the interval quoted, and a tolerance minted to
+  fit would restate the interval) · headline (≥15%) carries **no separate
+  error tolerance** — its promise is the calibrated interval plus take-all
+  exactness; a tolerance number there would either restate the interval
+  width or claim a precision the windowed draw cannot deliver.
+- **The marked-share floor: 2%, worst-source, grid-located** (holds at 2%,
+  broken by 5%; resolution inside that interval was deliberately not
+  bought — no product decision changes with it). Consequences: Steam's
+  default marked-window blanking, which the production fetch inherits and
+  the probes verified on the wire, is certified **load-bearing** — even a 5%
+  bomb admixture voids the calibrated bars — and marked windows stay
+  display-only episode markers, never folded into displayed numbers.
+- **Standing caveat, carried to the report:** the constants are
+  self-calibrated on the study corpus, with the spiky calibration resting on
+  thin cells and its off-corpus transfer undemonstrated (the closing test's
+  lone spiky exemplar is take-all — nothing sampled exists to validate the
+  spiky allowance held out, and the report says so plainly).
 
-**The long-tail stage-2 frame checks — the off-corpus regime distribution,
-measured and ruled passed 2026-08-03** *(over discovery run
-``longtail-20260802T232206Z-9bf61718``: 24 games admitted from 959
-seeded-uniform probes of a 177,272-game catalogue snapshot; every table and
-figure regenerable via ``scripts/discover_longtail_games.py`` and
-``scripts/frame_check_longtail.py``)*.
+### The evidence
 
-- **The list nobody picked.** Discovery is criteria-driven by construction —
-  the selection-bias critique is answered before it is raised. Three
-  review-count bands on the whole-game, all-language totals read, edges
-  aligned to the ruled take-all cutoff so each band asks a distinct question:
-  the true tail at 200–2,000 (production fetches these whole — 6 games), the
-  engaging band strictly above 2,000 through 20,000 (the only place the size
-  rule actually samples — 14 games), and a bridge at 20,000–60,000 toward
-  corpus scale (4 games). Candidates were drawn by seeded uniform probing of
-  a persisted games-only catalogue snapshot, admitted exactly when the store
-  called them a game and the totals landed in an open band; seed, snapshot,
-  and probe order are all recorded, so the list re-draws. (The frame itself
-  is the keyed ``IStoreService`` catalogue — Valve retired the keyless
-  applist endpoint in March 2026; the key crosses only the process
-  environment.) The probe log doubles as an unbiased catalogue sample, kept
-  with the run.
-- **The regime answer: the long tail is calm territory.** One game in 24 is
-  spiky on the production instrument (peak window share ≥ 2/3 over the live
-  histogram's native buckets); 5 of 120 (game, anchor) units — 4.2%, against
-  the corpus's 33.1%. No band is spiky-heavy (true tail 0%, engaging 7.1%,
-  bridge 0%). Deployed against the long tail, the runtime will overwhelmingly
-  quote the calm constants — Wilson-only intervals — with the spiky treatment
-  reserved for the rare whole-life-event game the boundary exists for. Fresh
-  peak shares (0.022–0.813) sit entirely inside corpus support (0.036–1.000):
-  the conditioning never extrapolates. Fresh whole-life pools exceed corpus
-  pool support on the high side (to 63k against 6.9k) — a report disclosure,
-  not a gap, pool size being the axis stage 1 cleared of any conditioning.
-- **The span effect — what the corpus regime rate actually measured.** The
-  instrument-agreement handful (five corpus games, live histograms fetched
-  alongside the fresh ones) shows the two instruments agreeing decently over
-  the same month range, while the same games' whole-life histograms read far
-  flatter (0.503 → 0.042; 0.415 → 0.059). The corpus's 33% spiky rate is
-  therefore largely a property of *windowed pools*, not of popular games:
-  the calibration measured the penalty mechanism — one window swallowing the
-  draw's quota — on recent-window pools, and production, reading whole-life
-  histograms, will meet that shape mainly in games whose whole life is one
-  event. The spiky constants stay as ruled (the mechanism transfers by
-  shape, not by span); the closing test remains the held-out check that the
-  calm-regime promise holds off-corpus.
-- **The instrument disclosure.** Steam serves weekly rollup buckets for some
-  games (5 of the 24) and monthly for the rest; weekly-native readings sit at
-  or below their month-rolled counterparts, and no admitted game flips across
-  the 2/3 boundary by unit choice. The regime is computed on the native
-  buckets deliberately: the windowed compiler plans one window per native
-  bucket, so the native series is the shape the draw actually experiences.
-- **Carried to the fresh-buy session (step 8):** the ~3 long-tail games
-  labeled fully should span the regimes this check surfaced — the one spiky
-  admit (Sword and Fairy Inn 2, whose 36 English reviews of 2,277 also
-  exercise the language question), one weekly-unit young game, one flat
-  mid-band game.
+**The long-tail frame checks — the off-corpus regime distribution, passed
+2026-08-03** *(discovery run ``longtail-20260802T232206Z-9bf61718``: 24
+games admitted from 959 seeded-uniform probes of a 177,272-game catalogue
+snapshot; regenerable via ``scripts/discover_longtail_games.py`` and
+``scripts/frame_check_longtail.py``)*. Discovery is criteria-driven by
+construction — the selection-bias critique answered before it is raised:
+three review-count bands with edges aligned to the ruled take-all cutoff, so
+each band asks a distinct question (the true tail production fetches whole ·
+the engaging band where the size rule actually samples · a bridge toward
+corpus scale), admission decided only by the store calling the probe a game
+with totals in an open band; seed, snapshot, and probe order all recorded.
+(The catalogue frame is the keyed ``IStoreService`` endpoint — Valve retired
+the keyless applist in March 2026.) The answer: **the long tail is calm
+territory** — 4.2% of (game, anchor) units spiky against the corpus's
+33.1%, no band spiky-heavy, and fresh peak shares sitting entirely inside
+corpus support, so the conditioning never extrapolates; deployed against
+the long tail, the runtime overwhelmingly quotes calm Wilson-only
+intervals. The span effect explains the corpus rate: the same games'
+whole-life histograms read far flatter than their recent-window pools — the
+corpus's 33% spiky rate is largely a property of *windowed pools*, and
+production, reading whole-life histograms, meets that shape mainly in games
+whose whole life is one event; the spiky constants stay as ruled because
+the mechanism transfers by shape, not by span. Instrument disclosure: Steam
+serves weekly rollup buckets for some games; the regime is computed on
+native buckets deliberately — the windowed compiler plans one window per
+native bucket, so the native series is the shape the draw experiences.
 
-**The fresh-buy session (step 8) — selections and design, ruled 2026-08-03**
-*(the one shared fetch-and-label pass serving the mixing experiment, the
-closing test, and the human holdout; bomb candidates nominated by web
-research, verified only by the wire-level probe below — nomination is not
-evidence)*.
+**The fresh-buy session — one fetch-and-label pass serving the mixing
+experiment, the closing test, and the holdout** *(ruled 2026-08-03)*. The
+bomb games spread the marked-window population three ways — Borderlands 2
+(the canonical tight ~2-week window), Book of Demons (a small ongoing
+mark), The Witcher 3 (a tight window with a low English share); the
+long-tail games make the frame checks' leaning concrete — Sword and Fairy
+Inn 2 (the lone spiky admit, 36 usable English reviews of 2,277 — also the
+language case), Dragonkin: The Banished (weekly-served, exercising the
+rollup-unit disclosure live), Talisman: Digital Classic Edition (the one
+pick whose *English* pool crosses the sampling cutoff — the criterion rides
+the English pool because a pick under it would quietly turn the closing
+test into three take-all games and validate nothing). English-only stands
+everywhere, including the 36-of-2,277 game: take-all over a tiny English
+pool *is* the honest production behavior, and labeling non-English would
+test an instrument never certified. A wire-level probe gated the buy on
+pick verification — every mark exists, every window blanks by default and
+restores under the flag, and the combined in-window English pool (6,454)
+covers the ~1–2k mixing appetite; wire truth corrected two research claims
+(The Witcher 3's span is 14 days, not the researched 9 months; Book of
+Demons' mark is ongoing). Containment by storage: the fresh labels land in
+the fetch run's own label store, never the production pool, so the parked
+`Origin.EVAL` trigger's condition never arises and the census driver runs
+unchanged. The buy-time rider is binding: a fresh gold re-certification
+under the frozen triple accompanied the buy, dispatched under its own
+identity tag with a fresh fillers seed (a first attempt reusing the prior
+seed replayed the earlier responses at $0 from the content-keyed archive —
+identical composition is identical request content), and its number is the
+fresh buy's buy-time certificate in the report's limitations.
 
-- **The bomb games: Borderlands 2, Book of Demons, The Witcher 3.** Chosen to
-  spread the marked-window population three ways: the canonical first-ever
-  off-topic mark (Borderlands 2 — the April 2019 Epic-exclusivity bomb, a
-  tight ~2-week window, 7,030 reviews on the wire), a small-volume ongoing
-  mark (Book of Demons — the March 2022 regional-pricing bomb; `end_date=0`
-  on the wire, 2,349 reviews to date), and a second tight window with a low
-  English share (The Witcher 3 — March 3–17 2022; the researched "9-month
-  span" was corrected to 14 days by the probe, finding 6).
-  Cyberpunk 2077 was excluded on corpus overlap: fresh material stays
-  disjoint from the 49 corpus games. Alternates on record if a pick fails
-  the probe: IL-2 Sturmovik (a ~25-month window), Slay the Spire 2 (the 2026
-  mega-bomb; mark dates unverified).
-- **The long-tail games: Sword and Fairy Inn 2, Dragonkin: The Banished,
-  Talisman: Digital Classic Edition** — the stage-2 leaning made concrete
-  from the discovery run's admitted list: the one spiky admit (peak 0.756,
-  the language case), the youngest weekly-served admit (Mar 2026, 1,312
-  English; native 0.166 vs month-rolled 0.383 exercises the unit disclosure
-  live), and the flattest mid-band admit with real English headroom (6,108
-  English, peak 0.033).
-- **The mid-band criterion rides the English pool, not the total.** The size
-  rule samples only above the 2,000-review take-all cutoff, and the
-  labelable pool is English — a pick whose English subset falls under the
-  cutoff would quietly turn the closing test into three take-all games and
-  validate nothing.
-- **English-only stands everywhere, including the 36-of-2,277 game.** The
-  classifier's certified contract and the codebook are English; production
-  faces the same 36-review reality for that game, and take-all over a tiny
-  English pool *is* the honest production behavior. Labeling non-English
-  would test an instrument never certified.
-- **The probe gates the buy — pick verification, not mechanism.** The
-  blank/restore mechanism is already proven (the M0/M1 probe findings:
-  default listings blank marked windows, `filter_offtopic_activity=0`
-  restores them, verified locally and from a datacenter; every future fetch
-  carries the flag). What no probe has done is verify the *picks*: that
-  each bomb game's `past_events` mark exists with usable window dates, and
-  that the in-window **English** pool — the only labelable material — is
-  large enough to feed the mixing experiment. A bomb pick failing either
-  check is replaced from the alternates, not forced.
-- **The holdout: 150 reviews, 60 corpus / 45 marked-window / 45 long-tail.**
-  Seeded stratified draw with the fresh material deliberately oversampled
-  relative to volume — out-of-distribution against gold's popular-game 250
-  is exactly where the reference is newly trusted. Labeled blind to machine
-  labels under frozen codebook v2 (the misattribution-sheet precedent);
-  scored as review-level agreement against production labels (the judge's
-  frame — reviews, not mentions) with a Wilson interval; the number lands in
-  the report's limitations as the measured bound on the reference's
-  imperfection. Overall agreement reads at roughly ±6 points, per-stratum at
-  roughly ±12 — coarse but honest.
-- **The cost frame, priced per the standing rule.** At the census rate
-  ($3.80 for 135,260 reviews, ~$0.03 per thousand) the whole session —
-  ~1–2k marked-window reviews, three long-tail English pools, the gold
-  re-certification run — prices well under a dollar. The Batch API option
-  is priced and declined: 50% of cents does not pay for the
-  job-submit/poll/download path (the recorded n=1,000 reasoning, one scale
-  smaller). The D2d rider is binding: a fresh certification run against
-  gold under the frozen triple accompanies the buy — the census's 0.766
-  certifies only the census's labels, never these.
-- **Containment and the re-cert instrument (ruled 2026-08-03).** The fresh
-  labels land in **their own store** (`labels.sqlite3` inside the fetch
-  run's directory), never the production pool — containment by storage, so
-  the parked `Origin.EVAL` trigger's condition (non-census labels in the
-  production pool) never arises, and the census driver runs unchanged
-  (`--corpus` at the fetch run, `--expect-supply` 13,887 — the fresh usable
-  count through the corpus reader). The re-certification is a registered
-  D2d cell, `full-n10-gold-recert-freshbuy`: the recomposed scope
-  re-dispatched under its own identity tag (a same-tag re-run would resume,
-  not re-buy) with a **fresh fillers seed** — the first attempt reused
-  July's seed for exact-composition comparability and the content-keyed
-  cache replayed the July responses at $0 (identical composition IS
-  identical request content; the replayed envelopes were deleted). The
-  instrument stays comparable the honest way: same scope, fresh draw, with
-  the composition acquittal pricing the difference at null. Two runs of one
-  instrument remain a two-point drift series. Scored against gold by the certify
-  shell pointed at the tagged annotator; the number is the fresh buy's
-  buy-time certificate and lands in the M2 report's limitations beside the
-  reference-imperfection bound.
+**The mixing experiment — the floor's measurement, ruled 2026-08-04.** The
+drifted number measures against the census share — the study's exact gates
+re-run with contamination, because the displayed number's promise is
+tolerance-of-truth (measuring drift against the unmixed sample's own
+conclusion was declined: it applies the tolerance to a quantity it was
+never minted for). Base cells reuse the certified population grid with the
+same seeded-draw discipline; blending is offline resampling of stored
+labels, zero LLM spend.
 
-> **Outcome.** The pick probe **PASSED** all three bomb games (2026-08-03,
-> finding 6): every mark exists, every window blanks by default and restores
-> under the flag, sample timestamps all in-window. Combined in-window English
-> pool **6,454** (4,085 / 823 / 1,546) against the mixing appetite of ~1–2k —
-> the buy is not supply-constrained. Wire truth corrected two research claims
-> (The Witcher 3's span is 14 days; Book of Demons' mark is ongoing), and the
-> ongoing mark needs a concrete end date substituted at fetch time.
-
-**The mixing experiment (step 9) — design, ruled 2026-08-04** *(the
-floor-tuning procedure made concrete; the procedure's charter is in the
-study-design section above, and the floor value itself lands at this
-experiment's checkpoint)*.
-
-- **The drifted number measures against the census share — the study's exact
-  gates, re-run with contamination.** The displayed number's promise is
-  tolerance-of-truth, so the floor is the last marked share at which the
-  certified 95%-register promise still holds: same regime-aware tolerance
-  table, same coverage gate, same pass/fail machinery. Measuring drift
-  against the unmixed sample's own conclusion was considered and declined —
-  it isolates the marginal contamination effect, but applies the tolerance
-  to a quantity it was never minted for.
-- **Replacement at fixed n.** A mixed draw keeps the ruled sample size: the
-  certified plan draws the full n, then a seeded random subset of
-  round(s·n) members is swapped for marked-window reviews. Contamination is
-  the same-size sample a report would take with a fraction of it being bomb
-  material; addition would grow the sample and entangle two effects. The
-  share grid densifies at the low end, mirroring the size ladder:
-  0 / 2 / 5 / 10 / 15 / 20 / 30 / 50%.
-- **Three curves, one per bomb game; the floor reads from the worst.** The
-  marks were picked to spread the marked-window population (the canonical
-  tight window / a small ongoing mark / a low-English tight window); pooling
-  would average away exactly that spread, and per-source curves tell the
-  report which bomb flavor bites first.
-- **Base cells reuse the certified population grid** (query anchors × corpus
-  games) with the same seeded-draw discipline as the curves sweep. Blending
-  is offline resampling of stored labels — CPU-only, zero LLM spend; the
-  marked labels come from the fresh-buy run's own store, read through the
-  same corpus reader the re-certification used.
-
-> **Outcome (ruled 2026-08-04): the marked-share floor is 2%.** Off the run
-> of record `m2mix-20260804T120612Z-c31f92fe` (49 games × anchors × the
-> three sources × the 8-share grid, 200 seeded blends per cell, base seed
-> 20260804; verdict and figures regenerable via
+> **Outcome.** Off run of record `m2mix-20260804T120612Z-c31f92fe`
+> (49 games × anchors × the three sources × the 8-share grid, 200 seeded
+> blends per cell; verdict and figures regenerable via
 > ``scripts/analyze_mix_floor.py``): the share-0 baselines restate the
 > certified promise (coverage 0.958–0.959, tolerance 0.982–0.983 — the run
-> agrees with the certification before any contamination), per-source
+> agrees with the certification before any contamination), and per-source
 > floors land at Borderlands 2 **0.02** / Book of Demons **0.02** /
-> The Witcher 3 **0.05**, and the worst source rules. The break is
-> grid-located: the promise holds at 2% and is broken by 5%; resolution
-> inside that interval was deliberately not bought, because no product
-> decision changes with it. Coverage is the binding gate everywhere —
-> headline intervals break their promise (0.93 at 5%, 0.78 at 10%
-> contamination) long before raw share errors grow conspicuous, the
-> silent-lying-error-bars failure mode. Product consequences: Steam's
-> default marked-window blanking, which the production fetch inherits and
-> the probes verified on the wire, is certified **load-bearing** — even a
-> 5% bomb admixture voids the calibrated bars — and marked windows stay
-> display-only episode markers, never folded into displayed numbers. Named
+> The Witcher 3 **0.05**, the worst source ruling. **Coverage is the
+> binding gate everywhere** — headline intervals break their promise
+> (0.93 at 5%, 0.78 at 10% contamination) long before raw share errors
+> grow conspicuous: the silent-lying-error-bars failure mode. Named
 > residual for the report's limitations: an **unmarked** bomb bypasses the
-> blanking and lands in samples as ordinary reviews; this experiment
+> blanking and lands in samples as ordinary reviews — the experiment
 > measures that scenario's damage rate, not its frequency, which is
 > unmeasurable by construction (partially mitigated by the spiky-regime
 > allowance and the timeline markers).
 
-**The closing test (step 10) — design, ruled 2026-08-04** *(the staged
-long-tail evidence's committed final stage made concrete; the charter is in
-the study-design section above — the finished rule validated off-corpus on
-the three fresh long-tail games, fully labeled under the frozen triple)*.
+**The closing test — the size rule validated held-out, ruled 2026-08-04.**
+The held-out games run the certified own-span anchor grid, and the verdict
+reads over all measured cells — the certification's own population
+reading — with the full-corpus anchor as the report's headline unit ("a
+fresh game queried today"); one game's displayed aspects are too thin a
+base for a register claim. Truth is each game's own full-pool fold under
+the frozen triple, read from the fresh-buy run's own store. The size rule
+runs as shipped and **both of its sides are under test**: pools above the
+cutoff sample through the certified seams and read the certified gates per
+cell; take-all pools are recorded with an exactness verification rather
+than skipped — in the convergence sweeps take-all was free flattery, here
+the cutoff side is itself part of the promise being validated.
 
-- **The grid measures; the full anchor headlines.** The held-out games run
-  the certified own-span anchor grid (40/55/70/85/100%), and the verdict
-  reads over all measured cells — the certification's own population
-  reading. The full-corpus anchor is the report's headline unit ("a fresh
-  game queried today" — the honest single case), with the grid behind it
-  supplying the cell population a single anchor cannot: the closing test
-  has no blend randomness and windowed draws are deterministic, so each
-  admitted cell is exactly one draw and the 95% register is only readable
-  across cells. Measuring the full anchor alone was considered and
-  declined — one game's displayed aspects are too thin a base for a
-  register claim.
-- **Truth is each game's own full-pool fold** under the frozen triple, read
-  from the fresh-buy run's own label store, with the census-fold wiring
-  guard applied at the full anchor (exact id-set equality before anything
-  is measured — the sweep's precedent). Vocabulary is each game's own
-  pinned index; the mixing sweep's merged vocabulary was
-  contamination-specific and does not apply.
-- **The size rule runs as shipped, and both of its sides are under test.**
-  Pools above the 2,000 cutoff sample n = 1,000 time-proportional through
-  the certified seams and read the certified gates per cell — only
-  Talisman (6,094) crosses the cutoff, so the sampled-path evidence is
-  its anchors × aspects. Pools at or under the cutoff take all; unlike the
-  sweeps, take-all cells are *recorded with an exactness verification*
-  (sampled shares equal to the fold's, exactly) rather than skipped —
-  in the sweeps take-all was free flattery for convergence curves, here
-  the cutoff side is itself part of the promise being validated.
-  Dragonkin (1,311) and Sword and Fairy Inn 2 (36) sit entirely on the
-  take-all side.
-- **The spiky-regime transfer stays a disclosure, not a claim.** Sword and
-  Fairy Inn 2 is the lone spiky exemplar (peak window share 0.756) at 36
-  usable English reviews of 2,277 total, take-all by construction — nothing
-  sampled exists to validate the spiky allowance off-corpus, and the report
-  says so plainly (alongside the language-reality disclosure its 36-of-2,277
-  embodies). Dragonkin's weekly-served shape (native peak 0.166 vs
-  month-rolled 0.383) exercises the rollup-unit disclosure live. Pass/fail
-  wording for the report drafts at the verdict, once the rates exist.
-
-> **Outcome (ruled 2026-08-04): the closing test passes — the size rule
-> holds held-out.** Off the run of record
-> `m2close-20260804T140340Z-1cc06586` (3 games, 15 cells, 605 rows;
-> verdict and figures regenerable via ``scripts/analyze_closing_test.py``):
-> the two games under the take-all cutoff reproduced their reference
-> exactly (Sword and Fairy Inn 2 and Dragonkin, 360/360 rows at error
-> zero — the cutoff side's promise is exactness, delivered), and Talisman,
-> the one game above it, sampled at n = 1,000 across five admitted
-> anchors, held the certified 95% register on the pooled population
-> reading: **coverage 0.971, tolerance 0.991** over 245 cells, and
-> 0.980 / 0.979 at the full anchor — the report's headline unit. Two
-> disclosures ride the report: the mid band's coverage alone reads 0.902
-> (46/51), driven by one aspect (`learning_curve`) missing at three
-> *nested* anchors — one correlated miss counted three times, the
-> recorded nested-anchors caveat made concrete; and no sampled draw
-> exercised the spiky-regime conditioning off-corpus — the lone spiky
-> exemplar is take-all at 36 usable English reviews of 2,277, itself the
-> language-reality disclosure. The verdict gates on the certified pooled
-> reading (the floor analyzer's own); band slices print as diagnosis,
-> never a gate. The micro-window variant's reopen trigger ("the closing
-> test failing held-out") did **not** fire.
+> **Outcome: the closing test passes — the size rule holds held-out.** Off
+> run of record `m2close-20260804T140340Z-1cc06586` (3 games, 15 cells,
+> 605 rows; verdict and figures regenerable via
+> ``scripts/analyze_closing_test.py``): the two games under the take-all
+> cutoff reproduced their reference exactly (Sword and Fairy Inn 2 and
+> Dragonkin, 360/360 rows at error zero — the cutoff side's promise is
+> exactness, delivered), and Talisman, the one game above it, sampled at
+> n = 1,000 across five admitted anchors, held the certified 95% register
+> on the pooled population reading: **coverage 0.971, tolerance 0.991**
+> over 245 cells, and 0.980 / 0.979 at the full anchor — the report's
+> headline unit. Two disclosures ride the report: the mid band's coverage
+> alone reads 0.902, driven by one aspect missing at three *nested*
+> anchors — one correlated miss counted three times, the recorded
+> nested-anchors caveat made concrete; and no sampled draw exercised the
+> spiky-regime conditioning off-corpus — the lone spiky exemplar is
+> take-all, itself the language-reality disclosure. The verdict gates on
+> the certified pooled reading (the floor analyzer's own); band slices
+> print as diagnosis, never a gate.
 
 **The M2 report.** A standalone frozen PDF (the per-milestone precedent):
 the question · method (census as ground truth, the raced policies, the two
@@ -1448,6 +1252,16 @@ disclosed bias · the long-tail evidence and closing test · the mixing curves
 and the floor · limitations stated plainly (popular-games corpus, English-only,
 buy-time variance, the reference-imperfection bound) · provenance, every figure
 regenerable. No artifact references REPORT_NOTES.md.
+
+> **Outcome (frozen 2026-08-05): "Sampling Without Random Access"** —
+> 22 pages, question-driven structure (the three reader questions as the
+> spine, pollution and ground truth as peer chapters), 32 numbers pinned
+> to live artifacts by the generator's `verify_data()`
+> (`report/generate_m2_report.py`, the single prose source;
+> `report/sampling-without-random-access.pdf`). Panel-read by four
+> simulated readers, revised on their consensus findings (Q1's evidence
+> restored, the front matter rebuilt skim-friendly), then frozen. The
+> milestone's post shipped 2026-08-07, closing the sampling study.
 
 ---
 
@@ -1493,26 +1307,9 @@ as code. The test for any addition stays: does *this product* need it?
   and a cheap VPS is the cheaper option as well as the stronger DevOps signal; a
   provider direction exists and is re-decided at M3 entry, gated on a
   reachability probe from the actual host.
-- **Runtime sampling policy, sizes, and the interval method for displayed
-  shares** — RESOLVED at the M2 curves checkpoint (2026-08-02, rulings in the
-  study-design section above): time-proportional primary · take-all at pool
-  ≤ 2,000, else n = 1,000 · Wilson + per-band constant bias allowance ·
-  band-conditioned tolerance at the 95% register. Refined at the long-tail
-  stage-1 splits (2026-08-03, same section): the allowance and the mid
-  tolerance condition on the spikiness regime (peak window share ≥ 2/3).
-  The stage-2 frame checks passed 2026-08-03 (same section): the long tail
-  is calm territory, the conditioning never extrapolates. The mixing floor
-  landed 2026-08-04 (the mixing-experiment outcome above). The closing test
-  passed held-out 2026-08-04 (the closing-test outcome above) — the study's
-  measurements are complete; what remains is the M2 report itself.
-- **Marked-share floor threshold** — RESOLVED 2026-08-04 (the mixing
-  experiment's outcome, study-design section above): **2%**,
-  worst-source, grid-located (holds at 2%, broken by 5%). Steam's default
-  marked-window blanking is certified load-bearing; the unmarked-bomb
-  residual is a named report limitation.
-- **The human annotation track** — re-timed at the M2 design session
-  (2026-08-02): the fresh v2 holdout folds into M2 (drawn across corpus + the
-  fresh buys; its number bounds the reference's imperfection in the M2 report).
-  Parallel, not gating: the self-relabel consistency subset · the
-  misattribution audit sheet (minted, awaiting the pass) · judge-disagreement
-  adjudication (sheet seeded from the top-disagreement exemplars).
+- **The human annotation track's parallel remainder** — never gating any
+  milestone: the self-relabel consistency subset · judge-disagreement
+  adjudication (sheet seeded from the top-disagreement exemplars; decides
+  whether `updates` 0.611 is production under-detecting or the judge
+  over-finding). The fresh v2 holdout and the misattribution audit both
+  landed 2026-08-04/05 — outcomes in their sections.
