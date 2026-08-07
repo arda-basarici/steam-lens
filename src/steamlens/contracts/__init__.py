@@ -17,6 +17,7 @@ internal navigation aid, not part of the contract.
 
 from steamlens.contracts.aggregate import AspectAggregate, SentimentCounts
 from steamlens.contracts.classification import AspectMention, ReviewClassification
+from steamlens.contracts.compose import EvidenceQuote, GroundedSpan
 from steamlens.contracts.enums import (
     AspectSlot,
     FinishReason,
@@ -28,6 +29,7 @@ from steamlens.contracts.enums import (
     RollupUnit,
     SamplingPolicyKind,
     Sentiment,
+    SpanKind,
     StageKind,
 )
 from steamlens.contracts.evaluation import EvalMetric, EvalRun
@@ -65,6 +67,7 @@ __all__ = [
     "RollupUnit",
     "PathOutcome",
     "SamplingPolicyKind",
+    "SpanKind",
     # provenance
     "Provenance",
     "ClassifierVersions",
@@ -90,6 +93,9 @@ __all__ = [
     # aggregate
     "AspectAggregate",
     "SentimentCounts",
+    # compose
+    "EvidenceQuote",
+    "GroundedSpan",
     # evaluation
     "EvalRun",
     "EvalMetric",

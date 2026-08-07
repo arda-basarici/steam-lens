@@ -87,9 +87,9 @@ class LlmStage(StrEnum):
     to a provider, model, and params — so retargeting a stage (say, moving
     classification to a paid tier at the milestone-exit decision) is a config
     edit, never a code change. ``CLASSIFY`` labels survey reviews, ``JUDGE`` is
-    the eval harness's calibrated judge, ``PHRASE`` writes report prose over the
-    minted numbers, ``INVESTIGATE`` drives the event investigator. The set grows
-    as stages land; a new member plus a route is the whole cost.
+    the eval harness's calibrated judge, ``COMPOSE`` writes report prose over
+    the minted numbers, ``INVESTIGATE`` drives the event investigator. The set
+    grows as stages land; a new member plus a route is the whole cost.
 
     >>> LlmStage.CLASSIFY == "classify"
     True
@@ -97,8 +97,26 @@ class LlmStage(StrEnum):
 
     CLASSIFY = "classify"
     JUDGE = "judge"
-    PHRASE = "phrase"
+    COMPOSE = "compose"
     INVESTIGATE = "investigate"
+
+
+class SpanKind(StrEnum):
+    """What a certified span of composed prose is — a minted numeral or a verbatim quote.
+
+    The numeric-grounding gate emits its pass as a certificate of spans:
+    ``NUMERAL`` marks a numeral that matched the whitelist derived from the
+    job's own outputs, ``QUOTE`` a quotation verified verbatim against the
+    supplied evidence. The kind is what the renderer styles by — the
+    certificate is how the page draws "minted fact" apart from "model voice"
+    without re-scanning the prose.
+
+    >>> SpanKind.NUMERAL == "numeral"
+    True
+    """
+
+    NUMERAL = "numeral"
+    QUOTE = "quote"
 
 
 class FinishReason(StrEnum):
