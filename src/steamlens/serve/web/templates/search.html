@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}steam-lens — search{% endblock %}
+{% block content %}
+<section class="search">
+  <h1>steam-lens</h1>
+  <p class="tagline">Type a game name, get the report.</p>
+  <form class="search-form">
+    <input type="search" name="q" placeholder="game name" disabled>
+    <button type="submit" disabled>Analyze</button>
+  </form>
+  <p class="note">Search lands with the next build chunk — until then a report opens directly at
+    <code>/reports/&lt;app id&gt;</code>.</p>
+</section>
+{% endblock %}

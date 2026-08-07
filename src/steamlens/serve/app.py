@@ -28,7 +28,7 @@ an external job queue, an external event log — with the routes untouched.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -91,18 +91,22 @@ def create_app(
     queue: JobQueue,
     config: ServeConfig,
     latest_report: Callable[[int], Report | None],
+    *,
+    on_shutdown: Sequence[Callable[[], None]] = (),
 ) -> FastAPI:
     """The served app over an already-composed queue — the one HTTP seam.
 
     The caller owns the queue's lifecycle (construction and drain-close live
     with the composition root, not the web framework); the factory only wires
-    routes over it. ``latest_report`` is the persistence layer's instant read
+    routes over it — ``on_shutdown`` is the hook the root hangs the queue's
+    drain-close on, passed through rather than owned here. ``latest_report``
+    is the persistence layer's instant read
     (``ReportLog.latest_report`` behind whatever store lifetime the
     composition root chooses) — injected as a callable so this module keeps
     zero knowledge of SQLite. ``config`` carries the SSE dials so a test can
     tighten the poll tick without touching production defaults.
     """
-    app = FastAPI(title="steam-lens")
+    app = FastAPI(title="steam-lens", on_shutdown=list(on_shutdown))
 
     # The route functions are "unused" to a type checker — the decorators
     # register them with the app; the suppressions state that, nothing more.

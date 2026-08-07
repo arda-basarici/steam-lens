@@ -401,6 +401,7 @@ source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
     { name = "httpx" },
+    { name = "jinja2" },
     { name = "uvicorn" },
 ]
 
@@ -416,6 +417,7 @@ dev = [
 requires-dist = [
     { name = "fastapi", specifier = ">=0.141.1" },
     { name = "httpx", specifier = ">=0.28.1" },
+    { name = "jinja2", specifier = ">=3.1.6" },
     { name = "uvicorn", specifier = ">=0.52.1" },
 ]
 

@@ -1671,6 +1671,25 @@ micro-window variant gets its trigger judged here, at real rendered
 whiskers — calm ±2.5 and spiky ±15 seen with eyes, reopened only if that
 judgment fails.
 
+**Build-time rulings (step 6, 2026-08-08).** The renderer is the one
+swappable module: everything presentational — templates, static assets,
+view-model helpers — lives in ``serve.web``, attached over the JSON app by
+the composition root, so the JSON surface never imports the renderer (a
+dedicated import-scan test pins the wall — the package-grained dependency
+law cannot see an edge inside ``serve``). The renderer consumes only the
+published surfaces an external frontend would: the ``Report`` contract and
+the JSON/SSE routes. A later frontend rewrite therefore replaces this one
+package and rebuilds its escaping tests — the wall is per-rendering-
+technology by design — and touches nothing below. Two disciplines keep the
+claim true: presentation adaptation happens in view-model helpers, never as
+display-shaped fields on the stored contracts or the SSE event vocabulary;
+and hostile-content escaping belongs to whatever renders. The composition
+root (``serve.main``, env-wired: key, db path, explicit ontology-v2 pin,
+uvicorn) pulled forward from the containers step, because the frontend
+chunk is look-at-it development — judging rendered pages needs a running
+server, and the entry was going to exist anyway; the containers step now
+containerizes an entry that already runs.
+
 ### The box
 
 **Docker Compose behind one shared Caddy; SQLite bind-mounted on the host.**

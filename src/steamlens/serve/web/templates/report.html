@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ report.game_name }} — steam-lens{% endblock %}
+{% block content %}
+<article class="report">
+  <header class="report-header">
+    <h1>{{ report.game_name }}</h1>
+    <p class="provenance">{{ provenance }}</p>
+  </header>
+
+  <section class="narrative">
+    {% if report.narrative.prose %}
+      <p class="prose">{{ report.narrative.prose }}</p>
+    {% else %}
+      <p class="withheld">Narrative withheld — this report shows numbers and quotes only.</p>
+    {% endif %}
+  </section>
+
+  <section class="aspects">
+    <h2>Aspects</h2>
+    <p class="placeholder">Share bars with interval whiskers land in a later build chunk.</p>
+  </section>
+
+  <section class="timeline">
+    <h2>Review timeline</h2>
+    <p class="placeholder">The all-language timeline with episode markers lands in a later build chunk.</p>
+  </section>
+
+  <section class="trust-panel">
+    <h2>How this report was made</h2>
+    <dl>
+      <dt>Analyzed</dt>
+      <dd>{{ report.created_at.date() }}</dd>
+      <dt>Sample</dt>
+      <dd>
+        {% if report.take_all %}
+          complete count — every English review ({{ "{:,}".format(report.sample_size) }})
+        {% else %}
+          {{ "{:,}".format(report.sample_size) }} reviews, time-proportional draw
+        {% endif %}
+      </dd>
+      <dt>Run</dt>
+      <dd>{{ report.run.run_id }}</dd>
+      <dt>Versions</dt>
+      <dd>{{ report.versions.model_version }} · prompt {{ report.versions.prompt_version }} ·
+          ontology {{ report.versions.ontology_version }}</dd>
+    </dl>
+  </section>
+</article>
+{% endblock %}
