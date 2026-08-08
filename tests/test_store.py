@@ -1050,3 +1050,28 @@ class TestReportReadBoundary:
             assert conn.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION
         finally:
             conn.close()
+
+
+class TestAdmissionLog:
+    """The submit gate's journal: appended admissions, counted from a day boundary."""
+
+    def test_counts_at_or_after_since_and_survives_reopen(self, tmp_path: Path) -> None:
+        path = tmp_path / "steamlens.sqlite3"
+        with Store(path) as store:
+            store.admissions.record("203.0.113.7", 440, at=_NOON - timedelta(days=1))
+            store.admissions.record("203.0.113.7", 570, at=_NOON)
+            assert store.admissions.count_since(_NOON) == 1
+            assert store.admissions.count_since(_EPOCH) == 2
+        with Store(path) as store:
+            assert store.admissions.count_since(_EPOCH) == 2, "the day survives a restart"
+
+    def test_offset_timestamps_window_chronologically(self, tmp_path: Path) -> None:
+        """Same UTC-normalization discipline as the ledger: a +03:00 admission
+        is windowed by its instant, not its wall-clock text."""
+        plus3 = timezone(timedelta(hours=3))
+        with Store(tmp_path / "steamlens.sqlite3") as store:
+            store.admissions.record(
+                "203.0.113.7", 440, at=datetime(2026, 7, 14, 12, 0, tzinfo=plus3)
+            )
+            assert store.admissions.count_since(datetime(2026, 7, 14, 10, 0, tzinfo=UTC)) == 0
+            assert store.admissions.count_since(datetime(2026, 7, 14, 8, 0, tzinfo=UTC)) == 1

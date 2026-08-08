@@ -59,10 +59,20 @@ class Job:
     the state is ``FAILED``.
     """
 
-    def __init__(self, app_id: int, requested_name: str, created_at: datetime) -> None:
+    def __init__(
+        self,
+        app_id: int,
+        requested_name: str,
+        created_at: datetime,
+        client_ip: str | None = None,
+    ) -> None:
         self.app_id = app_id
         self.requested_name = requested_name
         self.created_at = created_at
+        # Who asked — an opaque fairness tag the queue only ever compares
+        # (the submit gate's one-in-flight-per-visitor read); None for
+        # non-HTTP submitters (tests, a future CLI).
+        self.client_ip = client_ip
         self._lock = threading.Lock()
         self._state = JobState.QUEUED
         self._error: str | None = None
@@ -144,14 +154,18 @@ class JobQueue:
         )
         self._thread.start()
 
-    def submit(self, app_id: int, requested_name: str) -> Job:
+    def submit(
+        self, app_id: int, requested_name: str, *, client_ip: str | None = None
+    ) -> Job:
         """Queue a cold analysis of ``app_id`` — or attach to the live one.
 
         Returns the already-queued-or-running job when one exists for this
         app id (the caller distinguishes by identity or state if it cares);
         otherwise a fresh ``QUEUED`` job, birth-narrated with its queue
-        position. Raises ``RuntimeError`` after ``close`` — a draining queue
-        must refuse work loudly, not accept jobs that will never run.
+        position and tagged with ``client_ip`` for the fairness read. An
+        attach keeps the original job's tag — the first asker owns the
+        in-flight slot. Raises ``RuntimeError`` after ``close`` — a draining
+        queue must refuse work loudly, not accept jobs that will never run.
         """
         with self._wake:
             if self._closed:
@@ -159,7 +173,7 @@ class JobQueue:
             existing = self._live.get(app_id)
             if existing is not None:
                 return existing
-            job = Job(app_id, requested_name, self._now())
+            job = Job(app_id, requested_name, self._now(), client_ip)
             self._live[app_id] = job
             self._pending.append(job)
             ahead = len(self._pending) - 1 + (1 if self._active is not None else 0)
@@ -183,6 +197,13 @@ class JobQueue:
         """
         with self._wake:
             return self._live.get(app_id)
+
+    def has_live_from(self, client_ip: str) -> bool:
+        """Whether ``client_ip`` already has a queued-or-running job — the
+        submit gate's one-in-flight-per-visitor read. Scans the live index
+        (a handful of jobs at most, by the daily allowance's construction)."""
+        with self._wake:
+            return any(job.client_ip == client_ip for job in self._live.values())
 
     def position(self, job: Job) -> int:
         """How many jobs run before ``job``: 0 means running (or already finished)."""

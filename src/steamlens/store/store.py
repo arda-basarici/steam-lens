@@ -7,7 +7,8 @@ constructor slots (the client never learns SQLite exists), ``reviews`` holds
 the corpus snapshot and the driver's selection query, ``labels`` is the label
 pool, ``eval_runs`` is the certification journal, ``sample_members`` is the
 serving runs' stored sample manifests, ``reports`` the published analyses
-with their aggregate snapshots. One owner, dumb tenants:
+with their aggregate snapshots, ``admissions`` the submit gate's daily
+admission journal. One owner, dumb tenants:
 pragmas and migrations run once per open instead of once per surface, and
 "which connection has WAL set" stays a single fact.
 
@@ -29,6 +30,7 @@ import sqlite3
 from pathlib import Path
 from types import TracebackType
 
+from steamlens.store.admissions import AdmissionLog
 from steamlens.store.archive import SqliteResponseArchive
 from steamlens.store.eval_runs import EvalRunLog
 from steamlens.store.labels import LabelPool
@@ -87,6 +89,7 @@ class Store:
         self.eval_runs = EvalRunLog(self._conn)
         self.sample_members = SampleManifest(self._conn)
         self.reports = ReportLog(self._conn)
+        self.admissions = AdmissionLog(self._conn)
 
     def close(self) -> None:
         """Close the underlying connection; the instance is unusable afterwards."""

@@ -3,8 +3,9 @@
 Everything the modules deliberately refuse to own lands here: the credential
 read, the one ``SteamTransport`` (one politeness budget per process, by
 construction), the DeepSeek provider entry, the runner over the store path,
-the job queue, the per-read report lookup, and the page renderer attached
-over the JSON surface. Run as ``python -m steamlens.serve.main``; every dial
+the job queue, the submit gate over per-call store reads (with its unlock
+token), the per-read report lookup, and the page renderer attached over the
+JSON surface. Run as ``python -m steamlens.serve.main``; every dial
 is an environment variable so the containers step overrides without a code
 touch. Pulled forward from the containers step (2026-08-08) because the
 frontend chunk is look-at-it development — judging rendered pages needs a
@@ -19,6 +20,8 @@ cross-thread connection question at a cost the read cannot feel.
 from __future__ import annotations
 
 import os
+from dataclasses import replace
+from datetime import datetime
 from pathlib import Path
 
 import uvicorn
@@ -29,7 +32,7 @@ from steamlens.dispatch import TeeSink
 from steamlens.dispatch.census_arm import KEY_ENV
 from steamlens.llm_client import openai_compat_entry
 from steamlens.llm_client.openai_compat import DEEPSEEK_BASE_URL
-from steamlens.serve import AnalysisRunner, Job, JobQueue, ServeConfig, create_app
+from steamlens.serve import AnalysisRunner, Job, JobQueue, ServeConfig, SubmitGate, create_app
 from steamlens.serve.web import ReportPageData, attach_web
 from steamlens.steam_client import SteamClient, SteamClientConfig, SteamTransport
 from steamlens.store import Store
@@ -63,7 +66,13 @@ def build_app() -> FastAPI:
     # stdout half.
     sink = TeeSink(log_path.open("a", buffering=1, encoding="utf-8"))
 
+    # The dataclass defaults are the single source of the numbers; the env
+    # only ever overrides, so an unset variable can never drift from them.
     config = ServeConfig()
+    if (raw_limit := os.environ.get("STEAMLENS_DAILY_JOB_LIMIT")) is not None:
+        config = replace(config, daily_job_limit=int(raw_limit))
+    if (raw_backstop := os.environ.get("STEAMLENS_DAILY_SPEND_BACKSTOP_USD")) is not None:
+        config = replace(config, daily_spend_backstop_usd=float(raw_backstop))
     steam = SteamClient(SteamTransport(SteamClientConfig(), sink))
     entry = openai_compat_entry(key, base_url=DEEPSEEK_BASE_URL)
     runner = AnalysisRunner(config, steam, entry, db_path, ontology_path)
@@ -97,9 +106,37 @@ def build_app() -> FastAPI:
                 ),
             )
 
+    def admitted_since(since: datetime) -> int:
+        with Store(db_path) as store:
+            return store.admissions.count_since(since)
+
+    def spent_since(since: datetime) -> float:
+        with Store(db_path) as store:
+            return store.spend_ledger.cost_since(since)
+
+    def record_admission(ip: str, app_id: int, at: datetime) -> None:
+        with Store(db_path) as store:
+            store.admissions.record(ip, app_id, at=at)
+
     queue = JobQueue(run_job)
+    gate = SubmitGate(
+        daily_job_limit=config.daily_job_limit,
+        daily_spend_backstop_usd=config.daily_spend_backstop_usd,
+        has_live_from=queue.has_live_from,
+        admitted_since=admitted_since,
+        spent_since=spent_since,
+        record_admission=record_admission,
+        # `or None`: an empty value in .env must mean "no exemption door",
+        # never a token an empty cookie could match.
+        admin_token=os.environ.get("STEAMLENS_ADMIN_TOKEN") or None,
+    )
     app = create_app(
-        queue, config, latest_report, steam.search_games, on_shutdown=[queue.close]
+        queue,
+        config,
+        latest_report,
+        steam.search_games,
+        gate=gate,
+        on_shutdown=[queue.close],
     )
     attach_web(app, load_report_page, lambda app_id: queue.live(app_id) is not None)
     return app

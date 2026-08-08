@@ -248,7 +248,26 @@ _STEP_4: tuple[str, ...] = (
     """,
 )
 
-MIGRATION_STEPS: tuple[tuple[str, ...], ...] = (_STEP_1, _STEP_2, _STEP_3, _STEP_4)
+# Step 5 — the submit gate's admission journal (the spend-breaker design,
+# 2026-08-08). One row per *gated* fresh-job admission: the daily count that
+# must survive a restart (an in-memory tally would refill the day on every
+# deploy). Deliberately not a general access log — attaches mint no row (no
+# new spend), and exempt admissions are the operator's own, outside the day's
+# public allowance. Timestamps are UTC-normalized ISO text like the ledger's,
+# so the daily-count read is an index-range scan.
+_STEP_5: tuple[str, ...] = (
+    """
+    CREATE TABLE admissions (
+        id         INTEGER PRIMARY KEY,
+        created_at TEXT    NOT NULL,
+        client_ip  TEXT    NOT NULL,
+        app_id     INTEGER NOT NULL
+    )
+    """,
+    "CREATE INDEX idx_admissions_created ON admissions (created_at)",
+)
+
+MIGRATION_STEPS: tuple[tuple[str, ...], ...] = (_STEP_1, _STEP_2, _STEP_3, _STEP_4, _STEP_5)
 
 SCHEMA_VERSION = len(MIGRATION_STEPS)
 

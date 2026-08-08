@@ -40,6 +40,12 @@ from steamlens.contracts import (
     StageKind,
 )
 from steamlens.serve import Job, JobQueue, JobState, ServeConfig, create_app
+from steamlens.serve.gate import (
+    DAY_USED_MESSAGE,
+    IN_FLIGHT_MESSAGE,
+    UNLOCK_COOKIE,
+    SubmitGate,
+)
 from steamlens.steam_client import SteamUnavailableError
 
 _CONFIG = ServeConfig(sse_tick_s=0.001, sse_heartbeat_s=60.0)
@@ -256,6 +262,163 @@ def test_events_is_read_only_and_404s_without_a_live_job() -> None:
             finished = await client.get("/analyses/440/events")
             assert finished.status_code == 404
             assert runner.order == [440], "the GETs must not have queued anything"
+
+    asyncio.run(asyncio.wait_for(drive(), timeout=10.0))
+    queue.close()
+
+
+def _recording_gate(
+    queue: JobQueue,
+    *,
+    limit: int = 5,
+    backstop: float = 1.0,
+    settled: float = 0.0,
+    admin_token: str | None = None,
+) -> tuple[SubmitGate, list[tuple[str, int, datetime]]]:
+    """A gate over the real queue's in-flight read and an in-memory journal —
+    the store never appears; the returned list is the admission record."""
+    admitted: list[tuple[str, int, datetime]] = []
+    gate = SubmitGate(
+        daily_job_limit=limit,
+        daily_spend_backstop_usd=backstop,
+        has_live_from=queue.has_live_from,
+        admitted_since=lambda since: sum(1 for entry in admitted if entry[2] >= since),
+        spent_since=lambda _since: settled,
+        record_admission=lambda ip, app_id, at: admitted.append((ip, app_id, at)),
+        admin_token=admin_token,
+    )
+    return gate, admitted
+
+
+def test_gate_holds_one_slot_per_visitor_and_lets_attach_and_others_pass() -> None:
+    """While a visitor's job runs: a second game from the same visitor is
+    refused with the one-at-a-time message; re-asking the *same* game attaches
+    ungated (no new admission); a different visitor (distinct forwarded IP)
+    queues freely. The admission journal grows only for minted jobs."""
+    runner = GatedNarrator()
+    queue = JobQueue(runner)
+    gate, admitted = _recording_gate(queue)
+    app = create_app(queue, _CONFIG, lambda _: None, _no_search, gate=gate)
+
+    async def drive() -> None:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            first = await client.post(
+                "/analyses", json={"app_id": 440, "requested_name": "Team Fortress 2"}
+            )
+            assert first.status_code == 202
+            assert len(admitted) == 1
+            assert admitted[0][1] == 440
+
+            second_game = await client.post(
+                "/analyses", json={"app_id": 570, "requested_name": "Dota 2"}
+            )
+            assert second_game.status_code == 429
+            assert second_game.json()["detail"] == IN_FLIGHT_MESSAGE
+
+            attach = await client.post(
+                "/analyses", json={"app_id": 440, "requested_name": "Team Fortress 2"}
+            )
+            assert attach.status_code == 202
+            assert len(admitted) == 1, "an attach must not consume the day's allowance"
+
+            other_visitor = await client.post(
+                "/analyses",
+                json={"app_id": 570, "requested_name": "Dota 2"},
+                headers={"X-Forwarded-For": "203.0.113.9"},
+            )
+            assert other_visitor.status_code == 202
+            assert admitted[1][:2] == ("203.0.113.9", 570)
+
+    asyncio.run(asyncio.wait_for(drive(), timeout=10.0))
+    runner.release.set()
+    queue.close()
+
+
+def test_gate_exhausted_day_refuses_with_the_honest_message() -> None:
+    """The day's allowance consumed → 429 with the day-used text; the queue
+    is never touched for the refused game."""
+    runner = GatedNarrator()
+    runner.release.set()
+    queue = JobQueue(runner)
+    gate, admitted = _recording_gate(queue, limit=1)
+    app = create_app(queue, _CONFIG, lambda _: None, _no_search, gate=gate)
+
+    async def drive() -> None:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            first = await client.post(
+                "/analyses", json={"app_id": 440, "requested_name": "Team Fortress 2"}
+            )
+            assert first.status_code == 202
+            await _until(lambda: queue.live(440) is None, "the first job to finish")
+
+            refused = await client.post(
+                "/analyses", json={"app_id": 570, "requested_name": "Dota 2"}
+            )
+            assert refused.status_code == 429
+            assert refused.json()["detail"] == DAY_USED_MESSAGE
+            assert queue.live(570) is None, "a refused game must never reach the queue"
+            assert len(admitted) == 1
+
+    asyncio.run(asyncio.wait_for(drive(), timeout=10.0))
+    queue.close()
+
+
+def test_gate_settled_spend_backstop_closes_the_day() -> None:
+    """Settled spend at the backstop refuses even a first admission — the
+    runaway-day guard is independent of the count."""
+    runner = GatedNarrator()
+    runner.release.set()
+    queue = JobQueue(runner)
+    gate, admitted = _recording_gate(queue, settled=1.0)
+    app = create_app(queue, _CONFIG, lambda _: None, _no_search, gate=gate)
+
+    async def drive() -> None:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            refused = await client.post(
+                "/analyses", json={"app_id": 440, "requested_name": "Team Fortress 2"}
+            )
+            assert refused.status_code == 429
+            assert refused.json()["detail"] == DAY_USED_MESSAGE
+            assert admitted == []
+
+    asyncio.run(asyncio.wait_for(drive(), timeout=10.0))
+    queue.close()
+
+
+def test_unlock_mints_the_cookie_and_exempts_from_every_abuse_guard() -> None:
+    """The unlock round trip: a wrong token 403s; the right one redirects home
+    and sets the cookie; the cookie then passes a day with zero allowance —
+    and the operator's jobs never touch the public admission journal."""
+    runner = GatedNarrator()
+    runner.release.set()
+    queue = JobQueue(runner)
+    gate, admitted = _recording_gate(queue, limit=0, admin_token="sesame")
+    app = create_app(queue, _CONFIG, lambda _: None, _no_search, gate=gate)
+
+    async def drive() -> None:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            locked = await client.post(
+                "/analyses", json={"app_id": 440, "requested_name": "Team Fortress 2"}
+            )
+            assert locked.status_code == 429, "a zero-allowance day refuses the public"
+
+            wrong = await client.get("/unlock/open-sesame")
+            assert wrong.status_code == 403
+
+            unlock = await client.get("/unlock/sesame")
+            assert unlock.status_code == 303
+            assert unlock.headers["location"] == "/"
+            assert client.cookies.get(UNLOCK_COOKIE) == "sesame"
+
+            exempt = await client.post(
+                "/analyses", json={"app_id": 440, "requested_name": "Team Fortress 2"}
+            )
+            assert exempt.status_code == 202
+            assert admitted == [], "exempt admissions stay off the public journal"
 
     asyncio.run(asyncio.wait_for(drive(), timeout=10.0))
     queue.close()

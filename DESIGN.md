@@ -1761,6 +1761,61 @@ makes it real: verified by restore at setup, not by upload — a backup never
 restored is a hope. Litestream stays parked; its trigger remains the chat
 milestone's write pattern.
 
+### The spend breaker
+
+**The public submit gate counts jobs, not dollars — a daily fresh-analysis cap
+(default 5), checked at admission.** A dollar ledger settles late: a burst of
+submissions all pass a spend check before any call lands a cost row, and
+closing that hole needs worst-case reservation math. A count increments at
+the moment of admission — there is nothing deferred to reserve against — and
+it is honest to the visitor in a way a budget figure is not: "today's fresh
+analyses are used, published reports stay open." Dollars still guard the
+day, demoted to backstop: a second refusal condition on the ledger's settled
+spend for the day (default $1, one `cost_since` read) exists to stop a
+runaway *day* — jobs running hot toward their per-job cap — not bursts. The
+honest ceiling under both guards stays cap × per-job budget for a burst that
+admits before anything settles. Both numbers are env dials
+(`STEAMLENS_DAILY_JOB_LIMIT`, `STEAMLENS_DAILY_SPEND_BACKSTOP_USD`) — spend
+comfort is an ops setting, not a code commit.
+
+**One in-flight job per visitor IP, from queue memory — no storage.** The
+queue already knows what is pending and live; the fairness check is a lookup
+against state that restarts honestly (a restarted queue is empty, and its
+jobs are gone). The residual it accepts, deliberately: a patient IP can
+drain the day's slots sequentially — cost-capped by the daily count, a
+fairness issue rather than a money issue, not worth per-IP daily
+bookkeeping in a portfolio demo. The client IP is read as the *last* entry
+of `X-Forwarded-For` — the one entry the box's own Caddy appended, which a
+visitor's forged header cannot displace (their fabrications sit to its
+left); absent the header (dev, no proxy), the socket peer. Uvicorn's proxy
+trust stays unwidened.
+
+**Check order: attach → exempt → in-flight → count → backstop.** A request
+for an already-queued app attaches to the existing job before any guard
+runs — no new spend, no new job, so re-clicks and shared curiosity stay
+free. Exemption is an unlock cookie, not an IP allowlist: a secret in the
+box env (`STEAMLENS_ADMIN_TOKEN`), a one-time visit to `/unlock/<token>`
+setting a long-lived HttpOnly cookie — survives home-IP rotation, works
+from any device, revoked by rotating the token. Exempt requests skip the
+three abuse guards but keep the per-job $1 budget: that one is a
+correctness guard, not an abuse guard.
+
+**Admissions persist; the day is UTC midnight, computed in the serve
+layer.** A new `admissions` table (timestamp, ip, app id — the schema's
+append-only migration discipline) makes the daily count survive restarts
+and doubles as the ops dashboard's "did anything happen today" read. The
+parked `daily_reset_utc_hour` knob was inspected for reuse and stays
+parked: it is an `llm_client` concept, the *provider's* free-quota rollover
+on the rpd path — dead on the serving path, and the serving provider is
+pay-per-token with no daily window to align with. The spend day is purely
+this app's accounting day; plain UTC midnight, owned where it is used.
+
+**Refusals render where the visitor already is.** The submit is JS-driven,
+so the refusal is a 429 with a JSON detail the search box displays inline —
+two distinct honest texts (day's analyses used / one analysis at a time),
+each naming the UTC-midnight reset — rather than a page navigation. Reports
+stay browsable untouched; the breaker guards only the submit route.
+
 ---
 
 ## Standing rules

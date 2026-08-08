@@ -33,11 +33,12 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import FastAPI, HTTPException, Query, Response
-from fastapi.responses import StreamingResponse
+from fastapi import FastAPI, HTTPException, Query, Request, Response
+from fastapi.responses import RedirectResponse, StreamingResponse
 
 from steamlens.contracts import GameSearchHit, Report
 from steamlens.serve.config import ServeConfig
+from steamlens.serve.gate import UNLOCK_COOKIE, SubmitGate, client_ip
 from steamlens.serve.jobs import JobQueue, JobState
 from steamlens.serve.sse import stream_job
 from steamlens.steam_client import SteamClientError
@@ -95,6 +96,7 @@ def create_app(
     latest_report: Callable[[int], Report | None],
     search_games: Callable[[str], tuple[GameSearchHit, ...]],
     *,
+    gate: SubmitGate | None = None,
     on_shutdown: Sequence[Callable[[], None]] = (),
 ) -> FastAPI:
     """The served app over an already-composed queue — the one HTTP seam.
@@ -110,7 +112,10 @@ def create_app(
     search behind the same discipline (the route knows nothing of pacing or
     the transport — a failure there surfaces as an honest 502). ``config``
     carries the SSE dials so a test can tighten the poll tick without
-    touching production defaults.
+    touching production defaults. ``gate`` is the submit gate (the spend
+    breaker) — ``None`` composes an ungated app (tests, private dev);
+    production always wires one, and with it the ``/unlock/{token}`` route
+    that mints the operator's exemption cookie.
     """
     app = FastAPI(title="steam-lens", on_shutdown=list(on_shutdown))
 
@@ -135,9 +140,15 @@ def create_app(
     # register them with the app; the suppressions state that, nothing more.
     @app.post("/analyses", status_code=202)
     def submit_analysis(  # pyright: ignore[reportUnusedFunction]
-        request: AnalysisRequest, response: Response
+        request: AnalysisRequest, http_request: Request, response: Response
     ) -> ReportReady | AnalysisAccepted:
-        """Answer from the published report, or queue/attach a cold analysis."""
+        """Answer from the published report, or queue/attach a cold analysis.
+
+        The gate runs only for a genuinely *fresh* job — cached answers and
+        attaches to a live job spend nothing, so they pass ungated (the
+        design's check order). A refusal is a 429 whose detail is the honest
+        visitor-facing message the search box displays verbatim.
+        """
         cached = latest_report(request.app_id)
         if cached is not None:
             response.status_code = 200
@@ -148,7 +159,19 @@ def create_app(
                 sample_size=cached.sample_size,
                 run_id=cached.run.run_id,
             )
-        job = queue.submit(request.app_id, request.requested_name)
+        ip: str | None = None
+        if gate is not None and queue.live(request.app_id) is None:
+            peer = http_request.client.host if http_request.client else ""
+            ip = client_ip(http_request.headers.get("x-forwarded-for"), peer)
+            if not gate.is_exempt(http_request.cookies.get(UNLOCK_COOKIE)):
+                message = gate.refusal(ip)
+                if message is not None:
+                    raise HTTPException(status_code=429, detail=message)
+                # Journaled here rather than after submit: if a same-app race
+                # turns this submit into an attach, the one extra row errs on
+                # the conservative side of the day's allowance.
+                gate.admit(ip, request.app_id)
+        job = queue.submit(request.app_id, request.requested_name, client_ip=ip)
         return AnalysisAccepted(
             app_id=job.app_id,
             requested_name=job.requested_name,
@@ -171,5 +194,30 @@ def create_app(
             media_type="text/event-stream",
             headers={"Cache-Control": "no-cache"},
         )
+
+    if gate is not None:
+        wired_gate = gate
+
+        @app.get("/unlock/{token}")
+        def unlock(token: str) -> RedirectResponse:  # pyright: ignore[reportUnusedFunction]
+            """Mint the operator's exemption cookie and land on the front door.
+
+            One visit per device; the cookie then rides every submit. The
+            token in a URL is an accepted trade (it can land in proxy logs)
+            for working from any device with zero client setup — rotating
+            ``STEAMLENS_ADMIN_TOKEN`` in the box env revokes every cookie at
+            once, because the cookie's *value* is what gets re-compared.
+            """
+            if not wired_gate.unlock_ok(token):
+                raise HTTPException(status_code=403, detail="invalid unlock token")
+            landing = RedirectResponse("/", status_code=303)
+            landing.set_cookie(
+                UNLOCK_COOKIE,
+                token,
+                max_age=365 * 24 * 3600,
+                httponly=True,
+                samesite="lax",
+            )
+            return landing
 
     return app

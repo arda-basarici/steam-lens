@@ -68,7 +68,19 @@ async function submitPick(hit) {
     return;
   }
   if (!response.ok) {
-    setStatus("request failed — try again in a moment");
+    // 429 carries the submit gate's honest visitor-facing message (daily
+    // allowance used / one analysis at a time) — show it verbatim.
+    if (response.status === 429) {
+      let detail = null;
+      try {
+        detail = (await response.json()).detail;
+      } catch {
+        // a non-JSON 429 (a proxy's own) falls through to the generic text
+      }
+      setStatus(detail || "analyses are limited right now — try again later");
+    } else {
+      setStatus("request failed — try again in a moment");
+    }
     return;
   }
   // 200 = a published report already answers; 202 = a job queued — either
