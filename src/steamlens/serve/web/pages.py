@@ -29,13 +29,21 @@ _TEMPLATES_DIR: Final = Path(__file__).parent / "templates"
 _STATIC_DIR: Final = Path(__file__).parent / "static"
 
 
-def attach_web(app: FastAPI, load_report_page: Callable[[int], ReportPageData | None]) -> None:
+def attach_web(
+    app: FastAPI,
+    load_report_page: Callable[[int], ReportPageData | None],
+    job_live: Callable[[int], bool],
+) -> None:
     """Mount the pages and static assets onto ``app`` — the composition root's call.
 
     The attach direction keeps the rendering boundary: the JSON surface never
     imports this module; the root composes both. ``load_report_page`` is the
     persistence layer's render bundle behind whatever store lifetime the root
-    chooses — the report row plus its aggregate snapshot and evidence pool.
+    chooses — the report row plus its aggregate snapshot and evidence pool —
+    and ``job_live`` is the queue's read-only is-there-a-live-job answer,
+    injected as a bare callable so the renderer never learns the queue's
+    shape (during a cold job the page IS the narration, and this one bit is
+    all the server-side branch needs; everything else arrives over SSE).
     """
     templates = Jinja2Templates(directory=_TEMPLATES_DIR)
     router = APIRouter()
@@ -49,14 +57,23 @@ def attach_web(app: FastAPI, load_report_page: Callable[[int], ReportPageData | 
 
     @router.get("/reports/{app_id}", response_class=Response)
     def report_page(request: Request, app_id: int) -> Response:  # pyright: ignore[reportUnusedFunction]
-        """The newest published report for ``app_id``, or an honest 404 page."""
+        """The report if published, the live narration if a job runs, else an honest 404.
+
+        Publication wins over a live job by order here — today the POST never
+        queues a job for an already-reported game, so the branch order is
+        belt-and-suspenders, not policy.
+        """
         page = load_report_page(app_id)
-        if page is None:
+        if page is not None:
             return templates.TemplateResponse(
-                request, "report_missing.html", {"app_id": app_id}, status_code=404
+                request, "report.html", {"view": build_report_view(page)}
+            )
+        if job_live(app_id):
+            return templates.TemplateResponse(
+                request, "report_live.html", {"app_id": app_id}
             )
         return templates.TemplateResponse(
-            request, "report.html", {"view": build_report_view(page)}
+            request, "report_missing.html", {"app_id": app_id}, status_code=404
         )
 
     app.include_router(router)

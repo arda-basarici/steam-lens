@@ -329,9 +329,9 @@ def _get(app: FastAPI, path: str) -> Response:
     return asyncio.run(asyncio.wait_for(drive(), timeout=10.0))
 
 
-def _page_app(page: ReportPageData | None) -> FastAPI:
+def _page_app(page: ReportPageData | None, *, live: bool = False) -> FastAPI:
     app = FastAPI()
-    attach_web(app, lambda _: page)
+    attach_web(app, lambda _: page, lambda _: live)
     return app
 
 
@@ -371,12 +371,26 @@ def test_report_page_renders_every_section() -> None:
 
 
 def test_unanalyzed_game_gets_an_honest_404_page() -> None:
-    """No published report is a 404 with a human answer — the page names the
-    app and says what would create a report, instead of a bare JSON error."""
+    """No published report and no live job is a 404 with a human answer — the
+    page names the app and points at search, instead of a bare JSON error."""
     response = _get(_page_app(None), "/reports/999")
     assert response.status_code == 404
     assert "Not analyzed yet" in response.text
     assert "999" in response.text
+
+
+def test_live_job_renders_the_narration_page() -> None:
+    """During a cold job the page IS the narration: a live job answers 200
+    with the stage surface and the EventSource consumer wired to this app's
+    stream; a published report still wins over the live branch."""
+    live = _get(_page_app(None, live=True), "/reports/570")
+    assert live.status_code == 200
+    assert 'data-app-id="570"' in live.text
+    assert '<script src="/static/report_live.js">' in live.text
+
+    published = _get(_page_app(_page(), live=True), "/reports/440")
+    assert published.status_code == 200
+    assert "How this report was made" in published.text
 
 
 def test_search_page_serves_at_the_root() -> None:

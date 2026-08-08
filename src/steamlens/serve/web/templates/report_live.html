@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}analyzing — steam-lens{% endblock %}
+{% block content %}
+<section class="live" data-app-id="{{ app_id }}">
+  <h1 id="live-title">Analysis in progress</h1>
+  <p class="provenance">app {{ app_id }} — the page follows the job live and becomes the
+    report when it publishes</p>
+  <ol class="stages" id="live-stages"></ol>
+  <p class="status" id="live-status" hidden></p>
+  <details class="live-log">
+    <summary>full narration log</summary>
+    <ul id="live-log"></ul>
+  </details>
+</section>
+<script src="/static/report_live.js"></script>
+{% endblock %}

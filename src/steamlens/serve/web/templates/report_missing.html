@@ -3,8 +3,8 @@
 {% block content %}
 <section class="missing">
   <h1>Not analyzed yet</h1>
-  <p>App {{ app_id }} has no published report. Submitting an analysis from this page lands with
-    the search build chunk; until then a job queues via <code>POST /analyses</code>.</p>
-  <p><a href="/">Back to search</a></p>
+  <p>App {{ app_id }} has no published report and no analysis running.
+    <a href="/">Search for the game</a> to queue one — the page turns into the live
+    narration while it runs.</p>
 </section>
 {% endblock %}

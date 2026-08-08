@@ -97,7 +97,7 @@ def build_app() -> FastAPI:
     app = create_app(
         queue, config, latest_report, steam.search_games, on_shutdown=[queue.close]
     )
-    attach_web(app, load_report_page)
+    attach_web(app, load_report_page, lambda app_id: queue.live(app_id) is not None)
     return app
 
 

@@ -278,6 +278,64 @@ main {
   margin: 0;
 }
 
+/* --- live narration page --------------------------------------------------- */
+
+.stages {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.stage-row {
+  display: grid;
+  grid-template-columns: 13rem 1fr;
+  gap: 0.75rem;
+  align-items: baseline;
+}
+
+.stage-row::before {
+  content: "";
+}
+
+.stage-name::before {
+  display: inline-block;
+  width: 1.2rem;
+  color: var(--text-muted);
+}
+
+.stage-pending .stage-name { color: var(--text-muted); }
+.stage-pending .stage-name::before { content: "○"; }
+
+.stage-active .stage-name { font-weight: 600; }
+.stage-active .stage-name::before { content: "●"; color: var(--series-1); }
+
+.stage-done .stage-name::before { content: "✓"; color: var(--text-secondary); }
+
+.stage-warn .stage-name::before { content: "!"; font-weight: 700; }
+
+.stage-message {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.live-log {
+  margin-top: 1.5rem;
+}
+
+.live-log summary {
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.live-log ul {
+  list-style: none;
+  padding: 0.5rem 0 0;
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
 /* --- search page ---------------------------------------------------------- */
 
 .status {
