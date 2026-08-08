@@ -1,8 +1,8 @@
 // The search flow: resolve a typed name to pickable games (GET /search),
 // then submit the pick as an analysis request (POST /analyses) and open its
 // report page. All text lands via textContent — result names are hostile
-// input under the same assumption the templates hold, so no innerHTML,
-// anywhere, ever.
+// input under the same assumption the templates hold; string-to-DOM APIs are
+// banned outright (a CI test scans this file for them).
 
 const form = document.getElementById("search-form");
 const input = document.getElementById("search-input");
