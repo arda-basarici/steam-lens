@@ -24,13 +24,13 @@ from pathlib import Path
 import uvicorn
 from fastapi import FastAPI
 
-from steamlens.contracts import Report
+from steamlens.contracts import EvidenceQuote, Report
 from steamlens.dispatch import TeeSink
 from steamlens.dispatch.census_arm import KEY_ENV
 from steamlens.llm_client import openai_compat_entry
 from steamlens.llm_client.openai_compat import DEEPSEEK_BASE_URL
 from steamlens.serve import AnalysisRunner, Job, JobQueue, ServeConfig, create_app
-from steamlens.serve.web import attach_web
+from steamlens.serve.web import ReportPageData, attach_web
 from steamlens.steam_client import SteamClient, SteamClientConfig, SteamTransport
 from steamlens.store import Store
 
@@ -75,11 +75,29 @@ def build_app() -> FastAPI:
         with Store(db_path) as store:
             return store.reports.latest_report(app_id)
 
+    def load_report_page(app_id: int) -> ReportPageData | None:
+        with Store(db_path) as store:
+            report = store.reports.latest_report(app_id)
+            if report is None:
+                return None
+            return ReportPageData(
+                report=report,
+                aggregates=store.reports.get_snapshot(report.run.run_id),
+                evidence=tuple(
+                    EvidenceQuote(
+                        review_id=review_id, aspect=aspect, sentiment=sentiment, text=text
+                    )
+                    for review_id, aspect, sentiment, text in (
+                        store.labels.iter_member_evidence(report.run.run_id, report.versions)
+                    )
+                ),
+            )
+
     queue = JobQueue(run_job)
     app = create_app(
         queue, config, latest_report, steam.search_games, on_shutdown=[queue.close]
     )
-    attach_web(app, latest_report)
+    attach_web(app, load_report_page)
     return app
 
 

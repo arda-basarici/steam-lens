@@ -2,11 +2,11 @@
 
 Two pages are the whole product surface (the design's frontend ruling — no
 SPA, no bundler): a search page and the report page in the ruled top-to-bottom
-order. This skeleton chunk renders identity, provenance, and the narrative;
-the aspect bars, timeline, and full trust panel land in their own chunks
-against real rendered data. Presentation adaptation happens here in view-model
-helpers — never by teaching the stored ``Report`` contract display shapes,
-which is the discipline that keeps a future frontend swap rendering-only.
+order — header and provenance, the narrative with its certificate rendered
+visibly, aspect share bars with calibrated whiskers, the candidate stratum,
+the timeline with its marker layers, and the trust panel. The routes stay one
+abstraction level up: load the bundle through the injected seam, shape it
+with ``view``'s pure builders, hand the view to the template.
 
 Review-derived text is hostile input by assumption (the canary set is the
 instrument), so templates rely on Jinja's autoescaping and never mark content
@@ -23,33 +23,19 @@ from fastapi import APIRouter, FastAPI, Request, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from steamlens.contracts import Report
+from steamlens.serve.web.view import ReportPageData, build_report_view
 
 _TEMPLATES_DIR: Final = Path(__file__).parent / "templates"
 _STATIC_DIR: Final = Path(__file__).parent / "static"
 
 
-def provenance_line(report: Report) -> str:
-    """The header one-liner: the date worn openly, and what the numbers stand on.
-
-    A cached report serves as-is with its analysis date displayed — the
-    staleness ruling made visible. The sample clause states the two-track
-    denominators honestly: a take-all is a complete count, a sampled run names
-    its n.
-    """
-    date = report.created_at.date().isoformat()
-    if report.take_all:
-        return f"analyzed {date} · complete count of {report.sample_size:,} English reviews"
-    return f"analyzed {date} · sample of {report.sample_size:,} English reviews"
-
-
-def attach_web(app: FastAPI, latest_report: Callable[[int], Report | None]) -> None:
+def attach_web(app: FastAPI, load_report_page: Callable[[int], ReportPageData | None]) -> None:
     """Mount the pages and static assets onto ``app`` — the composition root's call.
 
     The attach direction keeps the rendering boundary: the JSON surface never
-    imports this module; the root composes both over the same injected
-    ``latest_report`` read, so the page and the POST bypass can never disagree
-    about which report is current.
+    imports this module; the root composes both. ``load_report_page`` is the
+    persistence layer's render bundle behind whatever store lifetime the root
+    chooses — the report row plus its aggregate snapshot and evidence pool.
     """
     templates = Jinja2Templates(directory=_TEMPLATES_DIR)
     router = APIRouter()
@@ -64,15 +50,13 @@ def attach_web(app: FastAPI, latest_report: Callable[[int], Report | None]) -> N
     @router.get("/reports/{app_id}", response_class=Response)
     def report_page(request: Request, app_id: int) -> Response:  # pyright: ignore[reportUnusedFunction]
         """The newest published report for ``app_id``, or an honest 404 page."""
-        report = latest_report(app_id)
-        if report is None:
+        page = load_report_page(app_id)
+        if page is None:
             return templates.TemplateResponse(
                 request, "report_missing.html", {"app_id": app_id}, status_code=404
             )
         return templates.TemplateResponse(
-            request,
-            "report.html",
-            {"report": report, "provenance": provenance_line(report)},
+            request, "report.html", {"view": build_report_view(page)}
         )
 
     app.include_router(router)

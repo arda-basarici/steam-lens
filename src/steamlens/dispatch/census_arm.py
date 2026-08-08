@@ -23,6 +23,20 @@ MODEL_ID: Final = "deepseek-v4-flash"
 """The requested model id — the label key's ``model_version`` (keys are
 contracts; the provider-reported version is journaled per call instead)."""
 
+PUBLISHED_READINGS: Final[dict[str, str]] = {
+    "classifier F1 vs gold": "0.766 [0.713–0.811]",
+    "quote misattribution rate": "11.6% [6.6–19.6]",
+    "judge–production agreement F1": "0.791 [0.772–0.810]",
+}
+"""The instrument's published evaluation readings, display-ready — the trust
+panel's disclosure block. Part of the instrument identity exactly like
+``MODEL_ID``: each number was measured *on this model under this config*
+(certification run ``certify-20260728T184100Z-5f3f4652`` over census labels
+vs gold; the misattribution audit 2026-08-05; the judge agreement read
+2026-07-25 — outcome blocks in DESIGN's evaluation section), so a model or
+prompt change invalidates them together and the re-measurement updates them
+here, in one place."""
+
 KEY_ENV: Final = "DEEPSEEK_API_KEY"
 
 PROVIDER: Final = "deepseek"

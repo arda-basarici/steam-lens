@@ -1,49 +1,137 @@
 {% extends "base.html" %}
-{% block title %}{{ report.game_name }} — steam-lens{% endblock %}
+{% block title %}{{ view.game_name }} — steam-lens{% endblock %}
 {% block content %}
 <article class="report">
   <header class="report-header">
-    <h1>{{ report.game_name }}</h1>
-    <p class="provenance">{{ provenance }}</p>
+    <h1>{{ view.game_name }}</h1>
+    <p class="provenance">{{ view.provenance_line }}</p>
   </header>
 
   <section class="narrative">
-    {% if report.narrative.prose %}
-      <p class="prose">{{ report.narrative.prose }}</p>
-    {% else %}
+    {% if view.narrative_withheld %}
       <p class="withheld">Narrative withheld — this report shows numbers and quotes only.</p>
+    {% else %}
+      <p class="prose">
+        {%- for seg in view.narrative -%}
+          {%- if seg.kind -%}
+            <mark class="span-{{ seg.kind.value }}"
+                  {%- if seg.review_id %} title="verbatim from review {{ seg.review_id }}"
+                  {%- else %} title="minted from this job's numbers"{% endif -%}
+            >{{ seg.text }}</mark>
+          {%- else -%}{{ seg.text }}{%- endif -%}
+        {%- endfor -%}
+      </p>
+      <p class="legend-line">highlighted spans are certified — quotes verbatim from reviews,
+        numerals matched to this job's minted numbers; plain text is model voice</p>
     {% endif %}
   </section>
 
   <section class="aspects">
     <h2>Aspects</h2>
-    <p class="placeholder">Share bars with interval whiskers land in a later build chunk.</p>
+    <p class="axis-note">{{ view.aspects.axis_label }}</p>
+    <ul class="aspect-rows">
+      {% for row in view.aspects.rows %}
+      <li class="aspect-row">
+        <details>
+          <summary>
+            <span class="aspect-name">{{ row.aspect }}</span>
+            <span class="bar-track">
+              <span class="bar-fill" style="width: {{ '%.2f' % row.bar_pct }}%"></span>
+              {% if row.whisker %}
+              <span class="whisker"
+                    style="left: {{ '%.2f' % row.whisker.low_pct }}%; width: {{ '%.2f' % (row.whisker.high_pct - row.whisker.low_pct) }}%"></span>
+              {% endif %}
+            </span>
+            <span class="share-label">{{ row.share_label }}</span>
+          </summary>
+          <div class="aspect-detail">
+            <p class="sentiment-line">{{ row.counts.positive }} positive ·
+              {{ row.counts.negative }} negative · {{ row.counts.mixed }} mixed ·
+              {{ row.counts.neutral }} neutral</p>
+            {% if row.quotes %}
+            <ul class="quotes">
+              {% for quote in row.quotes %}
+              <li class="quote quote-{{ quote.sentiment.value }}">
+                <blockquote>{{ quote.text }}</blockquote>
+                <span class="quote-meta">{{ quote.sentiment.value }} · review {{ quote.review_id }}</span>
+              </li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <p class="placeholder">no stored evidence spans for this aspect</p>
+            {% endif %}
+          </div>
+        </details>
+      </li>
+      {% endfor %}
+    </ul>
+    {% if view.candidates.rows or view.candidates.singleton_count %}
+    <div class="candidates">
+      <h3>Emergent themes <span class="uncalibrated-tag">uncalibrated</span></h3>
+      <p class="axis-note">free-form candidates the classifier surfaced beyond the pinned
+        vocabulary — counts only, no calibrated intervals</p>
+      <ul class="candidate-rows">
+        {% for row in view.candidates.rows %}
+        <li>{{ row.aspect }} <span class="candidate-count">{{ row.reviews_with_aspect }}</span></li>
+        {% endfor %}
+      </ul>
+      {% if view.candidates.singleton_count %}
+      <p class="axis-note">{{ view.candidates.singleton_count }} more mentioned once each</p>
+      {% endif %}
+    </div>
+    {% endif %}
   </section>
 
   <section class="timeline">
     <h2>Review timeline</h2>
-    <p class="placeholder">The all-language timeline with episode markers lands in a later build chunk.</p>
+    {% if view.timeline %}
+    <p class="axis-note">{{ view.timeline.peak_label }} · all languages</p>
+    <svg class="timeline-chart" viewBox="0 0 {{ view.timeline.view_w }} {{ view.timeline.view_h }}"
+         role="img" aria-label="review volume over time">
+      {% for span in view.timeline.valve_windows %}
+      <rect class="valve-span" x="{{ '%.2f' % span.x }}" y="0"
+            width="{{ '%.2f' % span.width }}" height="{{ view.timeline.baseline_y }}">
+        <title>{{ span.label }}</title>
+      </rect>
+      {% endfor %}
+      {% for bar in view.timeline.bars %}
+      <rect class="volume-bar" x="{{ '%.2f' % bar.x }}" y="{{ '%.2f' % bar.y }}"
+            width="{{ '%.2f' % bar.width }}" height="{{ '%.2f' % bar.height }}">
+        <title>{{ bar.label }}</title>
+      </rect>
+      {% endfor %}
+      {% for span in view.timeline.episodes %}
+      <rect class="episode-span" x="{{ '%.2f' % span.x }}" y="0"
+            width="{{ '%.2f' % span.width }}" height="{{ view.timeline.baseline_y }}">
+        <title>{{ span.label }}</title>
+      </rect>
+      {% endfor %}
+      <line class="baseline" x1="0" y1="{{ view.timeline.baseline_y }}"
+            x2="{{ view.timeline.view_w }}" y2="{{ view.timeline.baseline_y }}"></line>
+      {% for x, label in view.timeline.ticks %}
+      <text class="tick" x="{{ '%.2f' % x }}" y="{{ view.timeline.view_h - 8 }}">{{ label }}</text>
+      {% endfor %}
+    </svg>
+    <ul class="timeline-legend">
+      <li><span class="key key-volume"></span> review volume</li>
+      <li><span class="key key-episode"></span> unusual review volume (detected)</li>
+      <li><span class="key key-valve"></span> Steam-marked period</li>
+    </ul>
+    <p class="legend-line">statistical detection over all-language volume; no cause attributed</p>
+    {% else %}
+    <p class="placeholder">Steam serves no volume series for this game.</p>
+    {% endif %}
   </section>
 
   <section class="trust-panel">
     <h2>How this report was made</h2>
     <dl>
-      <dt>Analyzed</dt>
-      <dd>{{ report.created_at.date() }}</dd>
-      <dt>Sample</dt>
-      <dd>
-        {% if report.take_all %}
-          complete count — every English review ({{ "{:,}".format(report.sample_size) }})
-        {% else %}
-          {{ "{:,}".format(report.sample_size) }} reviews, time-proportional draw
-        {% endif %}
-      </dd>
-      <dt>Run</dt>
-      <dd>{{ report.run.run_id }}</dd>
-      <dt>Versions</dt>
-      <dd>{{ report.versions.model_version }} · prompt {{ report.versions.prompt_version }} ·
-          ontology {{ report.versions.ontology_version }}</dd>
+      {% for label, value in view.trust_entries %}
+      <dt>{{ label }}</dt>
+      <dd>{{ value }}</dd>
+      {% endfor %}
     </dl>
+    <p class="axis-note">full methodology ships with the milestone write-up</p>
   </section>
 </article>
 {% endblock %}

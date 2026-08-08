@@ -10,5 +10,6 @@ the frontend later means replacing this package, nothing below it.
 """
 
 from steamlens.serve.web.pages import attach_web
+from steamlens.serve.web.view import ReportPageData
 
-__all__ = ["attach_web"]
+__all__ = ["ReportPageData", "attach_web"]

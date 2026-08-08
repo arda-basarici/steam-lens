@@ -1,20 +1,32 @@
-/* Skeleton readability only — the aesthetics pass restyles this whole file
-   (app-UI plugin for the shell, dataviz conventions for the charts). */
+/* Skeleton readability + the dataviz roles. The aesthetics pass (app-UI
+   plugin) restyles the shell; the chart colors below are the validated
+   reference palette (dataviz conventions) and survive that pass — light-mode
+   values now, the dark steps land with the page's dark mode. */
 
 :root {
   font-family: system-ui, sans-serif;
   line-height: 1.5;
+  /* dataviz reference palette — light mode */
+  --surface-1: #fcfcfb;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+  --series-1: #2a78d6;   /* volume bars, share bars */
+  --series-2: #eb6834;   /* detected-episode layer */
+  --gridline: #e1e0d9;
+  --baseline: #c3c2b7;
+  --neutral-span: #f0efec; /* Steam-marked layer — neutral, not a series */
 }
 
 body {
   margin: 0;
-  color: #1a1a1a;
-  background: #fafafa;
+  color: var(--text-primary);
+  background: #f9f9f7;
 }
 
 .site-header {
   padding: 0.75rem 1.25rem;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--gridline);
 }
 
 .site-header a {
@@ -24,29 +36,252 @@ body {
 }
 
 main {
-  max-width: 46rem;
+  max-width: 52rem;
   margin: 0 auto;
   padding: 1.5rem 1.25rem 4rem;
 }
 
 .provenance,
 .note,
-.placeholder {
-  color: #555;
+.placeholder,
+.axis-note,
+.legend-line {
+  color: var(--text-secondary);
   font-size: 0.9rem;
 }
 
+.legend-line {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 .withheld {
-  color: #555;
+  color: var(--text-secondary);
   font-style: italic;
 }
 
 .report section {
-  margin-top: 2rem;
+  margin-top: 2.25rem;
 }
 
+/* --- narrative spans: the certificate made visible ----------------------- */
+
+.prose {
+  font-size: 1.05rem;
+}
+
+.prose mark {
+  border-radius: 2px;
+  padding: 0 2px;
+}
+
+.span-numeral {
+  background: #cde2fb; /* sequential blue 100 — minted fact */
+}
+
+.span-quote {
+  background: #f0efec;
+  font-style: italic;
+}
+
+/* --- aspect share bars --------------------------------------------------- */
+
+.aspect-rows {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.aspect-row summary {
+  display: grid;
+  grid-template-columns: 10rem 1fr max-content;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+}
+
+.aspect-name {
+  font-weight: 500;
+}
+
+.bar-track {
+  position: relative;
+  display: block;
+  height: 14px;
+  background: var(--surface-1);
+  border: 1px solid var(--gridline);
+  border-radius: 4px;
+}
+
+.bar-fill {
+  position: absolute;
+  inset: 2px auto 2px 2px;
+  display: block;
+  background: var(--series-1);
+  border-radius: 3px;
+}
+
+.whisker {
+  position: absolute;
+  top: 50%;
+  display: block;
+  height: 0;
+  border-top: 2px solid var(--text-secondary);
+  transform: translateY(-1px);
+}
+
+.whisker::before,
+.whisker::after {
+  content: "";
+  position: absolute;
+  top: -4px;
+  height: 8px;
+  border-left: 2px solid var(--text-secondary);
+}
+
+.whisker::before { left: 0; }
+.whisker::after { right: 0; }
+
+.share-label {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.aspect-detail {
+  margin: 0.5rem 0 0.75rem 10.75rem;
+}
+
+.sentiment-line {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin: 0.25rem 0;
+}
+
+.quotes {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.quote blockquote {
+  margin: 0;
+  padding: 0.4rem 0.75rem;
+  border-left: 3px solid var(--gridline);
+  font-style: italic;
+}
+
+.quote-meta {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+/* --- candidate stratum --------------------------------------------------- */
+
+.candidates {
+  margin-top: 1.5rem;
+}
+
+.uncalibrated-tag {
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  border: 1px solid var(--baseline);
+  border-radius: 3px;
+  padding: 1px 6px;
+  vertical-align: middle;
+}
+
+.candidate-rows {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+}
+
+.candidate-count {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- timeline ------------------------------------------------------------ */
+
+.timeline-chart {
+  width: 100%;
+  height: auto;
+  background: var(--surface-1);
+  border: 1px solid var(--gridline);
+  border-radius: 4px;
+}
+
+.volume-bar { fill: var(--series-1); }
+
+.episode-span {
+  fill: none;
+  stroke: var(--series-2);
+  stroke-width: 1.5;
+}
+
+.valve-span { fill: var(--neutral-span); }
+
+.baseline {
+  stroke: var(--baseline);
+  stroke-width: 1;
+}
+
+.tick {
+  fill: var(--text-muted);
+  font-size: 11px;
+  text-anchor: middle;
+}
+
+.timeline-legend {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  gap: 1.25rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.key {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  vertical-align: -1px;
+  margin-right: 4px;
+}
+
+.key-volume { background: var(--series-1); }
+.key-episode { border: 1.5px solid var(--series-2); }
+.key-valve { background: var(--neutral-span); border: 1px solid var(--gridline); }
+
+/* --- trust panel ---------------------------------------------------------- */
+
+.trust-panel dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.3rem 1.25rem;
+}
+
+.trust-panel dt {
+  color: var(--text-secondary);
+}
+
+.trust-panel dd {
+  margin: 0;
+}
+
+/* --- search page ---------------------------------------------------------- */
+
 .status {
-  color: #555;
+  color: var(--text-secondary);
 }
 
 .results {
@@ -65,29 +300,15 @@ main {
   font: inherit;
   text-align: left;
   background: #fff;
-  border: 1px solid #ddd;
+  border: 1px solid var(--gridline);
   border-radius: 4px;
   cursor: pointer;
 }
 
 .result:hover {
-  border-color: #999;
+  border-color: var(--text-muted);
 }
 
 .result img {
   height: 2rem;
-}
-
-.trust-panel dl {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: 0.25rem 1rem;
-}
-
-.trust-panel dt {
-  color: #555;
-}
-
-.trust-panel dd {
-  margin: 0;
 }
