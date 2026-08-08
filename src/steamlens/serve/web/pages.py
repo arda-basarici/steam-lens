@@ -24,6 +24,7 @@ from fastapi import APIRouter, FastAPI, Request, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from steamlens.serve.web.ops_view import OpsData, build_ops_view
 from steamlens.serve.web.view import ReportPageData, build_report_view
 
 _TEMPLATES_DIR: Final = Path(__file__).parent / "templates"
@@ -51,6 +52,7 @@ def attach_web(
     app: FastAPI,
     load_report_page: Callable[[int], ReportPageData | None],
     job_live: Callable[[int], bool],
+    load_ops_data: Callable[[], OpsData] | None = None,
 ) -> None:
     """Mount the pages and static assets onto ``app`` — the composition root's call.
 
@@ -62,6 +64,9 @@ def attach_web(
     injected as a bare callable so the renderer never learns the queue's
     shape (during a cold job the page IS the narration, and this one bit is
     all the server-side branch needs; everything else arrives over SSE).
+    ``load_ops_data`` is the ops page's aggregate bundle behind the same
+    discipline — ``None`` composes an app without the page (tests that only
+    render reports); production always wires it.
     """
     templates = Jinja2Templates(directory=_TEMPLATES_DIR)
     # The stub types env.globals to jinja's own builtins; it is a plain dict.
@@ -95,6 +100,16 @@ def attach_web(
         return templates.TemplateResponse(
             request, "report_missing.html", {"app_id": app_id}, status_code=404
         )
+
+    if load_ops_data is not None:
+        wired_ops = load_ops_data
+
+        @router.get("/ops", response_class=Response)
+        def ops_page(request: Request) -> Response:  # pyright: ignore[reportUnusedFunction]
+            """The public read-only ops surface — aggregates off the app's own journals."""
+            return templates.TemplateResponse(
+                request, "ops.html", {"view": build_ops_view(wired_ops())}
+            )
 
     app.include_router(router)
     app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")

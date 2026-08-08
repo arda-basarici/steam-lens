@@ -879,3 +879,94 @@ a:hover {
     margin-top: 0.6rem;
   }
 }
+
+/* --- ops page: the observability surface ----------------------------------- */
+
+.ops h1 {
+  font-size: 1.6rem;
+  margin-bottom: 0.35rem;
+}
+
+.ops .tagline {
+  max-width: 46rem;
+}
+
+.ops-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11.5rem, 1fr));
+  gap: 0.75rem;
+  margin: 1.4rem 0 2.2rem;
+}
+
+.ops-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  background: var(--surface-1);
+  border: 1px solid var(--gridline);
+  border-radius: 6px;
+  padding: 0.9rem 1rem;
+}
+
+.ops-stat-label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.ops-stat-value {
+  font-size: 1.35rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ops-stat-note {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.ops section {
+  margin: 2rem 0;
+}
+
+.ops h2 {
+  font-size: 1.15rem;
+  margin-bottom: 0.6rem;
+}
+
+.ops-table-wrap {
+  overflow-x: auto;
+}
+
+.ops-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ops-table th {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  text-align: right;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--baseline);
+  white-space: nowrap;
+}
+
+.ops-table td {
+  text-align: right;
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1px solid var(--gridline);
+  white-space: nowrap;
+}
+
+.ops-table th.text,
+.ops-table td.text {
+  text-align: left;
+}

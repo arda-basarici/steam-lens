@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import replace
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import uvicorn
@@ -33,7 +33,8 @@ from steamlens.dispatch.census_arm import KEY_ENV
 from steamlens.llm_client import openai_compat_entry
 from steamlens.llm_client.openai_compat import DEEPSEEK_BASE_URL
 from steamlens.serve import AnalysisRunner, Job, JobQueue, ServeConfig, SubmitGate, create_app
-from steamlens.serve.web import ReportPageData, attach_web
+from steamlens.serve.gate import utc_day_start
+from steamlens.serve.web import OpsData, ReportPageData, attach_web
 from steamlens.steam_client import SteamClient, SteamClientConfig, SteamTransport
 from steamlens.store import Store
 
@@ -118,6 +119,37 @@ def build_app() -> FastAPI:
         with Store(db_path) as store:
             store.admissions.record(ip, app_id, at=at)
 
+    def load_ops_data() -> OpsData:
+        # One clock reading for the whole page: the "today" reads and the
+        # generated-at stamp tell one story. 14 days of history is the dial
+        # the ops view's daily table names in its title.
+        now = datetime.now(UTC)
+        day = utc_day_start(now)
+        since = day - timedelta(days=13)
+        with Store(db_path) as store:
+            return OpsData(
+                now=now,
+                admissions_today=store.admissions.count_since(day),
+                daily_job_limit=config.daily_job_limit,
+                spend_today_usd=store.spend_ledger.cost_since(day),
+                daily_spend_backstop_usd=config.daily_spend_backstop_usd,
+                daily_ledger=store.ops.daily_ledger(since),
+                daily_admissions=store.ops.daily_admissions(since),
+                stage_model=store.ops.stage_model_totals(),
+                report_count=store.ops.report_count(),
+            )
+
+    def database_ok() -> bool:
+        # The health check's store probe: opening runs the pragmas and the
+        # migration check, so "opens" means "usable at the current schema".
+        # Broad catch is the point — any failure IS the unhealthy answer,
+        # surfaced as the 503 the pinger alerts on, never swallowed.
+        try:
+            with Store(db_path):
+                return True
+        except Exception:
+            return False
+
     queue = JobQueue(run_job)
     gate = SubmitGate(
         daily_job_limit=config.daily_job_limit,
@@ -136,9 +168,15 @@ def build_app() -> FastAPI:
         latest_report,
         steam.search_games,
         gate=gate,
+        database_ok=database_ok,
         on_shutdown=[queue.close],
     )
-    attach_web(app, load_report_page, lambda app_id: queue.live(app_id) is not None)
+    attach_web(
+        app,
+        load_report_page,
+        lambda app_id: queue.live(app_id) is not None,
+        load_ops_data,
+    )
     return app
 
 

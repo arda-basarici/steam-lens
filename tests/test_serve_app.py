@@ -461,3 +461,55 @@ def test_search_answers_typed_hits_and_translates_steam_trouble() -> None:
 
     asyncio.run(asyncio.wait_for(drive(), timeout=10.0))
     queue.close()
+
+
+def test_healthz_answers_ok_then_names_the_dead_worker() -> None:
+    """200 with both checks ok while the worker lives; after the queue closes
+    the worker is genuinely gone, and the answer flips to a 503 naming it —
+    the pinger alerts on the status code, the operator reads the culprit."""
+    runner = GatedNarrator()
+    runner.release.set()
+    queue = JobQueue(runner)
+    app = create_app(queue, _CONFIG, lambda _: None, _no_search, database_ok=lambda: True)
+
+    async def drive() -> None:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            alive = await client.get("/healthz")
+            assert alive.status_code == 200
+            assert alive.json() == {"status": "ok", "worker": "ok", "database": "ok"}
+
+            queue.close()
+            dead = await client.get("/healthz")
+            assert dead.status_code == 503
+            assert dead.json()["worker"] == "dead"
+
+    asyncio.run(asyncio.wait_for(drive(), timeout=10.0))
+
+
+def test_healthz_names_a_failing_database_and_says_unchecked_when_unwired() -> None:
+    """A failing store check 503s with the culprit named; an app composed
+    without one (tests, private dev) says "unchecked" honestly rather than
+    reporting a health it never verified."""
+    runner = GatedNarrator()
+    runner.release.set()
+    queue = JobQueue(runner)
+    broken = create_app(queue, _CONFIG, lambda _: None, _no_search, database_ok=lambda: False)
+    unwired = create_app(queue, _CONFIG, lambda _: None, _no_search)
+
+    async def drive() -> None:
+        async with AsyncClient(
+            transport=ASGITransport(app=broken), base_url="http://test"
+        ) as client:
+            answer = await client.get("/healthz")
+            assert answer.status_code == 503
+            assert answer.json() == {"status": "failing", "worker": "ok", "database": "failing"}
+        async with AsyncClient(
+            transport=ASGITransport(app=unwired), base_url="http://test"
+        ) as client:
+            answer = await client.get("/healthz")
+            assert answer.status_code == 200
+            assert answer.json()["database"] == "unchecked"
+
+    asyncio.run(asyncio.wait_for(drive(), timeout=10.0))
+    queue.close()

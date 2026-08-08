@@ -8,9 +8,11 @@ binds for tests, ``ReviewStore`` (the corpus snapshot and the labeling
 driver's selection query), ``LabelPool`` (envelopes, mentions, runs,
 failure marks), ``EvalRunLog`` (the certification journal —
 ``eval_runs``/``eval_metrics``, the runs of record the CI gate regenerates),
-``SampleManifest`` (the serving runs' stored sample memberships), and
+``SampleManifest`` (the serving runs' stored sample memberships),
 ``ReportLog`` (published analyses: report rows plus their frozen aggregate
-snapshots). Typed failures in ``errors``. Design record: the store decisions
+snapshots), and ``OpsReads`` (the ops page's read-only aggregates — its row
+dataclasses live in ``contracts.ops``, the renderer's seam). Typed failures
+in ``errors``. Design record: the store decisions
 in DESIGN's labeling-engine section (settled 2026-07-14) and the serving-
 persistence section (the report layer, designed 2026-08-08).
 """
@@ -21,6 +23,7 @@ from steamlens.store.errors import SchemaVersionError, StoreDataError, StoreErro
 from steamlens.store.eval_runs import EvalRunLog
 from steamlens.store.labels import LabelPool
 from steamlens.store.ledger import SqliteSpendLedger
+from steamlens.store.ops import OpsReads
 from steamlens.store.reports import ReportLog
 from steamlens.store.reviews import ReviewStore
 from steamlens.store.samples import SampleManifest
@@ -38,6 +41,8 @@ __all__ = [
     "EvalRunLog",
     "SampleManifest",
     "ReportLog",
+    # the ops read model (row dataclasses live in contracts.ops)
+    "OpsReads",
     # the canonical timestamp codec (the CI fixture exporter's handshake)
     "utc_isoformat",
     "parse_utc_isoformat",

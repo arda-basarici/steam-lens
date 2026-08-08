@@ -78,10 +78,11 @@ def _record(
     model: str = "model-a",
     created_at: datetime = _NOON,
     cost: float = 0.001,
+    stage: LlmStage = LlmStage.CLASSIFY,
 ) -> SpendRecord:
     return SpendRecord(
         created_at=created_at,
-        stage=LlmStage.CLASSIFY,
+        stage=stage,
         model=model,
         model_version=f"{model}-001",
         usage=TokenUsage(prompt_tokens=100, output_tokens=50, thinking_tokens=0),
@@ -1075,3 +1076,61 @@ class TestAdmissionLog:
             )
             assert store.admissions.count_since(datetime(2026, 7, 14, 10, 0, tzinfo=UTC)) == 0
             assert store.admissions.count_since(datetime(2026, 7, 14, 8, 0, tzinfo=UTC)) == 1
+
+
+class TestOpsReads:
+    """The ops page's aggregates: journal rows in, display totals out."""
+
+    def test_daily_ledger_groups_by_utc_day_newest_first(self, store: Store) -> None:
+        store.spend_ledger.append(_record(created_at=_NOON, cost=0.002))
+        store.spend_ledger.append(_record(created_at=_NOON + timedelta(hours=1), cost=0.003))
+        store.spend_ledger.append(_record(created_at=_NOON - timedelta(days=1), cost=0.010))
+        days = store.ops.daily_ledger(_EPOCH)
+        assert [(d.day, d.calls) for d in days] == [("2026-07-14", 2), ("2026-07-13", 1)]
+        today = days[0]
+        assert today.cost == pytest.approx(0.005)
+        assert (today.prompt_tokens, today.output_tokens, today.thinking_tokens) == (200, 100, 0)
+
+    def test_daily_ledger_windows_at_or_after_since(self, store: Store) -> None:
+        store.spend_ledger.append(_record(created_at=_NOON - timedelta(days=2)))
+        store.spend_ledger.append(_record(created_at=_NOON))
+        days = store.ops.daily_ledger(_NOON)
+        assert [d.day for d in days] == ["2026-07-14"]
+
+    def test_daily_ledger_groups_offset_timestamps_by_utc_day(self, store: Store) -> None:
+        """A +03:00 call at 01:00 wall clock belongs to the *previous* UTC day —
+        the day key is the normalized instant's date, not the wall-clock text."""
+        plus3 = timezone(timedelta(hours=3))
+        store.spend_ledger.append(
+            _record(created_at=datetime(2026, 7, 14, 1, 0, tzinfo=plus3))
+        )
+        assert [d.day for d in store.ops.daily_ledger(_EPOCH)] == ["2026-07-13"]
+
+    def test_stage_model_totals_group_costliest_first(self, store: Store) -> None:
+        store.spend_ledger.append(_record(model="model-a", cost=0.001))
+        store.spend_ledger.append(_record(model="model-a", cost=0.001))
+        store.spend_ledger.append(
+            _record(model="model-a", cost=0.005, stage=LlmStage.COMPOSE)
+        )
+        totals = store.ops.stage_model_totals()
+        assert [(t.stage, t.calls) for t in totals] == [
+            (LlmStage.COMPOSE.value, 1),
+            (LlmStage.CLASSIFY.value, 2),
+        ]
+        assert totals[1].cost == pytest.approx(0.002)
+
+    def test_daily_admissions_count_without_exposing_ips(self, store: Store) -> None:
+        store.admissions.record("203.0.113.7", 440, at=_NOON)
+        store.admissions.record("198.51.100.9", 570, at=_NOON)
+        store.admissions.record("203.0.113.7", 440, at=_NOON - timedelta(days=1))
+        days = store.ops.daily_admissions(_EPOCH)
+        assert [(d.day, d.admissions) for d in days] == [("2026-07-14", 2), ("2026-07-13", 1)]
+        # The row's whole shape is (day, count) — the audit's no-raw-IPs rule
+        # holds structurally, not by renderer discipline.
+        assert set(days[0].__dataclass_fields__) == {"day", "admissions"}
+
+    def test_report_count_counts_published_reports(self, store: Store) -> None:
+        assert store.ops.report_count() == 0
+        _record_run(store, "serve-1")
+        store.reports.put(_report("serve-1"), [_aggregate("serve-1")])
+        assert store.ops.report_count() == 1

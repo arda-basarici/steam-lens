@@ -73,6 +73,22 @@ class AnalysisAccepted:
 
 
 @dataclass(frozen=True, slots=True)
+class HealthReport:
+    """What ``/healthz`` answers: the two real things, checked cheaply.
+
+    ``status`` is the pinger's one-word read; ``worker`` and ``database`` name
+    which check failed when it isn't ``"ok"`` — a 503 with the culprit named
+    beats a bare status code when the operator reads the pinger's alert.
+    ``database`` is ``"unchecked"`` when no check was wired (tests; production
+    always wires one).
+    """
+
+    status: str
+    worker: str
+    database: str
+
+
+@dataclass(frozen=True, slots=True)
 class ReportReady:
     """The cached-game receipt: a published report already answers this game.
 
@@ -97,6 +113,7 @@ def create_app(
     search_games: Callable[[str], tuple[GameSearchHit, ...]],
     *,
     gate: SubmitGate | None = None,
+    database_ok: Callable[[], bool] | None = None,
     on_shutdown: Sequence[Callable[[], None]] = (),
 ) -> FastAPI:
     """The served app over an already-composed queue — the one HTTP seam.
@@ -115,9 +132,35 @@ def create_app(
     touching production defaults. ``gate`` is the submit gate (the spend
     breaker) — ``None`` composes an ungated app (tests, private dev);
     production always wires one, and with it the ``/unlock/{token}`` route
-    that mints the operator's exemption cookie.
+    that mints the operator's exemption cookie. ``database_ok`` is
+    ``/healthz``'s injected store check (does the file open?) — ``None``
+    composes an app whose health answer says so honestly; production always
+    wires one, same language as the gate.
     """
     app = FastAPI(title="steam-lens", on_shutdown=list(on_shutdown))
+
+    @app.get("/healthz")
+    def healthz(response: Response) -> HealthReport:  # pyright: ignore[reportUnusedFunction]
+        """The off-box pinger's read: 200 when the real things hold, 503 naming the culprit.
+
+        Two checks, both cheap (DESIGN: monitoring lives off the box; the
+        endpoint only answers): the job worker thread is alive — dead means
+        every submitted job would queue forever — and the database opens.
+        Deliberately no Steam or provider probe: those fail per-job with
+        narrated errors, and a health check that calls third parties turns
+        their hiccups into our downtime.
+        """
+        worker = "ok" if queue.worker_alive() else "dead"
+        database = (
+            "unchecked" if database_ok is None
+            else ("ok" if database_ok() else "failing")
+        )
+        healthy = worker == "ok" and database != "failing"
+        if not healthy:
+            response.status_code = 503
+        return HealthReport(
+            status="ok" if healthy else "failing", worker=worker, database=database
+        )
 
     @app.get("/search")
     def search(  # pyright: ignore[reportUnusedFunction]

@@ -30,6 +30,8 @@ from steamlens.contracts import (
     AspectSlot,
     ClassifierVersions,
     ComposedNarrative,
+    DailyAdmissionRow,
+    DailyLedgerRow,
     EpisodeMarker,
     EvidenceQuote,
     GroundedSpan,
@@ -47,10 +49,12 @@ from steamlens.contracts import (
     Sentiment,
     SentimentCounts,
     SpanKind,
+    StageModelRow,
     WindowAccount,
 )
 from steamlens.core.allowance import shipped_interval
-from steamlens.serve.web import ReportPageData, attach_web
+from steamlens.serve.web import OpsData, ReportPageData, attach_web
+from steamlens.serve.web.ops_view import build_ops_view
 from steamlens.serve.web.view import (
     QUOTE_DISPLAY_CHAR_CAP,
     build_report_view,
@@ -585,3 +589,86 @@ def test_json_surface_never_imports_the_renderer() -> None:
         "the JSON surface imports the renderer (the rendering boundary ruling):\n"
         + "\n".join(violations)
     )
+
+
+# --- the ops page ----------------------------------------------------------------
+
+
+def _ops_data(
+    *,
+    report_count: int = 2,
+    stage_model: tuple[StageModelRow, ...] = (
+        StageModelRow(
+            stage="classify", model="deepseek-chat", calls=180,
+            prompt_tokens=90_000, output_tokens=30_000, thinking_tokens=0,
+            cost=0.20,
+        ),
+    ),
+    daily_ledger: tuple[DailyLedgerRow, ...] = (),
+    daily_admissions: tuple[DailyAdmissionRow, ...] = (),
+) -> OpsData:
+    return OpsData(
+        now=datetime(2026, 8, 9, 14, 30, tzinfo=UTC),
+        admissions_today=2,
+        daily_job_limit=5,
+        spend_today_usd=0.1101,
+        daily_spend_backstop_usd=1.0,
+        daily_ledger=daily_ledger,
+        daily_admissions=daily_admissions,
+        stage_model=stage_model,
+        report_count=report_count,
+    )
+
+
+def test_ops_view_headline_stats_tell_the_day_and_the_unit_economics() -> None:
+    """The stat plate reads straight off the gate's own numbers — allowance
+    used, settled spend against the backstop — and the per-report average is
+    all-time spend over published reports, or an honest dash before the first."""
+    view = build_ops_view(_ops_data())
+    stats = {stat.label: stat.value for stat in view.today}
+    assert stats["fresh analyses today"] == "2 of 5"
+    assert stats["settled LLM spend today"] == "$0.1101"
+    assert stats["reports published"] == "2"
+    assert stats["LLM spend per report"] == "$0.1000"
+
+    unpublished = build_ops_view(_ops_data(report_count=0))
+    assert {s.label: s.value for s in unpublished.today}["LLM spend per report"] == "—"
+
+
+def test_ops_view_daily_table_merges_journal_days_zeros_worn_openly() -> None:
+    """The daily table is the union of both journals' days, newest first: a
+    day with admissions but no settled spend still renders (its calls zeroed),
+    and a spend-only day renders with zero admissions — the operator's exempt
+    jobs are exactly that case."""
+    view = build_ops_view(_ops_data(
+        daily_ledger=(
+            DailyLedgerRow(day="2026-08-08", calls=90, prompt_tokens=45_000,
+                           output_tokens=15_000, thinking_tokens=0, cost=0.11),
+        ),
+        daily_admissions=(DailyAdmissionRow(day="2026-08-09", admissions=2),),
+    ))
+    daily = view.tables[0]
+    assert [row[0] for row in daily.rows] == ["2026-08-09", "2026-08-08"]
+    assert daily.rows[0][1:3] == ("2", "0"), "admission-only day zeros its calls"
+    assert daily.rows[1][1:3] == ("0", "90"), "spend-only day zeros its admissions"
+    assert daily.rows[1][6] == "$0.1100"
+
+
+def test_ops_page_renders_aggregates_and_names_the_designed_gap() -> None:
+    """The rendered page carries the stat plate, both tables, and the honest
+    note that failure rates and latency wait on the job journal — a stated
+    gap, never an empty section."""
+    app = FastAPI()
+    attach_web(app, lambda _: None, lambda _: False, lambda: _ops_data())
+    html = _get(app, "/ops").text
+    assert "fresh analyses today" in html
+    assert "2 of 5" in html
+    assert "deepseek-chat" in html
+    assert "failure rates and latency join with the job journal" in html
+    assert "generated 2026-08-09 14:30 UTC" in html
+
+
+def test_ops_page_is_absent_when_unwired() -> None:
+    """An app composed without an ops loader has no /ops route at all —
+    the report-only test apps stay exactly as small as they were."""
+    assert _get(_page_app(None), "/ops").status_code == 404

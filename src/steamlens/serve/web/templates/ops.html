@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}steam-lens — ops{% endblock %}
+{% block content %}
+<section class="ops">
+  <h1>ops</h1>
+  <p class="tagline">The app's own operational journals, aggregated — spend, calls,
+    and the day's allowance, read from the same store the pipeline writes.</p>
+  <p class="provenance">{{ view.generated_at }}</p>
+  <div class="ops-stats">
+    {% for stat in view.today %}
+    <div class="ops-stat">
+      <span class="ops-stat-label">{{ stat.label }}</span>
+      <span class="ops-stat-value">{{ stat.value }}</span>
+      <span class="ops-stat-note">{{ stat.note }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% for table in view.tables %}
+  <section>
+    <h2>{{ table.title }}</h2>
+    {% if table.rows %}
+    <div class="ops-table-wrap">
+      <table class="ops-table">
+        <thead>
+          <tr>
+            {% for header in table.headers %}
+            <th{% if loop.index <= table.text_columns %} class="text"{% endif %}>{{ header }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in table.rows %}
+          <tr>
+            {% for cell in row %}
+            <td{% if loop.index <= table.text_columns %} class="text"{% endif %}>{{ cell }}</td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="placeholder">nothing journaled yet</p>
+    {% endif %}
+    {% if table.note %}<p class="note">{{ table.note }}</p>{% endif %}
+  </section>
+  {% endfor %}
+</section>
+{% endblock %}

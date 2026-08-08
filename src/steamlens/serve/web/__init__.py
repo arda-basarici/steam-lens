@@ -9,7 +9,8 @@ imports the contracts; ``serve.app`` never learns a renderer exists. Swapping
 the frontend later means replacing this package, nothing below it.
 """
 
+from steamlens.serve.web.ops_view import OpsData
 from steamlens.serve.web.pages import attach_web
 from steamlens.serve.web.view import ReportPageData
 
-__all__ = ["ReportPageData", "attach_web"]
+__all__ = ["OpsData", "ReportPageData", "attach_web"]

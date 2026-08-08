@@ -198,6 +198,14 @@ class JobQueue:
         with self._wake:
             return self._live.get(app_id)
 
+    def worker_alive(self) -> bool:
+        """Whether the worker thread is running — the health check's liveness read.
+
+        False means jobs would queue forever: the thread died (or the queue
+        closed), which is exactly the state ``/healthz`` exists to surface.
+        """
+        return self._thread.is_alive()
+
     def has_live_from(self, client_ip: str) -> bool:
         """Whether ``client_ip`` already has a queued-or-running job — the
         submit gate's one-in-flight-per-visitor read. Scans the live index

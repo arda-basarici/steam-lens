@@ -43,6 +43,7 @@ from steamlens.contracts.llm import (
     TokenUsage,
 )
 from steamlens.contracts.ontology import AspectDef, AspectOntology, OntologyVersion
+from steamlens.contracts.ops import DailyAdmissionRow, DailyLedgerRow, StageModelRow
 from steamlens.contracts.provenance import ClassifierVersions, Provenance
 from steamlens.contracts.report import (
     EpisodeMarker,
@@ -129,4 +130,8 @@ __all__ = [
     "SpendRecord",
     "ResponseArchive",
     "SpendLedger",
+    # ops aggregates
+    "DailyLedgerRow",
+    "StageModelRow",
+    "DailyAdmissionRow",
 ]
