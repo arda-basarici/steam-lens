@@ -10,18 +10,17 @@ truncated pool has its own shape:
 - **Population** — the anchor's pool size. Already carried on every
   measurement row (``pool_size``); no function here mints it.
 - **Temporal spikiness** — ``peak_window_share``: the pool share of the
-  busiest histogram bucket. The windowed compiler mints one window per
-  populated bucket, so this is exactly the largest single window's claim on
-  the draw — the shape that concentrates a quota into one newest-first
-  prefix, which is where the windowed policies' bias lives.
+  busiest histogram bucket. Graduated to ``core.allowance`` (2026-08-08) when
+  the regime it decides became a production display input; the split views
+  import it from there.
 - **Aspect concentration** — ``headline_aspect_count``: how many of the
   pool's aspects sit in the headline band (census share at or above the
-  ruled floor). The checkpoint located the windowed penalty almost entirely
-  in that band, so "how much of this game's report is headline material" is
-  the transfer-relevant concentration question, not a distribution-wide
-  entropy.
+  ruled floor, ``core.allowance.HEADLINE_SHARE_FLOOR``). The checkpoint
+  located the windowed penalty almost entirely in that band, so "how much of
+  this game's report is headline material" is the transfer-relevant
+  concentration question, not a distribution-wide entropy.
 
-Both metrics deliberately take the study's existing artifacts as input — the
+The metrics deliberately take the study's existing artifacts as input — the
 histogram ``corpus_histogram`` builds per anchored pool, and a reference-share
 mapping in ``anchored_reference_shares``'s shape — so the split views compute
 shapes from the run of record plus one corpus pass, never a re-sweep.
@@ -30,37 +29,8 @@ shapes from the run of record plus one corpus pass, never a re-sweep.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Final
 
-from steamlens.contracts import HistogramSnapshot
-
-HEADLINE_SHARE_FLOOR: Final = 0.15
-"""The headline band's lower edge — a census share at or above this displays
-as a headline aspect (the curves checkpoint's band ruling, 2026-08-02)."""
-
-
-def peak_window_share(histogram: HistogramSnapshot) -> float:
-    """The pool share of the busiest rollup bucket — the spikiness axis.
-
-    A review-bombed month, a launch spike, or simply a young game's short
-    span all land here as one large window claiming a big slice of the draw;
-    the metric deliberately does not distinguish the causes, because the
-    windowed draw doesn't either — what matters to transfer is how much of
-    the quota one window swallows. Claims count both vote directions;
-    zero-claim buckets dilute nothing. Raises on a histogram claiming no
-    reviews at all — there is no pool to have a shape.
-    """
-    claims = [
-        bucket.recommendations_up + bucket.recommendations_down
-        for bucket in histogram.rollups
-    ]
-    total = sum(claims)
-    if total == 0:
-        raise ValueError(
-            f"app_id {histogram.app_id}: histogram claims no reviews — "
-            "an empty pool has no shape to measure"
-        )
-    return max(claims) / total
+from steamlens.core.allowance import HEADLINE_SHARE_FLOOR
 
 
 def headline_aspect_count(

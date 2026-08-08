@@ -1688,7 +1688,13 @@ root (``serve.main``, env-wired: key, db path, explicit ontology-v2 pin,
 uvicorn) pulled forward from the containers step, because the frontend
 chunk is look-at-it development — judging rendered pages needs a running
 server, and the entry was going to exist anyway; the containers step now
-containerizes an entry that already runs.
+containerizes an entry that already runs. The shipped interval rule
+(bands, regime test, the ruled allowance constants, ``peak_window_share``,
+and the composed ``shipped_interval``) relocated from the study shells to
+``core.allowance`` when the report page became its first production
+consumer — the study packages are import-forbidden to everything, so the
+whisker math had no legal home until it graduated; the mint arithmetic
+that re-derives the constants stays in ``studies.allowance``.
 
 ### The box
 

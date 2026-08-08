@@ -23,7 +23,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from steamlens.studies.allowance import ShareBand
+from steamlens.core.allowance import ShareBand
 from steamlens.studies.floor import REGISTER
 
 __all__ = [

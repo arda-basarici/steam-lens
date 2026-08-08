@@ -16,8 +16,8 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from steamlens.contracts import Review
+from steamlens.core.allowance import ShareBand
 from steamlens.core.intervals import Interval
-from steamlens.studies.allowance import ShareBand
 from steamlens.studies.closing_corpus import (
     ClosingConfig,
     GameClosing,

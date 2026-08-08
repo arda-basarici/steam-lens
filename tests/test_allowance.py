@@ -12,14 +12,18 @@ from __future__ import annotations
 
 import pytest
 
-from steamlens.studies.allowance import (
+from steamlens.core.allowance import (
     ShareBand,
-    flat_allowance,
     is_spiky_regime,
-    needed_inflation,
     primary_band_tolerance,
     primary_shipped_allowance,
     share_band,
+    shipped_interval,
+)
+from steamlens.core.intervals import wilson_interval
+from steamlens.studies.allowance import (
+    flat_allowance,
+    needed_inflation,
     smoothed_allowance,
 )
 
@@ -130,3 +134,15 @@ def test_spiky_regime_refuses_non_shares() -> None:
     """A peak share outside [0, 1] is a wiring bug, never a regime."""
     with pytest.raises(ValueError, match="outside"):
         is_spiky_regime(1.5)
+
+
+def test_shipped_interval_is_wilson_plus_the_regime_allowance_clamped() -> None:
+    """The composed whisker: calm regime is Wilson verbatim (all allowances
+    zero), the spiky headline constant widens both sides by exactly 0.127,
+    and the clamp keeps a near-edge share's whisker inside [0, 1]."""
+    assert shipped_interval(270, 1000, spiky=False) == wilson_interval(270, 1000)
+    calm = shipped_interval(270, 1000, spiky=False)
+    spiky = shipped_interval(270, 1000, spiky=True)
+    assert calm.low - spiky.low == pytest.approx(0.127)
+    assert spiky.high - calm.high == pytest.approx(0.127)
+    assert shipped_interval(998, 1000, spiky=True).high == 1.0

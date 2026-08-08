@@ -27,7 +27,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
-from steamlens.studies.allowance import ShareBand
+from steamlens.core.allowance import ShareBand
 
 REGISTER: float = 0.95
 """The certified register (the curves checkpoint, 2026-08-02) — the fraction

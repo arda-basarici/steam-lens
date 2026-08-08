@@ -42,18 +42,20 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
-from steamlens.corpus import read_reviews_file
-from steamlens.studies.allowance import (
+from steamlens.core.allowance import (
     SHIPPED_SAMPLE_SIZE,
     ShareBand,
-    flat_allowance,
     is_spiky_regime,
-    needed_inflation,
+    peak_window_share,
     share_band,
+)
+from steamlens.corpus import read_reviews_file
+from steamlens.studies.allowance import (
+    flat_allowance,
+    needed_inflation,
     smoothed_allowance,
 )
 from steamlens.studies.sample_corpus import corpus_histogram
-from steamlens.studies.shape import peak_window_share
 from steamlens.studies.sweep_corpus import truncate_pool
 
 MINTED_POLICIES = ("time-proportional", "cursor-prefix")

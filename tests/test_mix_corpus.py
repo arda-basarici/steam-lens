@@ -17,8 +17,8 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from steamlens.contracts import Review
+from steamlens.core.allowance import ShareBand
 from steamlens.core.intervals import Interval
-from steamlens.studies.allowance import ShareBand
 from steamlens.studies.marked_pool import MarkedPool
 from steamlens.studies.measure import AspectMeasurement, IntervalReading
 from steamlens.studies.mix_corpus import (

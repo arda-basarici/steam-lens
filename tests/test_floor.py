@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pytest
 
-from steamlens.studies.allowance import ShareBand
+from steamlens.core.allowance import ShareBand
 from steamlens.studies.floor import (
     FloorRead,
     GateRow,

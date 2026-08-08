@@ -14,7 +14,8 @@ from datetime import UTC, datetime
 import pytest
 
 from steamlens.contracts import HistogramBucket, HistogramSnapshot, RollupUnit
-from steamlens.studies.shape import headline_aspect_count, peak_window_share
+from steamlens.core.allowance import peak_window_share
+from steamlens.studies.shape import headline_aspect_count
 
 
 def _histogram(claims: list[tuple[int, int]]) -> HistogramSnapshot:

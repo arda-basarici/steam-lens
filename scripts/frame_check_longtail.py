@@ -46,9 +46,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
 from steamlens.contracts import HistogramBucket, HistogramSnapshot  # noqa: E402
+from steamlens.core.allowance import is_spiky_regime, peak_window_share  # noqa: E402
 from steamlens.corpus import read_reviews_file  # noqa: E402
 from steamlens.steam_client import parse_histogram  # noqa: E402
-from steamlens.studies.allowance import is_spiky_regime  # noqa: E402
 from steamlens.studies.frame import (  # noqa: E402
     ListBand,
     histogram_anchor_grid,
@@ -56,7 +56,6 @@ from steamlens.studies.frame import (  # noqa: E402
     truncate_rollups,
 )
 from steamlens.studies.sample_corpus import corpus_histogram  # noqa: E402
-from steamlens.studies.shape import peak_window_share  # noqa: E402
 from steamlens.studies.sweep_corpus import ANCHOR_QUANTILES, truncate_pool  # noqa: E402
 
 BAND_ORDER: Final = (ListBand.TRUE_TAIL, ListBand.ENGAGING, ListBand.BRIDGE)

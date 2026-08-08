@@ -53,6 +53,14 @@ from steamlens.contracts import (
     Sink,
     StageKind,
 )
+from steamlens.core.allowance import (
+    ShareBand,
+    is_spiky_regime,
+    peak_window_share,
+    primary_band_tolerance,
+    primary_shipped_allowance,
+    share_band,
+)
 from steamlens.core.classify import PROMPT_VERSION
 from steamlens.core.sampling import compile_plan
 from steamlens.corpus import read_reviews_file
@@ -69,18 +77,10 @@ from steamlens.dispatch.narration import TeeSink
 from steamlens.ontology import load_ontology_version
 from steamlens.store import Store
 from steamlens.studies.aggregate_corpus import mint_census_aggregates
-from steamlens.studies.allowance import (
-    ShareBand,
-    is_spiky_regime,
-    needed_inflation,
-    primary_band_tolerance,
-    primary_shipped_allowance,
-    share_band,
-)
+from steamlens.studies.allowance import needed_inflation
 from steamlens.studies.marked_pool import read_fetch_manifest
 from steamlens.studies.measure import AspectMeasurement, measure_draw
 from steamlens.studies.sample_corpus import corpus_histogram, execute_plan
-from steamlens.studies.shape import peak_window_share
 from steamlens.studies.sweep_corpus import (
     AnchorGrid,
     anchor_grid,

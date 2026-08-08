@@ -40,7 +40,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
-from steamlens.studies.allowance import ShareBand  # noqa: E402
+from steamlens.core.allowance import ShareBand  # noqa: E402
 from steamlens.studies.floor import (  # noqa: E402
     REGISTER,
     FloorRead,

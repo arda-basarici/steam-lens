@@ -51,17 +51,20 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
-from steamlens.corpus import read_reviews_file  # noqa: E402
-from steamlens.studies.allowance import (  # noqa: E402
+from steamlens.core.allowance import (  # noqa: E402
     SHIPPED_SAMPLE_SIZE,
     ShareBand,
+    peak_window_share,
+    share_band,
+)
+from steamlens.corpus import read_reviews_file  # noqa: E402
+from steamlens.studies.allowance import (  # noqa: E402
     flat_allowance,
     needed_inflation,
-    share_band,
     smoothed_allowance,
 )
 from steamlens.studies.sample_corpus import corpus_histogram  # noqa: E402
-from steamlens.studies.shape import headline_aspect_count, peak_window_share  # noqa: E402
+from steamlens.studies.shape import headline_aspect_count  # noqa: E402
 from steamlens.studies.sweep_corpus import truncate_pool  # noqa: E402
 
 PRIMARY_POLICY = "time-proportional"
