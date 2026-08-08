@@ -26,6 +26,41 @@ sudo usermod -aG docker $USER
 docker network create web
 ```
 
+## Hardening — verify, then fix only what fails
+
+A fresh provider image may already ship most of this (the 2026-08-08 box did:
+ssh key-only, ufw active, unattended-upgrades wired). Verify the actual state
+first; change only what a check refutes.
+
+```sh
+# ssh: key-only, no root login. sshd -T prints the *effective* config with
+# /etc/ssh/sshd_config.d/ drop-ins resolved — grepping sshd_config alone can lie.
+sudo sshd -T | grep -Ei '^(passwordauthentication|permitrootlogin|kbdinteractiveauthentication)'
+# Want all three "no". If not, fix via a drop-in (never edit sshd_config itself),
+# and keep the current session open while testing a fresh login:
+#   printf 'PasswordAuthentication no\nPermitRootLogin no\nKbdInteractiveAuthentication no\n' \
+#     | sudo tee /etc/ssh/sshd_config.d/50-hardening.conf && sudo systemctl reload ssh
+
+# Firewall: default deny incoming, allow only ssh + web. Allow 22 BEFORE enable,
+# while the session that would be locked out is still open.
+sudo ufw allow 22/tcp comment 'ssh'
+sudo ufw allow 80/tcp comment 'HTTP - Caddy'
+sudo ufw allow 443/tcp comment 'HTTPS - Caddy'
+sudo ufw enable
+
+# Security patches auto-install; the timers must show a next-fire time.
+sudo apt-get install -y unattended-upgrades
+systemctl list-timers 'apt-daily*' --all
+```
+
+Known trap, respected structurally rather than fixed: **Docker-published ports
+bypass ufw** — Docker's iptables rules sit ahead of ufw's chains, so a
+published port is world-reachable no matter what ufw says. The 80/443 rules
+above document intent; what actually guards the box is the compose convention
+that only the box proxy ever publishes a port. Check the live surface with
+`docker ps --format 'table {{.Names}}\t{{.Ports}}'`: only the Caddy container
+may show `0.0.0.0->` arrows.
+
 ## Layout on the box
 
 ```
