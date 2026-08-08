@@ -1,58 +1,289 @@
-/* Skeleton readability + the dataviz roles. The aesthetics pass (app-UI
-   plugin) restyles the shell; the chart colors below are the validated
-   reference palette (dataviz conventions) and survive that pass — light-mode
-   values now, the dark steps land with the page's dark mode. */
+/* The instrument's visual system. One idea carries the page: a report you can
+   audit reads like an authenticated document — serif prose wearing its
+   certificate, mono "plates" for provenance and readings, everything else
+   quiet paper. Colors are the validated dataviz chrome (light and dark are
+   both selected steps, never an automatic flip); the chart roles survive any
+   future restyle. Fonts are self-hosted subsets (see fonts/LICENSE.md). */
+
+/* --- faces ---------------------------------------------------------------- */
+
+@font-face {
+  font-family: "Literata";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/static/fonts/literata-400-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Literata";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/static/fonts/literata-400-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Literata";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/static/fonts/literata-400i-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Literata";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/static/fonts/literata-400i-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Literata";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/static/fonts/literata-600-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Literata";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/static/fonts/literata-600-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/static/fonts/ibm-plex-mono-400-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/static/fonts/ibm-plex-mono-400-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/static/fonts/ibm-plex-mono-500-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/static/fonts/ibm-plex-mono-500-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* --- tokens ----------------------------------------------------------------
+   Chrome and series values are the validated dataviz palette, both modes
+   selected steps. The certification tints are sequential-blue steps (minted
+   facts) and the neutral gray (verbatim quotes). */
 
 :root {
-  font-family: system-ui, sans-serif;
-  line-height: 1.5;
-  /* dataviz reference palette — light mode */
+  color-scheme: light;
+  --page: #f9f9f7;
   --surface-1: #fcfcfb;
   --text-primary: #0b0b0b;
   --text-secondary: #52514e;
   --text-muted: #898781;
-  --series-1: #2a78d6;   /* volume bars, share bars */
-  --series-2: #eb6834;   /* detected-episode layer */
   --gridline: #e1e0d9;
   --baseline: #c3c2b7;
-  --neutral-span: #f0efec; /* Steam-marked layer — neutral, not a series */
+  --ring: rgba(11, 11, 11, 0.10);
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --neutral-span: #f0efec;
+  --sent-negative: #e34948; /* the diverging pair's red pole */
+  --mint-tint: #cde2fb;   /* sequential blue 100 — selection wash */
+  --accent: #2a78d6;
+  --accent-strong: #256abf; /* sequential blue 500 — hover/active */
+  --font-serif: "Literata", Georgia, "Times New Roman", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
+  --font-ui: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface-1: #1a1a19;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+    --gridline: #2c2c2a;
+    --baseline: #383835;
+    --ring: rgba(255, 255, 255, 0.10);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --neutral-span: #383835;
+    --sent-negative: #e66767; /* the diverging pair's red pole, dark step */
+    --mint-tint: #104281;   /* sequential blue 650 — selection wash */
+    --accent: #3987e5;
+    --accent-strong: #6da7ec; /* sequential blue 300 — lighter on dark */
+  }
+}
+
+/* --- document -------------------------------------------------------------- */
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-ui);
+  line-height: 1.5;
   color: var(--text-primary);
-  background: #f9f9f7;
-}
-
-.site-header {
-  padding: 0.75rem 1.25rem;
-  border-bottom: 1px solid var(--gridline);
-}
-
-.site-header a {
-  color: inherit;
-  text-decoration: none;
-  font-weight: 600;
+  background: var(--page);
+  -webkit-font-smoothing: antialiased;
 }
 
 main {
+  width: 100%;
   max-width: 52rem;
   margin: 0 auto;
-  padding: 1.5rem 1.25rem 4rem;
+  padding: 1.5rem 1.25rem 4.5rem;
+  flex: 1;
 }
 
-.provenance,
+h1,
+h2,
+h3 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  font-size: clamp(1.6rem, 4.5vw, 2.15rem);
+  margin: 0 0 0.35rem;
+}
+
+h2 {
+  font-size: 1.35rem;
+  margin: 0 0 0.75rem;
+}
+
+h3 {
+  font-size: 1.05rem;
+  margin: 0 0 0.5rem;
+}
+
+a {
+  color: var(--accent);
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  color: var(--accent-strong);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+::selection {
+  background: var(--mint-tint);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* --- site chrome ----------------------------------------------------------- */
+
+.site-header {
+  padding: 0.8rem 1.25rem;
+  border-bottom: 1px solid var(--gridline);
+}
+
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  color: inherit;
+  text-decoration: none;
+}
+
+.wordmark:hover {
+  color: inherit;
+}
+
+.wordmark svg {
+  display: block;
+  color: var(--accent);
+}
+
+.site-footer {
+  border-top: 1px solid var(--gridline);
+  padding: 1.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.7;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.site-footer p {
+  margin: 0.15rem 0;
+}
+
+/* --- shared text roles ----------------------------------------------------- */
+
+.provenance {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
 .note,
 .placeholder,
 .axis-note,
 .legend-line {
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
 }
 
 .legend-line {
   color: var(--text-muted);
-  font-style: italic;
 }
 
 .withheld {
@@ -60,37 +291,175 @@ main {
   font-style: italic;
 }
 
-.report section {
-  margin-top: 2.25rem;
+/* --- search page ----------------------------------------------------------- */
+
+.search {
+  max-width: 34rem;
+  margin: 0 auto;
+  padding-top: clamp(2rem, 14vh, 7.5rem);
+  text-align: center;
 }
 
-/* --- narrative spans: the certificate made visible ----------------------- */
+.search h1 {
+  font-size: clamp(2rem, 6vw, 2.6rem);
+  margin-bottom: 0.4rem;
+}
+
+.tagline {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  margin: 0 0 1.75rem;
+}
+
+.search-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.search-form input {
+  flex: 1;
+  font: inherit;
+  font-size: 1.02rem;
+  padding: 0.6rem 0.9rem;
+  color: inherit;
+  background: var(--surface-1);
+  border: 1px solid var(--baseline);
+  border-radius: 6px;
+}
+
+.search-form input:focus-visible {
+  outline-offset: 0;
+  border-color: var(--accent);
+}
+
+.search-form button {
+  font: inherit;
+  font-weight: 500;
+  padding: 0.6rem 1.1rem;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.search-form button:hover {
+  background: var(--accent-strong);
+}
+
+.search-hint {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-top: 0.75rem;
+}
+
+.status {
+  color: var(--text-secondary);
+  margin-top: 1.25rem;
+}
+
+.results {
+  list-style: none;
+  padding: 1.25rem 0 0;
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+  text-align: left;
+}
+
+.result {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: var(--surface-1);
+  border: 1px solid var(--gridline);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 120ms ease;
+}
+
+.result:hover {
+  border-color: var(--accent);
+}
+
+.result img {
+  height: 2rem;
+  border-radius: 3px;
+}
+
+/* --- report header --------------------------------------------------------- */
+
+.report-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem 1.5rem;
+  align-items: center;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--gridline);
+}
+
+.capsule {
+  width: 231px;
+  max-width: 100%;
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px var(--ring);
+}
+
+.report section {
+  margin-top: 2.5rem;
+}
+
+/* --- narrative: the certificate made visible ------------------------------- */
 
 .prose {
-  font-size: 1.05rem;
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  line-height: 1.7;
+  margin: 0 0 0.6rem;
 }
 
-.prose mark {
-  border-radius: 2px;
-  padding: 0 2px;
+/* The certificate stays visible but quiet: no chips — a dotted accent
+   underline marks a minted number, serif italic marks a verbatim quote,
+   plain upright text is model voice. */
+.prose mark,
+.legend-line mark {
+  color: inherit;
+  background: transparent;
 }
 
 .span-numeral {
-  background: #cde2fb; /* sequential blue 100 — minted fact */
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
 }
 
 .span-quote {
-  background: #f0efec;
   font-style: italic;
+  text-decoration: underline dotted var(--text-muted);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
 }
 
-/* --- aspect share bars --------------------------------------------------- */
+.certificate-legend {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+/* --- aspect share bars ----------------------------------------------------- */
 
 .aspect-rows {
   list-style: none;
   padding: 0;
+  margin: 0.75rem 0 0;
   display: grid;
-  gap: 0.35rem;
+  gap: 0.4rem;
 }
 
 .aspect-row summary {
@@ -98,7 +467,17 @@ main {
   grid-template-columns: 10rem 1fr max-content;
   align-items: center;
   gap: 0.75rem;
+  padding: 0.2rem 0.3rem;
+  border-radius: 4px;
   cursor: pointer;
+}
+
+.aspect-row summary:hover {
+  background: var(--surface-1);
+}
+
+.aspect-row summary::-webkit-details-marker {
+  display: none;
 }
 
 .aspect-name {
@@ -107,88 +486,100 @@ main {
 
 .bar-track {
   position: relative;
-  display: block;
+  display: flex;
+  gap: 2px;
   height: 14px;
+  padding: 2px;
+  box-sizing: border-box;
   background: var(--surface-1);
   border: 1px solid var(--gridline);
   border-radius: 4px;
 }
 
-.bar-fill {
-  position: absolute;
-  inset: 2px auto 2px 2px;
+.seg {
   display: block;
-  background: var(--series-1);
-  border-radius: 3px;
+  flex: 0 1 auto;
+  border-radius: 1.5px;
 }
 
-.whisker {
-  position: absolute;
-  top: 50%;
-  display: block;
-  height: 0;
-  border-top: 2px solid var(--text-secondary);
-  transform: translateY(-1px);
-}
+.seg:first-child { border-radius: 3px 1.5px 1.5px 3px; }
+.seg:last-child { border-radius: 1.5px 3px 3px 1.5px; }
+.seg:only-child { border-radius: 3px; }
 
-.whisker::before,
-.whisker::after {
-  content: "";
-  position: absolute;
-  top: -4px;
-  height: 8px;
-  border-left: 2px solid var(--text-secondary);
-}
-
-.whisker::before { left: 0; }
-.whisker::after { right: 0; }
+.seg-positive { background: var(--series-1); }
+.seg-split { background: var(--baseline); }
+.seg-negative { background: var(--sent-negative); }
 
 .share-label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
   color: var(--text-secondary);
-  font-size: 0.85rem;
   font-variant-numeric: tabular-nums;
 }
 
 .aspect-detail {
-  margin: 0.5rem 0 0.75rem 10.75rem;
+  margin: 0.5rem 0 1rem 10.75rem;
 }
 
 .sentiment-line {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
   color: var(--text-secondary);
-  font-size: 0.85rem;
-  margin: 0.25rem 0;
+  margin: 0.25rem 0 0.5rem;
 }
 
 .quotes {
   list-style: none;
   padding: 0;
+  margin: 0;
   display: grid;
-  gap: 0.5rem;
+  gap: 0.6rem;
 }
 
 .quote blockquote {
-  margin: 0;
-  padding: 0.4rem 0.75rem;
-  border-left: 3px solid var(--gridline);
+  font-family: var(--font-serif);
   font-style: italic;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  margin: 0;
+  padding: 0.4rem 0.85rem;
+  border-left: 3px solid var(--baseline);
 }
 
 .quote-meta {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
   color: var(--text-muted);
-  font-size: 0.8rem;
+  margin-left: 0.85rem;
 }
 
-/* --- candidate stratum --------------------------------------------------- */
+.aspect-tail {
+  margin-top: 0.6rem;
+}
+
+.aspect-tail > summary {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  cursor: pointer;
+  padding: 0.2rem 0.3rem;
+}
+
+.aspect-tail[open] > summary {
+  margin-bottom: 0.4rem;
+}
+
+/* --- candidate stratum ----------------------------------------------------- */
 
 .candidates {
-  margin-top: 1.5rem;
+  margin-top: 1.75rem;
 }
 
 .uncalibrated-tag {
-  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
   font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   color: var(--text-secondary);
   border: 1px solid var(--baseline);
   border-radius: 3px;
@@ -199,21 +590,33 @@ main {
 .candidate-rows {
   list-style: none;
   padding: 0;
+  margin: 0.5rem 0 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem 1rem;
+  gap: 0.45rem;
+}
+
+.candidate-rows li {
+  font-size: 0.85rem;
+  padding: 0.15rem 0.65rem;
+  background: var(--surface-1);
+  border: 1px solid var(--gridline);
+  border-radius: 999px;
 }
 
 .candidate-count {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
 
-/* --- timeline ------------------------------------------------------------ */
+/* --- timeline -------------------------------------------------------------- */
 
 .timeline-chart {
   width: 100%;
   height: auto;
+  margin-top: 0.5rem;
   background: var(--surface-1);
   border: 1px solid var(--gridline);
   border-radius: 4px;
@@ -236,15 +639,18 @@ main {
 
 .tick {
   fill: var(--text-muted);
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 10px;
   text-anchor: middle;
 }
 
-.timeline-legend {
+.chart-legend {
   list-style: none;
   padding: 0;
+  margin: 0.6rem 0 0.25rem;
   display: flex;
-  gap: 1.25rem;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.25rem;
   color: var(--text-secondary);
   font-size: 0.85rem;
 }
@@ -261,21 +667,84 @@ main {
 .key-volume { background: var(--series-1); }
 .key-episode { border: 1.5px solid var(--series-2); }
 .key-valve { background: var(--neutral-span); border: 1px solid var(--gridline); }
+.key-positive { background: var(--series-1); }
+.key-split { background: var(--baseline); }
+.key-negative { background: var(--sent-negative); }
 
-/* --- trust panel ---------------------------------------------------------- */
+/* --- trust panel: the readings plate --------------------------------------- */
+
+.trust-panel {
+  background: var(--surface-1);
+  border: 1px solid var(--gridline);
+  border-radius: 6px;
+  padding: 1.25rem 1.5rem;
+}
+
+.trust-panel summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.trust-panel summary::-webkit-details-marker {
+  display: none;
+}
+
+.trust-panel h2 {
+  font-size: 1.15rem;
+  margin: 0;
+}
+
+.toggle-badge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  border: 1px solid var(--baseline);
+  border-radius: 50%;
+}
+
+.trust-panel summary:hover .toggle-badge {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.trust-panel[open] summary {
+  margin-bottom: 0.9rem;
+}
 
 .trust-panel dl {
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: 0.3rem 1.25rem;
+  gap: 0.45rem 1.5rem;
+  margin: 0;
 }
 
 .trust-panel dt {
-  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  padding-top: 0.15rem;
 }
 
 .trust-panel dd {
   margin: 0;
+  font-size: 0.9rem;
+}
+
+.trust-panel .axis-note {
+  margin: 0.9rem 0 0;
+  font-size: 0.78rem;
 }
 
 /* --- live narration page --------------------------------------------------- */
@@ -283,8 +752,9 @@ main {
 .stages {
   list-style: none;
   padding: 0;
+  margin: 1.5rem 0 0;
   display: grid;
-  gap: 0.4rem;
+  gap: 0.45rem;
 }
 
 .stage-row {
@@ -298,6 +768,11 @@ main {
   content: "";
 }
 
+.stage-name {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
 .stage-name::before {
   display: inline-block;
   width: 1.2rem;
@@ -307,8 +782,16 @@ main {
 .stage-pending .stage-name { color: var(--text-muted); }
 .stage-pending .stage-name::before { content: "○"; }
 
-.stage-active .stage-name { font-weight: 600; }
-.stage-active .stage-name::before { content: "●"; color: var(--series-1); }
+.stage-active .stage-name { font-weight: 500; }
+.stage-active .stage-name::before {
+  content: "●";
+  color: var(--series-1);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% { opacity: 0.35; }
+}
 
 .stage-done .stage-name::before { content: "✓"; color: var(--text-secondary); }
 
@@ -316,57 +799,83 @@ main {
 
 .stage-message {
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
 }
 
 .live-log {
-  margin-top: 1.5rem;
+  margin-top: 1.75rem;
 }
 
 .live-log summary {
   color: var(--text-secondary);
+  font-size: 0.88rem;
   cursor: pointer;
 }
 
 .live-log ul {
   list-style: none;
-  padding: 0.5rem 0 0;
-  font-family: ui-monospace, monospace;
-  font-size: 0.8rem;
+  max-height: 16rem;
+  overflow-y: auto;
+  margin: 0.5rem 0 0;
+  padding: 0.6rem 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.7;
   color: var(--text-secondary);
-}
-
-/* --- search page ---------------------------------------------------------- */
-
-.status {
-  color: var(--text-secondary);
-}
-
-.results {
-  list-style: none;
-  padding: 0;
-  display: grid;
-  gap: 0.5rem;
-}
-
-.result {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  font: inherit;
-  text-align: left;
-  background: #fff;
+  background: var(--surface-1);
   border: 1px solid var(--gridline);
-  border-radius: 4px;
-  cursor: pointer;
+  border-radius: 6px;
 }
 
-.result:hover {
-  border-color: var(--text-muted);
-}
+/* --- narrow screens -------------------------------------------------------- */
 
-.result img {
-  height: 2rem;
+@media (max-width: 40rem) {
+  .report-header {
+    grid-template-columns: 1fr;
+  }
+
+  .capsule {
+    order: -1;
+  }
+
+  .aspect-row summary {
+    grid-template-columns: 1fr max-content;
+  }
+
+  .aspect-row .aspect-name {
+    grid-row: 1;
+    grid-column: 1;
+  }
+
+  .aspect-row .share-label {
+    grid-row: 1;
+    grid-column: 2;
+  }
+
+  .aspect-row .bar-track {
+    grid-row: 2;
+    grid-column: 1 / -1;
+  }
+
+  .aspect-detail {
+    margin-left: 0;
+  }
+
+  .stage-row {
+    grid-template-columns: 1fr;
+    gap: 0.1rem;
+  }
+
+  .stage-message {
+    padding-left: 1.2rem;
+  }
+
+  .trust-panel dl {
+    grid-template-columns: 1fr;
+    gap: 0.1rem;
+  }
+
+  .trust-panel dt {
+    margin-top: 0.6rem;
+  }
 }

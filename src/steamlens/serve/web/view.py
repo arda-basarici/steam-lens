@@ -2,7 +2,7 @@
 
 The rendering boundary's adaptation layer: pure builders, loaded contracts in,
 display records out. Every displayed number traces to a stored record or a
-certified seam — shares and whiskers compute through ``core.allowance``'s
+certified seam — shares and interval bands compute through ``core.allowance``'s
 shipped interval (never re-derived here), the narrative renders straight off
 its span certificate (no prose re-scanning), and the interval regime
 recomputes deterministically from the stored histogram (regenerate from the
@@ -10,16 +10,19 @@ layer below; the report row deliberately stores content, not presentation).
 Presentation needs adapt HERE — never as new fields on the stored contracts,
 which is the discipline that keeps a frontend swap rendering-only.
 
-Two display-only narrowings this module owns (judged at the chunk-3
-checkpoint): evidence quotes cap at three per aspect, dominant-polarity
-first; candidate aspects mentioned once fold into a single disclosed count
-instead of listing as rows.
+Three display-only adaptations this module owns: evidence quotes cap at
+three per aspect, dominant-polarity first, and candidate aspects mentioned
+once fold into a single disclosed count instead of listing as rows (both
+judged at the chunk-3 checkpoint); displayed quotes expand from the stored
+minimal span to its containing sentence in the review (the evidence-display
+ruling, 2026-07-17: spans read thin quoted bare — expansion is read-side and
+heuristic, the stored evidence and the labeling contract stay untouched).
 """
 
 from __future__ import annotations
 
 import math
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Final
@@ -34,6 +37,7 @@ from steamlens.contracts import (
     HistogramSnapshot,
     NarrativeOutcome,
     Report,
+    Review,
     RollupUnit,
     Sentiment,
     SentimentCounts,
@@ -46,10 +50,32 @@ QUOTES_PER_ASPECT: Final = 3
 """Display cap on verbatim evidence per aspect row — enough to ground the
 number in real voices without turning the table into a corpus dump."""
 
+ASPECT_DISPLAY_FLOOR: Final = 0.01
+"""Share floor for the always-visible aspect rows. Below 1% of the sample
+the interval swallows the value (0.4% ±0.4 is noise wearing a bar), so those
+rows fold into a disclosed tail instead of stretching the table — folded,
+never dropped."""
+
+QUOTE_DISPLAY_CHAR_CAP: Final = 300
+"""Ceiling on an expanded quote's display length. Sentence segmentation over
+punctuation-poor reviews is heuristic — a review with no terminal punctuation
+would expand a two-word span into the whole text — so past the cap the
+display trims to a word-boundary window around the span, ellipses marking
+the trims openly."""
+
 MARKED_SHARE_FLOOR: Final = 0.02
 """The ruled marked-share disclosure floor (the mixing study, DESIGN's
 sampling-study rulings: holds at 2%, broken by 5%) — past it the trust panel
 states the calibrated bars are not certified for this sample."""
+
+_HEADER_ART: Final = (
+    "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/{app_id}/header.jpg"
+)
+"""Steam's public CDN pattern for a game's header capsule — minted from the
+stored ``app_id`` at display time (the report stores identity, never asset
+URLs). A delisted game may 404 here; the header renders it as decoration
+(empty ``alt``), so a missing capsule degrades to layout, not to a broken
+claim."""
 
 # Timeline SVG geometry, in viewBox units — the template draws rects and
 # labels from these coordinates and knows no dates or counts.
@@ -81,45 +107,65 @@ class NarrativeSegment:
 
 
 @dataclass(frozen=True, slots=True)
-class WhiskerView:
-    """One aspect bar's interval, as percentages of the section's axis."""
+class BarSegment:
+    """One polarity segment of an aspect's stacked share bar.
 
-    low_pct: float
-    high_pct: float
+    ``kind`` is the visual role (``positive`` · ``split`` · ``negative``) the
+    stylesheet and legend key off; ``label`` discloses the exact composition
+    (the split segment folds mixed and neutral — the four-way counts stay in
+    the row's detail line).
+    """
+
+    kind: str
+    pct: float
+    label: str
 
 
 @dataclass(frozen=True, slots=True)
 class QuoteView:
-    """One verbatim evidence quote under an expanded aspect."""
+    """One verbatim evidence quote under an expanded aspect.
+
+    ``date_label`` is the quoted review's posting date, empty when the bundle
+    carries no record for the id (the quote still stands on its stored span).
+    """
 
     review_id: str
     sentiment: Sentiment
     text: str
+    date_label: str
 
 
 @dataclass(frozen=True, slots=True)
 class AspectRowView:
-    """One pinned aspect's display row: the bar, its whisker, and its receipts.
+    """One pinned aspect's display row: the stacked bar, its numbers, its receipts.
 
-    ``share_label`` is the honest number ("27.0% · 270 of 1,000 reviews");
-    ``bar_pct``/``whisker`` scale to the section's axis maximum so the bars
-    use the width without lying about the scale (the axis states its range).
+    ``share_label`` is the honest number with its uncertainty riding along
+    ("27.0% ±1.5 · 270 of 1,000 reviews" — the ± is the shipped interval's
+    half-width, an honest compaction of a not-quite-symmetric interval whose
+    exact bounds ride ``interval_title`` as the label's hover text).
+    ``segments`` scale to the section's axis maximum so the bars use the
+    width without lying about the scale (the axis states its range), and
+    carry the polarity split visibly — the share alone says how much talk,
+    the stack says what kind.
     """
 
     aspect: str
     reviews_with_aspect: int
     share_label: str
-    bar_pct: float
-    whisker: WhiskerView | None
+    interval_title: str | None
+    segments: tuple[BarSegment, ...]
     counts: SentimentCounts
     quotes: tuple[QuoteView, ...]
 
 
 @dataclass(frozen=True, slots=True)
 class AspectSectionView:
-    """The pinned-aspect table: rows over one stated axis."""
+    """The pinned-aspect table: visible rows over one stated axis, the
+    sub-floor tail folded behind ``tail_label`` (empty tail = no fold)."""
 
     rows: tuple[AspectRowView, ...]
+    tail: tuple[AspectRowView, ...]
+    tail_label: str
     axis_label: str
 
 
@@ -183,6 +229,7 @@ class ReportView:
     """The whole report page, ready to render top to bottom."""
 
     game_name: str
+    header_image_url: str
     provenance_line: str
     narrative: tuple[NarrativeSegment, ...]
     narrative_withheld: bool
@@ -190,20 +237,25 @@ class ReportView:
     candidates: CandidateSectionView
     timeline: TimelineView | None
     trust_entries: tuple[tuple[str, str], ...]
+    trust_open: bool
 
 
 @dataclass(frozen=True, slots=True)
 class ReportPageData:
     """What the composition root loads for one report page — the render bundle.
 
-    The report row, its frozen aggregate snapshot, and the membership-scoped
+    The report row, its frozen aggregate snapshot, the membership-scoped
     evidence pool (the same read the composer quoted from, so the page's
-    receipts and the narrative's grounding are one pool by construction).
+    receipts and the narrative's grounding are one pool by construction), and
+    the reviews that pool quotes — the sentence-expansion and date-stamp
+    source (an id absent from the map degrades that quote to its stored
+    span, undated).
     """
 
     report: Report
     aggregates: tuple[AspectAggregate, ...]
     evidence: tuple[EvidenceQuote, ...]
+    quoted_reviews: Mapping[str, Review]
 
 
 def provenance_line(report: Report) -> str:
@@ -253,6 +305,7 @@ def build_report_view(page: ReportPageData) -> ReportView:
     spiky = _regime(report)
     return ReportView(
         game_name=report.game_name,
+        header_image_url=_HEADER_ART.format(app_id=report.app_id),
         provenance_line=provenance_line(report),
         narrative=narrative_segments(report.narrative.prose, report.narrative.spans),
         narrative_withheld=report.narrative.outcome is NarrativeOutcome.WITHHELD,
@@ -260,6 +313,10 @@ def build_report_view(page: ReportPageData) -> ReportView:
         candidates=_candidate_section(page.aggregates),
         timeline=_timeline(report.histogram, report.episodes),
         trust_entries=_trust_entries(report, spiky),
+        # The panel folds by default (reference material), but a report whose
+        # calibrated bars are not certified must not hide that disclosure
+        # behind a click — the caveat forces it open.
+        trust_open=_marked_share(report) > MARKED_SHARE_FLOOR,
     )
 
 
@@ -283,7 +340,7 @@ def _aspect_section(page: ReportPageData, spiky: bool | None) -> AspectSectionVi
         (a for a in page.aggregates if a.slot is AspectSlot.PINNED),
         key=lambda a: (-a.reviews_with_aspect, a.aspect),
     )
-    quotes = _quotes_by_aspect(page.evidence)
+    quotes = _quotes_by_aspect(page.evidence, page.quoted_reviews)
     shares = {a.aspect: a.reviews_with_aspect / a.sample_size for a in pinned}
     intervals = {
         a.aspect: shipped_interval(a.reviews_with_aspect, a.sample_size, spiky=spiky)
@@ -293,43 +350,82 @@ def _aspect_section(page: ReportPageData, spiky: bool | None) -> AspectSectionVi
     edge = max(
         [
             *(shares.values()),
-            *(interval.high for interval in intervals.values()),
             0.10,  # a floor so a thin report still gets a readable axis
         ]
     )
     axis_max = _axis_ceiling(edge)
-    rows: list[AspectRowView] = []
+    rows: list[tuple[float, AspectRowView]] = []
     for aggregate in pinned:
         interval = intervals.get(aggregate.aspect)
+        plus_minus = (
+            ""
+            if interval is None
+            else f" ±{(interval.high - interval.low) / 2 * 100:.1f}"
+        )
         rows.append(
-            AspectRowView(
-                aspect=aggregate.aspect,
-                reviews_with_aspect=aggregate.reviews_with_aspect,
-                share_label=(
-                    f"{shares[aggregate.aspect]:.1%} · {aggregate.reviews_with_aspect:,}"
-                    f" of {aggregate.sample_size:,} reviews"
+            (
+                shares[aggregate.aspect],
+                AspectRowView(
+                    aspect=_display_name(aggregate.aspect),
+                    reviews_with_aspect=aggregate.reviews_with_aspect,
+                    share_label=(
+                        f"{shares[aggregate.aspect]:.1%}{plus_minus}"
+                        f" · {aggregate.reviews_with_aspect:,}"
+                        f" of {aggregate.sample_size:,} reviews"
+                    ),
+                    interval_title=(
+                        None
+                        if interval is None
+                        else f"sampling interval {interval.low:.1%}–{interval.high:.1%}"
+                    ),
+                    segments=_segments(
+                        aggregate.counts, aggregate.sample_size, axis_max
+                    ),
+                    counts=aggregate.counts,
+                    quotes=quotes.get(aggregate.aspect, ()),
                 ),
-                bar_pct=shares[aggregate.aspect] / axis_max * 100,
-                whisker=(
-                    None
-                    if interval is None
-                    else WhiskerView(
-                        low_pct=interval.low / axis_max * 100,
-                        high_pct=interval.high / axis_max * 100,
-                    )
-                ),
-                counts=aggregate.counts,
-                quotes=quotes.get(aggregate.aspect, ()),
             )
         )
-    whisker_note = (
-        "no whiskers — complete count"
+    interval_note = (
+        "exact counts — no sampling interval"
         if report.take_all
-        else "whiskers: Wilson + the calibrated allowance"
+        else "± is the sampling interval (Wilson + the calibrated allowance)"
     )
+    visible = [row for share, row in rows if share >= ASPECT_DISPLAY_FLOOR]
+    tail = [row for share, row in rows if share < ASPECT_DISPLAY_FLOOR]
+    if not visible:
+        visible, tail = tail, []
     return AspectSectionView(
-        rows=tuple(rows),
-        axis_label=f"share of sample, axis to {axis_max:.0%} · {whisker_note}",
+        rows=tuple(visible),
+        tail=tuple(tail),
+        tail_label=f"{len(tail)} more aspects under 1% of the sample",
+        axis_label=f"share of sample, axis to {axis_max:.0%} · {interval_note}",
+    )
+
+
+def _segments(
+    counts: SentimentCounts, sample_size: int, axis_max: float
+) -> tuple[BarSegment, ...]:
+    """The polarity stack for one bar: poles at the ends, the split fold between.
+
+    Widths share the bar's own scale (counts over ``sample_size``, stretched
+    to the section axis), so the segments tile exactly the length the share
+    claims; empty segments vanish rather than rendering zero-width slivers.
+    """
+    scale = 100 / (sample_size * axis_max)
+    parts = (
+        ("positive", counts.positive, f"{counts.positive:,} positive"),
+        (
+            "split",
+            counts.mixed + counts.neutral,
+            f"{counts.mixed:,} mixed · {counts.neutral:,} neutral",
+        ),
+        ("negative", counts.negative, f"{counts.negative:,} negative"),
+    )
+    return tuple(
+        BarSegment(kind=kind, pct=count * scale, label=label)
+        for kind, count, label in parts
+        if count > 0
     )
 
 
@@ -343,14 +439,26 @@ def _axis_ceiling(edge: float) -> float:
     return min(round(steps * 0.10, 2), 1.0)
 
 
+def _display_name(aspect: str) -> str:
+    """The ontology key as reader-facing text — underscores become spaces.
+
+    Display-only: stored identities, quote grouping, and the label pool all
+    keep the exact key (``voice_acting``); only the rendered row wears the
+    spaced form.
+    """
+    return aspect.replace("_", " ")
+
+
 def _quotes_by_aspect(
-    evidence: tuple[EvidenceQuote, ...]
+    evidence: tuple[EvidenceQuote, ...], quoted_reviews: Mapping[str, Review]
 ) -> dict[str, tuple[QuoteView, ...]]:
-    """Up to the display cap per aspect, dominant polarity first.
+    """Up to the display cap per aspect, dominant polarity first, each quote
+    expanded to its containing sentence and stamped with its review's date.
 
     Dominance is per-aspect majority over the evidence pool itself; the cap
     keeps rows grounded without dumping the pool (a display narrowing, judged
-    at the rendered-page checkpoint).
+    at the rendered-page checkpoint). Expansion runs only on the quotes that
+    survive the cap — the pool's spans stay as stored.
     """
     by_aspect: dict[str, list[EvidenceQuote]] = {}
     for quote in evidence:
@@ -364,11 +472,73 @@ def _quotes_by_aspect(
         ordered = sorted(
             enumerate(pool), key=lambda item: (item[1].sentiment is not dominant, item[0])
         )
-        capped[aspect] = tuple(
-            QuoteView(review_id=q.review_id, sentiment=q.sentiment, text=q.text)
-            for _, q in ordered[:QUOTES_PER_ASPECT]
-        )
+        views: list[QuoteView] = []
+        for _, q in ordered[:QUOTES_PER_ASPECT]:
+            review = quoted_reviews.get(q.review_id)
+            views.append(
+                QuoteView(
+                    review_id=q.review_id,
+                    sentiment=q.sentiment,
+                    text=sentence_display_text(
+                        q.text, None if review is None else review.text
+                    ),
+                    date_label=(
+                        "" if review is None else review.created_at.strftime("%b %d, %Y")
+                    ),
+                )
+            )
+        capped[aspect] = tuple(views)
     return capped
+
+
+_SENTENCE_BREAKS: Final = frozenset(".!?…\n")
+
+
+def sentence_display_text(span: str, review_text: str | None) -> str:
+    """``span`` grown to its containing sentence in ``review_text``, capped.
+
+    The evidence-display ruling made concrete: stored spans are minimal
+    verbatim substrings and read thin quoted bare, so the display walks out
+    to sentence boundaries (terminal punctuation or a line break — Steam
+    reviews often separate thoughts with newlines) and keeps the closing
+    mark. Purely read-side: a missing text, or a span the text no longer
+    contains, falls back to the stored span unchanged. Past the display cap
+    the sentence trims to a word-boundary window around the span, ellipses
+    marking the trims.
+    """
+    if review_text is None:
+        return span
+    at = review_text.find(span)
+    if at == -1:
+        return span
+    start = at
+    while start > 0 and review_text[start - 1] not in _SENTENCE_BREAKS:
+        start -= 1
+    end = at + len(span)
+    while end < len(review_text) and review_text[end] not in _SENTENCE_BREAKS:
+        end += 1
+    if end < len(review_text) and review_text[end] != "\n":
+        end += 1
+    sentence = review_text[start:end].strip()
+    return _window_around(sentence, span) if len(sentence) > QUOTE_DISPLAY_CHAR_CAP else sentence
+
+
+def _window_around(sentence: str, span: str) -> str:
+    """The over-cap trim: equal word-boundary margins around ``span``, ellipsized."""
+    margin = (QUOTE_DISPLAY_CHAR_CAP - len(span)) // 2
+    if margin <= 0:
+        return span
+    at = sentence.find(span)
+    lead, tail = sentence[:at], sentence[at + len(span) :]
+    if len(lead) > margin:
+        kept = lead[-margin:]
+        cut = kept.find(" ")
+        lead = "… " + (kept[cut + 1 :] if cut != -1 else kept)
+    if len(tail) > margin:
+        kept = tail[:margin]
+        cut = kept.rfind(" ")
+        tail = (kept[:cut] if cut != -1 else kept) + " …"
+    return lead + span + tail
 
 
 def _candidate_section(
@@ -380,7 +550,9 @@ def _candidate_section(
         key=lambda a: (-a.reviews_with_aspect, a.aspect),
     )
     recurring = tuple(
-        CandidateRowView(aspect=a.aspect, reviews_with_aspect=a.reviews_with_aspect)
+        CandidateRowView(
+            aspect=_display_name(a.aspect), reviews_with_aspect=a.reviews_with_aspect
+        )
         for a in candidates
         if a.reviews_with_aspect >= 2
     )
@@ -527,10 +699,10 @@ def _regime_entry(spiky: bool | None) -> str:
         return "exact counts — no sampling intervals to calibrate"
     if spiky:
         return (
-            "spiky (one window holds ≥ ⅔ of the pool) — whiskers widened by the "
+            "spiky (one window holds ≥ ⅔ of the pool) — intervals widened by the "
             "calibrated allowance"
         )
-    return "calm — Wilson whiskers, zero allowance needed at calibration"
+    return "calm — Wilson intervals, zero allowance needed at calibration"
 
 
 def _paths_entry(report: Report) -> str:
@@ -563,9 +735,14 @@ def _marked_entry(report: Report) -> str:
     )
 
 
-def _marked_share_entry(report: Report) -> str:
+def _marked_share(report: Report) -> float:
+    """The sample share drawn inside Steam-marked windows — the floor's input."""
     inside = sum(row.members_inside for row in report.marked_window_counts)
-    share = inside / report.sample_size if report.sample_size else 0.0
+    return inside / report.sample_size if report.sample_size else 0.0
+
+
+def _marked_share_entry(report: Report) -> str:
+    share = _marked_share(report)
     if share > MARKED_SHARE_FLOOR:
         return (
             f"{share:.1%} of sample inside marked windows — over the 2% floor; "

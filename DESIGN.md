@@ -1671,6 +1671,17 @@ micro-window variant gets its trigger judged here, at real rendered
 whiskers — calm ±2.5 and spiky ±15 seen with eyes, reopened only if that
 judgment fails.
 
+> **Outcome (2026-08-08).** The judgment ran at the step-6 build: the calm
+> case read live (the first real report, Baldur's Gate 3, n=711, Wilson
+> whiskers), the spiky case at the rendered fixture (the widths are the
+> ruled constants through the shipped seam — only the game was synthetic,
+> live whole-life pools smoothing spikes into rarity). Ruled acceptable:
+> the wide bar is the honesty working — rare, explained by the trust
+> panel's regime line, and preferable to more sampling machinery narrowing
+> a bar that is wide because the data is genuinely lumpy. **The
+> micro-window variant is closed permanently**; its last trigger fired and
+> did not trip.
+
 **Build-time rulings (step 6, 2026-08-08).** The renderer is the one
 swappable module: everything presentational — templates, static assets,
 view-model helpers — lives in ``serve.web``, attached over the JSON app by

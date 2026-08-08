@@ -6,11 +6,13 @@
   <p class="tagline">Type a game name, get the report.</p>
   <form class="search-form" id="search-form">
     <input type="search" id="search-input" name="q" placeholder="game name"
-           autocomplete="off" autofocus>
+           autocomplete="off" autofocus aria-label="game name">
     <button type="submit">Search</button>
   </form>
+  <p class="search-hint">A game analyzed for the first time takes a few minutes —
+    the page narrates the run live.</p>
   <p class="status" id="search-status" hidden></p>
   <ul class="results" id="search-results"></ul>
 </section>
-<script src="/static/search.js"></script>
+<script src="/static/search.js?v={{ static_v }}"></script>
 {% endblock %}

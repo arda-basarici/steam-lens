@@ -3,13 +3,37 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description"
+        content="SteamLens reads a game's Steam reviews and publishes an evidence-certified report — aspects, quotes, and a review timeline, every number traceable.">
   <title>{% block title %}steam-lens{% endblock %}</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <meta name="theme-color" content="#f9f9f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="/static/favicon.svg?v={{ static_v }}" type="image/svg+xml">
+  <link rel="preload" href="/static/fonts/literata-400-latin.woff2"
+        as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/static/fonts/literata-600-latin.woff2"
+        as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/static/fonts/ibm-plex-mono-400-latin.woff2"
+        as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/style.css?v={{ static_v }}">
 </head>
 <body>
-  <header class="site-header"><a href="/">steam-lens</a></header>
+  <header class="site-header">
+    <a class="wordmark" href="/">
+      <svg width="16" height="16" viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="12.5" fill="none" stroke="currentColor" stroke-width="3"/>
+        <circle cx="16" cy="16" r="5" fill="currentColor"/>
+      </svg>
+      steam-lens
+    </a>
+  </header>
   <main>
     {% block content %}{% endblock %}
   </main>
+  <footer class="site-footer">
+    <p>steam-lens reads a game's Steam reviews and publishes what it can certify —
+      every displayed number traces to a stored record.</p>
+    <p>Not affiliated with Valve or Steam. Game names and artwork belong to their owners.</p>
+  </footer>
 </body>
 </html>

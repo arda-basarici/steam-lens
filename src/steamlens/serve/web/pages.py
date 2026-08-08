@@ -15,9 +15,10 @@ safe; the render-side canary tests pin that wall in CI.
 
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Callable
 from pathlib import Path
-from typing import Final
+from typing import Final, cast
 
 from fastapi import APIRouter, FastAPI, Request, Response
 from fastapi.staticfiles import StaticFiles
@@ -27,6 +28,23 @@ from steamlens.serve.web.view import ReportPageData, build_report_view
 
 _TEMPLATES_DIR: Final = Path(__file__).parent / "templates"
 _STATIC_DIR: Final = Path(__file__).parent / "static"
+
+
+def _static_version() -> str:
+    """A short stamp over the static files' bytes — the cache-busting token.
+
+    Templates append it as ``?v=…`` on static links so a deploy that changes
+    any asset changes every URL, and a returning browser can never keep
+    running last deploy's script against this deploy's pages (the exact
+    stale-JS failure the first live-run watch hit, 2026-08-08). Content
+    beats mtime here: rebuilt-but-identical files keep their cache.
+    """
+    digest = hashlib.md5()
+    for path in sorted(_STATIC_DIR.rglob("*")):
+        if path.is_file():
+            digest.update(path.relative_to(_STATIC_DIR).as_posix().encode())
+            digest.update(path.read_bytes())
+    return digest.hexdigest()[:10]
 
 
 def attach_web(
@@ -46,6 +64,8 @@ def attach_web(
     all the server-side branch needs; everything else arrives over SSE).
     """
     templates = Jinja2Templates(directory=_TEMPLATES_DIR)
+    # The stub types env.globals to jinja's own builtins; it is a plain dict.
+    cast(dict[str, object], templates.env.globals)["static_v"] = _static_version()
     router = APIRouter()
 
     # The route functions are "unused" to a type checker — the decorators

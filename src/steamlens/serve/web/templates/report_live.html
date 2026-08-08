@@ -3,8 +3,9 @@
 {% block content %}
 <section class="live" data-app-id="{{ app_id }}">
   <h1 id="live-title">Analysis in progress</h1>
-  <p class="provenance">app {{ app_id }} — the page follows the job live and becomes the
-    report when it publishes</p>
+  <p class="provenance">app {{ app_id }} · elapsed <span id="live-elapsed">0:00</span>
+    — a fresh game typically takes a few minutes; the page follows the job live and
+    becomes the report when it publishes</p>
   <ol class="stages" id="live-stages"></ol>
   <p class="status" id="live-status" hidden></p>
   <details class="live-log">
@@ -12,5 +13,5 @@
     <ul id="live-log"></ul>
   </details>
 </section>
-<script src="/static/report_live.js"></script>
+<script src="/static/report_live.js?v={{ static_v }}"></script>
 {% endblock %}

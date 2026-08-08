@@ -23,6 +23,18 @@ const stageList = document.getElementById("live-stages");
 const statusLine = document.getElementById("live-status");
 const log = document.getElementById("live-log");
 
+// Honest time-awareness: elapsed since the page opened (the requester lands
+// here the moment the job queues), never a predicted remainder — there is no
+// calibrated timing model to mint one from.
+const elapsedLine = document.getElementById("live-elapsed");
+const openedAt = Date.now();
+setInterval(() => {
+  const seconds = Math.floor((Date.now() - openedAt) / 1000);
+  const minutes = Math.floor(seconds / 60);
+  elapsedLine.textContent =
+    `${minutes}:${String(seconds % 60).padStart(2, "0")}`;
+}, 1000);
+
 const rows = new Map();
 for (const [stage, label] of STAGES) {
   const item = document.createElement("li");
@@ -56,7 +68,12 @@ function onStage(payload) {
   }
   const line = document.createElement("li");
   line.textContent = `${payload.stage} ${payload.kind}: ${payload.message}`;
+  // Stick to the newest line unless the reader has scrolled up to study
+  // history — a pinned tail that fights manual scrolling reads as broken.
+  const pinned =
+    log.scrollTop + log.clientHeight >= log.scrollHeight - 24;
   log.append(line);
+  if (pinned) log.scrollTop = log.scrollHeight;
 }
 
 const source = new EventSource(`/analyses/${appId}/events`);

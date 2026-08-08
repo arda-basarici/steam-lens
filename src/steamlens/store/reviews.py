@@ -104,6 +104,30 @@ class ReviewStore:
         ).fetchone()
         return None if row is None else _review_from_row(row)
 
+    def get_many(self, review_ids: Collection[str]) -> dict[str, Review]:
+        """The stored reviews under ``review_ids`` as a map — absent ids simply missing.
+
+        The report page's quote-context read: the display grows each stored
+        evidence span to its containing sentence and stamps the review's
+        date, so the quoted reviews come back whole. Chunked well under
+        SQLite's default parameter ceiling; sorted so an identical id set
+        always renders identical SQL.
+        """
+        reviews: dict[str, Review] = {}
+        ordered = sorted(review_ids)
+        for i in range(0, len(ordered), 500):
+            chunk = ordered[i : i + 500]
+            placeholders = ", ".join("?" for _ in chunk)
+            rows = self._conn.execute(
+                f"SELECT {_REVIEW_COLUMNS} FROM reviews"
+                f" WHERE review_id IN ({placeholders})",
+                tuple(chunk),
+            )
+            for row in rows:
+                review = _review_from_row(row)
+                reviews[review.review_id] = review
+        return reviews
+
     def count(self, *, excluding_app_ids: Collection[int] = ()) -> int:
         """How many reviews the snapshot holds — the driver's denominator.
 

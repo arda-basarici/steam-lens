@@ -1,10 +1,47 @@
 {% extends "base.html" %}
 {% block title %}{{ view.game_name }} — steam-lens{% endblock %}
+{% macro aspect_row(row) %}
+      <li class="aspect-row">
+        <details>
+          <summary>
+            <span class="aspect-name">{{ row.aspect }}</span>
+            <span class="bar-track">
+              {%- for seg in row.segments -%}
+              <span class="seg seg-{{ seg.kind }}" title="{{ seg.label }}"
+                    style="width: {{ '%.2f' % seg.pct }}%"></span>
+              {%- endfor -%}
+            </span>
+            <span class="share-label"
+                  {%- if row.interval_title %} title="{{ row.interval_title }}"{% endif %}>{{ row.share_label }}</span>
+          </summary>
+          <div class="aspect-detail">
+            <p class="sentiment-line">{{ row.counts.positive }} positive ·
+              {{ row.counts.negative }} negative · {{ row.counts.mixed }} mixed ·
+              {{ row.counts.neutral }} neutral</p>
+            {% if row.quotes %}
+            <ul class="quotes">
+              {% for quote in row.quotes %}
+              <li class="quote quote-{{ quote.sentiment.value }}">
+                <blockquote>{{ quote.text }}</blockquote>
+                <span class="quote-meta">{{ quote.sentiment.value }}{% if quote.date_label %} · {{ quote.date_label }}{% endif %} · review {{ quote.review_id }}</span>
+              </li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <p class="placeholder">no stored evidence spans for this aspect</p>
+            {% endif %}
+          </div>
+        </details>
+      </li>
+{% endmacro %}
 {% block content %}
 <article class="report">
   <header class="report-header">
-    <h1>{{ view.game_name }}</h1>
-    <p class="provenance">{{ view.provenance_line }}</p>
+    <div class="report-title">
+      <h1>{{ view.game_name }}</h1>
+      <p class="provenance">{{ view.provenance_line }}</p>
+    </div>
+    <img class="capsule" src="{{ view.header_image_url }}" alt="" width="231" height="108">
   </header>
 
   <section class="narrative">
@@ -21,50 +58,31 @@
           {%- else -%}{{ seg.text }}{%- endif -%}
         {%- endfor -%}
       </p>
-      <p class="legend-line">highlighted spans are certified — quotes verbatim from reviews,
-        numerals matched to this job's minted numbers; plain text is model voice</p>
+      <p class="legend-line certificate-legend"><mark class="span-numeral">numbers</mark>
+        matched to this job's minted values · <mark class="span-quote">quotes</mark>
+        verbatim from reviews · plain text is model voice</p>
     {% endif %}
   </section>
 
   <section class="aspects">
     <h2>Aspects</h2>
     <p class="axis-note">{{ view.aspects.axis_label }}</p>
-    <ul class="aspect-rows">
-      {% for row in view.aspects.rows %}
-      <li class="aspect-row">
-        <details>
-          <summary>
-            <span class="aspect-name">{{ row.aspect }}</span>
-            <span class="bar-track">
-              <span class="bar-fill" style="width: {{ '%.2f' % row.bar_pct }}%"></span>
-              {% if row.whisker %}
-              <span class="whisker"
-                    style="left: {{ '%.2f' % row.whisker.low_pct }}%; width: {{ '%.2f' % (row.whisker.high_pct - row.whisker.low_pct) }}%"></span>
-              {% endif %}
-            </span>
-            <span class="share-label">{{ row.share_label }}</span>
-          </summary>
-          <div class="aspect-detail">
-            <p class="sentiment-line">{{ row.counts.positive }} positive ·
-              {{ row.counts.negative }} negative · {{ row.counts.mixed }} mixed ·
-              {{ row.counts.neutral }} neutral</p>
-            {% if row.quotes %}
-            <ul class="quotes">
-              {% for quote in row.quotes %}
-              <li class="quote quote-{{ quote.sentiment.value }}">
-                <blockquote>{{ quote.text }}</blockquote>
-                <span class="quote-meta">{{ quote.sentiment.value }} · review {{ quote.review_id }}</span>
-              </li>
-              {% endfor %}
-            </ul>
-            {% else %}
-            <p class="placeholder">no stored evidence spans for this aspect</p>
-            {% endif %}
-          </div>
-        </details>
-      </li>
-      {% endfor %}
+    <ul class="chart-legend sentiment-legend">
+      <li><span class="key key-positive"></span> positive</li>
+      <li><span class="key key-split"></span> mixed / neutral</li>
+      <li><span class="key key-negative"></span> negative</li>
     </ul>
+    <ul class="aspect-rows">
+      {% for row in view.aspects.rows %}{{ aspect_row(row) }}{% endfor %}
+    </ul>
+    {% if view.aspects.tail %}
+    <details class="aspect-tail">
+      <summary>{{ view.aspects.tail_label }}</summary>
+      <ul class="aspect-rows">
+        {% for row in view.aspects.tail %}{{ aspect_row(row) }}{% endfor %}
+      </ul>
+    </details>
+    {% endif %}
     {% if view.candidates.rows or view.candidates.singleton_count %}
     <div class="candidates">
       <h3>Emergent themes <span class="uncalibrated-tag">uncalibrated</span></h3>
@@ -112,7 +130,7 @@
       <text class="tick" x="{{ '%.2f' % x }}" y="{{ view.timeline.view_h - 8 }}">{{ label }}</text>
       {% endfor %}
     </svg>
-    <ul class="timeline-legend">
+    <ul class="chart-legend timeline-legend">
       <li><span class="key key-volume"></span> review volume</li>
       <li><span class="key key-episode"></span> unusual review volume (detected)</li>
       <li><span class="key key-valve"></span> Steam-marked period</li>
@@ -123,15 +141,20 @@
     {% endif %}
   </section>
 
-  <section class="trust-panel">
-    <h2>How this report was made</h2>
-    <dl>
-      {% for label, value in view.trust_entries %}
-      <dt>{{ label }}</dt>
-      <dd>{{ value }}</dd>
-      {% endfor %}
-    </dl>
-    <p class="axis-note">full methodology ships with the milestone write-up</p>
+  <section class="trust-section">
+    <details class="trust-panel"{% if view.trust_open %} open{% endif %}>
+      <summary>
+        <h2>How this report was made</h2>
+        <span class="toggle-badge" aria-hidden="true">?</span>
+      </summary>
+      <dl>
+        {% for label, value in view.trust_entries %}
+        <dt>{{ label }}</dt>
+        <dd>{{ value }}</dd>
+        {% endfor %}
+      </dl>
+      <p class="axis-note">full methodology ships with the milestone write-up</p>
+    </details>
   </section>
 </article>
 {% endblock %}

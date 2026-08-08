@@ -11,10 +11,11 @@ vanilla-JS layer must never build DOM from strings — those are exactly the
 two moves that would silently reopen what these tests pin shut.
 
 The no-element assertions lean on a structural fact: the report template
-itself contains no ``<script>`` or ``<img>`` today, so ANY occurrence in a
-rendered hostile page is an injection. If capsule art or an inline script
-legitimately joins the page later, tighten the assertion to count expected
-occurrences rather than deleting it.
+contains no ``<script>`` and exactly ONE ``<img>`` — the capsule art the
+header mints from the stored ``app_id`` (the aesthetics pass, 2026-08-08).
+Any script, any second image, or a capsule ``src`` that isn't the minted CDN
+URL is an injection. If another legitimate element joins the page, tighten
+the count again rather than deleting the assertion.
 """
 
 from __future__ import annotations
@@ -40,6 +41,7 @@ from steamlens.contracts import (
     NarrativeOutcome,
     Provenance,
     Report,
+    Review,
     RollupUnit,
     Sentiment,
     SentimentCounts,
@@ -100,6 +102,16 @@ def _hostile_page(text: str, *, review_id: str = "r1") -> ReportPageData:
                 sentiment=Sentiment.POSITIVE, text=text,
             ),
         ),
+        # The sentence-expansion surface: the displayed quote is the review
+        # sentence CONTAINING the span, so the hostile text must flow through
+        # the expansion path too, not just land verbatim.
+        quoted_reviews={
+            review_id: Review(
+                review_id=review_id, app_id=440, created_at=_STAMP,
+                language="english", voted_up=True,
+                text=f"Opening thought. Reviewers say {text} loudly. Coda.",
+            )
+        },
     )
 
 
@@ -119,12 +131,17 @@ def _render(page: ReportPageData) -> str:
 def test_canary_text_renders_inert_on_every_surface(canary: Canary) -> None:
     """The whole attack set through the real templates: whatever the text
     tried, no element or handler forms — markup arrives entity-escaped (the
-    quote surface shows the exact escaped text) and the page stays script- and
-    image-free, which on this template means injection-free."""
+    quote surface shows the exact escaped text) and the page carries no
+    script and exactly the one minted capsule image, which on this template
+    means injection-free."""
     html = _render(_hostile_page(canary.text))
     lowered = html.casefold()
     assert "<script" not in lowered
-    assert "<img" not in lowered
+    assert lowered.count("<img") == 1, "the capsule is the page's only image"
+    assert (
+        'src="https://shared.akamai.steamstatic.com/store_item_assets'
+        '/steam/apps/440/header.jpg"'
+    ) in html, "the one image is the minted capsule URL"
     assert "javascript:" not in lowered
     if any(ch in canary.text for ch in "<>&\""):
         assert canary.text not in html, "hostile text must not land verbatim"
@@ -147,6 +164,7 @@ def test_hostile_review_id_cannot_break_out_of_an_attribute() -> None:
         report=replace(page.report, narrative=hostile_span),
         aggregates=page.aggregates,
         evidence=page.evidence,
+        quoted_reviews=page.quoted_reviews,
     )
     html = _render(page)
     assert 'onmouseover="alert' not in html

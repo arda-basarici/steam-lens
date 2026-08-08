@@ -41,6 +41,7 @@ from steamlens.contracts import (
     PathOutcome,
     Provenance,
     Report,
+    Review,
     ReviewEvent,
     RollupUnit,
     Sentiment,
@@ -51,9 +52,11 @@ from steamlens.contracts import (
 from steamlens.core.allowance import shipped_interval
 from steamlens.serve.web import ReportPageData, attach_web
 from steamlens.serve.web.view import (
+    QUOTE_DISPLAY_CHAR_CAP,
     build_report_view,
     narrative_segments,
     provenance_line,
+    sentence_display_text,
 )
 
 _SERVE_DIR = Path(__file__).resolve().parent.parent / "src" / "steamlens" / "serve"
@@ -135,13 +138,24 @@ def _report(
     )
 
 
+def _review(review_id: str, text: str) -> Review:
+    return Review(
+        review_id=review_id, app_id=440, created_at=_STAMP,
+        language="english", text=text, voted_up=True,
+    )
+
+
 def _page(
     report: Report | None = None,
     aggregates: tuple[AspectAggregate, ...] = (),
     evidence: tuple[EvidenceQuote, ...] = (),
+    quoted_reviews: dict[str, Review] | None = None,
 ) -> ReportPageData:
     return ReportPageData(
-        report=report or _report(), aggregates=aggregates, evidence=evidence
+        report=report or _report(),
+        aggregates=aggregates,
+        evidence=evidence,
+        quoted_reviews=quoted_reviews or {},
     )
 
 
@@ -172,35 +186,78 @@ def test_narrative_cuts_exactly_along_the_certificate() -> None:
     assert segments[0].kind is None
 
 
-def test_aspect_rows_sort_by_weight_and_wear_certified_whiskers() -> None:
-    """Pinned rows sort by evidence weight; a calm sampled game's whisker IS
-    the shipped interval (certified seam, never re-derived), scaled to the
-    section's stated axis."""
+def test_aspect_rows_sort_by_weight_and_wear_certified_intervals() -> None:
+    """Pinned rows sort by evidence weight; a calm sampled game's ± IS the
+    shipped interval's half-width (certified seam, never re-derived), with
+    the exact bounds riding the label's hover title."""
     view = build_report_view(
         _page(aggregates=(_aggregate("story", 100), _aggregate("combat", 270)))
     )
     assert [row.aspect for row in view.aspects.rows] == ["combat", "story"]
     combat = view.aspects.rows[0]
-    assert combat.share_label.startswith("27.0%")
     interval = shipped_interval(270, 1_000, spiky=False)
-    assert combat.whisker is not None
-    # the axis rounds up to 30%, so pct positions are interval / 0.30 * 100
-    assert combat.whisker.low_pct == pytest.approx(interval.low / 0.30 * 100)
-    assert combat.whisker.high_pct == pytest.approx(interval.high / 0.30 * 100)
+    half_width = (interval.high - interval.low) / 2 * 100
+    assert combat.share_label.startswith(f"27.0% ±{half_width:.1f}")
+    assert combat.interval_title == (
+        f"sampling interval {interval.low:.1%}–{interval.high:.1%}"
+    )
     assert "axis to 30%" in view.aspects.axis_label
 
 
-def test_take_all_reports_render_no_whiskers() -> None:
-    """An exact count has no sampling error to price — no whisker, and the
-    axis note says complete count (the ruled display)."""
+def test_bar_segments_stack_the_polarity_split_on_the_bar_scale() -> None:
+    """The stack shows what kind of talk, not just how much: poles at the
+    ends, mixed+neutral folded between with its composition disclosed, empty
+    segments absent, widths tiling exactly the share's length on the axis."""
+    aggregate = AspectAggregate(
+        app_id=440, aspect="combat", slot=AspectSlot.PINNED, reviews_with_aspect=270,
+        counts=SentimentCounts(positive=200, negative=50, mixed=15, neutral=5),
+        sample_size=1_000, versions=_VERSIONS, manifest_id="serve-test",
+    )
+    view = build_report_view(_page(aggregates=(aggregate,)))
+    segments = view.aspects.rows[0].segments
+    assert [s.kind for s in segments] == ["positive", "split", "negative"]
+    assert segments[1].label == "15 mixed · 5 neutral"
+    # axis rounds to 30%: total width = 0.27 / 0.30 of the track
+    assert sum(s.pct for s in segments) == pytest.approx(0.27 / 0.30 * 100)
+    all_positive = _aggregate("story", 100)
+    story = build_report_view(_page(aggregates=(all_positive,))).aspects.rows[0]
+    assert [s.kind for s in story.segments] == ["positive"]
+
+
+def test_sub_floor_aspect_rows_fold_into_a_disclosed_tail() -> None:
+    """Rows under 1% of the sample fold behind a disclosed tail (never
+    dropped — the ± swallows values that small); a report where nothing
+    clears the floor keeps its rows visible instead of folding everything."""
+    view = build_report_view(
+        _page(
+            aggregates=(
+                _aggregate("combat", 270),
+                _aggregate("lore", 7),
+                _aggregate("physics", 1),
+            )
+        )
+    )
+    assert [row.aspect for row in view.aspects.rows] == ["combat"]
+    assert [row.aspect for row in view.aspects.tail] == ["lore", "physics"]
+    assert view.aspects.tail_label == "2 more aspects under 1% of the sample"
+    all_tiny = build_report_view(_page(aggregates=(_aggregate("lore", 7),)))
+    assert [row.aspect for row in all_tiny.aspects.rows] == ["lore"]
+    assert all_tiny.aspects.tail == ()
+
+
+def test_take_all_reports_render_no_intervals() -> None:
+    """An exact count has no sampling error to price — no ± on the label,
+    and the axis note says exact counts (the ruled display)."""
     view = build_report_view(
         _page(
             report=_report(take_all=True, sample_size=300),
             aggregates=(_aggregate("combat", 90, sample_size=300),),
         )
     )
-    assert view.aspects.rows[0].whisker is None
-    assert "complete count" in view.aspects.axis_label
+    row = view.aspects.rows[0]
+    assert "±" not in row.share_label
+    assert row.interval_title is None
+    assert "exact counts" in view.aspects.axis_label
 
 
 def test_candidate_stratum_folds_singletons() -> None:
@@ -238,6 +295,80 @@ def test_quotes_cap_at_three_dominant_polarity_first() -> None:
     assert len(quotes) == 3
     assert [q.sentiment for q in quotes] == [Sentiment.POSITIVE] * 3
     assert [q.review_id for q in quotes] == ["r1", "r2", "r3"]
+
+
+def test_aspect_names_display_without_underscores() -> None:
+    """Ontology keys are storage identity; the rendered row wears the spaced
+    form — the quotes still join on the exact stored key."""
+    evidence = (
+        EvidenceQuote(review_id="r1", aspect="voice_acting",
+                      sentiment=Sentiment.POSITIVE, text="superb voices"),
+    )
+    view = build_report_view(
+        _page(aggregates=(_aggregate("voice_acting", 24),), evidence=evidence)
+    )
+    row = view.aspects.rows[0]
+    assert row.aspect == "voice acting"
+    assert row.quotes[0].text == "superb voices"
+
+
+def test_trust_panel_opens_itself_when_certification_caveat_fires() -> None:
+    """The methodology panel folds by default (reference material), but a
+    marked-share breach of the 2% floor means the calibrated bars are not
+    certified — that disclosure is born visible, never behind the toggle."""
+    assert build_report_view(_page()).trust_open is False
+    marked = (MarkedWindowCount(start=_STAMP, end=_STAMP, members_inside=50),)
+    assert build_report_view(_page(report=_report(marked=marked))).trust_open is True
+
+
+def test_displayed_quotes_expand_to_their_containing_sentence() -> None:
+    """The evidence-display ruling: a stored minimal span reads thin quoted
+    bare, so the displayed quote is the review sentence containing it, dated
+    from the review — while a review the bundle carries no record for
+    degrades to the stored span, undated."""
+    evidence = (
+        EvidenceQuote(review_id="r1", aspect="combat",
+                      sentiment=Sentiment.POSITIVE, text="razor sharp"),
+        EvidenceQuote(review_id="r2", aspect="combat",
+                      sentiment=Sentiment.POSITIVE, text="great gunplay"),
+    )
+    quoted = {
+        "r1": _review("r1", "Long intro thought. The combat feels razor sharp at night! More.")
+    }
+    view = build_report_view(
+        _page(aggregates=(_aggregate("combat", 270),), evidence=evidence,
+              quoted_reviews=quoted)
+    )
+    quotes = view.aspects.rows[0].quotes
+    assert [q.text for q in quotes] == [
+        "The combat feels razor sharp at night!",
+        "great gunplay",
+    ]
+    assert quotes[0].date_label == "Aug 01, 2026"
+    assert quotes[1].date_label == ""
+
+
+def test_sentence_expansion_breaks_on_newlines_and_keeps_terminal_marks() -> None:
+    """Steam reviews often separate thoughts with bare newlines — a line is a
+    sentence for display, and terminal punctuation stays with its sentence."""
+    text = "story is great\nthe grind killed it for me\n10/10 anyway"
+    assert (
+        sentence_display_text("grind killed", text) == "the grind killed it for me"
+    )
+
+
+def test_sentence_expansion_caps_punctuation_poor_walls() -> None:
+    """A review with no terminal punctuation must not expand a two-word span
+    into the whole text: past the cap the display trims to a word-boundary
+    window around the span, ellipses marking the trims openly."""
+    wall = " ".join(f"word{i}" for i in range(120)) + " the span here " + " ".join(
+        f"tail{i}" for i in range(120)
+    )
+    shown = sentence_display_text("span here", wall)
+    assert len(shown) <= QUOTE_DISPLAY_CHAR_CAP + len("…  …")
+    assert "span here" in shown
+    assert shown.startswith("… ")
+    assert shown.endswith(" …")
 
 
 def test_timeline_maps_buckets_and_marker_layers_to_one_scale() -> None:
@@ -386,7 +517,7 @@ def test_live_job_renders_the_narration_page() -> None:
     live = _get(_page_app(None, live=True), "/reports/570")
     assert live.status_code == 200
     assert 'data-app-id="570"' in live.text
-    assert '<script src="/static/report_live.js">' in live.text
+    assert '<script src="/static/report_live.js?v=' in live.text
 
     published = _get(_page_app(_page(), live=True), "/reports/440")
     assert published.status_code == 200
@@ -400,7 +531,7 @@ def test_search_page_serves_at_the_root() -> None:
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/html")
     assert "Type a game name" in response.text
-    assert '<script src="/static/search.js">' in response.text
+    assert '<script src="/static/search.js?v=' in response.text
 
 
 def test_hostile_review_content_renders_inert() -> None:

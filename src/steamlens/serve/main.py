@@ -80,16 +80,20 @@ def build_app() -> FastAPI:
             report = store.reports.latest_report(app_id)
             if report is None:
                 return None
+            evidence = tuple(
+                EvidenceQuote(
+                    review_id=review_id, aspect=aspect, sentiment=sentiment, text=text
+                )
+                for review_id, aspect, sentiment, text in (
+                    store.labels.iter_member_evidence(report.run.run_id, report.versions)
+                )
+            )
             return ReportPageData(
                 report=report,
                 aggregates=store.reports.get_snapshot(report.run.run_id),
-                evidence=tuple(
-                    EvidenceQuote(
-                        review_id=review_id, aspect=aspect, sentiment=sentiment, text=text
-                    )
-                    for review_id, aspect, sentiment, text in (
-                        store.labels.iter_member_evidence(report.run.run_id, report.versions)
-                    )
+                evidence=evidence,
+                quoted_reviews=store.reviews.get_many(
+                    {quote.review_id for quote in evidence}
                 ),
             )
 
