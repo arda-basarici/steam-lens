@@ -1,6 +1,7 @@
 # --- secrets (never in source; env or secret store only) ---
 .env
 .env.*
+!.env.example
 *.pem
 *.key
 

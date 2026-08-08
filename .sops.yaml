@@ -1,0 +1,16 @@
+# SOPS creation rules — which files get encrypted, and to whom.
+#
+# SOPS encrypts the VALUES in a matched file and leaves the keys and
+# structure readable, so a git diff shows which secret changed and when,
+# never the plaintext. Only PUBLIC age keys appear here: a public key can
+# encrypt but never decrypt, so publishing it (and committing this file) is
+# safe by design. Decryption needs the matching private key
+# (~/.config/sops/age/keys.txt on the admin workstation), which never leaves
+# it and is never committed.
+#
+# Today there is one recipient (the admin workstation). Adding the box as a
+# second recipient later is one more `age:` line here plus `sops updatekeys
+# deploy/box/secrets.enc.env` — the values are re-wrapped, never re-entered.
+creation_rules:
+  - path_regex: deploy/box/secrets\.enc\.env$
+    age: age15zv5z24wpuvnm505x4rwc60g79glmq88s370d4jrg7psga0fep0q4xvufr

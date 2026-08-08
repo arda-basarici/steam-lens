@@ -94,3 +94,45 @@ rollback is pointing the compose file at the previous sha tag:
 ```sh
 cd /srv/steamlens && docker compose pull && docker compose up -d
 ```
+
+## Secrets (SOPS + age)
+
+Secrets live encrypted *in the repo* as `deploy/box/secrets.enc.env`,
+encrypted with SOPS (github.com/getsops/sops) to an age
+(age-encryption.org) key. SOPS encrypts the values and leaves the keys
+readable, so the file is safe to commit and a diff shows *which* secret
+changed, never the plaintext. Decryption happens only on the admin
+workstation — the box holds no age key, so a compromised box yields the one
+plaintext `.env` it already runs, never the key to the secrets history.
+
+Workstation prerequisites: `age` and `sops` installed, the private key at
+`~/.config/sops/age/keys.txt` (**backed up off-machine** — losing it makes the
+encrypted file unrecoverable), and the recipients declared in `.sops.yaml` at
+the repo root.
+
+Edit a secret (rotate the key, add a variable) — opens the decrypted values in
+`$EDITOR`, re-encrypts on save:
+
+```sh
+sops deploy/box/secrets.enc.env
+```
+
+Push the current secrets to the box (after an edit, or to provision a fresh
+box) — decrypt on the workstation, write the box's `.env`, restart:
+
+```sh
+sops -d deploy/box/secrets.enc.env | \
+  ssh steamlens 'cat > /srv/steamlens/.env && chmod 600 /srv/steamlens/.env \
+    && cd /srv/steamlens && docker compose up -d'
+```
+
+The `steamlens` alias lives in the workstation's `~/.ssh/config`. If `sops`
+and `ssh` sit in different environments (e.g. `sops` in WSL, the ssh alias in
+Windows), either add the alias to the sops environment, or bridge with a temp
+file on a shared path (`sops -d … > /mnt/c/…/env.tmp`, `scp` it from the side
+that has the alias, delete it after).
+
+Add the box as its own decryptor (optional, later): generate an age key on the
+box, add its public key as a second `age:` recipient in `.sops.yaml`, run
+`sops updatekeys deploy/box/secrets.enc.env`, and the box decrypts at deploy
+without the workstation in the loop.
