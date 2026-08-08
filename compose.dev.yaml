@@ -1,0 +1,24 @@
+# Laptop overlay — what development adds to the box shape and production
+# never sees: building the image from the working tree and a localhost-only
+# published port for browser checks without the proxy in front.
+#
+#   docker compose -f compose.yaml -f compose.dev.yaml up --build
+#
+# The base file's `web` network must exist locally too (one-time
+# `docker network create web`) — the dress rehearsal uses the box's shape,
+# not a parallel dev topology.
+services:
+  app:
+    build:
+      context: .
+      args:
+        # Honest identity even for laptop builds — dev containers write real
+        # reports into the real store. Set it in the invoking shell:
+        #   PowerShell: $env:CODE_VERSION = "$(git rev-parse --short HEAD)+dirty"
+        CODE_VERSION: ${CODE_VERSION:?set CODE_VERSION to git rev-parse --short HEAD (+dirty if the tree has changes)}
+    image: steamlens:dev
+    # A crashed dev container should stay down and show its logs, not
+    # respawn in a loop under the terminal.
+    restart: "no"
+    ports:
+      - "127.0.0.1:8000:8000"

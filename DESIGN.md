@@ -1656,17 +1656,27 @@ charts.
 provenance one-liner (analysis date, sample-of-population, path, language
 note); the composed narrative with mint citations rendered visually distinct
 from prose — the reader sees what is model voice versus minted fact; the
-aspect table as share bars with interval whiskers drawn (Wilson plus the
-regime allowance; take-all games show no whisker and read "complete count"),
-each aspect expanding to verbatim evidence quotes, the candidate stratum
-below honestly marked emergent-uncalibrated; the all-language timeline with
-episode markers and Valve-marked windows as separate layers; and the trust
-panel — the protected element under any schedule pressure — carrying the
-sample method, the interval regime this game got, language mix, marked-share
-state against the 2% floor, the published instrument numbers (classifier F1
-with CI, misattribution rate, judge agreement), the versions triple, and the
-methodology link. During a cold job the page *is* the narration: stage
-progress streaming, sections filling in as their data lands. The parked
+aspect table as polarity-stacked share bars (the diverging blue/red pair,
+mixed+neutral folded gray — the share says how much talk, the stack says
+what kind) with the interval carried as the share label's ± (Wilson plus the
+regime allowance, half-width; exact bounds on hover; take-all games show no
+± and read "exact counts") and sub-1% rows folded behind a disclosed tail,
+each aspect expanding to verbatim evidence quotes — sentence-expanded from
+the review at display time and dated — the candidate stratum below honestly
+marked emergent-uncalibrated; the all-language timeline with episode markers
+and Valve-marked windows as separate layers; and the trust panel — the
+protected element under any schedule pressure, folded as reference material
+but born open whenever the marked-share caveat says the calibrated bars are
+not certified — carrying the sample method, the interval regime this game
+got, language mix, marked-share state against the 2% floor, the published
+instrument numbers (classifier F1 with CI, misattribution rate, judge
+agreement), the versions triple, and the methodology link. (The aspect
+table's encoding was re-ruled at the aesthetics pass, 2026-08-08: drawn
+whisker hardware read badly and a shaded interval band proved confusable
+with the gray polarity segment, so uncertainty moved off the chart into the
+label; the polarity stack answered the "13.5% of what kind of talk?" gap.)
+During a cold job the page *is* the narration: stage progress streaming,
+sections filling in as their data lands. The parked
 micro-window variant gets its trigger judged here, at real rendered
 whiskers — calm ±2.5 and spiky ±15 seen with eyes, reopened only if that
 judgment fails.

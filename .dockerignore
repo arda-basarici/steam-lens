@@ -1,0 +1,11 @@
+# Allowlist: the image needs exactly the source and the lockfile pair.
+# Everything else — data/ (the live DB never ships in an image), studies,
+# docs, eval runs, git history — stays out of the build context by default,
+# so a new top-level file is excluded until deliberately added here.
+*
+!src
+!pyproject.toml
+!uv.lock
+
+# Re-excluded from within the allowed tree.
+src/**/__pycache__

@@ -1,0 +1,29 @@
+# The box shape of the steamlens stack (DESIGN, "The box"): the app is one
+# service on the shared proxy network, running the image CI published — this
+# file deliberately carries no `build:`, so the 4 GB box can never become a
+# build server by a stray command. Local development layers compose.dev.yaml
+# on top (`docker compose -f compose.yaml -f compose.dev.yaml up`) for
+# build-from-source and a published port.
+name: steamlens
+
+services:
+  app:
+    image: ghcr.io/arda-basarici/steamlens:latest
+    # DEEPSEEK_API_KEY lives in a git-ignored .env beside this file (see
+    # .env.example) — never in the image, never in source.
+    env_file: .env
+    restart: unless-stopped
+    volumes:
+      # SQLite on the host disk: outlives every container rebuild, readable
+      # by the nightly backup without entering Docker. The image's /data is
+      # empty by construction; this mount is the only writable state.
+      - ./data:/data
+    networks:
+      - web
+
+networks:
+  # Owned by the box's Caddy stack (deploy/box/), shared across projects —
+  # created once per host: `docker network create web`. Caddy reaches the app
+  # as `steamlens-app-1:8000`; nothing is published to the host directly.
+  web:
+    external: true

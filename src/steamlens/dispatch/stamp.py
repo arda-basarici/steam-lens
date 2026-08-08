@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 import uuid
 from collections.abc import Mapping
@@ -19,12 +20,19 @@ from pathlib import Path
 
 
 def code_version() -> str:
-    """The repo's short commit sha, ``+dirty`` when the tree has changes.
+    """The code identity stamp: the baked build stamp when set, else git.
 
     Provenance is a design pillar — a run that cannot state what code produced
-    it refuses to start, so a failed ``git`` call raises rather than stamping
-    ``unknown``.
+    it refuses to start, so with neither source available this raises rather
+    than stamping ``unknown``. ``STEAMLENS_CODE_VERSION`` carries identity
+    where no repo exists at runtime: an image's contents freeze at build time,
+    so the Dockerfile bakes the sha in then (and refuses to build without
+    one). Anywhere with a working tree — dev, CI — asks git, ``+dirty`` when
+    the tree has changes.
     """
+    baked = os.environ.get("STEAMLENS_CODE_VERSION")
+    if baked:
+        return baked
     repo = Path(__file__).resolve().parents[3]
     sha = subprocess.run(
         ["git", "rev-parse", "--short", "HEAD"],

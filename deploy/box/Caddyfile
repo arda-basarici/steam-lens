@@ -1,0 +1,15 @@
+# One stanza per project on the box. `:80` is the bare-IP phase (DESIGN: the
+# domain is deferred to launch) — when the hostname moment comes, this line
+# becomes the domain and Caddy takes care of HTTPS on its own; nothing else
+# changes.
+:80 {
+	# The app by its compose DNS name on the shared `web` network — nothing
+	# is published from the app container itself.
+	#
+	# flush_interval -1 disables response buffering, which the live-analysis
+	# narration needs: SSE frames must reach the browser the moment the job
+	# emits them, not when a buffer fills.
+	reverse_proxy steamlens-app-1:8000 {
+		flush_interval -1
+	}
+}
