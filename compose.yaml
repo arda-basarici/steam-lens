@@ -8,7 +8,7 @@ name: steamlens
 
 services:
   app:
-    image: ghcr.io/arda-basarici/steamlens:latest
+    image: ghcr.io/arda-basarici/steam-lens:latest
     # DEEPSEEK_API_KEY lives in a git-ignored .env beside this file (see
     # .env.example) — never in the image, never in source.
     env_file: .env
