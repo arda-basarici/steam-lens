@@ -22,6 +22,7 @@ from steamlens.steam_client.parse import (
     parse_appdetails,
     parse_histogram,
     parse_review_page,
+    parse_storesearch,
     review_from_raw,
 )
 from steamlens.steam_client.transport import SteamTransport
@@ -40,6 +41,7 @@ __all__ = [
     "parse_review_page",
     "parse_histogram",
     "parse_appdetails",
+    "parse_storesearch",
     "review_from_raw",
     "ReviewPage",
     "QuerySummary",

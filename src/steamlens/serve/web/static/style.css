@@ -45,6 +45,39 @@ main {
   margin-top: 2rem;
 }
 
+.status {
+  color: #555;
+}
+
+.results {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.result {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  text-align: left;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.result:hover {
+  border-color: #999;
+}
+
+.result img {
+  height: 2rem;
+}
+
 .trust-panel dl {
   display: grid;
   grid-template-columns: max-content 1fr;

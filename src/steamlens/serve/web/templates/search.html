@@ -4,11 +4,13 @@
 <section class="search">
   <h1>steam-lens</h1>
   <p class="tagline">Type a game name, get the report.</p>
-  <form class="search-form">
-    <input type="search" name="q" placeholder="game name" disabled>
-    <button type="submit" disabled>Analyze</button>
+  <form class="search-form" id="search-form">
+    <input type="search" id="search-input" name="q" placeholder="game name"
+           autocomplete="off" autofocus>
+    <button type="submit">Search</button>
   </form>
-  <p class="note">Search lands with the next build chunk — until then a report opens directly at
-    <code>/reports/&lt;app id&gt;</code>.</p>
+  <p class="status" id="search-status" hidden></p>
+  <ul class="results" id="search-results"></ul>
 </section>
+<script src="/static/search.js"></script>
 {% endblock %}

@@ -55,6 +55,7 @@ from steamlens.contracts.reviews import Review
 from steamlens.contracts.sampling import FetchPlan, PlannedWindow, SamplingPolicy
 from steamlens.contracts.steam import (
     GameRef,
+    GameSearchHit,
     HistogramBucket,
     HistogramSnapshot,
     ReviewEvent,
@@ -88,6 +89,7 @@ __all__ = [
     "Review",
     # steam door
     "GameRef",
+    "GameSearchHit",
     "HistogramBucket",
     "HistogramSnapshot",
     "ReviewEvent",

@@ -114,11 +114,13 @@ def test_unanalyzed_game_gets_an_honest_404_page() -> None:
 
 
 def test_search_page_serves_at_the_root() -> None:
-    """The front door: GET / is the search page, HTML, spine sentence on it."""
+    """The front door: GET / is the search page, HTML, spine sentence on it,
+    with the search flow's script wired in."""
     response = _get(_page_app(None), "/")
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/html")
     assert "Type a game name" in response.text
+    assert '<script src="/static/search.js">' in response.text
 
 
 def test_hostile_review_content_renders_inert() -> None:

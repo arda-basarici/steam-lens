@@ -1,8 +1,9 @@
-"""The Steam door's operations — the three answers, composed over one chokepoint.
+"""The Steam door's operations — the four answers, composed over one chokepoint.
 
-``SteamClient`` is the surface callers hold: resolve a game (appdetails + the
-identity guard + the one-request totals read), snapshot its review histogram,
-and fetch a date window of reviews. Every operation speaks through an
+``SteamClient`` is the surface callers hold: search the storefront by name,
+resolve a game (appdetails + the identity guard + the one-request totals
+read), snapshot its review histogram, and fetch a date window of reviews.
+Every operation speaks through an
 injected ``SteamTransport``, so pacing, retries, and the typed failure
 taxonomy are inherited by construction — no operation can be impolite or
 trust a transient, and every client built over the same transport shares one
@@ -20,6 +21,7 @@ from typing import Final
 
 from steamlens.contracts import (
     GameRef,
+    GameSearchHit,
     HistogramSnapshot,
     PathOutcome,
     StageEvent,
@@ -35,11 +37,13 @@ from steamlens.steam_client.parse import (
     parse_appdetails,
     parse_histogram,
     parse_review_page,
+    parse_storesearch,
 )
 from steamlens.steam_client.transport import SteamTransport
 from steamlens.steam_client.walk import WalkTally, walk_pages
 
 _APPDETAILS_URL: Final = "https://store.steampowered.com/api/appdetails"
+_STORESEARCH_URL: Final = "https://store.steampowered.com/api/storesearch/"
 _REVIEWS_URL: Final = "https://store.steampowered.com/appreviews/{app_id}"
 _HISTOGRAM_URL: Final = "https://store.steampowered.com/appreviewhistogram/{app_id}"
 
@@ -87,6 +91,22 @@ class SteamClient:
     def config(self) -> SteamClientConfig:
         """The shared dial (the transport's) — page size drives callers' cost estimates."""
         return self._config
+
+    def search_games(self, term: str) -> tuple[GameSearchHit, ...]:
+        """Pickable games for a typed name — one paced storefront search.
+
+        The resolution step of "type a game name, get the report": the viewer
+        picks from these hits, and the pick becomes the analysis request the
+        identity guard re-checks. Wire shape probe-validated
+        (``probes/storesearch_probe.py``, 2026-08-08): canonical names resolve
+        at rank 0, unicode terms survive, an unknown term answers an empty
+        tuple. ``l=english`` matches the product's English-only frame;
+        ``cc=US`` shapes only the price field, which the parse drops.
+        """
+        payload = self._transport.get_json(
+            _STORESEARCH_URL, {"term": term, "l": "english", "cc": "US"}
+        )
+        return parse_storesearch(payload)
 
     def resolve_game(self, app_id: int, expected_name: str) -> GameRef:
         """What the store says ``app_id`` is — guard verdict and totals included.

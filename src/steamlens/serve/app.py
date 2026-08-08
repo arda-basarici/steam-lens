@@ -31,14 +31,16 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Annotated
 
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Query, Response
 from fastapi.responses import StreamingResponse
 
-from steamlens.contracts import Report
+from steamlens.contracts import GameSearchHit, Report
 from steamlens.serve.config import ServeConfig
 from steamlens.serve.jobs import JobQueue, JobState
 from steamlens.serve.sse import stream_job
+from steamlens.steam_client import SteamClientError
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,6 +93,7 @@ def create_app(
     queue: JobQueue,
     config: ServeConfig,
     latest_report: Callable[[int], Report | None],
+    search_games: Callable[[str], tuple[GameSearchHit, ...]],
     *,
     on_shutdown: Sequence[Callable[[], None]] = (),
 ) -> FastAPI:
@@ -103,10 +106,30 @@ def create_app(
     is the persistence layer's instant read
     (``ReportLog.latest_report`` behind whatever store lifetime the
     composition root chooses) — injected as a callable so this module keeps
-    zero knowledge of SQLite. ``config`` carries the SSE dials so a test can
-    tighten the poll tick without touching production defaults.
+    zero knowledge of SQLite; ``search_games`` is the Steam door's storefront
+    search behind the same discipline (the route knows nothing of pacing or
+    the transport — a failure there surfaces as an honest 502). ``config``
+    carries the SSE dials so a test can tighten the poll tick without
+    touching production defaults.
     """
     app = FastAPI(title="steam-lens", on_shutdown=list(on_shutdown))
+
+    @app.get("/search")
+    def search(  # pyright: ignore[reportUnusedFunction]
+        q: Annotated[str, Query(min_length=1, max_length=200)],
+    ) -> tuple[GameSearchHit, ...]:
+        """Typed hits for a game-name query — resolution, never job creation.
+
+        Read-only and spend-free by construction: the only job creator stays
+        ``POST /analyses``. The storefront failing is the one error translated
+        here — 502, because the upstream broke, not the request.
+        """
+        try:
+            return search_games(q)
+        except SteamClientError as exc:
+            raise HTTPException(
+                status_code=502, detail=f"storefront search unavailable: {exc}"
+            ) from exc
 
     # The route functions are "unused" to a type checker — the decorators
     # register them with the app; the suppressions state that, nothing more.

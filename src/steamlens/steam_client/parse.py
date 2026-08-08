@@ -23,6 +23,7 @@ from datetime import UTC, datetime
 from typing import cast
 
 from steamlens.contracts import (
+    GameSearchHit,
     HistogramBucket,
     HistogramSnapshot,
     Review,
@@ -161,6 +162,43 @@ def parse_appdetails(payload: Mapping[str, object], app_id: int) -> str | None:
             f"appdetails[{app_id}]: name is {name!r}, expected a non-empty string"
         )
     return name
+
+
+def parse_storesearch(payload: Mapping[str, object]) -> tuple[GameSearchHit, ...]:
+    """One storesearch response as typed hits, ``app``-type rows only.
+
+    Bundles (``type: "sub"``) are dropped here — a sub id is not an app id,
+    so offering one would request an analysis of nothing. DLC and
+    soundtracks pass through: the wire carries no field separating them from
+    base games (probed 2026-08-08), so the filter is the viewer's pick plus
+    the identity guard downstream. An unknown term is an empty tuple
+    (``total: 0`` with an empty ``items`` — a finding, not a failure); a
+    malformed item fails loud with its position named.
+    """
+    hits: list[GameSearchHit] = []
+    for position, item in enumerate(_list_field(payload, "items", optional=True)):
+        row = _object_field(item, f"storesearch items[{position}]")
+        if row.get("type") != "app":
+            continue
+        name = row.get("name")
+        capsule = row.get("tiny_image")
+        if not isinstance(name, str) or not name:
+            raise SteamResponseError(
+                f"storesearch items[{position}]: name is {name!r}, expected a non-empty string"
+            )
+        if not isinstance(capsule, str):
+            raise SteamResponseError(
+                f"storesearch items[{position}]: tiny_image is {type(capsule).__name__}, "
+                "expected a string"
+            )
+        hits.append(
+            GameSearchHit(
+                app_id=_int_field(row, "id", f"storesearch items[{position}]"),
+                name=name,
+                capsule_url=capsule,
+            )
+        )
+    return tuple(hits)
 
 
 def parse_histogram(

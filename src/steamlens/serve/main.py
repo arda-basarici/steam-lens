@@ -76,7 +76,9 @@ def build_app() -> FastAPI:
             return store.reports.latest_report(app_id)
 
     queue = JobQueue(run_job)
-    app = create_app(queue, config, latest_report, on_shutdown=[queue.close])
+    app = create_app(
+        queue, config, latest_report, steam.search_games, on_shutdown=[queue.close]
+    )
     attach_web(app, latest_report)
     return app
 

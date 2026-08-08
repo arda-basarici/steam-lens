@@ -1,6 +1,7 @@
 """The Steam-door records — what the live client answers with.
 
-Three operations, three answers: resolving a game yields a ``GameRef``, reading
+Four operations, four answers: searching the storefront yields
+``GameSearchHit`` rows, resolving a game yields a ``GameRef``, reading
 its review histogram yields a ``HistogramSnapshot``, and fetching a date window
 of reviews yields a ``WindowFetchResult``. The window params and much of the
 review API are undocumented, so these records are built to carry their own
@@ -20,6 +21,25 @@ from datetime import datetime
 
 from steamlens.contracts.enums import IdentityVerdict, PathOutcome, RollupUnit
 from steamlens.contracts.reviews import Review
+
+
+@dataclass(frozen=True, slots=True)
+class GameSearchHit:
+    """One storefront search result — the resolution step of "type a game name".
+
+    The search page offers these for the viewer to pick from; the pick's
+    ``app_id`` and ``name`` become the analysis request, where the identity
+    guard re-checks them against the store. Only ``app``-type rows become
+    hits (a bundle id is not an app id); DLC and soundtracks stay in because
+    the wire carries no field that separates them from base games — the
+    honest filter is the viewer's own pick plus the guard downstream.
+    ``capsule_url`` is Steam's own capsule image for the results list —
+    displayed from their CDN, never fetched by us.
+    """
+
+    app_id: int
+    name: str
+    capsule_url: str
 
 
 @dataclass(frozen=True, slots=True)

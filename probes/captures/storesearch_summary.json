@@ -1,0 +1,892 @@
+[
+ {
+  "term": "team fortress",
+  "why": "canonical name, ancient big game",
+  "expected_id": 440,
+  "found_rank": 0,
+  "total": 10,
+  "item_count": 10,
+  "distinct_key_sets": [
+   [
+    "controller_support",
+    "id",
+    "metascore",
+    "name",
+    "platforms",
+    "streamingvideo",
+    "tiny_image",
+    "type"
+   ],
+   [
+    "id",
+    "metascore",
+    "name",
+    "platforms",
+    "streamingvideo",
+    "tiny_image",
+    "type"
+   ],
+   [
+    "id",
+    "metascore",
+    "name",
+    "platforms",
+    "price",
+    "streamingvideo",
+    "tiny_image",
+    "type"
+   ]
+  ],
+  "body": {
+   "total": 10,
+   "items": [
+    {
+     "type": "app",
+     "name": "Team Fortress 2",
+     "id": 440,
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/440/capsule_231x87.jpg?t=1757348372",
+     "metascore": "92",
+     "platforms": {
+      "windows": true,
+      "mac": false,
+      "linux": true
+     },
+     "streamingvideo": false
+    },
+    {
+     "type": "app",
+     "name": "Team Fortress 2 Classified",
+     "id": 3545060,
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3545060/2e58bd3c1e9bf8b150a71f26e4eff45a811b5124/capsule_231x87.jpg?t=1785519377",
+     "metascore": "",
+     "platforms": {
+      "windows": true,
+      "mac": false,
+      "linux": true
+     },
+     "streamingvideo": false
+    },
+    {
+     "type": "app",
+     "name": "Team Fortress 2 Legacy",
+     "id": 2635440,
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2635440/62fd8ba10401c2c0224712bfa9617fe35be690e9/capsule_231x87.jpg?t=1763743452",
+     "metascore": "",
+     "platforms": {
+      "windows": true,
+      "mac": true,
+      "linux": true
+     },
+     "streamingvideo": false
+    },
+    {
+     "type": "app",
+     "name": "Team Fortress 2: Rebalanced",
+     "id": 4212660,
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4212660/945d454630037f999485650777f1b7365ca4edc6/capsule_231x87.jpg?t=1777727219",
+     "metascore": "",
+     "platforms": {
+      "windows": true,
+      "mac": false,
+      "linux": true
+     },
+     "streamingvideo": false
+    },
+    {
+     "type": "app",
+     "name": "Team Fortress 2: Gold Rush",
+     "id": 3826520,
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3826520/ad71b2b0a88c0d0491cdee300f8b0e7a5b5c01f5/capsule_231x87.jpg?t=1763915699",
+     "metascore": "",
+     "platforms": {
+      "windows": true,
+      "mac": false,
+      "linux": true
+     },
+     "streamingvideo": false
+    },
+    {
+     "type": "app",
+     "name": "Evil Genius 2: Team Fortress 2 - Pyro Pack",
+     "id": 1531604,
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1531604/capsule_231x87.jpg?t=1626181532",
+     "metascore": "",
+     "platforms": {
+      "windows": true,
+      "mac": false,
+      "linux": false
+     },
+     "streamingvideo": false,
+     "controller_support": "full"
+    },
+    {
+     "type": "app",
+     "name": "Team Fortress Classic",
+     "id": 20,
+     "price": {
+      "currency": "USD",
+      "initial": 499,
+      "final": 499
+     },
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/20/capsule_231x87.jpg?t=1745368565",
+     "metascore": "",
+     "platforms": {
+      "windows": true,
+      "mac": true,
+      "linux": true
+     },
+     "streamingvideo": false
+    },
+    {
+     "type": "app",
+     "name": "TF Visualizer",
+     "id": 1551180,
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1551180/capsule_231x87.jpg?t=1670790306",
+     "metascore": "",
+     "platforms": {
+      "windows": true,
+      "mac": false,
+      "linux": false
+     },
+     "streamingvideo": false
+    },
+    {
+     "type": "app",
+     "name": "Funko Fusion - Team Fortress 2 Pack",
+     "id": 3037360,
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3037360/a7e5401d4d3ed90986ba4781ee5520d3ba9826e0/capsule_231x87.jpg?t=1755798496",
+     "metascore": "",
+     "platforms": {
+      "windows": true,
+      "mac": false,
+      "linux": false
+     },
+     "streamingvideo": false,
+     "controller_support": "full"
+    },
+    {
+     "type": "app",
+     "name": "Western Press - TF2 Heavy",
+     "id": 487490,
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/487490/capsule_231x87.jpg?t=1611957446",
+     "metascore": "",
+     "platforms": {
+      "windows": true,
+      "mac": true,
+      "linux": false
+     },
+     "streamingvideo": false,
+     "controller_support": "full"
+    }
+   ]
+  }
+ },
+ {
+  "term": "witcher 3",
+  "why": "franchise + numeral, editions exist",
+  "expected_id": 292030,
+  "found_rank": 0,
+  "total": 10,
+  "item_count": 10,
+  "distinct_key_sets": [
+   [
+    "controller_support",
+    "id",
+    "metascore",
+    "name",
+    "platforms",
+    "streamingvideo",
+    "tiny_image",
+    "type"
+   ],
+   [
+    "id",
+    "metascore",
+    "name",
+    "platforms",
+    "streamingvideo",
+    "tiny_image",
+    "type"
+   ],
+   [
+    "id",
+    "metascore",
+    "name",
+    "platforms",
+    "price",
+    "streamingvideo",
+    "tiny_image",
+    "type"
+   ],
+   [
+    "controller_support",
+    "id",
+    "metascore",
+    "name",
+    "platforms",
+    "price",
+    "streamingvideo",
+    "tiny_image",
+    "type"
+   ]
+  ],
+  "body": {
+   "total": 10,
+   "items": [
+    {
+     "type": "app",
+     "name": "The Witcher 3: Wild Hunt",
+     "id": 292030,
+     "price": {
+      "currency": "USD",
+      "initial": 3999,
+      "final": 799
+     },
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/292030/abf6e7b3b01ed20c35a8dc0a009a8f9fc3e57b93/capsule_231x87.jpg?t=1768303991",
+     "metascore": "93",
+     "platforms": {
+      "windows": true,
+      "mac": false,
+      "linux": false
+     },
+     "streamingvideo": false
+    },
+    {
+     "type": "sub",
+     "name": "The Witcher 3: Wild Hunt - Complete Edition",
+     "id": 124923,
+     "price": {
+      "currency": "USD",
+      "initial": 4999,
+      "final": 999
+     },
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/subs/124923/1bb5e5dd4a5c78b4d7d623d6328f54cae412d486/capsule_231x87.jpg?t=1775042338",
+     "metascore": 0,
+     "platforms": {
+      "windows": true,
+      "mac": false,
+      "linux": false
+     },
+     "streamingvideo": false
+    },
+    {
+     "type": "app",
+     "name": "The Witcher 3: Wild Hunt - Blood and Wine",
+     "id": 378648,
+     "price": {
+      "currency": "USD",
+      "initial": 4999,
+      "final": 999
+     },
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/378648/29d5d51e680326e4e27e395c17cab000723b5061/capsule_231x87.jpg?t=1768304054",
+     "metascore": "92",
+     "platforms": {
+      "windows": true,
+      "mac": false,
+      "linux": false
+     },
+     "streamingvideo": false,
+     "controller_support": "full"
+    },
+    {
+     "type": "app",
+     "name": "The Witcher 3 REDkit",
+     "id": 2684660,
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2684660/capsule_231x87.jpg?t=1770728435",
+     "metascore": "",
+     "platforms": {
+      "windows": true,
+      "mac": false,
+      "linux": false
+     },
+     "streamingvideo": false
+    },
+    {
+     "type": "app",
+     "name": "The Witcher 3: Wild Hunt - Hearts of Stone",
+     "id": 378649,
+     "price": {
+      "currency": "USD",
+      "initial": 999,
+      "final": 999
+     },
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/378649/9dbb30367cdfb9fcfa9f3d17128f30486fc35aa7/capsule_231x87.jpg?t=1768304100",
+     "metascore": "89",
+     "platforms": {
+      "windows": true,
+      "mac": false,
+      "linux": false
+     },
+     "streamingvideo": false,
+     "controller_support": "full"
+    },
+    {
+     "type": "app",
+     "name": "The Witcher 3: Wild Hunt Soundtrack",
+     "id": 1229320,
+     "price": {
+      "currency": "USD",
+      "initial": 1099,
+      "final": 439
+     },
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1229320/capsule_231x87.jpg?t=1659615500",
+     "metascore": "",
+     "platforms": {
+      "windows": true,
+      "mac": true,
+      "linux": true
+     },
+     "streamingvideo": false,
+     "controller_support": "full"
+    },
+    {
+     "type": "app",
+     "name": "The Witcher 3: Wild Hunt - Expansion Pass",
+     "id": 355880,
+     "price": {
+      "currency": "USD",
+      "initial": 2499,
+      "final": 2499
+     },
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/355880/capsule_231x87.jpg?t=1659617723",
+     "metascore": "",
+     "platforms": {
+      "windows": true,
+      "mac": false,
+      "linux": false
+     },
+     "streamingvideo": false,
+     "controller_support": "full"
+    },
+    {
+     "type": "app",
+     "name": "The Witcher 3: Wild Hunt - NEW GAME +",
+     "id": 378647,
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/378647/capsule_231x87.jpg?t=1659616607",
+     "metascore": "",
+     "platforms": {
+      "windows": true,
+      "mac": false,
+      "linux": false
+     },
+     "streamingvideo": false,
+     "controller_support": "full"
+    },
+    {
+     "type": "app",
+     "name": "The Witcher 3: Wild Hunt - New Finisher Animations",
+     "id": 378646,
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/378646/capsule_231x87.jpg?t=1659616495",
+     "metascore": "",
+     "platforms": {
+      "windows": true,
+      "mac": false,
+      "linux": false
+     },
+     "streamingvideo": false,
+     "controller_support": "full"
+    },
+    {
+     "type": "app",
+     "name": "The Witcher 3: Wild Hunt - Blood and Wine Soundtrack",
+     "id": 1233340,
+     "price": {
+      "currency": "USD",
+      "initial": 899,
+      "final": 359
+     },
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1233340/capsule_231x87.jpg?t=1659618129",
+     "metascore": "92",
+     "platforms": {
+      "windows": true,
+      "mac": true,
+      "linux": true
+     },
+     "streamingvideo": false,
+     "controller_support": "full"
+    }
+   ]
+  }
+ },
+ {
+  "term": "hollow knight",
+  "why": "two games share the prefix (Silksong)",
+  "expected_id": 367520,
+  "found_rank": 0,
+  "total": 5,
+  "item_count": 5,
+  "distinct_key_sets": [
+   [
+    "id",
+    "metascore",
+    "name",
+    "platforms",
+    "price",
+    "streamingvideo",
+    "tiny_image",
+    "type"
+   ],
+   [
+    "controller_support",
+    "id",
+    "metascore",
+    "name",
+    "platforms",
+    "price",
+    "streamingvideo",
+    "tiny_image",
+    "type"
+   ]
+  ],
+  "body": {
+   "total": 5,
+   "items": [
+    {
+     "type": "app",
+     "name": "Hollow Knight",
+     "id": 367520,
+     "price": {
+      "currency": "USD",
+      "initial": 1499,
+      "final": 1499
+     },
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/367520/fba7289f4c7e90ae9c0caa87e4225f3f9111d7dd/capsule_231x87.jpg?t=1776125684",
+     "metascore": "87",
+     "platforms": {
+      "windows": true,
+      "mac": true,
+      "linux": true
+     },
+     "streamingvideo": false,
+     "controller_support": "full"
+    },
+    {
+     "type": "app",
+     "name": "Hollow Knight: Silksong",
+     "id": 1030300,
+     "price": {
+      "currency": "USD",
+      "initial": 1999,
+      "final": 1999
+     },
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1030300/b73ec03fbdb9e21e3c59eb7e59966949d0c17f29/capsule_231x87.jpg?t=1776125736",
+     "metascore": "90",
+     "platforms": {
+      "windows": true,
+      "mac": true,
+      "linux": true
+     },
+     "streamingvideo": false,
+     "controller_support": "full"
+    },
+    {
+     "type": "app",
+     "name": "Hollow Knight - Official Soundtrack",
+     "id": 598190,
+     "price": {
+      "currency": "USD",
+      "initial": 999,
+      "final": 999
+     },
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/598190/capsule_231x87.jpg?t=1581550241",
+     "metascore": "",
+     "platforms": {
+      "windows": true,
+      "mac": true,
+      "linux": true
+     },
+     "streamingvideo": false,
+     "controller_support": "full"
+    },
+    {
+     "type": "app",
+     "name": "Hollow Knight: Silksong - Official Soundtrack",
+     "id": 3928720,
+     "price": {
+      "currency": "USD",
+      "initial": 1199,
+      "final": 1199
+     },
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3928720/417c1be792d34dfef62c23cb1f796453c622e760/capsule_231x87.jpg?t=1757298295",
+     "metascore": "",
+     "platforms": {
+      "windows": true,
+      "mac": true,
+      "linux": true
+     },
+     "streamingvideo": false
+    },
+    {
+     "type": "app",
+     "name": "Hollow Knight - Gods & Nightmares",
+     "id": 916000,
+     "price": {
+      "currency": "USD",
+      "initial": 499,
+      "final": 499
+     },
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/916000/capsule_231x87.jpg?t=1581557931",
+     "metascore": "",
+     "platforms": {
+      "windows": true,
+      "mac": true,
+      "linux": true
+     },
+     "streamingvideo": false,
+     "controller_support": "full"
+    }
+   ]
+  }
+ },
+ {
+  "term": "elden ring",
+  "why": "recent big game, DLC exists",
+  "expected_id": 1245620,
+  "found_rank": 0,
+  "total": 5,
+  "item_count": 5,
+  "distinct_key_sets": [
+   [
+    "controller_support",
+    "id",
+    "metascore",
+    "name",
+    "platforms",
+    "price",
+    "streamingvideo",
+    "tiny_image",
+    "type"
+   ]
+  ],
+  "body": {
+   "total": 5,
+   "items": [
+    {
+     "type": "app",
+     "name": "ELDEN RING",
+     "id": 1245620,
+     "price": {
+      "currency": "USD",
+      "initial": 5999,
+      "final": 5999
+     },
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1245620/capsule_231x87.jpg?t=1784684281",
+     "metascore": "94",
+     "platforms": {
+      "windows": true,
+      "mac": false,
+      "linux": false
+     },
+     "streamingvideo": false,
+     "controller_support": "full"
+    },
+    {
+     "type": "app",
+     "name": "ELDEN RING NIGHTREIGN",
+     "id": 2622380,
+     "price": {
+      "currency": "USD",
+      "initial": 3999,
+      "final": 3999
+     },
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2622380/8ebc4260af27bc55ba8b88982fd7eb7f970d43c9/capsule_231x87.jpg?t=1773099036",
+     "metascore": "",
+     "platforms": {
+      "windows": true,
+      "mac": false,
+      "linux": false
+     },
+     "streamingvideo": false,
+     "controller_support": "full"
+    },
+    {
+     "type": "app",
+     "name": "ELDEN RING Shadow of the Erdtree",
+     "id": 2778580,
+     "price": {
+      "currency": "USD",
+      "initial": 3999,
+      "final": 3999
+     },
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2778580/capsule_231x87.jpg?t=1763403045",
+     "metascore": "92",
+     "platforms": {
+      "windows": true,
+      "mac": false,
+      "linux": false
+     },
+     "streamingvideo": false,
+     "controller_support": "full"
+    },
+    {
+     "type": "app",
+     "name": "ELDEN RING NIGHTREIGN The Forsaken Hollows",
+     "id": 3531720,
+     "price": {
+      "currency": "USD",
+      "initial": 1500,
+      "final": 1500
+     },
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3531720/a6ab221829dc59c7014353dfde0004e2dfd48575/capsule_231x87.jpg?t=1765506462",
+     "metascore": "",
+     "platforms": {
+      "windows": true,
+      "mac": false,
+      "linux": false
+     },
+     "streamingvideo": false,
+     "controller_support": "full"
+    },
+    {
+     "type": "app",
+     "name": "ELDEN RING Shadow of the Erdtree Premium Bundle",
+     "id": 2778590,
+     "price": {
+      "currency": "USD",
+      "initial": 4999,
+      "final": 4999
+     },
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2778590/capsule_231x87.jpg?t=1720714093",
+     "metascore": "92",
+     "platforms": {
+      "windows": true,
+      "mac": false,
+      "linux": false
+     },
+     "streamingvideo": false,
+     "controller_support": "full"
+    }
+   ]
+  }
+ },
+ {
+  "term": "ōkami",
+  "why": "unicode in the term — a listed game with a macron name",
+  "expected_id": 587620,
+  "found_rank": 0,
+  "total": 10,
+  "item_count": 10,
+  "distinct_key_sets": [
+   [
+    "id",
+    "metascore",
+    "name",
+    "platforms",
+    "streamingvideo",
+    "tiny_image",
+    "type"
+   ],
+   [
+    "id",
+    "metascore",
+    "name",
+    "platforms",
+    "price",
+    "streamingvideo",
+    "tiny_image",
+    "type"
+   ],
+   [
+    "controller_support",
+    "id",
+    "metascore",
+    "name",
+    "platforms",
+    "price",
+    "streamingvideo",
+    "tiny_image",
+    "type"
+   ]
+  ],
+  "body": {
+   "total": 10,
+   "items": [
+    {
+     "type": "app",
+     "name": "Okami HD",
+     "id": 587620,
+     "price": {
+      "currency": "USD",
+      "initial": 1999,
+      "final": 1999
+     },
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/587620/capsule_231x87.jpg?t=1733787035",
+     "metascore": "92",
+     "platforms": {
+      "windows": true,
+      "mac": false,
+      "linux": false
+     },
+     "streamingvideo": false,
+     "controller_support": "full"
+    },
+    {
+     "type": "app",
+     "name": "Ookami Okami",
+     "id": 3703750,
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3703750/db56ee86d4c86e282b0d8ac7b9cfad616dbf5f9b/capsule_231x87.jpg?t=1784036397",
+     "metascore": "",
+     "platforms": {
+      "windows": true,
+      "mac": false,
+      "linux": false
+     },
+     "streamingvideo": false
+    },
+    {
+     "type": "sub",
+     "name": "Okami + Kunitsu-Gami Bundle",
+     "id": 1186207,
+     "price": {
+      "currency": "USD",
+      "initial": 4999,
+      "final": 4999
+     },
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/subs/1186207/dd9c3b814f89a87b88bf27c32b9fd004ff843b31/capsule_231x87.jpg?t=1734112742",
+     "metascore": 0,
+     "platforms": {
+      "windows": true,
+      "mac": false,
+      "linux": false
+     },
+     "streamingvideo": false,
+     "controller_support": "full"
+    },
+    {
+     "type": "app",
+     "name": "Capcom Arcade Stadium：Senjo no OkamiⅡ",
+     "id": 1556714,
+     "price": {
+      "currency": "USD",
+      "initial": 199,
+      "final": 199
+     },
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1556714/capsule_231x87.jpg?t=1634751747",
+     "metascore": "",
+     "platforms": {
+      "windows": true,
+      "mac": false,
+      "linux": false
+     },
+     "streamingvideo": false
+    },
+    {
+     "type": "app",
+     "name": "Ookami Okami Demo",
+     "id": 4046630,
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4046630/bb97a9387b64e9540858ee4e3bacf7a43270e0fb/capsule_231x87.jpg?t=1758767211",
+     "metascore": "",
+     "platforms": {
+      "windows": true,
+      "mac": false,
+      "linux": false
+     },
+     "streamingvideo": false
+    },
+    {
+     "type": "app",
+     "name": "Okami Original Soundtrack Vol. 1",
+     "id": 1568870,
+     "price": {
+      "currency": "USD",
+      "initial": 599,
+      "final": 599
+     },
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1568870/capsule_231x87.jpg?t=1618329814",
+     "metascore": "",
+     "platforms": {
+      "windows": true,
+      "mac": true,
+      "linux": true
+     },
+     "streamingvideo": false
+    },
+    {
+     "type": "app",
+     "name": "Okami Original Soundtrack Vol. 3",
+     "id": 1568850,
+     "price": {
+      "currency": "USD",
+      "initial": 599,
+      "final": 599
+     },
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1568850/capsule_231x87.jpg?t=1618329941",
+     "metascore": "",
+     "platforms": {
+      "windows": true,
+      "mac": true,
+      "linux": true
+     },
+     "streamingvideo": false
+    },
+    {
+     "type": "app",
+     "name": "Okami Original Soundtrack Vol. 4",
+     "id": 1568840,
+     "price": {
+      "currency": "USD",
+      "initial": 599,
+      "final": 599
+     },
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1568840/capsule_231x87.jpg?t=1618330001",
+     "metascore": "",
+     "platforms": {
+      "windows": true,
+      "mac": true,
+      "linux": true
+     },
+     "streamingvideo": false
+    },
+    {
+     "type": "app",
+     "name": "Okami Original Soundtrack Vol. 2",
+     "id": 1568860,
+     "price": {
+      "currency": "USD",
+      "initial": 599,
+      "final": 599
+     },
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1568860/capsule_231x87.jpg?t=1618348080",
+     "metascore": "",
+     "platforms": {
+      "windows": true,
+      "mac": true,
+      "linux": true
+     },
+     "streamingvideo": false
+    },
+    {
+     "type": "app",
+     "name": "Okami Original Soundtrack Vol. 5",
+     "id": 1568830,
+     "price": {
+      "currency": "USD",
+      "initial": 599,
+      "final": 599
+     },
+     "tiny_image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1568830/capsule_231x87.jpg?t=1618330041",
+     "metascore": "",
+     "platforms": {
+      "windows": true,
+      "mac": true,
+      "linux": true
+     },
+     "streamingvideo": false
+    }
+   ]
+  }
+ },
+ {
+  "term": "qzxqzxqzx no such game",
+  "why": "garbage — the empty-result shape",
+  "expected_id": null,
+  "found_rank": null,
+  "total": 0,
+  "item_count": 0,
+  "distinct_key_sets": [],
+  "body": {
+   "total": 0,
+   "items": []
+  }
+ }
+]

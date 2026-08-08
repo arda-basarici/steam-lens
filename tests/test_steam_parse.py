@@ -24,6 +24,7 @@ from steamlens.steam_client import (
     SteamResponseError,
     parse_histogram,
     parse_review_page,
+    parse_storesearch,
     review_from_raw,
 )
 
@@ -202,3 +203,56 @@ def test_review_from_raw_fails_loud(overrides: dict[str, object], match: str) ->
     """A mistyped field in a frozen-corpus record is damage, not a skippable row."""
     with pytest.raises(ValueError, match=match):
         review_from_raw(_raw_review(**overrides), app_id=440)
+
+
+# --- storesearch: the real captures ---------------------------------------------
+
+
+def _storesearch_body(term: str) -> dict[str, object]:
+    """The captured storesearch response for ``term`` (the probe stores a list
+    of per-term reports, each embedding its raw body)."""
+    reports = cast(
+        "list[dict[str, object]]",
+        json.loads((_CAPTURES / "storesearch_summary.json").read_text(encoding="utf-8")),
+    )
+    for report in reports:
+        if report["term"] == term:
+            return cast("dict[str, object]", report["body"])
+    raise AssertionError(f"no capture for term {term!r}")
+
+
+def test_storesearch_resolves_the_canonical_name_first() -> None:
+    """TF2's capture: the expected game arrives as the first hit with its id,
+    display name, and a CDN capsule URL — the row the search page renders."""
+    hits = parse_storesearch(_storesearch_body("team fortress"))
+    first = hits[0]
+    assert first.app_id == 440
+    assert first.name == "Team Fortress 2"
+    assert first.capsule_url.startswith("https://")
+
+
+def test_storesearch_drops_bundles_keeps_apps() -> None:
+    """The Witcher capture carries a ``sub``-type Complete Edition bundle — a
+    sub id is not an app id, so it must not become a pickable hit, while the
+    base game and its ``app``-type DLC rows all pass through."""
+    hits = parse_storesearch(_storesearch_body("witcher 3"))
+    ids = [hit.app_id for hit in hits]
+    assert 292030 in ids
+    assert 124923 not in ids  # the 'sub' bundle
+    assert len(hits) < 10  # something was actually dropped from the 10 raw items
+
+
+def test_storesearch_unknown_term_is_an_empty_answer() -> None:
+    """Steam answers a garbage term with ``total: 0, items: []`` — an empty
+    tuple, not an error; and a body missing ``items`` entirely parses the
+    same way (the optional-list rule)."""
+    assert parse_storesearch(_storesearch_body("qzxqzxqzx no such game")) == ()
+    assert parse_storesearch({"total": 0}) == ()
+
+
+def test_storesearch_malformed_item_fails_loud() -> None:
+    """A mistyped id or a missing name is Steam misbehaving, named by position."""
+    with pytest.raises(SteamResponseError, match=r"items\[0\]"):
+        parse_storesearch({"items": [{"type": "app", "name": "X", "tiny_image": "u", "id": "440"}]})
+    with pytest.raises(SteamResponseError, match="name"):
+        parse_storesearch({"items": [{"type": "app", "id": 440, "tiny_image": "u"}]})

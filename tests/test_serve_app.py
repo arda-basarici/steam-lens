@@ -30,6 +30,7 @@ from httpx import ASGITransport, AsyncClient
 from steamlens.contracts import (
     ClassifierVersions,
     ComposedNarrative,
+    GameSearchHit,
     HistogramSnapshot,
     NarrativeOutcome,
     Provenance,
@@ -39,8 +40,14 @@ from steamlens.contracts import (
     StageKind,
 )
 from steamlens.serve import Job, JobQueue, JobState, ServeConfig, create_app
+from steamlens.steam_client import SteamUnavailableError
 
 _CONFIG = ServeConfig(sse_tick_s=0.001, sse_heartbeat_s=60.0)
+
+
+def _no_search(_term: str) -> tuple[GameSearchHit, ...]:
+    """The search seam's inert stand-in for tests that never search."""
+    return ()
 
 
 async def _until(predicate: Callable[[], bool], what: str, timeout_s: float = 5.0) -> None:
@@ -72,7 +79,7 @@ def test_submit_receipts_honestly_and_same_game_attaches() -> None:
     different game queues behind with its position told straight."""
     runner = GatedNarrator()
     queue = JobQueue(runner)
-    app = create_app(queue, _CONFIG, lambda _: None)
+    app = create_app(queue, _CONFIG, lambda _: None, _no_search)
 
     async def drive() -> None:
         transport = ASGITransport(app=app)
@@ -129,7 +136,7 @@ def test_a_mid_run_attach_streams_the_complete_story_to_the_end_frame() -> None:
     by the terminal end frame, on one connection."""
     runner = GatedNarrator()
     queue = AttachObservableQueue(runner)
-    app = create_app(queue, _CONFIG, lambda _: None)
+    app = create_app(queue, _CONFIG, lambda _: None, _no_search)
 
     async def collect(client: AsyncClient) -> list[str]:
         async with client.stream("GET", "/analyses/440/events") as response:
@@ -198,7 +205,7 @@ def test_cached_game_answers_200_without_minting_a_job() -> None:
     runner.release.set()
     queue = JobQueue(runner)
     app = create_app(
-        queue, _CONFIG, lambda app_id: _cached_report() if app_id == 440 else None
+        queue, _CONFIG, lambda app_id: _cached_report() if app_id == 440 else None, _no_search
     )
 
     async def drive() -> None:
@@ -234,7 +241,7 @@ def test_events_is_read_only_and_404s_without_a_live_job() -> None:
     runner = GatedNarrator()
     runner.release.set()
     queue = JobQueue(runner)
-    app = create_app(queue, _CONFIG, lambda _: None)
+    app = create_app(queue, _CONFIG, lambda _: None, _no_search)
 
     async def drive() -> None:
         transport = ASGITransport(app=app)
@@ -249,6 +256,45 @@ def test_events_is_read_only_and_404s_without_a_live_job() -> None:
             finished = await client.get("/analyses/440/events")
             assert finished.status_code == 404
             assert runner.order == [440], "the GETs must not have queued anything"
+
+    asyncio.run(asyncio.wait_for(drive(), timeout=10.0))
+    queue.close()
+
+
+def test_search_answers_typed_hits_and_translates_steam_trouble() -> None:
+    """GET /search serializes the seam's hits verbatim; a Steam-door failure
+    surfaces as 502 (the upstream broke, not the request); a blank query is
+    the request being wrong — 422 before the seam is ever called."""
+    runner = GatedNarrator()
+    runner.release.set()
+    queue = JobQueue(runner)
+    calls: list[str] = []
+
+    def search_games(term: str) -> tuple[GameSearchHit, ...]:
+        calls.append(term)
+        if term == "down":
+            raise SteamUnavailableError("storefront 503 outlived the retry budget")
+        return (GameSearchHit(app_id=440, name="Team Fortress 2", capsule_url="https://c/t.jpg"),)
+
+    app = create_app(queue, _CONFIG, lambda _: None, search_games)
+
+    async def drive() -> None:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            found = await client.get("/search", params={"q": "team fortress"})
+            assert found.status_code == 200
+            assert found.json() == [
+                {"app_id": 440, "name": "Team Fortress 2", "capsule_url": "https://c/t.jpg"}
+            ]
+
+            down = await client.get("/search", params={"q": "down"})
+            assert down.status_code == 502
+            assert "storefront search unavailable" in down.json()["detail"]
+
+            blank = await client.get("/search", params={"q": ""})
+            assert blank.status_code == 422
+            assert calls == ["team fortress", "down"], "a rejected query must not reach Steam"
+            assert queue.live(440) is None, "search must never mint a job"
 
     asyncio.run(asyncio.wait_for(drive(), timeout=10.0))
     queue.close()
