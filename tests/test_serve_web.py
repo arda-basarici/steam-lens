@@ -600,7 +600,8 @@ def _ops_data(
     stage_model: tuple[StageModelRow, ...] = (
         StageModelRow(
             stage="classify", model="deepseek-chat", calls=180,
-            prompt_tokens=90_000, output_tokens=30_000, thinking_tokens=0,
+            prompt_tokens=90_000, cached_prompt_tokens=81_000,
+            output_tokens=30_000, thinking_tokens=0,
             cost=0.20,
         ),
     ),
@@ -626,7 +627,7 @@ def test_ops_view_headline_stats_tell_the_day_and_the_unit_economics() -> None:
     all-time spend over published reports, or an honest dash before the first."""
     view = build_ops_view(_ops_data())
     stats = {stat.label: stat.value for stat in view.today}
-    assert stats["fresh analyses today"] == "2 of 5"
+    assert stats["public fresh analyses today"] == "2 of 5"
     assert stats["settled LLM spend today"] == "$0.1101"
     assert stats["reports published"] == "2"
     assert stats["LLM spend per report"] == "$0.1000"
@@ -643,7 +644,8 @@ def test_ops_view_daily_table_merges_journal_days_zeros_worn_openly() -> None:
     view = build_ops_view(_ops_data(
         daily_ledger=(
             DailyLedgerRow(day="2026-08-08", calls=90, prompt_tokens=45_000,
-                           output_tokens=15_000, thinking_tokens=0, cost=0.11),
+                           cached_prompt_tokens=40_500, output_tokens=15_000,
+                           thinking_tokens=0, cost=0.11),
         ),
         daily_admissions=(DailyAdmissionRow(day="2026-08-09", admissions=2),),
     ))
@@ -651,7 +653,8 @@ def test_ops_view_daily_table_merges_journal_days_zeros_worn_openly() -> None:
     assert [row[0] for row in daily.rows] == ["2026-08-09", "2026-08-08"]
     assert daily.rows[0][1:3] == ("2", "0"), "admission-only day zeros its calls"
     assert daily.rows[1][1:3] == ("0", "90"), "spend-only day zeros its admissions"
-    assert daily.rows[1][6] == "$0.1100"
+    assert daily.rows[1][4] == "90%", "the provider cache-hit share renders per day"
+    assert daily.rows[1][7] == "$0.1100"
 
 
 def test_ops_page_renders_aggregates_and_names_the_designed_gap() -> None:

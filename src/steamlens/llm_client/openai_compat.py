@@ -131,10 +131,23 @@ def parse_response(raw: str) -> LlmResponse:
     # subtracting went negative live, 2026-07-18). Reasoning > completion is the
     # disjoint signature; the ambiguous remainder stays on the subset read.
     output = completion if reasoning > completion else completion - reasoning
+    prompt = as_int(usage_raw.get("prompt_tokens"))
+    # The prefix-cache split rides two spellings on this wire: the OpenAI
+    # convention (prompt_tokens_details.cached_tokens) and DeepSeek's own
+    # top-level prompt_cache_hit_tokens — DeepSeek sends both, identical.
+    # Absent both, 0 is the honest read (nothing claimed cached, everything
+    # bills at the full input rate — degrades conservative). Capped at the
+    # prompt total: a claim of more cached than sent is a provider accounting
+    # bug we bound rather than propagate into a negative fresh-token count.
+    prompt_details = as_dict(usage_raw.get("prompt_tokens_details"))
+    cached = as_int(prompt_details.get("cached_tokens")) or as_int(
+        usage_raw.get("prompt_cache_hit_tokens")
+    )
     usage = TokenUsage(
-        prompt_tokens=as_int(usage_raw.get("prompt_tokens")),
+        prompt_tokens=prompt,
         output_tokens=output,
         thinking_tokens=reasoning,
+        cached_prompt_tokens=min(cached, prompt),
     )
     model_version = as_str(data.get("model"))
     choices = as_list(data.get("choices"))

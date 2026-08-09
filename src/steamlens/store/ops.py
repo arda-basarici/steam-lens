@@ -47,7 +47,8 @@ class OpsReads:
         """Per-UTC-day call/token/cost totals at or after ``since``, newest day first."""
         rows = self._conn.execute(
             "SELECT substr(created_at, 1, 10) AS day, COUNT(*),"
-            " SUM(prompt_tokens), SUM(output_tokens), SUM(thinking_tokens), SUM(cost)"
+            " SUM(prompt_tokens), SUM(cached_prompt_tokens),"
+            " SUM(output_tokens), SUM(thinking_tokens), SUM(cost)"
             " FROM spend_ledger WHERE created_at >= ?"
             " GROUP BY day ORDER BY day DESC",
             (utc_isoformat(since),),
@@ -57,18 +58,20 @@ class OpsReads:
                 day=day,
                 calls=int(calls),
                 prompt_tokens=int(prompt),
+                cached_prompt_tokens=int(cached),
                 output_tokens=int(output),
                 thinking_tokens=int(thinking),
                 cost=float(cost),
             )
-            for day, calls, prompt, output, thinking, cost in rows
+            for day, calls, prompt, cached, output, thinking, cost in rows
         )
 
     def stage_model_totals(self) -> tuple[StageModelRow, ...]:
         """All-time call/token/cost totals per (stage, model), costliest first."""
         rows = self._conn.execute(
             "SELECT stage, model, COUNT(*),"
-            " SUM(prompt_tokens), SUM(output_tokens), SUM(thinking_tokens), SUM(cost)"
+            " SUM(prompt_tokens), SUM(cached_prompt_tokens),"
+            " SUM(output_tokens), SUM(thinking_tokens), SUM(cost)"
             " FROM spend_ledger GROUP BY stage, model ORDER BY SUM(cost) DESC",
         ).fetchall()
         return tuple(
@@ -77,11 +80,12 @@ class OpsReads:
                 model=model,
                 calls=int(calls),
                 prompt_tokens=int(prompt),
+                cached_prompt_tokens=int(cached),
                 output_tokens=int(output),
                 thinking_tokens=int(thinking),
                 cost=float(cost),
             )
-            for stage, model, calls, prompt, output, thinking, cost in rows
+            for stage, model, calls, prompt, cached, output, thinking, cost in rows
         )
 
     def daily_admissions(self, since: datetime) -> tuple[DailyAdmissionRow, ...]:

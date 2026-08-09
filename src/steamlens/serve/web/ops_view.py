@@ -76,11 +76,16 @@ class OpsTable:
 
 @dataclass(frozen=True, slots=True)
 class OpsView:
-    """Everything ``ops.html`` renders, in page order."""
+    """Everything ``ops.html`` renders, in page order.
+
+    ``notes`` are the page-level honesty lines (the pre-fix pricing
+    disclosure, for one) — rendered under the header, before any table.
+    """
 
     generated_at: str
     today: tuple[OpsStat, ...]
     tables: tuple[OpsTable, ...]
+    notes: tuple[str, ...] = ()
 
 
 def build_ops_view(data: OpsData) -> OpsView:
@@ -96,9 +101,12 @@ def build_ops_view(data: OpsData) -> OpsView:
         ),
         today=(
             OpsStat(
-                label="fresh analyses today",
+                label="public fresh analyses today",
                 value=f"{data.admissions_today} of {data.daily_job_limit}",
-                note="the public daily allowance — resets at midnight UTC",
+                note=(
+                    "one shared daily pool for all visitors, resets midnight UTC — "
+                    "the operator's unlocked runs are not counted"
+                ),
             ),
             OpsStat(
                 label="settled LLM spend today",
@@ -119,6 +127,12 @@ def build_ops_view(data: OpsData) -> OpsView:
         tables=(
             _daily_table(data.daily_ledger, data.daily_admissions),
             _stage_model_table(data.stage_model),
+        ),
+        notes=(
+            "ledger rows from before 2026-08-09 are priced without the provider's "
+            "prefix-cache discount — overstated roughly 4-5x against the real bill, "
+            "left as written (forward-only ruling); the provider dashboard is "
+            "billing truth",
         ),
     )
 
@@ -143,6 +157,7 @@ def _daily_table(
             f"{admitted.get(day, 0):,}",
             f"{row.calls:,}" if row else "0",
             f"{row.prompt_tokens:,}" if row else "0",
+            _hit_rate(row.cached_prompt_tokens, row.prompt_tokens) if row else "—",
             f"{row.output_tokens:,}" if row else "0",
             f"{row.thinking_tokens:,}" if row else "0",
             _usd(row.cost) if row else _usd(0.0),
@@ -151,12 +166,13 @@ def _daily_table(
         title="by day (last 14)",
         headers=(
             "day", "jobs admitted", "LLM calls",
-            "prompt tokens", "output tokens", "thinking tokens", "cost",
+            "prompt tokens", "cache hit", "output tokens", "thinking tokens", "cost",
         ),
         rows=tuple(rows),
         note=(
             "admitted counts the gate's public admissions — the operator's "
-            "unlocked jobs spend but are not admissions"
+            "unlocked jobs spend but are not admissions; cache hit is the "
+            "provider-side prefix-cache share of prompt tokens"
         ),
     )
 
@@ -167,7 +183,7 @@ def _stage_model_table(stage_model: tuple[StageModelRow, ...]) -> OpsTable:
         title="by stage and model (all time)",
         headers=(
             "stage", "model", "calls",
-            "prompt tokens", "output tokens", "thinking tokens", "cost",
+            "prompt tokens", "cache hit", "output tokens", "thinking tokens", "cost",
         ),
         rows=tuple(
             (
@@ -175,6 +191,7 @@ def _stage_model_table(stage_model: tuple[StageModelRow, ...]) -> OpsTable:
                 row.model,
                 f"{row.calls:,}",
                 f"{row.prompt_tokens:,}",
+                _hit_rate(row.cached_prompt_tokens, row.prompt_tokens),
                 f"{row.output_tokens:,}",
                 f"{row.thinking_tokens:,}",
                 _usd(row.cost),
@@ -184,6 +201,11 @@ def _stage_model_table(stage_model: tuple[StageModelRow, ...]) -> OpsTable:
         note="failure rates and latency join with the job journal (in design)",
         text_columns=2,
     )
+
+
+def _hit_rate(cached: int, prompt: int) -> str:
+    """The prefix-cache share of prompt tokens — "—" when nothing was prompted."""
+    return f"{cached / prompt:.0%}" if prompt else "—"
 
 
 def _usd(amount: float) -> str:

@@ -30,11 +30,21 @@ class TokenUsage:
     single total hides the component that dominates cost. All three fields are
     required: an adapter whose provider reports no thinking passes an explicit
     0, so the split can never be silently dropped.
+
+    ``cached_prompt_tokens`` is a *subset* of ``prompt_tokens`` served from the
+    provider's prefix cache and billed at its discounted rate — the component
+    that put ledger cost ~5x over the real bill when unpriced (the 2026-08-09
+    reconciliation against the provider dashboard; DeepSeek's discount is
+    50x). Unlike the three required fields it defaults to 0, deliberately:
+    omission degrades in the *conservative* direction (everything billed at
+    the full rate — cost overstated, never hidden), the opposite failure mode
+    of the thinking-token lesson.
     """
 
     prompt_tokens: int
     output_tokens: int
     thinking_tokens: int
+    cached_prompt_tokens: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,7 +90,13 @@ class SpendRecord:
     attach to it; ``model_version`` is what the provider reports actually served
     the call — provenance wants it; the two differ under preview aliases, which
     is why both ride along. ``cost`` is denominated in USD; ``created_at`` is
-    timezone-aware.
+    timezone-aware. ``duration_s`` is the wall-clock dispatch-to-response time
+    the client measured (retries included) — required, because every journaled
+    call was really sent and really took time; the ops surface's latency
+    percentiles derive from these rows, never re-measured. ``run_id`` ties the
+    call to the serving job or study run spending the money — ``None`` means
+    the client was composed without an attribution (a probe, a scratch call):
+    an honest "unattributed", not a default job.
     """
 
     created_at: datetime
@@ -89,6 +105,8 @@ class SpendRecord:
     model_version: str
     usage: TokenUsage
     cost: float
+    duration_s: float
+    run_id: str | None = None
 
 
 class ResponseArchive(Protocol):

@@ -33,8 +33,9 @@ class SqliteSpendLedger:
         """Journal one paid call. Append-only — a ledger entry is never revised."""
         self._conn.execute(
             "INSERT INTO spend_ledger (created_at, stage, model, model_version,"
-            " prompt_tokens, output_tokens, thinking_tokens, cost)"
-            " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            " prompt_tokens, output_tokens, thinking_tokens, cost,"
+            " cached_prompt_tokens, duration_s, run_id)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 utc_isoformat(entry.created_at),
                 entry.stage,
@@ -44,6 +45,9 @@ class SqliteSpendLedger:
                 entry.usage.output_tokens,
                 entry.usage.thinking_tokens,
                 entry.cost,
+                entry.usage.cached_prompt_tokens,
+                entry.duration_s,
+                entry.run_id,
             ),
         )
 

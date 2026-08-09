@@ -51,7 +51,14 @@ _OUTPUT_CAP: Final = 8_192
 # Politeness backstop only — DeepSeek's envelope is concurrency-based (no rpm);
 # high enough that the worker pool, not pacing, is the real throttle.
 _RPM: Final = 600
+# The provider's full price table, verified against api-docs.deepseek.com and
+# reconciled to the dashboard's billed total 2026-08-09 (the day priced flat
+# read ~5x over the bill). The cache-hit rate is DeepSeek's 50x prefix-cache
+# discount; ~90% of a classify prompt is the shared ontology prefix, so the
+# discount dominates real cost. Prices are config, not identity: a table
+# update changes accounting, never the instrument.
 _INPUT_USD_PER_1M: Final = 0.14
+_CACHED_INPUT_USD_PER_1M: Final = 0.0028
 _OUTPUT_USD_PER_1M: Final = 0.28
 
 
@@ -63,6 +70,7 @@ def build_client(
     sink: Sink,
     *,
     extra_routes: Mapping[LlmStage, Route] | None = None,
+    run_id: str | None = None,
 ) -> LlmClient:
     """The dispatch-config client over the *client's* store connection.
 
@@ -71,7 +79,9 @@ def build_client(
     share one budget and one real-world quota pool by construction (the config
     module's own two-tables rationale). An extra route must name a model this
     instrument block declares; anything else fails the config's reference
-    check at construction, never mid-run.
+    check at construction, never mid-run. ``run_id`` is the ledger attribution
+    the client stamps on every journaled call — the shells that mint a run
+    pass theirs, so spend joins to jobs and reports without inference.
     """
     routes: dict[LlmStage, Route] = {
         LlmStage.CLASSIFY: Route(
@@ -94,6 +104,7 @@ def build_client(
                 rpd=None,
                 input_usd_per_1m=_INPUT_USD_PER_1M,
                 output_usd_per_1m=_OUTPUT_USD_PER_1M,
+                cached_input_usd_per_1m=_CACHED_INPUT_USD_PER_1M,
             )
         },
         budget_usd=budget_usd,
@@ -104,4 +115,5 @@ def build_client(
         client_store.spend_ledger,
         sink,
         registry={PROVIDER: entry},
+        run_id=run_id,
     )

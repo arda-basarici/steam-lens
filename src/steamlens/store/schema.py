@@ -267,7 +267,60 @@ _STEP_5: tuple[str, ...] = (
     "CREATE INDEX idx_admissions_created ON admissions (created_at)",
 )
 
-MIGRATION_STEPS: tuple[tuple[str, ...], ...] = (_STEP_1, _STEP_2, _STEP_3, _STEP_4, _STEP_5)
+# Step 6 — the observability increment (the LLMOps step, designed 2026-08-09).
+# Three additive moves, one design: the ledger learns what a call really cost
+# and who spent it (the cache-hit split that had accounting ~5x over the real
+# bill, the measured duration, the spending run), the job journal makes job
+# outcomes survive the queue's memory (failures vanished on restart; a row
+# started-but-never-settled IS the honest record of a killed process), and
+# the refusals journal makes the spend breaker's firings countable. Ledger
+# rows from before this step read cached=0 (priced flat — overstated, the
+# conservative direction) and NULL duration/run_id ("not measured" / "not
+# attributed", never fabricated zeros); the forward-only ruling leaves their
+# stored costs as written, disclosed on the ops page.
+_STEP_6: tuple[str, ...] = (
+    "ALTER TABLE spend_ledger ADD COLUMN cached_prompt_tokens INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE spend_ledger ADD COLUMN duration_s REAL",
+    "ALTER TABLE spend_ledger ADD COLUMN run_id TEXT",
+    # One row per job, keyed by the pre-minted run id (the same key reports
+    # and ledger rows carry, so cost-per-job is a join, not an inference).
+    # Settled by UPDATE at finish — deliberately the first non-append tenant:
+    # a job row is a lifecycle record, not a ledger entry. The banked counts
+    # and stage timings are NULL until settlement; outcome is NULL while
+    # running (or forever, for a process death mid-job).
+    """
+    CREATE TABLE jobs (
+        run_id             TEXT    PRIMARY KEY,
+        app_id             INTEGER NOT NULL,
+        requested_name     TEXT    NOT NULL,
+        started_at         TEXT    NOT NULL,
+        finished_at        TEXT,
+        outcome            TEXT,
+        error              TEXT,
+        labeled            INTEGER,
+        reused             INTEGER,
+        failed_durable     INTEGER,
+        refused_batches    INTEGER,
+        stage_timings_json TEXT
+    ) WITHOUT ROWID
+    """,
+    "CREATE INDEX idx_jobs_started ON jobs (started_at)",
+    # One row per gate refusal: timestamp and which guard fired. Deliberately
+    # no IP column — the audit's no-raw-IPs rule enforced by shape, and a
+    # count is all the ops question ("how often does the breaker fire") needs.
+    """
+    CREATE TABLE refusals (
+        id         INTEGER PRIMARY KEY,
+        created_at TEXT NOT NULL,
+        kind       TEXT NOT NULL
+    )
+    """,
+    "CREATE INDEX idx_refusals_created ON refusals (created_at)",
+)
+
+MIGRATION_STEPS: tuple[tuple[str, ...], ...] = (
+    _STEP_1, _STEP_2, _STEP_3, _STEP_4, _STEP_5, _STEP_6,
+)
 
 SCHEMA_VERSION = len(MIGRATION_STEPS)
 

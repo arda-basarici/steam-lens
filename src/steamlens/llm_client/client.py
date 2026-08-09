@@ -98,9 +98,24 @@ def _worst_case_cost(prompt: str, route: Route, spec: ModelSpec) -> float:
 
 
 def _actual_cost(usage: TokenUsage, spec: ModelSpec) -> float:
-    """What the call really cost — thinking tokens billed at the output rate."""
+    """What the call really cost — thinking at the output rate, cache hits at theirs.
+
+    Cache-hit prompt tokens bill at the provider's discounted rate when the
+    spec prices one (DeepSeek's discount is 50x, and ~90% of a classify
+    prompt is the shared ontology prefix — pricing it flat overstated the
+    ledger ~5x against the dashboard, the 2026-08-09 reconciliation). A spec
+    without a cached price keeps the flat read, conservative by construction.
+    """
+    fresh_rate = spec.input_usd_per_1m
+    cached_rate = (
+        spec.cached_input_usd_per_1m
+        if spec.cached_input_usd_per_1m is not None
+        else fresh_rate
+    )
+    fresh = usage.prompt_tokens - usage.cached_prompt_tokens
     return (
-        usage.prompt_tokens * spec.input_usd_per_1m
+        fresh * fresh_rate
+        + usage.cached_prompt_tokens * cached_rate
         + (usage.output_tokens + usage.thinking_tokens) * spec.output_usd_per_1m
     ) / 1_000_000
 
@@ -113,7 +128,10 @@ class LlmClient:
     ``registry`` is required: providers are composed explicitly by the calling
     shell (there is no global default to fall back to). ``now``, ``sleep``,
     and ``rng`` are injection seams: tests bind a fixed clock, a recording
-    sleep, and a seeded RNG; real composition leaves the defaults.
+    sleep, and a seeded RNG; real composition leaves the defaults. ``run_id``
+    is the spend attribution every journaled call carries — the composing
+    shell builds one client per job or study run, so a constructor-level tag
+    is exact by construction; ``None`` journals honestly unattributed rows.
     """
 
     def __init__(
@@ -124,6 +142,7 @@ class LlmClient:
         sink: Sink,
         *,
         registry: Mapping[str, ProviderEntry],
+        run_id: str | None = None,
         now: Callable[[], datetime] = _utc_now,
         sleep: Callable[[float], None] = time.sleep,
         rng: random.Random | None = None,
@@ -139,6 +158,7 @@ class LlmClient:
         self._ledger = ledger
         self._sink = sink
         self._registry = dict(registry)
+        self._run_id = run_id
         self._now = now
         self._sleep = sleep
         self._rng = rng if rng is not None else random.Random()
@@ -198,6 +218,8 @@ class LlmClient:
             model_version=response.model_version,
             usage=response.usage,
             cost=cost,
+            duration_s=latency_s,
+            run_id=self._run_id,
         )
         with self._lock:
             # Settle inside one lock hold: the journal row replaces both the

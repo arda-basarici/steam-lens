@@ -28,13 +28,18 @@ class ModelSpec:
     daily request quota, ``None`` meaning uncapped. Prices are USD per million
     tokens; thinking tokens bill at the **output** rate — the probe's
     sticker-price lesson, encoded where cost is computed from. Free-tier models
-    carry honest zeros.
+    carry honest zeros. ``cached_input_usd_per_1m`` is the provider's
+    prefix-cache-hit input rate — ``None`` means no discount is priced and
+    every prompt token bills at the full input rate (conservative), which was
+    the ledger's ~5x overstatement against the real bill until the 2026-08-09
+    reconciliation priced the split.
     """
 
     rpm: int
     rpd: int | None
     input_usd_per_1m: float
     output_usd_per_1m: float
+    cached_input_usd_per_1m: float | None = None
 
     def __post_init__(self) -> None:
         # A misconfiguration is a startup failure, never a surprise mid-run:
@@ -46,6 +51,13 @@ class ModelSpec:
             raise LlmConfigError(f"rpd must be positive when set, got {self.rpd}")
         if self.input_usd_per_1m < 0 or self.output_usd_per_1m < 0:
             raise LlmConfigError("token prices must be non-negative")
+        if self.cached_input_usd_per_1m is not None and not (
+            0 <= self.cached_input_usd_per_1m <= self.input_usd_per_1m
+        ):
+            raise LlmConfigError(
+                "cached input price must sit between 0 and the full input price — "
+                f"got {self.cached_input_usd_per_1m} against {self.input_usd_per_1m}"
+            )
 
 
 @dataclass(frozen=True, slots=True)

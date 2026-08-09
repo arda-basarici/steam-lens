@@ -1816,6 +1816,71 @@ two distinct honest texts (day's analyses used / one analysis at a time),
 each naming the UTC-midnight reset — rather than a page navigation. Reports
 stay browsable untouched; the breaker guards only the submit route.
 
+### The observability step (LLMOps, designed 2026-08-09)
+
+**The ops surface is public read-only, aggregates only.** The monitoring
+ruling's "in-app ops dashboard" ships as `/ops`: a portfolio app's ops
+surface is itself on display, so it renders for any visitor — and the
+security audit's no-raw-IPs constraint is enforced by *shape*, not renderer
+discipline: the store's ops read model (`OpsReads`, a read-only tenant over
+the journals the writing tenants own) produces contract rows that
+structurally cannot carry an IP. Flipping the page behind the unlock cookie
+later is one wiring change. `/healthz` answers the two real things cheaply
+(worker thread alive, database opens) with the failing check named in the
+503; deliberately no Steam or provider probe — their hiccups must not read
+as this app's downtime.
+
+**Ledger cost is billed truth, not list price.** The provider's prefix-cache
+discount is 50x on hit tokens and ~90% of a classify prompt is the shared
+ontology prefix, so flat list pricing overstated the ledger ~5x against the
+dashboard (reconciled 2026-08-09; the fresh-buy note had measured the same
+4.9x gap from the other side). The fix runs the full seam: the adapter reads
+the cache split off the wire (either spelling; capped at the prompt total),
+`TokenUsage` carries it as a defaulted subset field (omission degrades
+conservative — cost overstated, never hidden, the inverse of the
+thinking-token failure mode), the spec prices a cache-hit rate verified
+against the provider's published table at encode time, and the worst-case
+reservation stays flat-priced on purpose (a guard, not accounting).
+Pre-existing rows keep their stored costs (forward-only ruling: an
+append-only ledger is not rewritten for a formula bug measured in cents) and
+the ops page discloses the overstatement; the provider dashboard remains
+billing truth to reconcile against.
+
+**Every journaled call carries its duration and its run.** The client
+already measures dispatch-to-response latency for telemetry; the ledger now
+records it (retries included, NULL on pre-step-6 rows — "not measured",
+never a fabricated zero). Attribution is constructor-level: the shells build
+one client per job or study run, so a `run_id` stamped at construction is
+exact by construction, and jobs, reports, and spend all join on one key.
+
+**The job journal makes job outcomes survive the queue's memory.** One row
+per job in `jobs`, keyed by a run id minted *before* the pipeline starts
+(the runner receives it rather than minting internally). The composition
+root's `run_job` wrapper owns the row — insert at start, settle at finish —
+keeping the queue storage-free and the runner unchanged in responsibility;
+an escaping exception settles `failed` with its error text. Settling is an
+UPDATE, deliberately the first non-append tenant: a job row is a lifecycle
+record, and a started-but-never-settled row is the honest trace of a process
+death. Banked at settlement: labeled, reused (the label-pool cache
+economics), durable failures, refused batches — the runner's remaining
+totals stay narration-only. Stage timings derive from the job's own
+narration history (events stamped at arrival; no runner instrumentation),
+stored as display JSON — approximate by nature, declared, and what the
+parked narration-ETA calibration needs. Gate refusals journal to `refusals`
+(timestamp and which guard fired, no IP by shape) so "how often does the
+breaker fire" is answerable from the store.
+
+**Tier-3 platforms, named and rejected.** Langfuse (now wanting Postgres +
+ClickHouse), Prometheus+Grafana, and LangSmith all fail the standing "does
+*this product* need it?" test on a 4 GB box running one process over one
+SQLite file — a second stack to babysit, monitoring the monitor. The
+concepts those platforms embody — traces (a job), spans (its stages and
+calls), cost per token, latency percentiles, failure rates, cache hit
+rates — are exactly what the journals above implement natively, so the
+LLMOps story is told in its real vocabulary while the architecture stays
+honest. The platform *tool experience*, if ever wanted, is an experiment-lab
+afternoon on a hosted free tier, not this box.
+
 ---
 
 ## Standing rules

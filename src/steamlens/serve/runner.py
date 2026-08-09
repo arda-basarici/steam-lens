@@ -245,6 +245,7 @@ class AnalysisRunner:
                 self._entry, self._config.job_budget_usd, self._config.batch_n,
                 client_store, sink,
                 extra_routes={LlmStage.COMPOSE: compose_route()},
+                run_id=run.run_id,
             )
             account = self._fetch_and_classify(
                 app_id, specs, client, driver_store, run, sink, started

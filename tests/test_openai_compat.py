@@ -139,6 +139,30 @@ def test_parse_defaults_an_absent_details_block_to_an_explicit_zero() -> None:
     assert response.usage.thinking_tokens == 0
 
 
+def test_parse_reads_the_cache_split_from_either_spelling() -> None:
+    """DeepSeek reports the prefix-cache hit both ways (OpenAI's nested
+    prompt_tokens_details.cached_tokens and its own prompt_cache_hit_tokens);
+    either alone lands in the contract, absent both reads an explicit 0 —
+    everything billed at the full rate, the conservative degradation."""
+    nested = json.loads(_wire())
+    nested["usage"]["prompt_tokens_details"] = {"cached_tokens": 8}
+    assert parse_response(json.dumps(nested)).usage.cached_prompt_tokens == 8
+
+    flat = json.loads(_wire())
+    flat["usage"]["prompt_cache_hit_tokens"] = 7
+    assert parse_response(json.dumps(flat)).usage.cached_prompt_tokens == 7
+
+    assert parse_response(_wire()).usage.cached_prompt_tokens == 0
+
+
+def test_parse_caps_a_cache_claim_at_the_prompt_total() -> None:
+    """More cached than prompted is a provider accounting bug — bounded at the
+    prompt total rather than propagated into negative fresh-token pricing."""
+    body = json.loads(_wire())
+    body["usage"]["prompt_cache_hit_tokens"] = 99  # prompt_tokens is 10
+    assert parse_response(json.dumps(body)).usage.cached_prompt_tokens == 10
+
+
 def test_parse_reads_null_content_as_empty_text() -> None:
     """Some vendors ship content: null on filtered responses — empty text,
     never a crash on NoneType."""

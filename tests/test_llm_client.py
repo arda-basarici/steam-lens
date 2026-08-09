@@ -89,6 +89,7 @@ class FakeProvider:
                     self._usage.prompt_tokens,
                     self._usage.output_tokens,
                     self._usage.thinking_tokens,
+                    self._usage.cached_prompt_tokens,
                 ],
             }
         )
@@ -100,7 +101,10 @@ class FakeProvider:
             text=data["text"],
             model_version=data["model_version"],
             finish_reason=FinishReason(data["finish"]),
-            usage=TokenUsage(prompt_tokens=u[0], output_tokens=u[1], thinking_tokens=u[2]),
+            usage=TokenUsage(
+                prompt_tokens=u[0], output_tokens=u[1], thinking_tokens=u[2],
+                cached_prompt_tokens=u[3],
+            ),
         )
 
 
@@ -111,6 +115,7 @@ def _config(
     rpm: int = 100_000,
     max_out: int = 1000,
     model: str = "fake-model",
+    cached_price: float | None = None,
 ) -> LlmClientConfig:
     """One CLASSIFY route on a fake model priced 1/2 USD per 1M input/output tokens."""
     return LlmClientConfig(
@@ -118,7 +123,10 @@ def _config(
             LlmStage.CLASSIFY: Route(provider="fake", model=model, max_output_tokens=max_out)
         },
         models={
-            model: ModelSpec(rpm=rpm, rpd=rpd, input_usd_per_1m=1.0, output_usd_per_1m=2.0)
+            model: ModelSpec(
+                rpm=rpm, rpd=rpd, input_usd_per_1m=1.0, output_usd_per_1m=2.0,
+                cached_input_usd_per_1m=cached_price,
+            )
         },
         budget_usd=budget,
     )
@@ -130,6 +138,7 @@ def _client(
     *,
     cache: InMemoryResponseArchive | None = None,
     record_sleeps: list[float] | None = None,
+    run_id: str | None = None,
 ) -> tuple[LlmClient, InMemorySpendLedger, CollectingSink]:
     """A client on the fake registry, no-op sleep (or a recording one), seeded RNG."""
     ledger = InMemorySpendLedger()
@@ -146,6 +155,7 @@ def _client(
         ledger,
         sink,
         registry={"fake": provider.entry()},
+        run_id=run_id,
         sleep=_sleep,
         rng=random.Random(7),
     )
@@ -218,6 +228,38 @@ def test_happy_path_journals_actual_cost_and_returns_response() -> None:
     assert row.model_version == "fake-model-001"
     cost_metrics = [e for e in sink.events if not isinstance(e, StageEvent) and e.name == "cost"]
     assert len(cost_metrics) == 1
+
+
+def test_cached_prompt_tokens_bill_at_the_discounted_rate() -> None:
+    """Cache-hit prompt tokens price at the spec's cached rate; without one the
+    flat read stands (conservative) — the 2026-08-09 reconciliation's fix."""
+    usage = TokenUsage(
+        prompt_tokens=100, output_tokens=50, thinking_tokens=25, cached_prompt_tokens=90
+    )
+    discounted, ledger, _ = _client(
+        FakeProvider(usage=usage), _config(cached_price=0.1)
+    )
+    discounted.complete(_request())
+    # 10 fresh @ 1/1M + 90 cached @ 0.1/1M + 75 out+think @ 2/1M.
+    assert ledger.records[0].cost == pytest.approx((10 * 1.0 + 90 * 0.1 + 75 * 2.0) / 1e6)
+
+    flat, flat_ledger, _ = _client(FakeProvider(usage=usage), _config())
+    flat.complete(_request())
+    assert flat_ledger.records[0].cost == pytest.approx((100 * 1.0 + 75 * 2.0) / 1e6)
+
+
+def test_record_carries_duration_and_the_composed_run_id() -> None:
+    """Every journaled call carries a measured duration; the constructor-level
+    run_id stamps attribution exactly, None journals honestly unattributed."""
+    attributed, ledger, _ = _client(FakeProvider(), _config(), run_id="serve-run-9")
+    attributed.complete(_request())
+    row = ledger.records[0]
+    assert row.run_id == "serve-run-9"
+    assert row.duration_s >= 0.0
+
+    plain, plain_ledger, _ = _client(FakeProvider(), _config())
+    plain.complete(_request())
+    assert plain_ledger.records[0].run_id is None
 
 
 def test_cache_hit_skips_send_and_ledger() -> None:

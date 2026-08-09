@@ -85,8 +85,13 @@ def _record(
         stage=stage,
         model=model,
         model_version=f"{model}-001",
-        usage=TokenUsage(prompt_tokens=100, output_tokens=50, thinking_tokens=0),
+        usage=TokenUsage(
+            prompt_tokens=100, output_tokens=50, thinking_tokens=0,
+            cached_prompt_tokens=80,
+        ),
         cost=cost,
+        duration_s=1.5,
+        run_id="run-attr",
     )
 
 
@@ -1090,6 +1095,7 @@ class TestOpsReads:
         today = days[0]
         assert today.cost == pytest.approx(0.005)
         assert (today.prompt_tokens, today.output_tokens, today.thinking_tokens) == (200, 100, 0)
+        assert today.cached_prompt_tokens == 160, "the cache-hit split aggregates per day"
 
     def test_daily_ledger_windows_at_or_after_since(self, store: Store) -> None:
         store.spend_ledger.append(_record(created_at=_NOON - timedelta(days=2)))

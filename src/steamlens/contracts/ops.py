@@ -18,11 +18,18 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True, slots=True)
 class DailyLedgerRow:
-    """One UTC day's paid-call totals off the spend ledger."""
+    """One UTC day's paid-call totals off the spend ledger.
+
+    ``cached_prompt_tokens`` is the prefix-cache-hit subset of
+    ``prompt_tokens`` — the provider-side cache economics the ops page shows
+    as a hit rate (rows from before the step-6 accounting read 0 there:
+    "not recorded", disclosed on the page).
+    """
 
     day: str
     calls: int
     prompt_tokens: int
+    cached_prompt_tokens: int
     output_tokens: int
     thinking_tokens: int
     cost: float
@@ -36,6 +43,7 @@ class StageModelRow:
     model: str
     calls: int
     prompt_tokens: int
+    cached_prompt_tokens: int
     output_tokens: int
     thinking_tokens: int
     cost: float
