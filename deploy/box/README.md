@@ -143,7 +143,8 @@ The app's whole durable state is one SQLite file — `/srv/steamlens/data/serve.
 (response archive, ledger, journals, reports). `backup.sh` snapshots it with
 `sqlite3 .backup`, integrity-checks the snapshot before shipping, gzips, uploads
 to Drive, and prunes to 7 dailies + 4 Sunday weeklies. A systemd timer
-(`steamlens-backup.timer`, 03:30 UTC, `Persistent=true`) drives it; on success
+(`steamlens-backup.timer`, 03:30 box-local, `Persistent=true`) drives it; on
+success
 the script pings a healthchecks.io check, so the alert channel is *silence* —
 script failure, dead timer, and dead box all raise the same email. Secrets are
 deliberately not backed up: `.env` regenerates from the SOPS file in the repo,

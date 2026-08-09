@@ -1,5 +1,6 @@
-# Nightly at 03:30 UTC — the box's quiet hours. Persistent runs a missed
-# backup at the next boot instead of skipping the day.
+# Nightly at 03:30 box-local time (CET/CEST on the current box) — the quiet
+# hours. Persistent runs a missed backup at the next boot instead of skipping
+# the day.
 [Unit]
 Description=steamlens nightly backup timer
 
