@@ -136,3 +136,74 @@ Add the box as its own decryptor (optional, later): generate an age key on the
 box, add its public key as a second `age:` recipient in `.sops.yaml`, run
 `sops updatekeys deploy/box/secrets.enc.env`, and the box decrypts at deploy
 without the workstation in the loop.
+
+## Backups (nightly, to Google Drive)
+
+The app's whole durable state is one SQLite file — `/srv/steamlens/data/serve.db`
+(response archive, ledger, journals, reports). `backup.sh` snapshots it with
+`sqlite3 .backup`, integrity-checks the snapshot before shipping, gzips, uploads
+to Drive, and prunes to 7 dailies + 4 Sunday weeklies. A systemd timer
+(`steamlens-backup.timer`, 03:30 UTC, `Persistent=true`) drives it; on success
+the script pings a healthchecks.io check, so the alert channel is *silence* —
+script failure, dead timer, and dead box all raise the same email. Secrets are
+deliberately not backed up: `.env` regenerates from the SOPS file in the repo,
+so a compromised Drive account holds review data, never keys.
+
+### One-time setup
+
+```sh
+# 1. On the box: the two tools the script calls.
+sudo apt-get install -y sqlite3 rclone
+
+# 2. On the box, as the login user: the Drive remote. Name it `gdrive`
+#    (backup.sh addresses it by that name), pick storage type `drive`, and set
+#    scope `drive.file` — the token can then only touch files rclone itself
+#    created; a compromised box can burn the backups, never read the Drive.
+#    Skip client_id/secret (rclone's built-in is fine at this volume, and a
+#    self-made "testing"-mode OAuth app expires its token every 7 days).
+#    The box is headless: answer "n" to auto config, run the printed
+#    `rclone authorize "drive" ...` line on the workstation, paste the token.
+rclone config
+
+# 3. Create a check at healthchecks.io (period 1 day, grace ~2 h), then put
+#    its ping URL into the secrets file and push (see Secrets above):
+#    sops deploy/box/secrets.enc.env   → add BACKUP_PING_URL=https://hc-ping.com/<uuid>
+
+# 4. From the workstation: install script + units, enable the timer.
+scp deploy/box/backup.sh steamlens:/srv/steamlens/backup.sh
+scp deploy/box/steamlens-backup.{service,timer} steamlens:/tmp/
+ssh steamlens 'chmod +x /srv/steamlens/backup.sh \
+  && sudo mv /tmp/steamlens-backup.service /tmp/steamlens-backup.timer /etc/systemd/system/ \
+  && sudo systemctl daemon-reload && sudo systemctl enable --now steamlens-backup.timer'
+
+# 5. First run, by hand, watching the journal:
+ssh steamlens 'sudo systemctl start steamlens-backup.service \
+  && journalctl -u steamlens-backup.service -n 20 --no-pager'
+```
+
+Setup is not done until a restore has been verified — a backup never restored
+is a hope. Pull the fresh backup back and compare it against the live db:
+
+```sh
+ssh steamlens
+rclone copyto "gdrive:steamlens-backups/daily/serve-$(date +%F).db.gz" /tmp/restore.db.gz
+gunzip /tmp/restore.db.gz
+sqlite3 /tmp/restore.db "PRAGMA integrity_check;"          # → ok
+sqlite3 /tmp/restore.db "SELECT count(*) FROM classify_cache;"
+sqlite3 "file:/srv/steamlens/data/serve.db?mode=ro" \
+  "SELECT count(*) FROM classify_cache;"                   # → same count (± writes since 03:30)
+rm /tmp/restore.db
+```
+
+### Restoring for real (disaster runbook)
+
+```sh
+cd /srv/steamlens && docker compose down
+rclone lsl gdrive:steamlens-backups/daily                  # pick the newest good one
+rclone copyto gdrive:steamlens-backups/daily/serve-<date>.db.gz /tmp/restore.db.gz
+gunzip /tmp/restore.db.gz && sqlite3 /tmp/restore.db "PRAGMA integrity_check;"
+mv data/serve.db data/serve.db.broken                      # keep the evidence
+rm -f data/serve.db-wal data/serve.db-shm                  # stale WAL sidecars poison a restored db
+mv /tmp/restore.db data/serve.db
+docker compose up -d && curl -s http://localhost:80/healthz
+```

@@ -1,0 +1,16 @@
+# The oneshot the backup timer fires; also runnable by hand for a verified
+# first run: systemctl start steamlens-backup.service
+[Unit]
+Description=steamlens nightly store backup to Drive
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# The login user: owns /srv/steamlens/data and the rclone remote config.
+User=arda
+# The app's .env doubles as the secret channel for BACKUP_PING_URL — one
+# SOPS-managed file, one push path. "-" tolerates its absence: the backup
+# still runs, and the unpinged healthcheck raises the alert.
+EnvironmentFile=-/srv/steamlens/.env
+ExecStart=/srv/steamlens/backup.sh
