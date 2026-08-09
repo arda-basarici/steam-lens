@@ -65,6 +65,8 @@ class Job:
         requested_name: str,
         created_at: datetime,
         client_ip: str | None = None,
+        *,
+        now: Callable[[], datetime] = _utc_now,
     ) -> None:
         self.app_id = app_id
         self.requested_name = requested_name
@@ -73,10 +75,14 @@ class Job:
         # (the submit gate's one-in-flight-per-visitor read); None for
         # non-HTTP submitters (tests, a future CLI).
         self.client_ip = client_ip
+        self._now = now
         self._lock = threading.Lock()
         self._state = JobState.QUEUED
         self._error: str | None = None
-        self._events: list[SinkEvent] = []
+        # Arrival-stamped internally so stage timings derive from the story
+        # the job already tells (no runner instrumentation); the SSE wire
+        # sees plain events, unchanged.
+        self._events: list[tuple[datetime, SinkEvent]] = []
 
     @property
     def state(self) -> JobState:
@@ -91,11 +97,22 @@ class Job:
 
     def emit(self, event: SinkEvent) -> None:
         """Append one narration event to the history (the ``Sink`` contract)."""
+        stamped = (self._now(), event)
         with self._lock:
-            self._events.append(event)
+            self._events.append(stamped)
 
     def events(self) -> tuple[SinkEvent, ...]:
         """The history so far, in arrival order — the SSE replay source."""
+        with self._lock:
+            return tuple(event for _, event in self._events)
+
+    def timed_events(self) -> tuple[tuple[datetime, SinkEvent], ...]:
+        """The history with each event's arrival instant — the stage-timing source.
+
+        The journal wrapper derives per-stage spans from these at settlement
+        (``stage_spans``); timing rides the narration the job already
+        collects, so the runner needs no instrumentation of its own.
+        """
         with self._lock:
             return tuple(self._events)
 
@@ -124,6 +141,24 @@ class Job:
         with self._lock:
             self._state = state
             self._error = error
+
+
+def stage_spans(
+    timed: tuple[tuple[datetime, SinkEvent], ...],
+) -> dict[str, tuple[datetime, datetime]]:
+    """Each stage's first and last narration instants — the derived stage timings.
+
+    Approximate by nature and declared so: a stage's span is when it *spoke*,
+    not instrumented boundaries, and overlapped stages (the fetch/classify
+    seam) show overlapping spans — exactly the honest picture. This is what
+    the journal settles as ``stage_timings_json`` and what the parked
+    narration-ETA calibration will read.
+    """
+    spans: dict[str, tuple[datetime, datetime]] = {}
+    for instant, event in timed:
+        first, _ = spans.get(event.stage, (instant, instant))
+        spans[event.stage] = (first, instant)
+    return spans
 
 
 class JobQueue:
@@ -173,7 +208,7 @@ class JobQueue:
             existing = self._live.get(app_id)
             if existing is not None:
                 return existing
-            job = Job(app_id, requested_name, self._now(), client_ip)
+            job = Job(app_id, requested_name, self._now(), client_ip, now=self._now)
             self._live[app_id] = job
             self._pending.append(job)
             ahead = len(self._pending) - 1 + (1 if self._active is not None else 0)

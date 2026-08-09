@@ -37,6 +37,7 @@ class _World:
         self.admitted_today = admitted_today
         self.settled_today = settled_today
         self.admissions: list[tuple[str, int, datetime]] = []
+        self.refusals: list[tuple[str, datetime]] = []
         self.since_seen: list[datetime] = []
 
     def gate(
@@ -64,6 +65,7 @@ class _World:
                 (ip, app_id, at)
             ),
             admin_token=admin_token,
+            record_refusal=lambda kind, at: self.refusals.append((kind, at)),
             now=lambda: _NOON,
         )
 
@@ -87,6 +89,27 @@ def test_a_visitor_with_a_job_in_flight_is_refused_before_any_day_math() -> None
     assert gate.refusal("203.0.113.7") == IN_FLIGHT_MESSAGE
     assert world.since_seen == [], "the day reads must not have run"
     assert gate.refusal("198.51.100.2") == DAY_USED_MESSAGE
+
+
+def test_refusals_journal_which_guard_fired_admissions_journal_nothing() -> None:
+    """The two DAY_USED texts read identically to the visitor — the journaled
+    kind is the only place a backstop firing stays distinguishable from an
+    exhausted day, so each guard journals its own name."""
+    in_flight = _World(live_ips=frozenset({"203.0.113.7"}))
+    in_flight.gate().refusal("203.0.113.7")
+    assert in_flight.refusals == [("in_flight", _NOON)]
+
+    exhausted = _World(admitted_today=5)
+    exhausted.gate(limit=5).refusal("203.0.113.7")
+    assert exhausted.refusals == [("day_cap", _NOON)]
+
+    runaway = _World(settled_today=1.0)
+    runaway.gate(backstop=1.0).refusal("203.0.113.7")
+    assert runaway.refusals == [("backstop", _NOON)]
+
+    quiet = _World()
+    quiet.gate().refusal("203.0.113.7")
+    assert quiet.refusals == [], "an admission journals no refusal"
 
 
 def test_the_day_allowance_refuses_at_the_limit_exactly() -> None:

@@ -152,6 +152,23 @@ class _FetchAccount:
 
 
 @dataclass(frozen=True, slots=True)
+class JobSummary:
+    """What one job's classify leg banked — the counts the job journal settles.
+
+    The subset of the runner's totals ruled worth persisting (DESIGN: the job
+    journal): ``labeled`` envelopes bought or reused this job, ``reused`` the
+    label-pool cache economics, ``failed_durable`` the reviews unclassifiable
+    even alone, ``refused_batches`` how hard the provider pushed back. The
+    rest of the totals stay narration-only.
+    """
+
+    labeled: int
+    reused: int
+    failed_durable: int
+    refused_batches: int
+
+
+@dataclass(frozen=True, slots=True)
 class _MintOutcome:
     """The mint's product held for publication: the numbers, their denominator,
     and the fenced narrative that rode on them."""
@@ -196,7 +213,9 @@ class AnalysisRunner:
             ontology_version=self._stamp.version,
         )
 
-    def run(self, app_id: int, requested_name: str, sink: Sink) -> None:
+    def run(
+        self, app_id: int, requested_name: str, sink: Sink, *, run_id: str | None = None
+    ) -> JobSummary:
         """One cold analysis end to end, narrated over ``sink`` and published whole.
 
         Fetch → classify → mint → compose → publish: at completion the report
@@ -210,10 +229,16 @@ class AnalysisRunner:
         compose failure never aborts: prose is garnish, and its ladder
         degrades to a disclosed withholding that publishes like any other
         outcome. Only a job that classified nothing publishes no report.
+
+        ``run_id`` is the job's pre-minted identity when the composition
+        root's journal wrapper owns the row (jobs, reports, and ledger
+        attribution join on it); ``None`` mints internally — the standalone
+        composition (tests, a future CLI) unchanged. Returns the
+        ``JobSummary`` the wrapper settles the journal row with.
         """
         started = datetime.now(UTC)
         run = Provenance(
-            run_id=mint_run_id("serve", started),
+            run_id=run_id if run_id is not None else mint_run_id("serve", started),
             code_version=code_version(),
             created_at=started,
             config_hash=self._config_hash(),
@@ -247,7 +272,7 @@ class AnalysisRunner:
                 extra_routes={LlmStage.COMPOSE: compose_route()},
                 run_id=run.run_id,
             )
-            account = self._fetch_and_classify(
+            account, summary = self._fetch_and_classify(
                 app_id, specs, client, driver_store, run, sink, started
             )
             game_name = ref.store_name or requested_name
@@ -262,7 +287,7 @@ class AnalysisRunner:
                 job_values=(float(all_claim), float(english_claim)),
             )
             if minted is None:
-                return
+                return summary
             report = Report(
                 run=run,
                 app_id=app_id,
@@ -287,6 +312,7 @@ class AnalysisRunner:
                 f"n={minted.sample_size:,}) — the next request for app {app_id} "
                 f"reads it instantly",
             )
+            return summary
 
     def _config_hash(self) -> str:
         """The decision-relevant serving dial, fingerprinted for provenance."""
@@ -390,7 +416,7 @@ class AnalysisRunner:
         run: Provenance,
         sink: Sink,
         started: datetime,
-    ) -> _FetchAccount:
+    ) -> tuple[_FetchAccount, JobSummary]:
         """The overlap seam: windows stream from the producer, batches classify as they land.
 
         The producer thread fetches window by window into a bounded queue (the
@@ -558,7 +584,7 @@ class AnalysisRunner:
             f"language mix: {mix or 'none fetched'} · ${run_cost:.4f} this job · "
             f"run {run.run_id}",
         )
-        return _FetchAccount(
+        account = _FetchAccount(
             windows=tuple(accounts),
             language_mix=tuple(
                 LanguageCount(language, count)
@@ -566,6 +592,13 @@ class AnalysisRunner:
             ),
             member_times=tuple(member_times),
         )
+        summary = JobSummary(
+            labeled=totals.labeled,
+            reused=reused_total,
+            failed_durable=totals.failed_durable,
+            refused_batches=totals.refused_batches,
+        )
+        return account, summary
 
     def _mint_and_compose(
         self,

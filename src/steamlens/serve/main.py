@@ -19,6 +19,7 @@ cross-thread connection question at a cost the read cannot feel.
 
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
@@ -28,15 +29,24 @@ import uvicorn
 from fastapi import FastAPI
 
 from steamlens.contracts import EvidenceQuote, Report
-from steamlens.dispatch import TeeSink
+from steamlens.dispatch import TeeSink, mint_run_id
 from steamlens.dispatch.census_arm import KEY_ENV
 from steamlens.llm_client import openai_compat_entry
 from steamlens.llm_client.openai_compat import DEEPSEEK_BASE_URL
-from steamlens.serve import AnalysisRunner, Job, JobQueue, ServeConfig, SubmitGate, create_app
+from steamlens.serve import (
+    AnalysisRunner,
+    Job,
+    JobQueue,
+    JobSummary,
+    ServeConfig,
+    SubmitGate,
+    create_app,
+    stage_spans,
+)
 from steamlens.serve.gate import utc_day_start
 from steamlens.serve.web import OpsData, ReportPageData, attach_web
 from steamlens.steam_client import SteamClient, SteamClientConfig, SteamTransport
-from steamlens.store import Store
+from steamlens.store import Store, utc_isoformat
 
 
 def build_app() -> FastAPI:
@@ -78,8 +88,43 @@ def build_app() -> FastAPI:
     entry = openai_compat_entry(key, base_url=DEEPSEEK_BASE_URL)
     runner = AnalysisRunner(config, steam, entry, db_path, ontology_path)
 
+    def settle_job(
+        run_id: str, job: Job, outcome: str, error: str | None, summary: JobSummary | None
+    ) -> None:
+        # Stage timings derive from the narration the job already collected —
+        # the journal's ETA-calibration payload, approximate and declared so.
+        timings = json.dumps({
+            stage: [utc_isoformat(first), utc_isoformat(last)]
+            for stage, (first, last) in stage_spans(job.timed_events()).items()
+        })
+        with Store(db_path) as store:
+            store.jobs.settle(
+                run_id,
+                at=datetime.now(UTC),
+                outcome=outcome,
+                error=error,
+                labeled=summary.labeled if summary else None,
+                reused=summary.reused if summary else None,
+                failed_durable=summary.failed_durable if summary else None,
+                refused_batches=summary.refused_batches if summary else None,
+                stage_timings_json=timings,
+            )
+
     def run_job(job: Job) -> None:
-        runner.run(job.app_id, job.requested_name, job)
+        # The job-journal wrapper (DESIGN: the job journal): the row's run id
+        # is minted BEFORE the pipeline so jobs, reports, and ledger
+        # attribution share one key; an escaping exception settles the row
+        # failed and re-raises — the queue's own failure handling unchanged.
+        started = datetime.now(UTC)
+        run_id = mint_run_id("serve", started)
+        with Store(db_path) as store:
+            store.jobs.start(run_id, job.app_id, job.requested_name, at=started)
+        try:
+            summary = runner.run(job.app_id, job.requested_name, job, run_id=run_id)
+        except BaseException as exc:
+            settle_job(run_id, job, "failed", f"{type(exc).__name__}: {exc}", None)
+            raise
+        settle_job(run_id, job, "done", None, summary)
 
     def latest_report(app_id: int) -> Report | None:
         with Store(db_path) as store:
@@ -119,6 +164,10 @@ def build_app() -> FastAPI:
         with Store(db_path) as store:
             store.admissions.record(ip, app_id, at=at)
 
+    def record_refusal(kind: str, at: datetime) -> None:
+        with Store(db_path) as store:
+            store.refusals.record(kind, at=at)
+
     def load_ops_data() -> OpsData:
         # One clock reading for the whole page: the "today" reads and the
         # generated-at stamp tell one story. 14 days of history is the dial
@@ -137,6 +186,9 @@ def build_app() -> FastAPI:
                 daily_admissions=store.ops.daily_admissions(since),
                 stage_model=store.ops.stage_model_totals(),
                 report_count=store.ops.report_count(),
+                daily_refusals=store.ops.daily_refusals(since),
+                jobs=store.ops.recent_jobs(20),
+                stage_latencies=store.ops.stage_latencies(),
             )
 
     def database_ok() -> bool:
@@ -158,6 +210,7 @@ def build_app() -> FastAPI:
         admitted_since=admitted_since,
         spent_since=spent_since,
         record_admission=record_admission,
+        record_refusal=record_refusal,
         # `or None`: an empty value in .env must mean "no exemption door",
         # never a token an empty cookie could match.
         admin_token=os.environ.get("STEAMLENS_ADMIN_TOKEN") or None,

@@ -222,15 +222,23 @@ def test_take_all_labels_the_english_usable_pool(tmp_path: Path) -> None:
     runner = _runner(
         wire, FakeProvider(), ServeConfig(batch_n=2, classify_workers=2), db_path
     )
-    runner.run(_APP, "Test Game", sink)
+    summary = runner.run(_APP, "Test Game", sink, run_id="serve-premint-1")
 
     with Store(db_path) as store:
         assert store.reviews.count() == 3
         assert store.reviews.unlabeled_under(_versions()) == ()
+        report = store.reports.latest_report(_APP)
+        assert report is not None
+        assert report.run.run_id == "serve-premint-1", (
+            "the pre-minted id IS the report's run id — jobs/reports/ledger join on it"
+        )
     assert any("take-all" in m for m in _stage_messages(sink, "serve.plan"))
     assert any("3 English-usable" in m for m in _stage_messages(sink, "serve.fetch"))
     done = _stage_messages(sink, "serve.runner")
     assert any("labels banked: 3 labeled" in m for m in done)
+    assert (summary.labeled, summary.reused, summary.failed_durable) == (3, 0, 0), (
+        "the returned summary is what the journal wrapper settles with"
+    )
 
 
 def test_sampled_branch_stops_each_window_at_quota(tmp_path: Path) -> None:

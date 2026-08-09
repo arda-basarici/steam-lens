@@ -22,14 +22,18 @@ class DailyLedgerRow:
 
     ``cached_prompt_tokens`` is the prefix-cache-hit subset of
     ``prompt_tokens`` — the provider-side cache economics the ops page shows
-    as a hit rate (rows from before the step-6 accounting read 0 there:
-    "not recorded", disclosed on the page).
+    as a hit rate. ``measured_prompt_tokens`` is the prompt volume from rows
+    that carry the step-6 accounting (a recorded duration marks them): the
+    hit rate's honest denominator, because a pre-step-6 row never recorded
+    its split and must read "—", not 0% (the 2026-08-09 display lesson — the
+    designer read the unrecorded zero as a broken number).
     """
 
     day: str
     calls: int
     prompt_tokens: int
     cached_prompt_tokens: int
+    measured_prompt_tokens: int
     output_tokens: int
     thinking_tokens: int
     cost: float
@@ -37,13 +41,18 @@ class DailyLedgerRow:
 
 @dataclass(frozen=True, slots=True)
 class StageModelRow:
-    """All-time paid-call totals for one (stage, model) pair."""
+    """All-time paid-call totals for one (stage, model) pair.
+
+    ``measured_prompt_tokens`` plays the same honest-denominator role as on
+    the daily row.
+    """
 
     stage: str
     model: str
     calls: int
     prompt_tokens: int
     cached_prompt_tokens: int
+    measured_prompt_tokens: int
     output_tokens: int
     thinking_tokens: int
     cost: float
@@ -55,3 +64,46 @@ class DailyAdmissionRow:
 
     day: str
     admissions: int
+
+
+@dataclass(frozen=True, slots=True)
+class DailyRefusalRow:
+    """One UTC day's gate refusals — a count per day, never the IPs."""
+
+    day: str
+    refusals: int
+
+
+@dataclass(frozen=True, slots=True)
+class JobRow:
+    """One journaled job shaped for the ops history table.
+
+    ``outcome`` is ``"done"``/``"failed"`` once settled and ``None`` while
+    running — or forever, for a job a process death interrupted, which is
+    exactly what the row should say. ``cost`` joins the ledger by the shared
+    run id (0.0 for a job whose calls all landed before attribution or that
+    spent nothing). The banked counts are ``None`` on unsettled rows.
+    """
+
+    run_id: str
+    app_id: int
+    requested_name: str
+    started_at: str
+    finished_at: str | None
+    outcome: str | None
+    error: str | None
+    labeled: int | None
+    reused: int | None
+    failed_durable: int | None
+    refused_batches: int | None
+    cost: float
+
+
+@dataclass(frozen=True, slots=True)
+class StageLatencyRow:
+    """One stage's call-latency summary over the measured ledger rows."""
+
+    stage: str
+    calls: int
+    p50_s: float
+    p95_s: float

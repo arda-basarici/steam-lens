@@ -89,18 +89,33 @@ class SubmitGate:
     spent_since: Callable[[datetime], float]
     record_admission: Callable[[str, int, datetime], None]
     admin_token: str | None = None
+    # The refusal journal's write seam (kind, at) — the ops surface's "how
+    # often does the breaker fire" read. None composes an unjournaled gate
+    # (tests that only claim refusal policy); production always wires one.
+    record_refusal: Callable[[str, datetime], None] | None = None
     now: Callable[[], datetime] = _utc_now
 
     def refusal(self, ip: str) -> str | None:
-        """The refusal message for a fresh-job request from ``ip`` — None admits."""
+        """The refusal message for a fresh-job request from ``ip`` — None admits.
+
+        A refusal journals which guard fired (``in_flight`` · ``day_cap`` ·
+        ``backstop``) before returning its message — the two DAY_USED texts
+        read identically to the visitor by design, so the journal's kind is
+        the only place the backstop's firings stay distinguishable.
+        """
         if self.has_live_from(ip):
-            return IN_FLIGHT_MESSAGE
+            return self._refuse("in_flight", IN_FLIGHT_MESSAGE)
         day = utc_day_start(self.now())
         if self.admitted_since(day) >= self.daily_job_limit:
-            return DAY_USED_MESSAGE
+            return self._refuse("day_cap", DAY_USED_MESSAGE)
         if self.spent_since(day) >= self.daily_spend_backstop_usd:
-            return DAY_USED_MESSAGE
+            return self._refuse("backstop", DAY_USED_MESSAGE)
         return None
+
+    def _refuse(self, kind: str, message: str) -> str:
+        if self.record_refusal is not None:
+            self.record_refusal(kind, self.now())
+        return message
 
     def admit(self, ip: str, app_id: int) -> None:
         """Journal one admitted fresh job against today's public allowance."""

@@ -1140,3 +1140,112 @@ class TestOpsReads:
         _record_run(store, "serve-1")
         store.reports.put(_report("serve-1"), [_aggregate("serve-1")])
         assert store.ops.report_count() == 1
+
+    def test_measured_prompt_excludes_rows_without_the_step6_accounting(
+        self, store: Store
+    ) -> None:
+        """A pre-step-6 row (no recorded duration) never recorded its cache
+        split — it must fall out of the hit rate's denominator, not read 0%."""
+        store.spend_ledger.append(_record(created_at=_NOON))
+        store._conn.execute(  # pyright: ignore[reportPrivateUsage]
+            "INSERT INTO spend_ledger (created_at, stage, model, model_version,"
+            " prompt_tokens, output_tokens, thinking_tokens, cost)"
+            " VALUES ('2026-07-14T13:00:00+00:00', 'classify', 'model-a',"
+            " 'model-a-001', 500, 10, 0, 0.01)"
+        )
+        day = store.ops.daily_ledger(_EPOCH)[0]
+        assert day.prompt_tokens == 600
+        assert day.measured_prompt_tokens == 100, "only the measured row's prompt counts"
+        assert day.cached_prompt_tokens == 80
+
+    def test_daily_refusals_count_per_day(self, store: Store) -> None:
+        store.refusals.record("day_cap", at=_NOON)
+        store.refusals.record("in_flight", at=_NOON)
+        store.refusals.record("backstop", at=_NOON - timedelta(days=1))
+        days = store.ops.daily_refusals(_EPOCH)
+        assert [(d.day, d.refusals) for d in days] == [("2026-07-14", 2), ("2026-07-13", 1)]
+
+    def test_recent_jobs_join_their_attributed_cost_newest_first(
+        self, store: Store
+    ) -> None:
+        store.jobs.start("serve-1", 440, "Team Fortress 2", at=_NOON)
+        store.jobs.settle(
+            "serve-1", at=_NOON + timedelta(minutes=3), outcome="done", error=None,
+            labeled=120, reused=30, failed_durable=1, refused_batches=0,
+            stage_timings_json='{"serve.fetch": 10.0}',
+        )
+        store.jobs.start("serve-2", 570, "Dota 2", at=_NOON + timedelta(hours=1))
+        store.spend_ledger.append(_record(cost=0.002))  # run-attr, not serve-1
+        for _ in range(2):
+            store.spend_ledger.append(
+                SpendRecord(
+                    created_at=_NOON, stage=LlmStage.CLASSIFY, model="model-a",
+                    model_version="model-a-001",
+                    usage=TokenUsage(prompt_tokens=10, output_tokens=5, thinking_tokens=0),
+                    cost=0.003, duration_s=2.0, run_id="serve-1",
+                )
+            )
+        jobs = store.ops.recent_jobs(10)
+        assert [j.run_id for j in jobs] == ["serve-2", "serve-1"]
+        settled = jobs[1]
+        assert settled.outcome == "done"
+        assert (settled.labeled, settled.reused) == (120, 30)
+        assert settled.cost == pytest.approx(0.006), "cost joins by run_id only"
+        running = jobs[0]
+        assert running.outcome is None and running.finished_at is None
+        assert running.cost == 0.0
+
+    def test_stage_latencies_summarize_measured_rows_only(self, store: Store) -> None:
+        for duration in (1.0, 2.0, 3.0, 4.0):
+            store.spend_ledger.append(
+                SpendRecord(
+                    created_at=_NOON, stage=LlmStage.CLASSIFY, model="model-a",
+                    model_version="model-a-001",
+                    usage=TokenUsage(prompt_tokens=10, output_tokens=5, thinking_tokens=0),
+                    cost=0.001, duration_s=duration,
+                )
+            )
+        store._conn.execute(  # pyright: ignore[reportPrivateUsage]
+            "INSERT INTO spend_ledger (created_at, stage, model, model_version,"
+            " prompt_tokens, output_tokens, thinking_tokens, cost)"
+            " VALUES ('2026-07-14T13:00:00+00:00', 'compose', 'model-a',"
+            " 'model-a-001', 500, 10, 0, 0.01)"
+        )
+        rows = store.ops.stage_latencies()
+        assert [(r.stage, r.calls) for r in rows] == [("classify", 4)]
+        assert (rows[0].p50_s, rows[0].p95_s) == (2.0, 4.0)
+
+
+class TestJobLog:
+    """The lifecycle journal: started rows settle by update, orphans fail loud."""
+
+    def test_start_then_settle_round_trips_through_the_ops_read(self, store: Store) -> None:
+        store.jobs.start("serve-1", 440, "Team Fortress 2", at=_NOON)
+        store.jobs.settle(
+            "serve-1", at=_NOON + timedelta(minutes=2), outcome="failed",
+            error="RunAbort: over budget", labeled=None, reused=None,
+            failed_durable=None, refused_batches=None, stage_timings_json=None,
+        )
+        job = store.ops.recent_jobs(1)[0]
+        assert job.outcome == "failed"
+        assert job.error == "RunAbort: over budget"
+        assert job.labeled is None, "counts unknown at abort stay honest NULLs"
+
+    def test_duplicate_start_fails_loud(self, store: Store) -> None:
+        store.jobs.start("serve-1", 440, "TF2", at=_NOON)
+        with pytest.raises(StoreError, match="serve-1"):
+            store.jobs.start("serve-1", 440, "TF2", at=_NOON)
+
+    def test_settle_without_start_fails_loud(self, store: Store) -> None:
+        with pytest.raises(StoreError, match="never started"):
+            store.jobs.settle(
+                "ghost", at=_NOON, outcome="done", error=None, labeled=0,
+                reused=0, failed_durable=0, refused_batches=0, stage_timings_json=None,
+            )
+
+    def test_a_started_never_settled_row_reads_as_running(self, store: Store) -> None:
+        """The process-death trace: no finished_at, no outcome — the row states
+        exactly what is known, nothing backfills it."""
+        store.jobs.start("serve-1", 440, "TF2", at=_NOON)
+        job = store.ops.recent_jobs(1)[0]
+        assert job.finished_at is None and job.outcome is None

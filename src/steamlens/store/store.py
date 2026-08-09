@@ -8,8 +8,10 @@ the corpus snapshot and the driver's selection query, ``labels`` is the label
 pool, ``eval_runs`` is the certification journal, ``sample_members`` is the
 serving runs' stored sample manifests, ``reports`` the published analyses
 with their aggregate snapshots, ``admissions`` the submit gate's daily
-admission journal, ``ops`` the ops page's read-only aggregates over the
-journals the others write. One owner, dumb tenants:
+admission journal, ``jobs`` the job journal (the one settle-by-update
+tenant), ``refusals`` the gate's refusal journal, ``ops`` the ops page's
+read-only aggregates over the journals the others write. One owner, dumb
+tenants:
 pragmas and migrations run once per open instead of once per surface, and
 "which connection has WAL set" stays a single fact.
 
@@ -34,9 +36,11 @@ from types import TracebackType
 from steamlens.store.admissions import AdmissionLog
 from steamlens.store.archive import SqliteResponseArchive
 from steamlens.store.eval_runs import EvalRunLog
+from steamlens.store.jobs import JobLog
 from steamlens.store.labels import LabelPool
 from steamlens.store.ledger import SqliteSpendLedger
 from steamlens.store.ops import OpsReads
+from steamlens.store.refusals import RefusalLog
 from steamlens.store.reports import ReportLog
 from steamlens.store.reviews import ReviewStore
 from steamlens.store.samples import SampleManifest
@@ -92,6 +96,8 @@ class Store:
         self.sample_members = SampleManifest(self._conn)
         self.reports = ReportLog(self._conn)
         self.admissions = AdmissionLog(self._conn)
+        self.jobs = JobLog(self._conn)
+        self.refusals = RefusalLog(self._conn)
         self.ops = OpsReads(self._conn)
 
     def close(self) -> None:

@@ -22,7 +22,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
-from steamlens.contracts import DailyAdmissionRow, DailyLedgerRow, StageModelRow
+from steamlens.contracts import (
+    DailyAdmissionRow,
+    DailyLedgerRow,
+    DailyRefusalRow,
+    JobRow,
+    StageLatencyRow,
+    StageModelRow,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,6 +52,9 @@ class OpsData:
     daily_admissions: tuple[DailyAdmissionRow, ...]
     stage_model: tuple[StageModelRow, ...]
     report_count: int
+    daily_refusals: tuple[DailyRefusalRow, ...] = ()
+    jobs: tuple[JobRow, ...] = ()
+    stage_latencies: tuple[StageLatencyRow, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -125,8 +135,10 @@ def build_ops_view(data: OpsData) -> OpsView:
             ),
         ),
         tables=(
-            _daily_table(data.daily_ledger, data.daily_admissions),
+            _jobs_table(data.jobs),
+            _daily_table(data.daily_ledger, data.daily_admissions, data.daily_refusals),
             _stage_model_table(data.stage_model),
+            _latency_table(data.stage_latencies),
         ),
         notes=(
             "ledger rows from before 2026-08-09 are priced without the provider's "
@@ -137,27 +149,69 @@ def build_ops_view(data: OpsData) -> OpsView:
     )
 
 
-def _daily_table(
-    ledger: tuple[DailyLedgerRow, ...], admissions: tuple[DailyAdmissionRow, ...]
-) -> OpsTable:
-    """The last days' activity, newest first — ledger and admissions merged by day.
+def _jobs_table(jobs: tuple[JobRow, ...]) -> OpsTable:
+    """The job history — every analysis run, its outcome, and what it cost.
 
-    The union of both journals' days: a day with admissions but no settled
+    The LLMOps trace table: one row per job with duration, the banked classify
+    counts, and the ledger-joined attributed cost. A never-settled row renders
+    ``running`` (or is the honest trace of a process death). Error *text*
+    deliberately never renders — this page is public, and raw exception
+    strings can leak internals; the outcome column says failed, the operator
+    reads the journal for why.
+    """
+    return OpsTable(
+        title="jobs (newest 20)",
+        headers=(
+            "started (UTC)", "game", "outcome", "duration",
+            "labeled", "reused", "cost",
+        ),
+        rows=tuple(
+            (
+                job.started_at[:16].replace("T", " "),
+                job.requested_name,
+                job.outcome if job.outcome is not None else "running",
+                _elapsed(job.started_at, job.finished_at),
+                "—" if job.labeled is None else f"{job.labeled:,}",
+                "—" if job.reused is None else f"{job.reused:,}",
+                _usd(job.cost),
+            )
+            for job in jobs
+        ),
+        note=(
+            "reused counts verdicts served from the label pool instead of "
+            "re-bought — the app-side cache economics; cost joins the ledger "
+            "by the job's run id"
+        ),
+        text_columns=4,
+    )
+
+
+def _daily_table(
+    ledger: tuple[DailyLedgerRow, ...],
+    admissions: tuple[DailyAdmissionRow, ...],
+    refusals: tuple[DailyRefusalRow, ...],
+) -> OpsTable:
+    """The last days' activity, newest first — the three journals merged by day.
+
+    The union of the journals' days: a day with admissions but no settled
     calls yet (or the reverse — the operator's exempt jobs mint no admission)
     still renders, zeros worn openly.
     """
     admitted = {row.day: row.admissions for row in admissions}
+    refused = {row.day: row.refusals for row in refusals}
     spent = {row.day: row for row in ledger}
-    days = sorted(set(admitted) | set(spent), reverse=True)
+    days = sorted(set(admitted) | set(refused) | set(spent), reverse=True)
     rows: list[tuple[str, ...]] = []
     for day in days:
         row = spent.get(day)
         rows.append((
             day,
             f"{admitted.get(day, 0):,}",
+            f"{refused.get(day, 0):,}",
             f"{row.calls:,}" if row else "0",
             f"{row.prompt_tokens:,}" if row else "0",
-            _hit_rate(row.cached_prompt_tokens, row.prompt_tokens) if row else "—",
+            _hit_rate(row.cached_prompt_tokens, row.measured_prompt_tokens)
+            if row else "—",
             f"{row.output_tokens:,}" if row else "0",
             f"{row.thinking_tokens:,}" if row else "0",
             _usd(row.cost) if row else _usd(0.0),
@@ -165,14 +219,15 @@ def _daily_table(
     return OpsTable(
         title="by day (last 14)",
         headers=(
-            "day", "jobs admitted", "LLM calls",
+            "day", "jobs admitted", "refusals", "LLM calls",
             "prompt tokens", "cache hit", "output tokens", "thinking tokens", "cost",
         ),
         rows=tuple(rows),
         note=(
             "admitted counts the gate's public admissions — the operator's "
-            "unlocked jobs spend but are not admissions; cache hit is the "
-            "provider-side prefix-cache share of prompt tokens"
+            "unlocked jobs spend but are not admissions; refusals count the "
+            "spend breaker's firings; cache hit is the provider-side "
+            "prefix-cache share of prompt tokens (— where no row recorded it)"
         ),
     )
 
@@ -191,21 +246,58 @@ def _stage_model_table(stage_model: tuple[StageModelRow, ...]) -> OpsTable:
                 row.model,
                 f"{row.calls:,}",
                 f"{row.prompt_tokens:,}",
-                _hit_rate(row.cached_prompt_tokens, row.prompt_tokens),
+                _hit_rate(row.cached_prompt_tokens, row.measured_prompt_tokens),
                 f"{row.output_tokens:,}",
                 f"{row.thinking_tokens:,}",
                 _usd(row.cost),
             )
             for row in stage_model
         ),
-        note="failure rates and latency join with the job journal (in design)",
+        note=(
+            "cache hit computes over rows that recorded the split "
+            "(post-2026-08-09) — earlier rows never measured it"
+        ),
         text_columns=2,
     )
 
 
-def _hit_rate(cached: int, prompt: int) -> str:
-    """The prefix-cache share of prompt tokens — "—" when nothing was prompted."""
-    return f"{cached / prompt:.0%}" if prompt else "—"
+def _latency_table(latencies: tuple[StageLatencyRow, ...]) -> OpsTable:
+    """Per-stage call latency percentiles over the measured ledger rows."""
+    return OpsTable(
+        title="call latency by stage",
+        headers=("stage", "measured calls", "p50", "p95"),
+        rows=tuple(
+            (
+                row.stage,
+                f"{row.calls:,}",
+                f"{row.p50_s:.1f}s",
+                f"{row.p95_s:.1f}s",
+            )
+            for row in latencies
+        ),
+        note="dispatch-to-response wall clock per LLM call, retries included",
+    )
+
+
+def _hit_rate(cached: int, measured_prompt: int) -> str:
+    """The prefix-cache share over the *measured* prompt volume.
+
+    "—" when no row in the group recorded the split (pre-step-6 rows carry
+    no measurement) — an unrecorded split must never render as 0% hit.
+    """
+    return f"{cached / measured_prompt:.0%}" if measured_prompt else "—"
+
+
+def _elapsed(started_at: str, finished_at: str | None) -> str:
+    """A finished job's wall-clock span as "3m 12s" — "—" while unfinished."""
+    if finished_at is None:
+        return "—"
+    seconds = int(
+        (
+            datetime.fromisoformat(finished_at) - datetime.fromisoformat(started_at)
+        ).total_seconds()
+    )
+    return f"{seconds // 60}m {seconds % 60:02d}s"
 
 
 def _usd(amount: float) -> str:

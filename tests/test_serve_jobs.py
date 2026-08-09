@@ -159,3 +159,26 @@ def test_close_drains_the_active_job_and_abandons_the_queue() -> None:
     assert runner.order == [440]
     with pytest.raises(RuntimeError, match="closed"):
         queue.submit(730, "Counter-Strike 2")
+
+
+def test_timed_events_stamp_arrival_and_stage_spans_derive_the_story() -> None:
+    """Events stamp their arrival instants internally (the SSE-facing history
+    unchanged), and stage_spans reads first-to-last narration per stage —
+    overlapping stages show overlapping spans, which is the honest picture."""
+    from datetime import UTC, datetime, timedelta
+
+    from steamlens.serve import stage_spans
+
+    base = datetime(2026, 8, 9, 12, 0, tzinfo=UTC)
+    ticks = iter(base + timedelta(seconds=s) for s in (0, 10, 20, 30))
+    job = Job(440, "TF2", base, now=lambda: next(ticks))
+    for stage in ("serve.fetch", "serve.fetch", "serve.classify", "serve.fetch"):
+        job.emit(StageEvent(stage=stage, kind=StageKind.PROGRESS, message="x"))
+
+    assert len(job.events()) == 4, "the plain history keeps its shape"
+    spans = stage_spans(job.timed_events())
+    assert spans["serve.fetch"] == (base, base + timedelta(seconds=30))
+    assert spans["serve.classify"] == (
+        base + timedelta(seconds=20),
+        base + timedelta(seconds=20),
+    )

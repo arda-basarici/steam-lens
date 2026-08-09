@@ -32,11 +32,13 @@ from steamlens.contracts import (
     ComposedNarrative,
     DailyAdmissionRow,
     DailyLedgerRow,
+    DailyRefusalRow,
     EpisodeMarker,
     EvidenceQuote,
     GroundedSpan,
     HistogramBucket,
     HistogramSnapshot,
+    JobRow,
     LanguageCount,
     MarkedWindowCount,
     NarrativeOutcome,
@@ -49,6 +51,7 @@ from steamlens.contracts import (
     Sentiment,
     SentimentCounts,
     SpanKind,
+    StageLatencyRow,
     StageModelRow,
     WindowAccount,
 )
@@ -601,12 +604,16 @@ def _ops_data(
         StageModelRow(
             stage="classify", model="deepseek-chat", calls=180,
             prompt_tokens=90_000, cached_prompt_tokens=81_000,
+            measured_prompt_tokens=90_000,
             output_tokens=30_000, thinking_tokens=0,
             cost=0.20,
         ),
     ),
     daily_ledger: tuple[DailyLedgerRow, ...] = (),
     daily_admissions: tuple[DailyAdmissionRow, ...] = (),
+    daily_refusals: tuple[DailyRefusalRow, ...] = (),
+    jobs: tuple[JobRow, ...] = (),
+    stage_latencies: tuple[StageLatencyRow, ...] = (),
 ) -> OpsData:
     return OpsData(
         now=datetime(2026, 8, 9, 14, 30, tzinfo=UTC),
@@ -618,6 +625,9 @@ def _ops_data(
         daily_admissions=daily_admissions,
         stage_model=stage_model,
         report_count=report_count,
+        daily_refusals=daily_refusals,
+        jobs=jobs,
+        stage_latencies=stage_latencies,
     )
 
 
@@ -637,37 +647,94 @@ def test_ops_view_headline_stats_tell_the_day_and_the_unit_economics() -> None:
 
 
 def test_ops_view_daily_table_merges_journal_days_zeros_worn_openly() -> None:
-    """The daily table is the union of both journals' days, newest first: a
+    """The daily table is the union of the journals' days, newest first: a
     day with admissions but no settled spend still renders (its calls zeroed),
-    and a spend-only day renders with zero admissions — the operator's exempt
-    jobs are exactly that case."""
+    a spend-only day renders with zero admissions — the operator's exempt
+    jobs are exactly that case — and refusal counts merge in by day."""
     view = build_ops_view(_ops_data(
         daily_ledger=(
             DailyLedgerRow(day="2026-08-08", calls=90, prompt_tokens=45_000,
-                           cached_prompt_tokens=40_500, output_tokens=15_000,
+                           cached_prompt_tokens=40_500,
+                           measured_prompt_tokens=45_000, output_tokens=15_000,
                            thinking_tokens=0, cost=0.11),
         ),
         daily_admissions=(DailyAdmissionRow(day="2026-08-09", admissions=2),),
+        daily_refusals=(DailyRefusalRow(day="2026-08-09", refusals=3),),
     ))
-    daily = view.tables[0]
+    daily = view.tables[1]
+    assert daily.headers[1:4] == ("jobs admitted", "refusals", "LLM calls")
     assert [row[0] for row in daily.rows] == ["2026-08-09", "2026-08-08"]
-    assert daily.rows[0][1:3] == ("2", "0"), "admission-only day zeros its calls"
-    assert daily.rows[1][1:3] == ("0", "90"), "spend-only day zeros its admissions"
-    assert daily.rows[1][4] == "90%", "the provider cache-hit share renders per day"
-    assert daily.rows[1][7] == "$0.1100"
+    assert daily.rows[0][1:4] == ("2", "3", "0"), "admission-only day zeros its calls"
+    assert daily.rows[1][1:4] == ("0", "0", "90"), "spend-only day zeros its admissions"
+    assert daily.rows[1][5] == "90%", "the provider cache-hit share renders per day"
+    assert daily.rows[1][8] == "$0.1100"
 
 
-def test_ops_page_renders_aggregates_and_names_the_designed_gap() -> None:
-    """The rendered page carries the stat plate, both tables, and the honest
-    note that failure rates and latency wait on the job journal — a stated
-    gap, never an empty section."""
+def test_ops_view_cache_hit_reads_dash_when_no_row_measured_the_split() -> None:
+    """A day of pre-step-6 rows (nothing measured) reads "—", never 0% — an
+    unrecorded split is not a zero hit rate (the designer misread it as a
+    broken number, which is the proof it misleads)."""
+    view = build_ops_view(_ops_data(
+        daily_ledger=(
+            DailyLedgerRow(day="2026-08-08", calls=90, prompt_tokens=45_000,
+                           cached_prompt_tokens=0, measured_prompt_tokens=0,
+                           output_tokens=15_000, thinking_tokens=0, cost=0.766),
+        ),
+    ))
+    assert build_ops_view(_ops_data()).tables[2].rows[0][4] == "90%"
+    assert view.tables[1].rows[0][5] == "—"
+
+
+def test_ops_view_jobs_table_tells_the_trace_without_leaking_error_text() -> None:
+    """The job history renders outcome, duration, banked counts, and joined
+    cost; a never-settled job reads running with dashes; a failed job's raw
+    error text never reaches the public page."""
+    jobs = (
+        JobRow(
+            run_id="serve-2", app_id=570, requested_name="Dota 2",
+            started_at="2026-08-09T14:00:00+00:00", finished_at=None,
+            outcome=None, error=None, labeled=None, reused=None,
+            failed_durable=None, refused_batches=None, cost=0.0,
+        ),
+        JobRow(
+            run_id="serve-1", app_id=440, requested_name="Team Fortress 2",
+            started_at="2026-08-09T12:00:00+00:00",
+            finished_at="2026-08-09T12:03:12+00:00",
+            outcome="failed", error="RunAbort: /srv/steamlens/secret path leaked",
+            labeled=120, reused=30, failed_durable=1, refused_batches=0,
+            cost=0.0851,
+        ),
+    )
+    table = build_ops_view(_ops_data(jobs=jobs)).tables[0]
+    assert table.rows[0][2:5] == ("running", "—", "—")
+    assert table.rows[1][2:7] == ("failed", "3m 12s", "120", "30", "$0.0851")
+    assert not any(
+        "secret path" in cell for row in table.rows for cell in row
+    ), "raw error text is operator-only, never public"
+
+
+def test_ops_view_latency_table_summarizes_measured_calls() -> None:
+    table = build_ops_view(_ops_data(
+        stage_latencies=(
+            StageLatencyRow(stage="classify", calls=180, p50_s=8.4, p95_s=21.9),
+        ),
+    )).tables[3]
+    assert table.rows == (("classify", "180", "8.4s", "21.9s"),)
+
+
+def test_ops_page_renders_the_full_surface() -> None:
+    """The rendered page carries the stat plate and all four tables — job
+    history, daily, stage/model, latency — plus the pre-fix pricing
+    disclosure."""
     app = FastAPI()
     attach_web(app, lambda _: None, lambda _: False, lambda: _ops_data())
     html = _get(app, "/ops").text
     assert "fresh analyses today" in html
     assert "2 of 5" in html
     assert "deepseek-chat" in html
-    assert "failure rates and latency join with the job journal" in html
+    assert "jobs (newest 20)" in html
+    assert "call latency by stage" in html
+    assert "priced without the provider" in html
     assert "generated 2026-08-09 14:30 UTC" in html
 
 
