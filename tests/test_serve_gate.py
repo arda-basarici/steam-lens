@@ -14,6 +14,8 @@ from datetime import UTC, datetime, timedelta, timezone
 from steamlens.serve.gate import (
     DAY_USED_MESSAGE,
     IN_FLIGHT_MESSAGE,
+    SEARCH_LIMIT_MESSAGE,
+    SearchLimiter,
     SubmitGate,
     client_ip,
     utc_day_start,
@@ -158,6 +160,50 @@ def test_exemption_requires_a_configured_token_and_an_exact_cookie() -> None:
     assert not configured.is_exempt(None)
     assert configured.unlock_ok("sesame")
     assert not configured.unlock_ok("sesam")
+
+
+def test_a_non_ascii_token_fails_the_unlock_instead_of_raising() -> None:
+    """``compare_digest`` raises ``TypeError`` on a non-ascii str — the guard
+    must turn a garbage cookie or URL token into a failed unlock, never a 500
+    (the audit's ascii finding; the configured token's own ascii-ness is the
+    composition root's boot check)."""
+    gate = _World().gate(admin_token="sesame")
+    assert not gate.is_exempt("sésame")
+    assert not gate.unlock_ok("sésame")
+
+
+def test_search_limiter_admits_to_the_cap_then_refuses_and_journals() -> None:
+    """At the cap the refusal carries the honest message and journals kind
+    "search" — the ops page's refusal counts cover this guard through the
+    submit gate's own seam."""
+    refusals: list[tuple[str, datetime]] = []
+    limiter = SearchLimiter(
+        3, record_refusal=lambda kind, at: refusals.append((kind, at)),
+        now=lambda: _NOON,
+    )
+    for _ in range(3):
+        assert limiter.refusal("203.0.113.7") is None
+    assert limiter.refusal("203.0.113.7") == SEARCH_LIMIT_MESSAGE
+    assert refusals == [("search", _NOON)]
+
+
+def test_search_limiter_counts_each_ip_alone() -> None:
+    """One visitor exhausting their allowance must not touch anyone else's."""
+    limiter = SearchLimiter(1, now=lambda: _NOON)
+    assert limiter.refusal("203.0.113.7") is None
+    assert limiter.refusal("203.0.113.7") == SEARCH_LIMIT_MESSAGE
+    assert limiter.refusal("198.51.100.2") is None
+
+
+def test_search_limiter_resets_as_the_minute_rolls() -> None:
+    """A fresh wall-clock minute clears every window — the allowance returns
+    on its own, and the state cannot outlive the minute."""
+    clock = {"now": _NOON}
+    limiter = SearchLimiter(1, now=lambda: clock["now"])
+    assert limiter.refusal("203.0.113.7") is None
+    assert limiter.refusal("203.0.113.7") == SEARCH_LIMIT_MESSAGE
+    clock["now"] = _NOON + timedelta(minutes=1)
+    assert limiter.refusal("203.0.113.7") is None
 
 
 def test_client_ip_takes_the_proxys_own_entry_never_the_forged_ones() -> None:

@@ -35,10 +35,11 @@ from typing import Annotated
 
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.responses import RedirectResponse, StreamingResponse
+from pydantic import Field
 
 from steamlens.contracts import GameSearchHit, Report
 from steamlens.serve.config import ServeConfig
-from steamlens.serve.gate import UNLOCK_COOKIE, SubmitGate, client_ip
+from steamlens.serve.gate import UNLOCK_COOKIE, SearchLimiter, SubmitGate, client_ip
 from steamlens.serve.jobs import JobQueue, JobState
 from steamlens.serve.sse import stream_job
 from steamlens.steam_client import SteamClientError
@@ -49,11 +50,14 @@ class AnalysisRequest:
     """What a viewer asks for: the app and the name they typed.
 
     The name rides along for the runner's identity guard — a mismatch against
-    the store's name is narrated, never silently corrected.
+    the store's name is narrated, never silently corrected. Its cap matches
+    ``/search``'s query cap, so no name the search box accepts can fail here;
+    an over-long body 422s cleanly inside the proxy's request-size envelope
+    (the audit's body-limit finding — Caddy's ``max_size`` is the outer wall).
     """
 
     app_id: int
-    requested_name: str
+    requested_name: Annotated[str, Field(max_length=200)]
 
 
 @dataclass(frozen=True, slots=True)
@@ -113,6 +117,7 @@ def create_app(
     search_games: Callable[[str], tuple[GameSearchHit, ...]],
     *,
     gate: SubmitGate | None = None,
+    search_limiter: SearchLimiter | None = None,
     database_ok: Callable[[], bool] | None = None,
     on_shutdown: Sequence[Callable[[], None]] = (),
 ) -> FastAPI:
@@ -132,7 +137,9 @@ def create_app(
     touching production defaults. ``gate`` is the submit gate (the spend
     breaker) — ``None`` composes an ungated app (tests, private dev);
     production always wires one, and with it the ``/unlock/{token}`` route
-    that mints the operator's exemption cookie. ``database_ok`` is
+    that mints the operator's exemption cookie. ``search_limiter`` guards
+    ``/search`` the same way (the politeness-budget guard) — ``None``
+    composes an unlimited search; production always wires one. ``database_ok`` is
     ``/healthz``'s injected store check (does the file open?) — ``None``
     composes an app whose health answer says so honestly; production always
     wires one, same language as the gate.
@@ -165,13 +172,27 @@ def create_app(
     @app.get("/search")
     def search(  # pyright: ignore[reportUnusedFunction]
         q: Annotated[str, Query(min_length=1, max_length=200)],
+        http_request: Request,
     ) -> tuple[GameSearchHit, ...]:
         """Typed hits for a game-name query — resolution, never job creation.
 
         Read-only and spend-free by construction: the only job creator stays
-        ``POST /analyses``. The storefront failing is the one error translated
-        here — 502, because the upstream broke, not the request.
+        ``POST /analyses``. Every query does spend the box's Steam politeness
+        budget, so the limiter refuses a scripted per-IP flood (429, honest
+        message) before the seam is called; the unlock cookie exempts, the
+        same as the submit guards. The storefront failing is the one error
+        translated here — 502, because the upstream broke, not the request.
         """
+        if search_limiter is not None:
+            peer = http_request.client.host if http_request.client else ""
+            ip = client_ip(http_request.headers.get("x-forwarded-for"), peer)
+            exempt = gate is not None and gate.is_exempt(
+                http_request.cookies.get(UNLOCK_COOKIE)
+            )
+            if not exempt:
+                message = search_limiter.refusal(ip)
+                if message is not None:
+                    raise HTTPException(status_code=429, detail=message)
         try:
             return search_games(q)
         except SteamClientError as exc:

@@ -19,11 +19,18 @@ the *last* entry of ``X-Forwarded-For`` — the one the box's own proxy
 appended, which a visitor's forged header cannot displace — or the socket
 peer when no proxy fronts the app (dev). Uvicorn's proxy trust stays
 deliberately unwidened.
+
+``SearchLimiter`` is the same discipline pointed at ``/search`` (the audit's
+ungated-search finding): the route spends no money but does spend the box's
+one Steam politeness budget, so a scripted flood would get the box's IP
+rate-limited and break search for everyone. A per-IP fixed-window cap stops
+the loop while staying invisible to a human searching on submit.
 """
 
 from __future__ import annotations
 
 import secrets
+import threading
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -37,6 +44,10 @@ DAY_USED_MESSAGE = (
 IN_FLIGHT_MESSAGE = (
     "an analysis from your connection is already in flight — one at a time; "
     "the slot frees up when it finishes"
+)
+SEARCH_LIMIT_MESSAGE = (
+    "too many searches from your connection — the allowance resets "
+    "each minute"
 )
 
 
@@ -125,16 +136,71 @@ class SubmitGate:
         """Whether an unlock cookie exempts this request from the abuse guards.
 
         Constant-time compare against the configured token; no token
-        configured means nobody is exempt — the route degrades safe.
+        configured means nobody is exempt — the route degrades safe. The
+        ascii pre-check is load-bearing, not cosmetic: ``compare_digest``
+        raises ``TypeError`` on a non-ascii str, so without it a garbage
+        cookie would be a 500 instead of a failed unlock. (The configured
+        token's own ascii-ness is the composition root's boot check.)
         """
         return (
             self.admin_token is not None
             and cookie is not None
+            and cookie.isascii()
             and secrets.compare_digest(cookie, self.admin_token)
         )
 
     def unlock_ok(self, token: str) -> bool:
-        """Whether ``token`` earns the unlock cookie (the ``/unlock`` route's check)."""
-        return self.admin_token is not None and secrets.compare_digest(
-            token, self.admin_token
+        """Whether ``token`` earns the unlock cookie (the ``/unlock`` route's check).
+
+        Same ascii pre-check as ``is_exempt``, same reason — the token
+        arrives off a public URL path.
+        """
+        return (
+            self.admin_token is not None
+            and token.isascii()
+            and secrets.compare_digest(token, self.admin_token)
         )
+
+
+class SearchLimiter:
+    """A per-IP fixed-window cap on storefront searches — the politeness-budget guard.
+
+    The window is the wall-clock minute: the whole state is one small dict of
+    per-IP counts that clears as the minute rolls, so a flood from many
+    distinct IPs cannot grow it without bound. Only *admitted* searches
+    count — the cap bounds what reaches Steam, and a refused loop cannot
+    deepen its own penalty. Refusals journal as kind ``"search"`` through the
+    same seam as the submit gate's, so the ops page's refusal counts cover
+    both guards without a new surface. The lock keeps counts exact under the
+    route threadpool; the critical section is a dict touch, too brief to
+    contend.
+    """
+
+    def __init__(
+        self,
+        per_minute: int,
+        *,
+        record_refusal: Callable[[str, datetime], None] | None = None,
+        now: Callable[[], datetime] = _utc_now,
+    ) -> None:
+        self._per_minute = per_minute
+        self._record_refusal = record_refusal
+        self._now = now
+        self._lock = threading.Lock()
+        self._window: datetime | None = None
+        self._counts: dict[str, int] = {}
+
+    def refusal(self, ip: str) -> str | None:
+        """The refusal message for a search from ``ip`` — None admits and counts it."""
+        moment = self._now()
+        window = moment.replace(second=0, microsecond=0)
+        with self._lock:
+            if window != self._window:
+                self._window = window
+                self._counts.clear()
+            if self._counts.get(ip, 0) >= self._per_minute:
+                if self._record_refusal is not None:
+                    self._record_refusal("search", moment)
+                return SEARCH_LIMIT_MESSAGE
+            self._counts[ip] = self._counts.get(ip, 0) + 1
+        return None

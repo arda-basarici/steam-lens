@@ -19,7 +19,7 @@ from steamlens.serve.app import (
     create_app,
 )
 from steamlens.serve.config import ServeConfig
-from steamlens.serve.gate import SubmitGate
+from steamlens.serve.gate import SearchLimiter, SubmitGate
 from steamlens.serve.jobs import Job, JobQueue, JobState, stage_spans
 from steamlens.serve.runner import AnalysisRunner, JobSummary
 
@@ -33,6 +33,7 @@ __all__ = [
     "JobState",
     "JobSummary",
     "ReportReady",
+    "SearchLimiter",
     "ServeConfig",
     "SubmitGate",
     "create_app",

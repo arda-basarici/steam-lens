@@ -38,6 +38,7 @@ from steamlens.serve import (
     Job,
     JobQueue,
     JobSummary,
+    SearchLimiter,
     ServeConfig,
     SubmitGate,
     create_app,
@@ -84,6 +85,18 @@ def build_app() -> FastAPI:
         config = replace(config, daily_job_limit=int(raw_limit))
     if (raw_backstop := os.environ.get("STEAMLENS_DAILY_SPEND_BACKSTOP_USD")) is not None:
         config = replace(config, daily_spend_backstop_usd=float(raw_backstop))
+    if (raw_search := os.environ.get("STEAMLENS_SEARCH_PER_MINUTE")) is not None:
+        config = replace(config, search_per_minute=int(raw_search))
+    # `or None`: an empty value in .env must mean "no exemption door", never a
+    # token an empty cookie could match. The ascii check is the boot-time half
+    # of the gate's guard: compare_digest raises on non-ascii, so a non-ascii
+    # token would break every unlock at request time — fail here instead.
+    admin_token = os.environ.get("STEAMLENS_ADMIN_TOKEN") or None
+    if admin_token is not None and not admin_token.isascii():
+        raise SystemExit(
+            "STEAMLENS_ADMIN_TOKEN must be ascii — the constant-time compare "
+            "rejects anything else, which would break every unlock"
+        )
     steam = SteamClient(SteamTransport(SteamClientConfig(), sink))
     entry = openai_compat_entry(key, base_url=DEEPSEEK_BASE_URL)
     runner = AnalysisRunner(config, steam, entry, db_path, ontology_path)
@@ -211,9 +224,7 @@ def build_app() -> FastAPI:
         spent_since=spent_since,
         record_admission=record_admission,
         record_refusal=record_refusal,
-        # `or None`: an empty value in .env must mean "no exemption door",
-        # never a token an empty cookie could match.
-        admin_token=os.environ.get("STEAMLENS_ADMIN_TOKEN") or None,
+        admin_token=admin_token,
     )
     app = create_app(
         queue,
@@ -221,6 +232,9 @@ def build_app() -> FastAPI:
         latest_report,
         steam.search_games,
         gate=gate,
+        search_limiter=SearchLimiter(
+            config.search_per_minute, record_refusal=record_refusal
+        ),
         database_ok=database_ok,
         on_shutdown=[queue.close],
     )

@@ -59,6 +59,12 @@ class ServeConfig:
     a burst guard. Both are env dials at the composition root
     (``STEAMLENS_DAILY_JOB_LIMIT``, ``STEAMLENS_DAILY_SPEND_BACKSTOP_USD``):
     spend comfort is an ops setting, not a code commit.
+    ``search_per_minute`` caps ``/search`` per visitor IP per wall-clock
+    minute: search spends no money but does spend the box's one Steam
+    politeness budget, so the cap exists to stop scripted loops, not to
+    ration humans — a person searching on submit fires a few a minute, and
+    25 stays invisible to them (ruled 2026-08-09; env dial
+    ``STEAMLENS_SEARCH_PER_MINUTE``).
     """
 
     take_all_cutoff: int = 2_000
@@ -75,3 +81,4 @@ class ServeConfig:
     compose_max_themes: int = 5
     daily_job_limit: int = 5
     daily_spend_backstop_usd: float = 1.0
+    search_per_minute: int = 25

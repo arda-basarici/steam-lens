@@ -43,7 +43,9 @@ from steamlens.serve import Job, JobQueue, JobState, ServeConfig, create_app
 from steamlens.serve.gate import (
     DAY_USED_MESSAGE,
     IN_FLIGHT_MESSAGE,
+    SEARCH_LIMIT_MESSAGE,
     UNLOCK_COOKIE,
+    SearchLimiter,
     SubmitGate,
 )
 from steamlens.steam_client import SteamUnavailableError
@@ -419,6 +421,80 @@ def test_unlock_mints_the_cookie_and_exempts_from_every_abuse_guard() -> None:
             )
             assert exempt.status_code == 202
             assert admitted == [], "exempt admissions stay off the public journal"
+
+    asyncio.run(asyncio.wait_for(drive(), timeout=10.0))
+    queue.close()
+
+
+def test_an_overlong_requested_name_is_refused_before_anything_runs() -> None:
+    """The body-side half of the request-size guard (Caddy's ``max_size`` is
+    the outer wall): a name past the search box's own 200-char cap 422s at
+    validation — the gate never consults, the queue never sees it."""
+    runner = GatedNarrator()
+    runner.release.set()
+    queue = JobQueue(runner)
+    gate, admitted = _recording_gate(queue)
+    app = create_app(queue, _CONFIG, lambda _: None, _no_search, gate=gate)
+
+    async def drive() -> None:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            refused = await client.post(
+                "/analyses", json={"app_id": 440, "requested_name": "x" * 201}
+            )
+            assert refused.status_code == 422
+            assert admitted == [], "a rejected body must not consume the allowance"
+            assert queue.live(440) is None, "a rejected body must never queue"
+
+            at_the_cap = await client.post(
+                "/analyses", json={"app_id": 440, "requested_name": "x" * 200}
+            )
+            assert at_the_cap.status_code == 202
+
+    asyncio.run(asyncio.wait_for(drive(), timeout=10.0))
+    queue.close()
+
+
+def test_search_flood_is_refused_per_ip_and_the_unlock_cookie_exempts() -> None:
+    """The politeness-budget guard on the wire: past the cap a visitor's
+    searches 429 with the honest message and never reach the Steam seam;
+    a different forwarded IP keeps its own allowance; the operator's unlock
+    cookie searches uncapped."""
+    runner = GatedNarrator()
+    runner.release.set()
+    queue = JobQueue(runner)
+    gate, _admitted = _recording_gate(queue, admin_token="sesame")
+    calls: list[str] = []
+
+    def search_games(term: str) -> tuple[GameSearchHit, ...]:
+        calls.append(term)
+        return ()
+
+    app = create_app(
+        queue, _CONFIG, lambda _: None, search_games,
+        gate=gate, search_limiter=SearchLimiter(2),
+    )
+
+    async def drive() -> None:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            for _ in range(2):
+                assert (await client.get("/search", params={"q": "team"})).status_code == 200
+            refused = await client.get("/search", params={"q": "team"})
+            assert refused.status_code == 429
+            assert refused.json()["detail"] == SEARCH_LIMIT_MESSAGE
+            assert len(calls) == 2, "a refused search must not reach Steam"
+
+            other_visitor = await client.get(
+                "/search", params={"q": "team"},
+                headers={"X-Forwarded-For": "203.0.113.9"},
+            )
+            assert other_visitor.status_code == 200
+
+            await client.get("/unlock/sesame")
+            for _ in range(3):
+                exempt = await client.get("/search", params={"q": "team"})
+                assert exempt.status_code == 200
 
     asyncio.run(asyncio.wait_for(drive(), timeout=10.0))
     queue.close()

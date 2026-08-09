@@ -226,8 +226,9 @@ def _daily_table(
         note=(
             "admitted counts the gate's public admissions — the operator's "
             "unlocked jobs spend but are not admissions; refusals count the "
-            "spend breaker's firings; cache hit is the provider-side "
-            "prefix-cache share of prompt tokens (— where no row recorded it)"
+            "spend breaker's and the search limiter's firings; cache hit is "
+            "the provider-side prefix-cache share of prompt tokens (— where "
+            "no row recorded it)"
         ),
     )
 

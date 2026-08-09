@@ -3,6 +3,14 @@
 # becomes the domain and Caddy takes care of HTTPS on its own; nothing else
 # changes.
 :80 {
+	# The audit's request-body finding: the app parses a POST body into
+	# memory before any gate runs, so the effective cap sits here, in front
+	# of it — an oversized body answers 413 and never reaches the app. 16KB
+	# is roomy; the real submit body is well under 1KB.
+	request_body {
+		max_size 16KB
+	}
+
 	# The app by its compose DNS name on the shared `web` network — nothing
 	# is published from the app container itself.
 	#

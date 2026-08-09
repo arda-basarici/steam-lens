@@ -7,6 +7,81 @@ decisions it feeds.
 
 ---
 
+## 2026-08-09 — The ledger joins the bill: a public ops page catches its own 5x accounting fiction on day one
+
+*The observability step of the deployment milestone (M3) — the in-app ops
+dashboard going live over the spend ledger, and the cost-accounting fix it
+forced within hours (the "step 8 item 3b chunk 1" commit; the job journal is
+chunk 2, both 2026-08-09). Feeds: the M3 report's LLMOps/observability
+section; candidate material for a standalone post on LLM cache economics.*
+
+The observability step's first deliverable was deliberately modest: a public
+read-only `/ops` page rendering aggregates the store already journaled —
+spend by day, calls and tokens by stage and model, the spend breaker's daily
+allowance. Within minutes of the page going live on the box, Arda read two
+of its numbers as broken. He was half right, and both halves taught
+something.
+
+The half that was a label problem: "fresh analyses today 0 of 5," which he
+read as a per-user limit showing nonsense. The 5 is in fact the whole day's
+shared public pool (his own spend-breaker design — per-visitor limiting is
+one-in-flight, deliberately not per-user daily bookkeeping), and it read 0
+because the operator's unlocked runs are exempt from the public count by
+design. Design-correct — but a stat that confuses its own designer has
+failed its reader, so the fix was wording, not architecture: the label now
+names the shared pool and the operator exemption outright.
+
+The half that was real: the page showed $0.7660 for a day DeepSeek's own
+dashboard billed at $0.14. The ledger had been pricing every prompt token at
+the list input rate, while the provider's prefix cache was serving ~90% of
+classify prompt tokens at a 50x discount — every classify call ships the
+same large ontology-and-instructions prefix, which is exactly what a prefix
+cache eats. The archived raw responses, kept as durable provenance since the
+first census buy, settled the diagnosis to the cent: all 278 archived bodies
+in the local store carry DeepSeek's hit/miss split (2,486,016 hit /
+269,030 miss — 90.2%), and flat-pricing those tokens reproduces the
+recorded $0.4286 *exactly*, while pricing the split puts the true cost near
+$0.09. The box-side reconciliation closed the loop against the bill itself:
+the dashboard's 2026-08-08 tokens (4,530,816 hit + 439,907 miss + 268,443
+output, read from the DeepSeek console 2026-08-09) price to $0.1494 against
+the $0.14 billed. One small lesson rode the diagnosis: an early attempt to
+*infer* the price table by fitting it to the one billed total produced a
+clean, wrong answer — three unknowns fit one bill far too easily — and the
+real table ($0.0028 hit / $0.14 miss / $0.28 output per million) came from
+the provider's pricing page, where it should have come from first.
+
+The project had, notably, already measured this gap once from the other
+side: the 2026-08-04 fresh-buy note records the census's famous $3.80 as a
+cache-discounted provider bill with list rates ledgering ~5x higher. Report
+numbers were always dashboard-truth; what changed here is the ledger
+finally joining the bill — the adapter now reads the cache split off the
+wire, the spec prices it, and the cost formula splits hit from miss, while
+the worst-case budget reservation deliberately stays flat-priced (it is a
+guard, not accounting). The ruling on history was forward-only: the
+append-only ledger's wrong-by-formula rows stand as written, disclosed on
+the ops page, because the money at stake was cents and a ledger whose
+entries are never revised is worth more than a restated past.
+
+A second display-honesty lesson arrived the same way the first did — by
+watching the designer misread the live page. After the fix deployed,
+pre-fix rows rendered "0% cache hit" when the truth was "never recorded,"
+and Arda flagged the zero as broken within minutes. The proof of the
+mislead was the misreading itself; the fix computes hit rate only over rows
+that measured the split and renders an honest "—" otherwise.
+
+What honest instrumentation bought, live on the box the same evening
+(the `/ops` page, 2026-08-09): a full cold analysis of PUBG: BATTLEGROUNDS —
+292 reviews labeled, 3m 05s end to end — at an attributed cost of $0.0072.
+Sub-cent per game, where the flat-priced ledger would have reported ~5x
+that. The stage split matches the mechanism (classify 94% cache hit behind
+the shared prefix, compose 54% on its mostly-per-game prompts), and the
+newly-persisted call latencies read classify p50 2.8s / p95 4.9s over 86
+measured calls — the first data the parked narration-ETA calibration has
+ever had to work with.
+
+Figure: the three-way reconciliation (flat-priced $0.77 · cache-priced
+$0.15 · billed $0.14) or the before/after cost-per-analysis bar.
+
 ## 2026-08-08 — The canary's first live reading: every wall held, and the first thing the instrument caught was our own composer's typography
 
 *The prompt-injection canary set's first live runs (deployment milestone, M3) —
