@@ -61,6 +61,29 @@ that only the box proxy ever publishes a port. Check the live surface with
 `docker ps --format 'table {{.Names}}\t{{.Ports}}'`: only the Caddy container
 may show `0.0.0.0->` arrows.
 
+## Domain + TLS (Cloudflare, orange-cloud)
+
+`steamlens.ardabasarici.dev` fronts the box through Cloudflare's proxy. The
+DNS A record is **proxied and must stay proxied** — a grey-cloud save, even
+briefly, puts the origin IP into passive-DNS archives permanently, and the
+origin-hiding half of the proxy dies retroactively.
+
+The visitor→Cloudflare leg rides Cloudflare's edge certificate; the
+Cloudflare→origin leg runs SSL mode **Full (strict)** against a Cloudflare
+Origin CA pair at `/srv/box-proxy/certs/` (dashboard → SSL/TLS → Origin
+Server; covers the apex + `*.ardabasarici.dev`, 15-year validity). The pair
+is trusted only by Cloudflare's edge — exactly its job — and is re-issuable
+from the dashboard at any time, so the box-side files are the whole story:
+never committed, nothing to back up.
+
+Two Caddyfile pieces make the proxy honest (both explained in place there):
+`trusted_proxies` lists Cloudflare's published ranges (cloudflare.com/ips —
+refresh the list if Cloudflare ever announces a change) so a forwarded
+identity is only believed when the peer really is Cloudflare, and the domain
+stanza *replaces* `X-Forwarded-For` with the one verified visitor IP,
+preserving the app's last-entry contract (`serve/gate.py`). The `:80`
+bare-IP stanza is transitional — it retires at the edge-hardening step.
+
 ## Layout on the box
 
 ```

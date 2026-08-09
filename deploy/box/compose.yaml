@@ -17,6 +17,10 @@ services:
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # The Cloudflare Origin CA pair (cert + key), scp'd to the box, never
+      # committed — re-issuable from the dashboard at any time, so box-side
+      # files are the whole story.
+      - ./certs:/etc/caddy/certs:ro
       # Named volumes, not bind mounts: certificates and ACME account state
       # are Caddy's own, survive recreation, and nothing outside reads them.
       - caddy_data:/data

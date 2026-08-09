@@ -402,7 +402,9 @@ def test_unlock_mints_the_cookie_and_exempts_from_every_abuse_guard() -> None:
 
     async def drive() -> None:
         transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # https base URL: the unlock cookie is Secure, and the client's jar
+        # (rightly) refuses to send a Secure cookie back over plain http.
+        async with AsyncClient(transport=transport, base_url="https://test") as client:
             locked = await client.post(
                 "/analyses", json={"app_id": 440, "requested_name": "Team Fortress 2"}
             )
@@ -477,7 +479,9 @@ def test_search_flood_is_refused_per_ip_and_the_unlock_cookie_exempts() -> None:
 
     async def drive() -> None:
         transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # https base URL: the unlock leg mints a Secure cookie, which the
+        # client's jar (rightly) refuses to send back over plain http.
+        async with AsyncClient(transport=transport, base_url="https://test") as client:
             for _ in range(2):
                 assert (await client.get("/search", params={"q": "team"})).status_code == 200
             refused = await client.get("/search", params={"q": "team"})

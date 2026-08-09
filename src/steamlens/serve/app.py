@@ -281,6 +281,10 @@ def create_app(
                 max_age=365 * 24 * 3600,
                 httponly=True,
                 samesite="lax",
+                # HTTPS-only since the domain cutover (2026-08-10): the flag
+                # keeps the operator token off any plaintext hop. Dev on
+                # http://localhost is unaffected — browsers exempt localhost.
+                secure=True,
             )
             return landing
 

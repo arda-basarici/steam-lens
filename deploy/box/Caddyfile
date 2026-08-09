@@ -1,7 +1,47 @@
-# One stanza per project on the box. `:80` is the bare-IP phase (DESIGN: the
-# domain is deferred to launch) — when the hostname moment comes, this line
-# becomes the domain and Caddy takes care of HTTPS on its own; nothing else
-# changes.
+# One stanza per project on the box, plus the transitional `:80` bare-IP
+# stanza (removed at the edge-hardening step, once nothing points at the
+# raw address anymore).
+#
+# The domain rides Cloudflare's proxy (orange-cloud), so the TCP peer Caddy
+# sees on 443 is a Cloudflare edge node, never the visitor. trusted_proxies
+# lets Caddy recover the visitor's IP from the edge's CF-Connecting-IP
+# header — and only when the peer really is in Cloudflare's published
+# ranges (cloudflare.com/ips, fetched 2026-08-10), so a direct-to-IP caller
+# cannot forge an identity by sending the header himself.
+{
+	servers {
+		trusted_proxies static 173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 104.24.0.0/14 172.64.0.0/13 131.0.72.0/22 2400:cb00::/32 2606:4700::/32 2803:f800::/32 2405:b500::/32 2405:8100::/32 2a06:98c0::/29 2c0f:f248::/32
+		client_ip_headers CF-Connecting-IP
+	}
+}
+
+steamlens.ardabasarici.dev {
+	# Cloudflare Origin CA certificate (SSL mode: Full (strict)) — a static
+	# pair issued from the dashboard, trusted only by Cloudflare's edge,
+	# which is exactly its one job. No ACME: behind the proxy, HTTP-01
+	# can't reach the box, and DNS-01 would demand a custom Caddy build.
+	tls /etc/caddy/certs/ardabasarici.dev.pem /etc/caddy/certs/ardabasarici.dev.key
+
+	# The audit's request-body finding: the app parses a POST body into
+	# memory before any gate runs, so the effective cap sits here, in front
+	# of it — an oversized body answers 413 and never reaches the app. 16KB
+	# is roomy; the real submit body is well under 1KB.
+	request_body {
+		max_size 16KB
+	}
+
+	reverse_proxy steamlens-app-1:8000 {
+		flush_interval -1
+		# The app's contract (serve/gate.py): the LAST X-Forwarded-For
+		# entry is this proxy's truthful append. The incoming request
+		# already carries Cloudflare's own entries, so appending would
+		# put an edge IP last and collapse every visitor into one
+		# rate-limit bucket — replace instead: one entry, the verified
+		# visitor, and the contract holds unchanged.
+		header_up X-Forwarded-For {client_ip}
+	}
+}
+
 :80 {
 	# The audit's request-body finding: the app parses a POST body into
 	# memory before any gate runs, so the effective cap sits here, in front
