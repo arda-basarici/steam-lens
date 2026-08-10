@@ -21,8 +21,11 @@ from pathlib import Path
 from typing import Final, cast
 
 from fastapi import APIRouter, FastAPI, Request, Response
+from fastapi.exception_handlers import http_exception_handler
+from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from steamlens.serve.web.ops_view import OpsData, build_ops_view
 from steamlens.serve.web.view import ReportPageData, build_report_view
@@ -67,6 +70,10 @@ def attach_web(
     ``load_ops_data`` is the ops page's aggregate bundle behind the same
     discipline — ``None`` composes an app without the page (tests that only
     render reports); production always wires it.
+
+    Attaching also registers the app-wide 404 and 500 pages — here rather
+    than on the JSON surface because a styled error page is rendering, and
+    the boundary ruling keeps every rendered byte inside ``serve.web``.
     """
     templates = Jinja2Templates(directory=_TEMPLATES_DIR)
     # The stub types env.globals to jinja's own builtins; it is a plain dict.
@@ -110,6 +117,44 @@ def attach_web(
             return templates.TemplateResponse(
                 request, "ops.html", {"view": build_ops_view(wired_ops())}
             )
+
+    @app.exception_handler(404)
+    async def not_found(  # pyright: ignore[reportUnusedFunction]
+        request: Request, exc: StarletteHTTPException
+    ) -> Response:
+        """The 404 wearing the site's face — for browser navigations only.
+
+        Content negotiation is the load-bearing part: the JSON surface's 404s
+        (a dead SSE attach, an API typo) keep FastAPI's exact default answer
+        because clients read ``detail`` programmatically, while a browser
+        (``Accept: text/html``) gets a page pointing home instead of bare
+        JSON. The echoed path rides Jinja's autoescaping like all hostile
+        input.
+        """
+        if "text/html" in request.headers.get("accept", ""):
+            return templates.TemplateResponse(
+                request, "not_found.html", {"path": request.url.path},
+                status_code=404,
+            )
+        return await http_exception_handler(request, exc)
+
+    @app.exception_handler(Exception)
+    async def server_error(  # pyright: ignore[reportUnusedFunction]
+        request: Request, exc: Exception
+    ) -> Response:
+        """The unhandled-error page — the 404's sibling, same negotiation.
+
+        Starlette's error middleware sends this response and then re-raises,
+        so the traceback still lands in the server journal — the visitor
+        loses the stack, never the operator. Non-browser clients keep the
+        framework's exact plain-text default; programmatic consumers never
+        traded on its body, so there is nothing richer to preserve.
+        """
+        if "text/html" in request.headers.get("accept", ""):
+            return templates.TemplateResponse(
+                request, "server_error.html", status_code=500
+            )
+        return PlainTextResponse("Internal Server Error", status_code=500)
 
     app.include_router(router)
     app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")

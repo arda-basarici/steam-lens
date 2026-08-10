@@ -458,11 +458,16 @@ def test_provenance_line_states_the_two_denominators() -> None:
 # --- the rendered page ----------------------------------------------------------
 
 
-def _get(app: FastAPI, path: str) -> Response:
+def _get(
+    app: FastAPI, path: str, *,
+    accept: str | None = None, raise_app_exceptions: bool = True,
+) -> Response:
+    headers = {"accept": accept} if accept is not None else {}
+
     async def drive() -> Response:
-        transport = ASGITransport(app=app)
+        transport = ASGITransport(app=app, raise_app_exceptions=raise_app_exceptions)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            return await client.get(path)
+            return await client.get(path, headers=headers)
 
     return asyncio.run(asyncio.wait_for(drive(), timeout=10.0))
 
@@ -515,6 +520,54 @@ def test_unanalyzed_game_gets_an_honest_404_page() -> None:
     assert response.status_code == 404
     assert "Not analyzed yet" in response.text
     assert "999" in response.text
+
+
+def test_unknown_path_gets_the_html_404_for_browsers() -> None:
+    """A browser navigating to a path that doesn't exist gets the styled
+    not-found page pointing home, never FastAPI's bare JSON."""
+    response = _get(_page_app(None), "/no-such-page", accept="text/html")
+    assert response.status_code == 404
+    assert "Page not found" in response.text
+    assert "/no-such-page" in response.text
+
+
+def test_unknown_path_stays_json_for_api_clients() -> None:
+    """Non-browser clients keep FastAPI's default JSON 404 — programmatic
+    consumers read ``detail``, and the HTML page must never replace it."""
+    response = _get(_page_app(None), "/no-such-page")
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Not Found"}
+
+
+def _crashing_app() -> FastAPI:
+    """An app whose report loader raises — drives the unhandled-error path."""
+    def boom(_: int) -> ReportPageData | None:
+        raise RuntimeError("boom")
+
+    app = FastAPI()
+    attach_web(app, boom, lambda _: False)
+    return app
+
+
+def test_unhandled_error_gets_the_html_500_for_browsers() -> None:
+    """A crash mid-request shows a browser the styled error page. The
+    traceback is not lost: Starlette's error middleware re-raises after
+    answering, so the journal keeps the stack while the visitor gets a
+    human answer."""
+    response = _get(
+        _crashing_app(), "/reports/440",
+        accept="text/html", raise_app_exceptions=False,
+    )
+    assert response.status_code == 500
+    assert "Something went wrong" in response.text
+
+
+def test_unhandled_error_stays_plain_for_api_clients() -> None:
+    """Non-browser clients keep the framework's exact plain-text 500 —
+    the error pages are a browser-only affordance."""
+    response = _get(_crashing_app(), "/reports/440", raise_app_exceptions=False)
+    assert response.status_code == 500
+    assert response.text == "Internal Server Error"
 
 
 def test_live_job_renders_the_narration_page() -> None:

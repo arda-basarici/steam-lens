@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}page not found — steam-lens{% endblock %}
+{% block content %}
+<section class="missing">
+  <h1>Page not found</h1>
+  <p>Nothing lives at <code>{{ path }}</code>. <a href="/">Search for a game</a>
+    to read its report — or queue one if it hasn't been analyzed yet.</p>
+</section>
+{% endblock %}
