@@ -739,7 +739,7 @@ def test_ops_page_renders_the_full_surface() -> None:
     assert "deepseek-chat" in html
     assert "jobs (newest 20)" in html
     assert "call latency by stage" in html
-    assert "priced without the provider" in html
+    assert "repriced 2026-08-10 from the archive" in html
     assert "generated 2026-08-09 14:30 UTC" in html
 
 

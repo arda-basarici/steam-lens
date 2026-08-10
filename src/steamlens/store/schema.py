@@ -276,8 +276,10 @@ _STEP_5: tuple[str, ...] = (
 # the refusals journal makes the spend breaker's firings countable. Ledger
 # rows from before this step read cached=0 (priced flat — overstated, the
 # conservative direction) and NULL duration/run_id ("not measured" / "not
-# attributed", never fabricated zeros); the forward-only ruling leaves their
-# stored costs as written, disclosed on the ops page.
+# attributed", never fabricated zeros); the forward-only ruling left their
+# stored costs as written until the 2026-08-10 repricing migration
+# (scripts/reprice_ledger.py) recomputed cost + cached from each row's
+# archived provider body — duration/run_id stay honestly NULL.
 _STEP_6: tuple[str, ...] = (
     "ALTER TABLE spend_ledger ADD COLUMN cached_prompt_tokens INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE spend_ledger ADD COLUMN duration_s REAL",

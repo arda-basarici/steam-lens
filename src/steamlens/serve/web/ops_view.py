@@ -145,10 +145,9 @@ def build_ops_view(data: OpsData) -> OpsView:
             f"fresh analyses are capped at {data.per_ip_daily_job_limit} per "
             f"visitor IP a day, inside one pooled allowance of "
             f"{data.daily_job_limit} per UTC day",
-            "ledger rows from before 2026-08-09 are priced without the provider's "
-            "prefix-cache discount — overstated roughly 4-5x against the real bill, "
-            "left as written (forward-only ruling); the provider dashboard is "
-            "billing truth",
+            "ledger rows from before 2026-08-09 were flat-priced at write and "
+            "repriced 2026-08-10 from the archive's recorded cache splits; the "
+            "provider dashboard is billing truth",
         ),
     )
 

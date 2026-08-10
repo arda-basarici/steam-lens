@@ -1859,10 +1859,18 @@ conservative — cost overstated, never hidden, the inverse of the
 thinking-token failure mode), the spec prices a cache-hit rate verified
 against the provider's published table at encode time, and the worst-case
 reservation stays flat-priced on purpose (a guard, not accounting).
-Pre-existing rows keep their stored costs (forward-only ruling: an
-append-only ledger is not rewritten for a formula bug measured in cents) and
-the ops page discloses the overstatement; the provider dashboard remains
-billing truth to reconcile against.
+Pre-existing rows initially kept their stored costs (forward-only ruling: an
+append-only ledger is not rewritten for a formula bug measured in cents),
+with the ops page disclosing the overstatement — overturned 2026-08-10, one
+day later, on a reason the ruling hadn't weighed: every *all-time* surface
+(spend per report, stage totals, screenshots leaving the site) kept
+broadcasting the ~5x-inflated numbers, and the response archive made an
+*exact* repricing possible — each pre-fix row's true cache split recomputed
+from its archived provider body by the live pricing formula, matched on full
+token tuples, never estimated (`scripts/reprice_ledger.py`, dry-run +
+self-check: post-fix rows must recompute to their stored cost exactly). The
+ledger's one sanctioned revision, run once against a snapshot-backed db; the
+provider dashboard remains billing truth to reconcile against.
 
 **Every journaled call carries its duration and its run.** The client
 already measures dispatch-to-response latency for telemetry; the ledger now
