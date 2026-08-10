@@ -83,6 +83,8 @@ def build_app() -> FastAPI:
     config = ServeConfig()
     if (raw_limit := os.environ.get("STEAMLENS_DAILY_JOB_LIMIT")) is not None:
         config = replace(config, daily_job_limit=int(raw_limit))
+    if (raw_ip_limit := os.environ.get("STEAMLENS_PER_IP_DAILY_JOB_LIMIT")) is not None:
+        config = replace(config, per_ip_daily_job_limit=int(raw_ip_limit))
     if (raw_backstop := os.environ.get("STEAMLENS_DAILY_SPEND_BACKSTOP_USD")) is not None:
         config = replace(config, daily_spend_backstop_usd=float(raw_backstop))
     if (raw_search := os.environ.get("STEAMLENS_SEARCH_PER_MINUTE")) is not None:
@@ -169,6 +171,10 @@ def build_app() -> FastAPI:
         with Store(db_path) as store:
             return store.admissions.count_since(since)
 
+    def admitted_from_since(ip: str, since: datetime) -> int:
+        with Store(db_path) as store:
+            return store.admissions.count_from_since(ip, since)
+
     def spent_since(since: datetime) -> float:
         with Store(db_path) as store:
             return store.spend_ledger.cost_since(since)
@@ -193,6 +199,7 @@ def build_app() -> FastAPI:
                 now=now,
                 admissions_today=store.admissions.count_since(day),
                 daily_job_limit=config.daily_job_limit,
+                per_ip_daily_job_limit=config.per_ip_daily_job_limit,
                 spend_today_usd=store.spend_ledger.cost_since(day),
                 daily_spend_backstop_usd=config.daily_spend_backstop_usd,
                 daily_ledger=store.ops.daily_ledger(since),
@@ -218,9 +225,11 @@ def build_app() -> FastAPI:
     queue = JobQueue(run_job)
     gate = SubmitGate(
         daily_job_limit=config.daily_job_limit,
+        per_ip_daily_job_limit=config.per_ip_daily_job_limit,
         daily_spend_backstop_usd=config.daily_spend_backstop_usd,
         has_live_from=queue.has_live_from,
         admitted_since=admitted_since,
+        admitted_from_since=admitted_from_since,
         spent_since=spent_since,
         record_admission=record_admission,
         record_refusal=record_refusal,

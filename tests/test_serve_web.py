@@ -619,6 +619,7 @@ def _ops_data(
         now=datetime(2026, 8, 9, 14, 30, tzinfo=UTC),
         admissions_today=2,
         daily_job_limit=5,
+        per_ip_daily_job_limit=3,
         spend_today_usd=0.1101,
         daily_spend_backstop_usd=1.0,
         daily_ledger=daily_ledger,
@@ -637,7 +638,11 @@ def test_ops_view_headline_stats_tell_the_day_and_the_unit_economics() -> None:
     all-time spend over published reports, or an honest dash before the first."""
     view = build_ops_view(_ops_data())
     stats = {stat.label: stat.value for stat in view.today}
-    assert stats["public fresh analyses today"] == "2 of 5"
+    assert stats["public fresh analyses today"] == "2"
+    assert any(
+        "capped at 3 per visitor IP" in note and "allowance of 5" in note
+        for note in view.notes
+    ), "the caps live in the page notes, not on the tile"
     assert stats["settled LLM spend today"] == "$0.1101"
     assert stats["reports published"] == "2"
     assert stats["LLM spend per report"] == "$0.1000"
@@ -730,7 +735,7 @@ def test_ops_page_renders_the_full_surface() -> None:
     attach_web(app, lambda _: None, lambda _: False, lambda: _ops_data())
     html = _get(app, "/ops").text
     assert "fresh analyses today" in html
-    assert "2 of 5" in html
+    assert "capped at 3 per visitor IP" in html
     assert "deepseek-chat" in html
     assert "jobs (newest 20)" in html
     assert "call latency by stage" in html

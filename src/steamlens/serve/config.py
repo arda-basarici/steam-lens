@@ -49,16 +49,24 @@ class ServeConfig:
     ``compose_max_themes`` bound what the prompt offers — a couple of verbatim
     spans per aspect, a handful of candidate theme names (names only, never
     numbers); all three get judged against real rendered reports at the
-    frontend step. ``daily_job_limit`` is the submit gate's public allowance
-    of fresh analyses per UTC day, counted at admission (a count cannot be
-    burst past the way a settling dollar total can): observed live jobs price
-    $0.01–0.02, so 5 is a ~$0.10 typical day, and the hostile ceiling stays
-    limit × ``job_budget_usd``. ``daily_spend_backstop_usd`` is the second,
-    silent refusal condition on the ledger's *settled* spend for the day —
-    the runaway-day guard for jobs running hot toward their per-job cap, not
-    a burst guard. Both are env dials at the composition root
-    (``STEAMLENS_DAILY_JOB_LIMIT``, ``STEAMLENS_DAILY_SPEND_BACKSTOP_USD``):
-    spend comfort is an ops setting, not a code commit.
+    frontend step. ``daily_job_limit`` is the submit gate's *pooled*
+    allowance of fresh analyses per UTC day, counted at admission (a count
+    cannot be burst past the way a settling dollar total can) — the outer
+    wall that keeps the hostile ceiling at limit × ``job_budget_usd``
+    regardless of how many IPs show up. ``per_ip_daily_job_limit`` is the
+    fairness cap inside it (the 2026-08-10 re-ruling): each visitor IP gets
+    its own daily count, so one visitor cannot drain the shared day.
+    ``daily_spend_backstop_usd`` is the third, silent refusal condition on
+    the ledger's *settled* spend for the day — the runaway-day guard for
+    jobs running hot toward their per-job cap, not a burst guard. The
+    numbers agree with each other by the ledger's real prices (observed live
+    jobs settle $0.007–0.017): a maxed-out 50-job day settles ≈ $0.85–1.00,
+    so $2 clears every legitimate day with headroom while staying ~100× a
+    single job's real cost — the backstop fires on pathology, never on
+    traffic. All three are env dials at the composition root
+    (``STEAMLENS_DAILY_JOB_LIMIT``, ``STEAMLENS_PER_IP_DAILY_JOB_LIMIT``,
+    ``STEAMLENS_DAILY_SPEND_BACKSTOP_USD``): spend comfort is an ops
+    setting, not a code commit.
     ``search_per_minute`` caps ``/search`` per visitor IP per wall-clock
     minute: search spends no money but does spend the box's one Steam
     politeness budget, so the cap exists to stop scripted loops, not to
@@ -79,6 +87,7 @@ class ServeConfig:
     compose_floor: int = 5
     compose_quotes_per_aspect: int = 2
     compose_max_themes: int = 5
-    daily_job_limit: int = 5
-    daily_spend_backstop_usd: float = 1.0
+    daily_job_limit: int = 50
+    per_ip_daily_job_limit: int = 5
+    daily_spend_backstop_usd: float = 2.0
     search_per_minute: int = 25

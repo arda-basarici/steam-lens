@@ -273,6 +273,7 @@ def _recording_gate(
     queue: JobQueue,
     *,
     limit: int = 5,
+    ip_limit: int = 5,
     backstop: float = 1.0,
     settled: float = 0.0,
     admin_token: str | None = None,
@@ -282,9 +283,13 @@ def _recording_gate(
     admitted: list[tuple[str, int, datetime]] = []
     gate = SubmitGate(
         daily_job_limit=limit,
+        per_ip_daily_job_limit=ip_limit,
         daily_spend_backstop_usd=backstop,
         has_live_from=queue.has_live_from,
         admitted_since=lambda since: sum(1 for entry in admitted if entry[2] >= since),
+        admitted_from_since=lambda ip, since: sum(
+            1 for entry in admitted if entry[0] == ip and entry[2] >= since
+        ),
         spent_since=lambda _since: settled,
         record_admission=lambda ip, app_id, at: admitted.append((ip, app_id, at)),
         admin_token=admin_token,

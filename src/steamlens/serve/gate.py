@@ -2,12 +2,16 @@
 
 The spend-breaker design (DESIGN, Deployment M3): the public allowance is a
 *count* of fresh jobs per UTC day, checked at admission — a count cannot be
-burst past the way a settling dollar total can — with the ledger's settled
-spend as a second, silent refusal condition (the runaway-day guard), and one
-in-flight job per visitor IP read straight from queue memory. The route owns
-the check *order* (attach → exempt → the three guards here): a request for an
-already-live game attaches before any guard runs, so re-clicks and shared
-curiosity stay free.
+burst past the way a settling dollar total can. Two counts stack (the
+2026-08-10 re-ruling): each visitor IP has its own daily allowance (the
+fairness cap — one curious visitor cannot drain the day for everyone), and
+the pooled cap over all visitors remains the un-burstable outer wall that
+bounds the hostile ceiling at pool × per-job budget. Behind both, the
+ledger's settled spend is a silent refusal condition (the runaway-day
+guard), and one in-flight job per visitor IP reads straight from queue
+memory. The route owns the check *order* (attach → exempt → the four guards
+here): a request for an already-live game attaches before any guard runs,
+so re-clicks and shared curiosity stay free.
 
 The gate holds policy only — every fact it consults arrives as an injected
 callable (queue membership, the admission count, the settled spend), so its
@@ -40,6 +44,10 @@ UNLOCK_COOKIE = "steamlens_unlock"
 DAY_USED_MESSAGE = (
     "today's fresh analyses are all used — published reports stay open; "
     "new analyses return at midnight UTC"
+)
+IP_DAY_USED_MESSAGE = (
+    "your connection's fresh analyses for today are all used — published "
+    "reports stay open; your allowance returns at midnight UTC"
 )
 IN_FLIGHT_MESSAGE = (
     "an analysis from your connection is already in flight — one at a time; "
@@ -83,20 +91,25 @@ def client_ip(forwarded_for: str | None, socket_peer: str) -> str:
 
 @dataclass(frozen=True, slots=True)
 class SubmitGate:
-    """The three admission guards over injected reads, plus the unlock check.
+    """The four admission guards over injected reads, plus the unlock check.
 
     ``refusal`` answers for a *fresh* job only — the caller has already taken
     the attach path for live games — and checks in this order: the visitor's
-    in-flight slot, the day's admission count, the day's settled spend.
-    ``admit`` journals an admission the moment a fresh job is actually
-    minted; the recorded timestamp comes from the gate's own clock so tests
-    steer the day. ``record_admission`` receives (ip, app_id, at).
+    in-flight slot, the visitor's own daily count, the day's pooled count,
+    the day's settled spend. The personal guards run before the day-wide
+    ones so the message explains *the visitor's* situation whenever both
+    apply. ``admit`` journals an admission the moment a fresh job is
+    actually minted; the recorded timestamp comes from the gate's own clock
+    so tests steer the day. ``record_admission`` receives (ip, app_id, at);
+    ``admitted_from_since`` receives (ip, since).
     """
 
     daily_job_limit: int
+    per_ip_daily_job_limit: int
     daily_spend_backstop_usd: float
     has_live_from: Callable[[str], bool]
     admitted_since: Callable[[datetime], int]
+    admitted_from_since: Callable[[str, datetime], int]
     spent_since: Callable[[datetime], float]
     record_admission: Callable[[str, int, datetime], None]
     admin_token: str | None = None
@@ -109,14 +122,17 @@ class SubmitGate:
     def refusal(self, ip: str) -> str | None:
         """The refusal message for a fresh-job request from ``ip`` — None admits.
 
-        A refusal journals which guard fired (``in_flight`` · ``day_cap`` ·
-        ``backstop``) before returning its message — the two DAY_USED texts
-        read identically to the visitor by design, so the journal's kind is
-        the only place the backstop's firings stay distinguishable.
+        A refusal journals which guard fired (``in_flight`` · ``ip_day_cap``
+        · ``day_cap`` · ``backstop``) before returning its message — the two
+        DAY_USED texts read identically to the visitor by design, so the
+        journal's kind is the only place the backstop's firings stay
+        distinguishable.
         """
         if self.has_live_from(ip):
             return self._refuse("in_flight", IN_FLIGHT_MESSAGE)
         day = utc_day_start(self.now())
+        if self.admitted_from_since(ip, day) >= self.per_ip_daily_job_limit:
+            return self._refuse("ip_day_cap", IP_DAY_USED_MESSAGE)
         if self.admitted_since(day) >= self.daily_job_limit:
             return self._refuse("day_cap", DAY_USED_MESSAGE)
         if self.spent_since(day) >= self.daily_spend_backstop_usd:

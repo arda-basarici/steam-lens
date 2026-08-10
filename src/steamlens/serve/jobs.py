@@ -244,7 +244,7 @@ class JobQueue:
     def has_live_from(self, client_ip: str) -> bool:
         """Whether ``client_ip`` already has a queued-or-running job — the
         submit gate's one-in-flight-per-visitor read. Scans the live index
-        (a handful of jobs at most, by the daily allowance's construction)."""
+        (dozens of jobs at most, by the daily allowance's construction)."""
         with self._wake:
             return any(job.client_ip == client_ip for job in self._live.values())
 

@@ -1082,6 +1082,18 @@ class TestAdmissionLog:
             assert store.admissions.count_since(datetime(2026, 7, 14, 10, 0, tzinfo=UTC)) == 0
             assert store.admissions.count_since(datetime(2026, 7, 14, 8, 0, tzinfo=UTC)) == 1
 
+    def test_counts_from_one_ip_window_by_ip_and_day(self, tmp_path: Path) -> None:
+        """The per-visitor fairness read: only the asked IP's rows count, under
+        the same day-boundary windowing as the pooled read."""
+        with Store(tmp_path / "steamlens.sqlite3") as store:
+            store.admissions.record("203.0.113.7", 440, at=_NOON - timedelta(days=1))
+            store.admissions.record("203.0.113.7", 570, at=_NOON)
+            store.admissions.record("198.51.100.9", 730, at=_NOON)
+            assert store.admissions.count_from_since("203.0.113.7", _NOON) == 1
+            assert store.admissions.count_from_since("203.0.113.7", _EPOCH) == 2
+            assert store.admissions.count_from_since("198.51.100.9", _NOON) == 1
+            assert store.admissions.count_from_since("192.0.2.1", _EPOCH) == 0
+
 
 class TestOpsReads:
     """The ops page's aggregates: journal rows in, display totals out."""

@@ -46,6 +46,7 @@ class OpsData:
     now: datetime
     admissions_today: int
     daily_job_limit: int
+    per_ip_daily_job_limit: int
     spend_today_usd: float
     daily_spend_backstop_usd: float
     daily_ledger: tuple[DailyLedgerRow, ...]
@@ -112,10 +113,10 @@ def build_ops_view(data: OpsData) -> OpsView:
         today=(
             OpsStat(
                 label="public fresh analyses today",
-                value=f"{data.admissions_today} of {data.daily_job_limit}",
+                value=f"{data.admissions_today}",
                 note=(
-                    "one shared daily pool for all visitors, resets midnight UTC — "
-                    "the operator's unlocked runs are not counted"
+                    "resets midnight UTC — the operator's unlocked runs are "
+                    "not counted"
                 ),
             ),
             OpsStat(
@@ -141,6 +142,9 @@ def build_ops_view(data: OpsData) -> OpsView:
             _latency_table(data.stage_latencies),
         ),
         notes=(
+            f"fresh analyses are capped at {data.per_ip_daily_job_limit} per "
+            f"visitor IP a day, inside one pooled allowance of "
+            f"{data.daily_job_limit} per UTC day",
             "ledger rows from before 2026-08-09 are priced without the provider's "
             "prefix-cache discount — overstated roughly 4-5x against the real bill, "
             "left as written (forward-only ruling); the provider dashboard is "

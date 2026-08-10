@@ -3,10 +3,11 @@
 One row per gated fresh-job admission (the spend-breaker design): the gate
 counts jobs at the moment of admission, not dollars at settle time, so the
 day's allowance cannot be burst past while costs are still in flight. The
-rows exist for exactly two readers — the gate's daily-count refusal and the
-ops "did anything happen today" surface — which is why the table is not a
-general access log: attaches never land here (no new spend), and the
-operator's own unlocked admissions stay outside the public day's count.
+rows exist for exactly two readers — the gate's daily-count refusals (the
+pooled wall and the per-visitor fairness cap) and the ops "did anything
+happen today" surface — which is why the table is not a general access log:
+attaches never land here (no new spend), and the operator's own unlocked
+admissions stay outside the public day's count.
 
 Same discipline as the spend ledger: append-and-ask only, timestamps
 UTC-normalized at write so the ``since`` filter runs as an index-range scan,
@@ -32,6 +33,10 @@ class AdmissionLog:
     >>> store.admissions.record("203.0.113.7", 440, at=day)
     >>> store.admissions.count_since(day)
     1
+    >>> store.admissions.count_from_since("203.0.113.7", day)
+    1
+    >>> store.admissions.count_from_since("198.51.100.2", day)
+    0
     >>> store.close()
     """
 
@@ -46,9 +51,19 @@ class AdmissionLog:
         )
 
     def count_since(self, since: datetime) -> int:
-        """Admissions at or after ``since`` — the gate's daily-allowance read."""
+        """Admissions at or after ``since`` — the gate's pooled-allowance read."""
         row = self._conn.execute(
             "SELECT COUNT(*) FROM admissions WHERE created_at >= ?",
             (utc_isoformat(since),),
+        ).fetchone()
+        return int(row[0])
+
+    def count_from_since(self, client_ip: str, since: datetime) -> int:
+        """Admissions from ``client_ip`` at or after ``since`` — the gate's
+        per-visitor fairness read. Filters the same index-range scan by IP;
+        the day's rows are bounded small by the pooled allowance itself."""
+        row = self._conn.execute(
+            "SELECT COUNT(*) FROM admissions WHERE client_ip = ? AND created_at >= ?",
+            (client_ip, utc_isoformat(since)),
         ).fetchone()
         return int(row[0])

@@ -14,6 +14,7 @@ from datetime import UTC, datetime, timedelta, timezone
 from steamlens.serve.gate import (
     DAY_USED_MESSAGE,
     IN_FLIGHT_MESSAGE,
+    IP_DAY_USED_MESSAGE,
     SEARCH_LIMIT_MESSAGE,
     SearchLimiter,
     SubmitGate,
@@ -33,10 +34,12 @@ class _World:
         *,
         live_ips: frozenset[str] = frozenset(),
         admitted_today: int = 0,
+        admitted_by_ip: dict[str, int] | None = None,
         settled_today: float = 0.0,
     ) -> None:
         self.live_ips = live_ips
         self.admitted_today = admitted_today
+        self.admitted_by_ip = admitted_by_ip or {}
         self.settled_today = settled_today
         self.admissions: list[tuple[str, int, datetime]] = []
         self.refusals: list[tuple[str, datetime]] = []
@@ -46,6 +49,7 @@ class _World:
         self,
         *,
         limit: int = 5,
+        ip_limit: int = 5,
         backstop: float = 1.0,
         admin_token: str | None = None,
     ) -> SubmitGate:
@@ -53,15 +57,21 @@ class _World:
             self.since_seen.append(since)
             return self.admitted_today
 
+        def admitted_from_since(ip: str, since: datetime) -> int:
+            self.since_seen.append(since)
+            return self.admitted_by_ip.get(ip, 0)
+
         def spent_since(since: datetime) -> float:
             self.since_seen.append(since)
             return self.settled_today
 
         return SubmitGate(
             daily_job_limit=limit,
+            per_ip_daily_job_limit=ip_limit,
             daily_spend_backstop_usd=backstop,
             has_live_from=lambda ip: ip in self.live_ips,
             admitted_since=admitted_since,
+            admitted_from_since=admitted_from_since,
             spent_since=spent_since,
             record_admission=lambda ip, app_id, at: self.admissions.append(
                 (ip, app_id, at)
@@ -101,6 +111,10 @@ def test_refusals_journal_which_guard_fired_admissions_journal_nothing() -> None
     in_flight.gate().refusal("203.0.113.7")
     assert in_flight.refusals == [("in_flight", _NOON)]
 
+    personal = _World(admitted_by_ip={"203.0.113.7": 5})
+    personal.gate(ip_limit=5).refusal("203.0.113.7")
+    assert personal.refusals == [("ip_day_cap", _NOON)]
+
     exhausted = _World(admitted_today=5)
     exhausted.gate(limit=5).refusal("203.0.113.7")
     assert exhausted.refusals == [("day_cap", _NOON)]
@@ -121,6 +135,30 @@ def test_the_day_allowance_refuses_at_the_limit_exactly() -> None:
     assert world.gate(limit=5).refusal("203.0.113.7") == DAY_USED_MESSAGE
 
 
+def test_the_visitors_own_allowance_refuses_at_its_limit_and_spares_others() -> None:
+    """The fairness cap is keyed by IP: the visitor who used their day gets
+    the personal message at the limit exactly, while a fresh visitor on the
+    same day still admits — one visitor cannot spend anyone else's five."""
+    world = _World(admitted_by_ip={"203.0.113.7": 4}, admitted_today=4)
+    gate = world.gate(limit=50, ip_limit=5)
+    assert gate.refusal("203.0.113.7") is None
+    world.admitted_by_ip["203.0.113.7"] = 5
+    assert world.gate(limit=50, ip_limit=5).refusal("203.0.113.7") == (
+        IP_DAY_USED_MESSAGE
+    )
+    assert world.gate(limit=50, ip_limit=5).refusal("198.51.100.2") is None
+
+
+def test_the_personal_cap_answers_before_the_pool_on_a_doubly_exhausted_day() -> None:
+    """A visitor who is both personally exhausted and on an exhausted day
+    gets the message that explains *their* situation — same rationale as the
+    in-flight guard winning the order."""
+    world = _World(admitted_by_ip={"203.0.113.7": 5}, admitted_today=50)
+    assert world.gate(limit=50, ip_limit=5).refusal("203.0.113.7") == (
+        IP_DAY_USED_MESSAGE
+    )
+
+
 def test_the_settled_spend_backstop_refuses_at_the_threshold() -> None:
     """The runaway-day guard: settled dollars at the backstop close the day
     even with admission slots left — and share the visitor-facing day text."""
@@ -131,11 +169,12 @@ def test_the_settled_spend_backstop_refuses_at_the_threshold() -> None:
 
 
 def test_the_day_reads_are_windowed_from_utc_midnight() -> None:
-    """Both store reads receive midnight UTC of the gate's *now* — the spend
-    day is this app's accounting day, nobody else's."""
+    """All three store reads (per-visitor count, pooled count, settled
+    spend) receive midnight UTC of the gate's *now* — the spend day is this
+    app's accounting day, nobody else's."""
     world = _World()
     world.gate().refusal("203.0.113.7")
-    assert world.since_seen == [_MIDNIGHT, _MIDNIGHT]
+    assert world.since_seen == [_MIDNIGHT, _MIDNIGHT, _MIDNIGHT]
 
 
 def test_utc_day_start_windows_by_instant_not_wall_clock() -> None:
