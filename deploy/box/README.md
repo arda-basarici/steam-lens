@@ -41,11 +41,12 @@ sudo sshd -T | grep -Ei '^(passwordauthentication|permitrootlogin|kbdinteractive
 #   printf 'PasswordAuthentication no\nPermitRootLogin no\nKbdInteractiveAuthentication no\n' \
 #     | sudo tee /etc/ssh/sshd_config.d/50-hardening.conf && sudo systemctl reload ssh
 
-# Firewall: default deny incoming, allow only ssh + web. Allow 22 BEFORE enable,
-# while the session that would be locked out is still open.
+# Firewall: default deny incoming; ssh is the ONLY host-level allowance.
+# Allow 22 BEFORE enable, while the session that would be locked out is
+# still open. 80/443 are deliberately not allowed: the web ports' guard is
+# the DOCKER-USER layer below — and the absence of a ufw allowance is
+# itself load-bearing (it is what closes the docker-proxy path; see below).
 sudo ufw allow 22/tcp comment 'ssh'
-sudo ufw allow 80/tcp comment 'HTTP - Caddy'
-sudo ufw allow 443/tcp comment 'HTTPS - Caddy'
 sudo ufw enable
 
 # Security patches auto-install; the timers must show a next-fire time.
@@ -53,13 +54,52 @@ sudo apt-get install -y unattended-upgrades
 systemctl list-timers 'apt-daily*' --all
 ```
 
-Known trap, respected structurally rather than fixed: **Docker-published ports
-bypass ufw** — Docker's iptables rules sit ahead of ufw's chains, so a
-published port is world-reachable no matter what ufw says. The 80/443 rules
-above document intent; what actually guards the box is the compose convention
-that only the box proxy ever publishes a port. Check the live surface with
+## Origin firewall — only Cloudflare reaches the published ports
+
+The trap that shapes this design: **Docker-published ports bypass ufw** —
+inbound IPv4 to a published port is DNAT'ed and *forwarded* into the
+container, consulting the FORWARD chain (where Docker gives user rules
+first say via the `DOCKER-USER` hook) and never ufw's INPUT rules. So the
+web ports are guarded in two layers, one per path the traffic actually
+takes:
+
+- **IPv4 (forwarded): `firewall.sh`** owns the DOCKER-USER chain — 443
+  admitted from Cloudflare's published ranges only (the same list the
+  Caddyfile's `trusted_proxies` pins; refresh both together), everything
+  else the internet sends at a container dropped. `box-firewall.service`
+  re-applies it each boot, ordered `Before=docker.service` so no gap opens.
+- **IPv6 (docker-proxy): ufw's default deny.** The containers have no v6
+  address, so the `[::]:443` publish is served by docker-proxy — a *host
+  process*, which answers to INPUT and therefore to ufw. With no 80/443
+  allow rules, default-deny closes that door. No allowance is missing:
+  Cloudflare dials the origin v4-only (the origin DNS record is an A
+  record) and exclusively over 443 (SSL Full (strict)).
+
+Lockout safety, why this is safe to apply over ssh: DOCKER-USER sees only
+traffic forwarded into containers; the ssh session rides INPUT, which the
+script never touches — a botched rule set can dark the site, never the
+shell.
+
+```sh
+# Install script + unit, apply now (idempotent — safe to re-run):
+scp deploy/box/firewall.sh steamlens:/srv/box-proxy/firewall.sh
+scp deploy/box/box-firewall.service steamlens:/tmp/
+ssh steamlens 'chmod +x /srv/box-proxy/firewall.sh \
+  && sudo mv /tmp/box-firewall.service /etc/systemd/system/ \
+  && sudo systemctl daemon-reload && sudo systemctl enable --now box-firewall.service'
+
+# Verify: domain green, bare origin IP (never written here — the repo is
+# public and the proxy hides it; the `steamlens` ssh alias resolves it) dead
+# on both ports.
+curl -s https://steamlens.ardabasarici.dev/healthz          # → {"status":"ok",...}
+curl -s --connect-timeout 5 http://<origin-ip>/healthz      # → timeout
+curl -sk --connect-timeout 5 https://<origin-ip>/           # → timeout
+```
+
+The compose convention still stands as the inner wall: only the box proxy
+ever publishes a port. Check the live surface with
 `docker ps --format 'table {{.Names}}\t{{.Ports}}'`: only the Caddy container
-may show `0.0.0.0->` arrows.
+may show port arrows.
 
 ## Domain + TLS (Cloudflare, orange-cloud)
 
@@ -81,8 +121,11 @@ Two Caddyfile pieces make the proxy honest (both explained in place there):
 refresh the list if Cloudflare ever announces a change) so a forwarded
 identity is only believed when the peer really is Cloudflare, and the domain
 stanza *replaces* `X-Forwarded-For` with the one verified visitor IP,
-preserving the app's last-entry contract (`serve/gate.py`). The `:80`
-bare-IP stanza is transitional — it retires at the edge-hardening step.
+preserving the app's last-entry contract (`serve/gate.py`). There is no
+bare-IP `:80` stanza and the proxy publishes 443 only: Cloudflare dials the
+origin exclusively over HTTPS in Full (strict), visitor HTTP is redirected
+at the edge, and the origin firewall (above) drops direct-to-IP callers
+before Caddy ever sees them.
 
 ## Layout on the box
 
@@ -99,7 +142,8 @@ uid by convention).
 ## Bring-up
 
 ```sh
-# The proxy, once per box:
+# The proxy, once per box (the origin firewall installs with it — see
+# "Origin firewall" above):
 cd /srv/box-proxy && docker compose up -d
 
 # A project (steamlens shown); images come from GHCR — the box never builds:
@@ -229,5 +273,9 @@ gunzip /tmp/restore.db.gz && sqlite3 /tmp/restore.db "PRAGMA integrity_check;"
 mv data/serve.db data/serve.db.broken                      # keep the evidence
 rm -f data/serve.db-wal data/serve.db-shm                  # stale WAL sidecars poison a restored db
 mv /tmp/restore.db data/serve.db
-docker compose up -d && curl -s http://localhost:80/healthz
+# Port 80 is retired and 443 speaks TLS for the domain, so the local check
+# rides SNI via --resolve; -k because the Origin CA cert is trusted only by
+# Cloudflare's edge, not by curl.
+docker compose up -d && curl -sk --resolve steamlens.ardabasarici.dev:443:127.0.0.1 \
+  https://steamlens.ardabasarici.dev/healthz
 ```

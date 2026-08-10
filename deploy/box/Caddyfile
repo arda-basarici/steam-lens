@@ -1,6 +1,7 @@
-# One stanza per project on the box, plus the transitional `:80` bare-IP
-# stanza (removed at the edge-hardening step, once nothing points at the
-# raw address anymore).
+# One stanza per project on the box. No bare-IP stanza: the origin answers
+# only Cloudflare (the DOCKER-USER firewall, firewall.sh in this directory),
+# and Cloudflare dials the origin exclusively over 443 (SSL Full (strict)) —
+# visitor HTTP is redirected at the edge and never reaches the box.
 #
 # The domain rides Cloudflare's proxy (orange-cloud), so the TCP peer Caddy
 # sees on 443 is a Cloudflare edge node, never the visitor. trusted_proxies
@@ -30,6 +31,12 @@ steamlens.ardabasarici.dev {
 		max_size 16KB
 	}
 
+	# The app by its compose DNS name on the shared `web` network — nothing
+	# is published from the app container itself.
+	#
+	# flush_interval -1 disables response buffering, which the live-analysis
+	# narration needs: SSE frames must reach the browser the moment the job
+	# emits them, not when a buffer fills.
 	reverse_proxy steamlens-app-1:8000 {
 		flush_interval -1
 		# The app's contract (serve/gate.py): the LAST X-Forwarded-For
@@ -39,25 +46,5 @@ steamlens.ardabasarici.dev {
 		# rate-limit bucket — replace instead: one entry, the verified
 		# visitor, and the contract holds unchanged.
 		header_up X-Forwarded-For {client_ip}
-	}
-}
-
-:80 {
-	# The audit's request-body finding: the app parses a POST body into
-	# memory before any gate runs, so the effective cap sits here, in front
-	# of it — an oversized body answers 413 and never reaches the app. 16KB
-	# is roomy; the real submit body is well under 1KB.
-	request_body {
-		max_size 16KB
-	}
-
-	# The app by its compose DNS name on the shared `web` network — nothing
-	# is published from the app container itself.
-	#
-	# flush_interval -1 disables response buffering, which the live-analysis
-	# narration needs: SSE frames must reach the browser the moment the job
-	# emits them, not when a buffer fills.
-	reverse_proxy steamlens-app-1:8000 {
-		flush_interval -1
 	}
 }

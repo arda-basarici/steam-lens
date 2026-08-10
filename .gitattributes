@@ -8,6 +8,6 @@ src/steamlens/ontology/*.toml text eol=lf
 
 # Files scp'd from the working tree and executed verbatim on the Debian box —
 # a CRLF checkout breaks bash (\r: command not found) and systemd unit parsing.
-deploy/box/backup.sh text eol=lf
+deploy/box/*.sh text eol=lf
 deploy/box/*.service text eol=lf
 deploy/box/*.timer text eol=lf

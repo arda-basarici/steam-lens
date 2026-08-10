@@ -12,8 +12,11 @@ services:
     # the Caddyfile against; patch/minor security fixes arrive on re-pull.
     image: caddy:2-alpine
     restart: unless-stopped
+    # 443 only: Cloudflare dials the origin exclusively over HTTPS (SSL Full
+    # (strict)); port 80 was retired with the bare-IP Caddyfile stanza at the
+    # edge-hardening step. Even this one port answers only Cloudflare's
+    # ranges — the DOCKER-USER firewall (firewall.sh here) guards it.
     ports:
-      - "80:80"
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
