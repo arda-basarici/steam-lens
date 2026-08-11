@@ -119,6 +119,13 @@
   --mint-tint: #cde2fb;   /* sequential blue 100 — selection wash */
   --accent: #2a78d6;
   --accent-strong: #256abf; /* sequential blue 500 — hover/active */
+  /* Button colors get their own tokens: --accent at 4.42:1 fails WCAG AA
+     for white text (the Lighthouse contrast finding), and the fix must not
+     ride the shared accent token — links, focus rings, and borders use it
+     at other contrast relationships. Steps stay in the validated palette. */
+  --btn-bg: #256abf;       /* sequential blue 500 — 5.4:1 with white text */
+  --btn-bg-hover: #104281; /* sequential blue 650 */
+  --btn-text: #ffffff;
   --font-serif: "Literata", Georgia, "Times New Roman", serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
   --font-ui: system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -142,6 +149,12 @@
     --mint-tint: #104281;   /* sequential blue 650 — selection wash */
     --accent: #3987e5;
     --accent-strong: #6da7ec; /* sequential blue 300 — lighter on dark */
+    /* Dark mode inverts the button: white text on any passing blue would
+       need a step too dark for this theme, so the button goes light with
+       dark ink — blue 300 under the page ink reads 7.4:1. */
+    --btn-bg: #6da7ec;       /* sequential blue 300 */
+    --btn-bg-hover: #cde2fb; /* sequential blue 100 */
+    --btn-text: #0d0d0d;
   }
 }
 
@@ -338,15 +351,15 @@ a:hover {
   font: inherit;
   font-weight: 500;
   padding: 0.6rem 1.1rem;
-  color: #fff;
-  background: var(--accent);
+  color: var(--btn-text);
+  background: var(--btn-bg);
   border: none;
   border-radius: 6px;
   cursor: pointer;
 }
 
 .search-form button:hover {
-  background: var(--accent-strong);
+  background: var(--btn-bg-hover);
 }
 
 .search-hint {
