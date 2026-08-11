@@ -31,6 +31,31 @@ steamlens.ardabasarici.dev {
 		max_size 16KB
 	}
 
+	# Baseline security headers — set at the proxy so every response wears
+	# them, whichever app route answered. HSTS: 180 days, deliberately
+	# without `preload` (preload is effectively irreversible and a decision
+	# to take on its own, not by default). nosniff pins declared MIME types;
+	# the referrer policy sends cross-site targets the origin, never full
+	# URLs (report paths name what a visitor read); DENY because nothing
+	# here is designed to be framed — CSP's frame-ancestors arrives with
+	# the dedicated CSP pass. The Permissions-Policy disowns the powerful
+	# APIs this site will never call.
+	header {
+		Strict-Transport-Security "max-age=15552000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+	}
+
+	# Static assets are content-hash-busted (`?v=` from the app's
+	# static_version stamp), which is exactly what makes a year-long
+	# immutable cache safe: a deploy that changes any byte changes every
+	# URL, so no browser can hold a stale file — and a returning visitor
+	# re-downloads nothing.
+	@static path /static/*
+	header @static Cache-Control "public, max-age=31536000, immutable"
+
 	# The app by its compose DNS name on the shared `web` network — nothing
 	# is published from the app container itself.
 	#
