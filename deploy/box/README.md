@@ -152,11 +152,33 @@ cd /srv/steamlens && docker compose pull && docker compose up -d
 
 ## Deploying a new version
 
-CI builds and pushes `ghcr.io/arda-basarici/steam-lens:latest` on every green
-push to main (the `image` job in `.github/workflows/ci.yml` — gated on the
-check job, so a red commit never mints a `latest`). Rolling the box forward
-is a pull —
-rollback is pointing the compose file at the previous sha tag:
+CI builds and pushes `ghcr.io/arda-basarici/steam-lens:latest` plus a sha
+tag on every green push to main (the `image` job in
+`.github/workflows/ci.yml` — gated on the check job, so a red commit never
+mints a `latest`). The deploy then rides the pipeline: the `deploy` job
+pauses at the `production` environment's required review, and approving it
+ssh's into the box over a forced-command key that can run
+`/srv/steamlens/deploy.sh` (this directory's `deploy.sh`) and nothing else.
+The script refuses while an analysis job is live (re-run the job once it
+settles), pulls the run's own sha — so a late approval ships exactly what
+was reviewed, immune to `:latest` moving underneath — retags the box's
+`latest` to mean "last approved deploy", recreates, and polls `/healthz`
+through the visitor path before the job may go green.
+
+One-time CD setup (replayed for a rebuilt box): install the script
+(`scp deploy/box/deploy.sh steamlens:/srv/steamlens/deploy.sh` + `chmod +x`),
+mint a dedicated keypair (`ssh-keygen -t ed25519 -N "" -C
+steamlens-ci-deploy`), append
+`restrict,command="/srv/steamlens/deploy.sh" <pubkey>` to the box user's
+`~/.ssh/authorized_keys`, and fill the GitHub `production` environment:
+a required reviewer plus secrets `DEPLOY_SSH_KEY` (the private key),
+`DEPLOY_HOST_KEY` (the `ssh-keyscan -t ed25519 <origin-ip>` line), and
+`DEPLOY_TARGET` (`<user>@<origin-ip>`). Delete the local pair after
+pasting — the secret store holds the only copy, and re-minting is one
+command. The box's address stays in secrets, never this repo.
+
+Fallback (pipeline down, or a deliberately manual moment) — rollback is
+pointing the compose file at the previous sha tag:
 
 ```sh
 cd /srv/steamlens && docker compose pull && docker compose up -d

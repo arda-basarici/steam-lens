@@ -1745,6 +1745,24 @@ push to main and pushes to GHCR; a short deploy script on the box pulls and
 restarts — triggered manually at first, automatable later. The box only ever
 runs an image that passed CI, and the 4 GB box is never a build server.
 
+**"Automatable later" arrived as approval-gated delivery — deliberately
+short of continuous deployment** (2026-08-11, superseding the launch-era
+"the box never auto-pulls" manual pull). The deploy job sits behind a
+required-review GitHub environment: green main mints the image, a
+deliberate click ships it. Mechanics chosen for the trust direction: the
+pipeline's ssh key is forced-command (`restrict,command=` pinned to the
+box's deploy script) so a leaked Actions secret can trigger a deploy and
+nothing else; the box's address rides environment secrets, keeping the
+origin out of the repo. The job hands the script the run's *own* image sha
+— approval hours after a push ships exactly what was reviewed, immune to
+`:latest` moving underneath; the box retags its `latest` to mean "last
+approved deploy", so rollback stays the previous sha tag. The script
+refuses, naming the job, while an analysis is live — a recreate cuts a
+visitor's minutes-long, money-spending job mid-run, which is the argument
+that kept a human on the trigger at all — and the job goes green only
+after the new container answers `/healthz` through the visitor path. The
+manual pull survives as the runbook fallback.
+
 **Monitoring lives off the box.** A `/healthz` endpoint checks the real
 things cheaply (database opens, job worker alive); an external free pinger
 watches it — a monitor self-hosted beside the app dies with it. The richer
