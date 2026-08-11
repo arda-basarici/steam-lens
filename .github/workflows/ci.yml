@@ -50,6 +50,8 @@ jobs:
     if: github.event_name == 'push'
     needs: check
     runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.stamp.outputs.sha }}
     permissions:
       contents: read
       packages: write
@@ -83,3 +85,37 @@ jobs:
             ghcr.io/${{ github.repository }}:${{ steps.stamp.outputs.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  deploy:
+    # Continuous delivery with a human gate: the `production` environment
+    # requires a review, so green main mints the image and a deliberate
+    # click ships it — the box deploys only through this job. The ssh key
+    # is forced-command (`restrict,command="/srv/steamlens/deploy.sh"` on
+    # the box): it can trigger a deploy and nothing else. The sha rides the
+    # command so the box ships exactly the image this run minted, immune to
+    # a later push re-pointing :latest during the approval lag. The box's
+    # address and host key live in environment secrets, never the repo —
+    # the origin stays hidden. deploy.sh refuses (loudly, naming the job)
+    # while an analysis is live; re-run the job once it settles.
+    if: github.event_name == 'push'
+    needs: image
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://steamlens.ardabasarici.dev
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    steps:
+      - name: Deploy the approved sha over forced-command ssh
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_HOST_KEY" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key -o UserKnownHostsFile=~/.ssh/known_hosts \
+            "$DEPLOY_TARGET" "deploy ${{ needs.image.outputs.sha }}"
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST_KEY: ${{ secrets.DEPLOY_HOST_KEY }}
+          DEPLOY_TARGET: ${{ secrets.DEPLOY_TARGET }}
