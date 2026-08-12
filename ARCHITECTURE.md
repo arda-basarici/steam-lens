@@ -17,7 +17,7 @@ The deployed shape, outside-in — what a request crosses before any Python runs
 
 ```mermaid
 %%{init: {"flowchart": {"diagramPadding": 150}}}%%
-flowchart LR
+flowchart TD
     V([visitor]) --> CF["`Cloudflare edge
     proxied DNS · bot cover`"]
     CF -->|"443 only, Cloudflare ranges"| FW["`origin firewall
@@ -28,12 +28,12 @@ flowchart LR
     body cap · immutable static cache`"]
     CADDY -->|"shared docker network"| APP["`steamlens app container
     FastAPI + one job worker thread`"]
-    APP --> DB[("`SQLite, WAL
-    bind-mounted on the host`")]
+    PING(["external pinger"]) -.-> APP
     APP -->|"paced GETs"| STEAM["Steam Web API"]
     APP -->|"one client seam"| LLM["DeepSeek API"]
+    APP --> DB[("`SQLite, WAL
+    bind-mounted on the host`")]
     DB -.->|"nightly backup, rclone"| DRIVE[("Google Drive")]
-    PING(["external pinger"]) -.-> APP
 ```
 
 The box is a small hardened VPS (DESIGN: the box — key-only SSH, root login off,
@@ -82,7 +82,7 @@ continuous deployment (DESIGN: approval-gated delivery):
 
 ```mermaid
 %%{init: {"flowchart": {"diagramPadding": 150}}}%%
-flowchart LR
+flowchart TD
     PUSH([push to main]) --> CHECK["`CI check
     ruff · pyright --strict · pytest
     import law · eval gate · doctests`"]
