@@ -207,6 +207,14 @@ existed — it gates the build, its numbers ship inside the product, and the
 deployment is the same discipline applied to infrastructure: every trust
 boundary explicit, every spend journaled, every claim attributable.
 
+## Development note
+
+**AI-assisted development.** Claude Code was used extensively during
+implementation — code, refactoring, test writing, docs drafting, codebase
+exploration. Architecture, product decisions, evaluation methodology, the
+hand-labeled gold set, experiment design, and final review remained
+human-directed.
+
 ## Deeper
 
 [the live app](https://steamlens.ardabasarici.dev) ·
