@@ -16,6 +16,7 @@ architecture pass when it approaches.*
 The deployed shape, outside-in — what a request crosses before any Python runs:
 
 ```mermaid
+%%{init: {"flowchart": {"diagramPadding": 150}}}%%
 flowchart LR
     V([visitor]) --> CF["`Cloudflare edge
     proxied DNS · bot cover`"]
@@ -80,6 +81,7 @@ How code reaches that box — approval-gated delivery, deliberately short of
 continuous deployment (DESIGN: approval-gated delivery):
 
 ```mermaid
+%%{init: {"flowchart": {"diagramPadding": 150}}}%%
 flowchart LR
     PUSH([push to main]) --> CHECK["`CI check
     ruff · pyright --strict · pytest
@@ -116,6 +118,7 @@ Five ranks, imports strictly downward, enforced by a CI test. The entry shells a
 the top compose everything; nothing composes them.
 
 ```mermaid
+%%{init: {"flowchart": {"diagramPadding": 150}}}%%
 flowchart TD
     R4["`rank 4 — entry shells: serve · studies · evals
     (import-forbidden to all other code)`"]
@@ -168,6 +171,7 @@ The serving path — what happens when a stranger submits a game (DESIGN: the
 serving skeleton · the spend breaker · serving persistence):
 
 ```mermaid
+%%{init: {"flowchart": {"diagramPadding": 150}}}%%
 flowchart TD
     POST["POST /analyses"] --> ATTACH{"`job already live
     for this game?`"}
