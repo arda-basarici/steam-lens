@@ -10,11 +10,9 @@ yourself?**
 ![python](https://img.shields.io/badge/python-3.13-3776ab)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**Live product · solo end-to-end · a 135k-review evaluation corpus ·
-human-anchored evals · deployed on a self-managed VPS**
+Live product · solo end-to-end · 135k-review eval corpus · human-anchored evals · self-managed VPS
 
-`Python 3.13` · `FastAPI` · `SQLite` · `Docker` · `Caddy` · `Cloudflare` ·
-`GitHub Actions` · `LLM evals` · `bootstrap CIs` · `CI/CD` · `SSE` · `pyright --strict`
+`Python 3.13` `FastAPI` `SQLite` `Docker` `Caddy` `Cloudflare` `GitHub Actions` `LLM evals` `bootstrap CIs` `pyright --strict`
 
 <img src="src/steamlens/serve/web/static/og-home.png" alt="SteamLens — the search page" width="600"/>
 
