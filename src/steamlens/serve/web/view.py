@@ -68,8 +68,14 @@ MARKED_SHARE_FLOOR: Final = 0.02
 sampling-study rulings: holds at 2%, broken by 5%) — past it the trust panel
 states the calibrated bars are not certified for this sample."""
 
+HEADER_ART_ORIGIN: Final = "https://shared.akamai.steamstatic.com"
+"""The one external origin any page loads from — Steam's public asset CDN.
+Public because the Content-Security-Policy (``csp``) must allow exactly this
+origin for images: one constant, so the URL pattern and the policy cannot
+drift apart."""
+
 _HEADER_ART: Final = (
-    "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/{app_id}/header.jpg"
+    HEADER_ART_ORIGIN + "/store_item_assets/steam/apps/{app_id}/header.jpg"
 )
 """Steam's public CDN pattern for a game's header capsule — minted from the
 stored ``app_id`` at display time (the report stores identity, never asset

@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import ast
 import asyncio
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -592,6 +593,46 @@ def test_search_page_serves_at_the_root() -> None:
     assert response.headers["content-type"].startswith("text/html")
     assert "Type a game name" in response.text
     assert '<script src="/static/search.js?v=' in response.text
+
+
+def _nonce(response: Response) -> str:
+    """The nonce out of a response's CSP header — asserts the header's shape."""
+    match = re.search(r"'nonce-([^']+)'", response.headers["content-security-policy"])
+    assert match is not None
+    return match.group(1)
+
+
+def test_html_responses_wear_the_csp_with_a_fresh_nonce() -> None:
+    """Every HTML page carries the policy, and the nonce differs per response.
+    The nonce is the header's load-bearing part: Cloudflare's bot detection
+    injects an inline script into proxied HTML and stamps it with the nonce
+    it reads off this header — a static policy would block the injection, a
+    repeated nonce would stop being a nonce."""
+    app = _page_app(None)
+    first = _get(app, "/")
+    policy = first.headers["content-security-policy"]
+    assert "default-src 'none'" in policy
+    assert "script-src 'self' 'nonce-" in policy
+    assert "img-src 'self' https://shared.akamai.steamstatic.com" in policy
+    assert "frame-ancestors 'none'" in policy
+    assert _nonce(first) != _nonce(_get(app, "/"))
+
+
+def test_error_pages_wear_the_csp_too() -> None:
+    """The negotiated HTML 404 and 500 are pages like any other — hostile
+    input reaches them (the 404 echoes the requested path), so the backstop
+    covers them; the API's JSON and plain-text twins stay bare, a policy on
+    a programmatically-read body is dead weight."""
+    html_404 = _get(_page_app(None), "/no-such-page", accept="text/html")
+    assert "content-security-policy" in html_404.headers
+    html_500 = _get(
+        _crashing_app(), "/reports/440",
+        accept="text/html", raise_app_exceptions=False,
+    )
+    assert "content-security-policy" in html_500.headers
+
+    json_404 = _get(_page_app(None), "/no-such-page")
+    assert "content-security-policy" not in json_404.headers
 
 
 def test_hostile_review_content_renders_inert() -> None:

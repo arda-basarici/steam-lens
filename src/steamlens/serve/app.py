@@ -144,7 +144,18 @@ def create_app(
     composes an app whose health answer says so honestly; production always
     wires one, same language as the gate.
     """
-    app = FastAPI(title="steam-lens", on_shutdown=list(on_shutdown))
+    # The auto-docs (/docs, /redoc, /openapi.json) are declined deliberately
+    # (2026-08-12, the CSP pass — they had shipped as an unexamined default):
+    # the JSON surface feeds this app's own pages, no external consumer was
+    # ever promised documentation, and the pages were an open console to the
+    # money-spending submit route plus the app's only third-party CDN load.
+    app = FastAPI(
+        title="steam-lens",
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None,
+        on_shutdown=list(on_shutdown),
+    )
 
     @app.get("/healthz")
     def healthz(response: Response) -> HealthReport:  # pyright: ignore[reportUnusedFunction]

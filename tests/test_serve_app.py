@@ -598,3 +598,25 @@ def test_healthz_names_a_failing_database_and_says_unchecked_when_unwired() -> N
 
     asyncio.run(asyncio.wait_for(drive(), timeout=10.0))
     queue.close()
+
+
+def test_the_framework_auto_docs_stay_declined() -> None:
+    """/docs, /redoc, and /openapi.json answer 404: FastAPI mounts them by
+    default, and the default shipped unexamined for a month — an open
+    interactive console to the money-spending submit route, rendered off a
+    third-party CDN. The decline is deliberate (the CSP pass, 2026-08-12);
+    this pins it against any future re-composition quietly restoring it."""
+    runner = GatedNarrator()
+    runner.release.set()
+    queue = JobQueue(runner)
+    app = create_app(queue, _CONFIG, lambda _: None, _no_search)
+
+    async def drive() -> None:
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            for path in ("/docs", "/redoc", "/openapi.json"):
+                assert (await client.get(path)).status_code == 404
+
+    asyncio.run(asyncio.wait_for(drive(), timeout=10.0))
+    queue.close()

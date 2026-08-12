@@ -27,6 +27,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from steamlens.serve.web.csp import ContentSecurityPolicy, fresh_policy
 from steamlens.serve.web.ops_view import OpsData, build_ops_view
 from steamlens.serve.web.view import ReportPageData, build_report_view
 
@@ -73,8 +74,12 @@ def attach_web(
 
     Attaching also registers the app-wide 404 and 500 pages — here rather
     than on the JSON surface because a styled error page is rendering, and
-    the boundary ruling keeps every rendered byte inside ``serve.web``.
+    the boundary ruling keeps every rendered byte inside ``serve.web`` — and
+    the Content-Security-Policy middleware (``csp``), which stamps every HTML
+    response and only HTML responses: the policy is a property of the pages,
+    so it attaches with them, not with the proxy's static header block.
     """
+    app.add_middleware(ContentSecurityPolicy)
     templates = Jinja2Templates(directory=_TEMPLATES_DIR)
     # The stub types env.globals to jinja's own builtins; it is a plain dict.
     cast(dict[str, object], templates.env.globals)["static_v"] = _static_version()
@@ -149,11 +154,17 @@ def attach_web(
         loses the stack, never the operator. Non-browser clients keep the
         framework's exact plain-text default; programmatic consumers never
         traded on its body, so there is nothing richer to preserve.
+
+        The CSP is stamped here by hand: the error middleware answering this
+        sits outside every user middleware, so the stamper never sees the
+        response it sends.
         """
         if "text/html" in request.headers.get("accept", ""):
-            return templates.TemplateResponse(
+            response = templates.TemplateResponse(
                 request, "server_error.html", status_code=500
             )
+            response.headers["Content-Security-Policy"] = fresh_policy()
+            return response
         return PlainTextResponse("Internal Server Error", status_code=500)
 
     app.include_router(router)

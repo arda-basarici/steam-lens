@@ -1717,6 +1717,34 @@ consumer — the study packages are import-forbidden to everything, so the
 whisker math had no legal home until it graduated; the mint arithmetic
 that re-derives the constants stays in ``studies.allowance``.
 
+**The Content-Security-Policy (2026-08-12).** The second wall behind Jinja
+autoescaping: the policy ratifies what the pages already do — same-origin
+external scripts only, one stylesheet, self-hosted fonts, same-origin
+fetch/SSE, images from Steam's CDN — and the browser refuses everything
+else, so an escaping gap stops yielding execution. Strict except two narrow,
+argued allowances: ``style-src-attr 'unsafe-inline'`` for the report bars'
+per-report percentage widths (attribute-level CSS can neither run script nor
+use selectors; injected ``<style>`` elements — the real CSS vector — stay
+blocked), and the CDN origin in ``img-src`` (one constant shared with the
+URL mint, so policy and pattern cannot drift). The header is stamped by the
+app (``serve.web.csp``, HTML responses only), not the proxy's static header
+block, because it carries a per-response nonce with exactly one consumer:
+**Cloudflare's bot detection injects an inline bootstrap into proxied HTML**
+— per-response values, unhashable — and its injector reads the CSP response
+header and stamps the nonce onto what it injects (documented behavior,
+verified live 2026-08-12; on the free plan the injection is not
+switch-offable, and disabling Bot Fight Mode traded away bot cover in front
+of a money-spending endpoint). ``frame-ancestors 'none'`` supersedes the
+interim ``X-Frame-Options`` at the proxy. The known coupling, recorded
+rather than hidden: if pages ever break with a CSP violation on an inline
+``__CF$cv$params`` script, the injector's nonce behavior or the zone's bot
+settings changed — the policy is where to look. The pass's side catch:
+FastAPI's auto-docs (``/docs``, ``/redoc``, ``/openapi.json``) had shipped
+public as an unexamined framework default — an interactive console to the
+money-spending submit route, rendered off the app's only third-party CDN
+load. Declined deliberately (no consumer exists; the JSON surface feeds
+this app's own pages), pinned by test.
+
 ### The box
 
 **Docker Compose behind one shared Caddy; SQLite bind-mounted on the host.**
