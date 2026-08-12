@@ -41,15 +41,14 @@ own error rates published beside its claims, inside the product.
 
 ```mermaid
 flowchart LR
-    A([game name]) --> B["sample<br/>the certified<br/>windowed draw"]
-    B --> C["classify<br/>the F1-certified<br/>labeler"]
-    C --> D["mint<br/>deterministic<br/>aggregation"]
-    D --> E["compose<br/>fenced by<br/>grounding gates"]
-    E --> F([report<br/>with receipts])
+    A([game name]) --> B[sample] --> C[classify] --> D[mint] --> E[compose] --> F([report with receipts])
 ```
 
-Every stage narrates itself live over SSE; every numeral the prose states must
-match the job's own outputs; every quote must verify verbatim before display.
+**sample** — the certified windowed draw · **classify** — the F1-certified
+labeler · **mint** — deterministic aggregation · **compose** — fenced by
+grounding gates. Every stage narrates itself live over SSE; every numeral the
+prose states must match the job's own outputs; every quote must verify verbatim
+before display.
 
 This is the ten-second view. The whole deployed system — edge to database, the
 delivery pipeline, the import-rank law, the life of an analysis job — is drawn

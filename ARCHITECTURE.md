@@ -17,14 +17,21 @@ The deployed shape, outside-in — what a request crosses before any Python runs
 
 ```mermaid
 flowchart LR
-    V([visitor]) --> CF["Cloudflare edge<br/>proxied DNS · bot cover"]
-    CF -->|"443 only,<br/>Cloudflare ranges only"| FW["origin firewall<br/>DOCKER-USER chain,<br/>installed before Docker starts"]
-    FW --> CADDY["Caddy — the box-owned proxy<br/>Origin-CA TLS · security headers<br/>body cap · immutable static cache"]
-    CADDY -->|"shared docker<br/>network"| APP["steamlens app container<br/>FastAPI + one job worker thread"]
-    APP --> DB[("SQLite, WAL<br/>bind-mounted on the host")]
+    V([visitor]) --> CF["`Cloudflare edge
+    proxied DNS · bot cover`"]
+    CF -->|"443 only, Cloudflare ranges"| FW["`origin firewall
+    DOCKER-USER chain,
+    installed before Docker starts`"]
+    FW --> CADDY["`Caddy — the box-owned proxy
+    Origin-CA TLS · security headers
+    body cap · immutable static cache`"]
+    CADDY -->|"shared docker network"| APP["`steamlens app container
+    FastAPI + one job worker thread`"]
+    APP --> DB[("`SQLite, WAL
+    bind-mounted on the host`")]
     APP -->|"paced GETs"| STEAM["Steam Web API"]
     APP -->|"one client seam"| LLM["DeepSeek API"]
-    DB -.->|"nightly .backup<br/>→ rclone"| DRIVE[("Google Drive")]
+    DB -.->|"nightly backup, rclone"| DRIVE[("Google Drive")]
     PING(["external pinger"]) -.-> APP
 ```
 
@@ -74,12 +81,20 @@ continuous deployment (DESIGN: approval-gated delivery):
 
 ```mermaid
 flowchart LR
-    PUSH([push to main]) --> CHECK["CI check<br/>ruff · pyright --strict · pytest<br/>(import law · eval gate · doctests)"]
-    CHECK --> IMG["image minted → GHCR<br/>tagged with the run's own sha"]
-    IMG --> GATE{{"production environment<br/>required review — a human click"}}
-    GATE --> DEPLOY["deploy job<br/>forced-command ssh,<br/>hands the script its own sha"]
-    DEPLOY --> SCRIPT["box deploy script<br/>refuses while an analysis is live"]
-    SCRIPT --> HEALTH["green only after /healthz<br/>answers through the visitor path"]
+    PUSH([push to main]) --> CHECK["`CI check
+    ruff · pyright --strict · pytest
+    import law · eval gate · doctests`"]
+    CHECK --> IMG["`image minted, pushed to GHCR
+    tagged with the run's own sha`"]
+    IMG --> GATE{{"`production environment
+    required review — a human click`"}}
+    GATE --> DEPLOY["`deploy job
+    forced-command ssh,
+    hands the script its own sha`"]
+    DEPLOY --> SCRIPT["`box deploy script
+    refuses while an analysis is live`"]
+    SCRIPT --> HEALTH["`green only after /healthz
+    answers through the visitor path`"]
 ```
 
 The trust direction decides every mechanic. The box never builds — CI mints the
@@ -102,9 +117,10 @@ the top compose everything; nothing composes them.
 
 ```mermaid
 flowchart TD
-    R4["rank 4 — entry shells: serve · studies · evals<br/>(import-forbidden to all other code)"]
+    R4["`rank 4 — entry shells: serve · studies · evals
+    (import-forbidden to all other code)`"]
     R3["rank 3 — dispatch: generic run machinery"]
-    R2["rank 2 — the doors: steam_client · llm_client ·<br/>store · corpus · ontology"]
+    R2["rank 2 — the doors: steam_client · llm_client · store · corpus · ontology"]
     R1["rank 1 — core: pure transforms"]
     R0["rank 0 — contracts: the plain-data spine, imports nothing"]
     R4 --> R3 --> R2 --> R1 --> R0
@@ -153,16 +169,28 @@ serving skeleton · the spend breaker · serving persistence):
 
 ```mermaid
 flowchart TD
-    POST["POST /analyses"] --> ATTACH{"job already live<br/>for this game?"}
+    POST["POST /analyses"] --> ATTACH{"`job already live
+    for this game?`"}
     ATTACH -->|yes| STREAM
-    ATTACH -->|no| CACHED{"published<br/>report exists?"}
-    CACHED -->|yes| RECEIPT["200 — cached receipt,<br/>analysis date worn openly"]
-    CACHED -->|no| GUARD{"the submit gate<br/>exempt → in-flight → your day's count<br/>→ the pool's count → spend backstop"}
-    GUARD -->|refused| R429["429 — an honest refusal,<br/>naming the UTC-midnight reset"]
-    GUARD -->|admitted| QUEUE["job queue —<br/>one cold analysis at a time"]
-    QUEUE --> RUNNER["the runner<br/>size the English pool → compile the plan<br/>→ fetch ∥ classify → mint → detect<br/>→ compose, fenced by the grounding gate"]
-    RUNNER --> PUBLISH["one transaction:<br/>aggregate snapshot + report row"]
-    QUEUE -.->|narrates| STREAM["SSE — replay the job's<br/>history, then follow live"]
+    ATTACH -->|no| CACHED{"`published
+    report exists?`"}
+    CACHED -->|yes| RECEIPT["`200 — cached receipt,
+    analysis date worn openly`"]
+    CACHED -->|no| GUARD{"`the submit gate
+    exempt → in-flight → your day's count
+    → the pool's count → spend backstop`"}
+    GUARD -->|refused| R429["`429 — an honest refusal,
+    naming the UTC-midnight reset`"]
+    GUARD -->|admitted| QUEUE["`job queue —
+    one cold analysis at a time`"]
+    QUEUE --> RUNNER["`the runner
+    size the English pool → compile the plan
+    → fetch ∥ classify → mint → detect
+    → compose, fenced by the grounding gate`"]
+    RUNNER --> PUBLISH["`one transaction:
+    aggregate snapshot + report row`"]
+    QUEUE -.->|narrates| STREAM["`SSE — replay the job's
+    history, then follow live`"]
 ```
 
 Inside the runner, everything statistical is a certified seam composed, never
