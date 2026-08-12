@@ -8,11 +8,11 @@ yourself?**
 [![CI](https://github.com/arda-basarici/steam-lens/actions/workflows/ci.yml/badge.svg)](https://github.com/arda-basarici/steam-lens/actions/workflows/ci.yml)
 [![live](https://img.shields.io/badge/live-steamlens.ardabasarici.dev-2ea44f)](https://steamlens.ardabasarici.dev)
 ![python](https://img.shields.io/badge/python-3.13-3776ab)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688)
+![SQLite](https://img.shields.io/badge/SQLite-003b57)
+![Docker](https://img.shields.io/badge/Docker-2496ed)
+![LLM evals](https://img.shields.io/badge/LLM%20evals-in%20CI-8250df)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
-
-Live product · solo end-to-end · 135k-review eval corpus · human-anchored evals · self-managed VPS
-
-`Python 3.13` `FastAPI` `SQLite` `Docker` `Caddy` `Cloudflare` `GitHub Actions` `LLM evals` `bootstrap CIs` `pyright --strict`
 
 <img src="src/steamlens/serve/web/static/og-home.png" alt="SteamLens — the search page" width="600"/>
 
@@ -30,8 +30,9 @@ human-anchored gold set, a calibrated cross-family judge, bootstrap CIs on
 every reported number, an eval harness that gates CI, and the system's own
 error rates published beside its claims, inside the product.
 
-*Solo project — product design, evaluation methodology, architecture,
-implementation, experiments, and deployment.*
+*Solo, end-to-end — product design, evaluation methodology, architecture,
+implementation, experiments, and deployment; a live product with a 135k-review
+evaluation corpus on a self-managed VPS.*
 
 > [!IMPORTANT]
 > **Live: [steamlens.ardabasarici.dev](https://steamlens.ardabasarici.dev)** —
