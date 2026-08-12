@@ -10,6 +10,12 @@ yourself?**
 ![python](https://img.shields.io/badge/python-3.13-3776ab)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
+**Live product · solo end-to-end · a 135k-review evaluation corpus ·
+human-anchored evals · deployed on a self-managed VPS**
+
+`Python 3.13` · `FastAPI` · `SQLite` · `Docker` · `Caddy` · `Cloudflare` ·
+`GitHub Actions` · `LLM evals` · `bootstrap CIs` · `CI/CD` · `SSE` · `pyright --strict`
+
 <img src="src/steamlens/serve/web/static/og-home.png" alt="SteamLens — the search page" width="600"/>
 
 *(interim shot — full page captures land after the current polish pass)*
@@ -19,11 +25,15 @@ yourself?**
 SteamLens reads Steam reviews the way an analyst would: it samples a game's
 reviews under a measured tolerance, classifies each one against a versioned
 aspect vocabulary, aggregates deterministically, and composes a narrative that
-structurally cannot state a number its own outputs don't back. The LLM call is
-deliberately the smallest part of the system — the work is the instrument built
-around it: a human-anchored gold set, a calibrated cross-family judge, bootstrap
-CIs on every reported number, an eval harness that gates CI, and the system's
-own error rates published beside its claims, inside the product.
+cannot introduce numerals absent from its own minted outputs — with every
+displayed quotation verified verbatim. The LLM call is deliberately the
+smallest part of the system — the work is the instrument built around it: a
+human-anchored gold set, a calibrated cross-family judge, bootstrap CIs on
+every reported number, an eval harness that gates CI, and the system's own
+error rates published beside its claims, inside the product.
+
+*Solo project — product design, evaluation methodology, architecture,
+implementation, experiments, and deployment.*
 
 > [!IMPORTANT]
 > **Live: [steamlens.ardabasarici.dev](https://steamlens.ardabasarici.dev)** —
@@ -51,10 +61,11 @@ grounding gates. Every stage narrates itself live over SSE; every numeral the
 prose states must match the job's own outputs; every quote must verify verbatim
 before display.
 
-This is the ten-second view. The whole deployed system — edge to database, the
-delivery pipeline, the import-rank law, the life of an analysis job — is drawn
-in **[ARCHITECTURE](ARCHITECTURE.md)**; every decision behind it, with its
-alternatives and why they lost, is argued in **[DESIGN](DESIGN.md)**.
+Pick your depth: **30 seconds** — this page's diagram and tables ·
+**5 minutes** — **[ARCHITECTURE](ARCHITECTURE.md)**, the whole deployed system
+drawn: edge to database, the delivery pipeline, the import-rank law, the life
+of an analysis job · **the deep dive** — **[DESIGN](DESIGN.md)**, every
+decision with its alternatives and why they lost.
 
 ## The build, milestone by milestone
 
@@ -77,7 +88,7 @@ user should see ship inside the product's trust panel, not just here.
 | claim | measured | the honest caveat |
 |---|---|---|
 | label quality vs human gold | **F1 0.766 [0.713–0.811]** | 250-review gold set, blind-labeled *before* any model output existed; single annotator, disclosed |
-| the judge, calibrated before use | F1 0.816 vs gold — paired **Δ +0.050 [+0.019, +0.083]** over production | a different model family, so no self-preference |
+| the judge, calibrated before use | F1 0.816 vs gold — paired **Δ +0.050 [+0.019, +0.083]** over production | cross-family, to reduce self-preference risk |
 | the judge check off-gold | **F1 0.791 [0.772–0.810]** agreement on a 1,000-review census sample | no quality cliff outside the gold set's reach |
 | fabricated quotes | **0 in 163,842 stored evidence spans** | failing quotes are nulled at write time; the deployed composer passes the same verbatim gate |
 | misattribution, by human audit | **11.6% [6.6–19.6]** of sampled claims | dominated by close-family routing (bugs↔stability); zero far-field misreads |
@@ -148,7 +159,7 @@ look:
 | Python 3.13 · uv · pyright `--strict` | typed src-layout app; lint + types + doctests gate every change |
 | FastAPI · SSE · Jinja2 · vanilla JS | the serving shell — no SPA, no bundler; the narration stream is the one dynamic surface |
 | SQLite (WAL) | labels, ledger, reports, journals — one file, bind-mounted, nightly `.backup` shipped off-box |
-| DeepSeek + Gemini, one client seam | labeler/composer and judge, deliberately cross-family — no self-preference in the instrument |
+| DeepSeek + Gemini, one client seam | labeler/composer and judge, deliberately cross-family — so the instrument doesn't inherit self-preference |
 | Docker · GHCR · Caddy · Cloudflare | the deployed system: CI-minted images behind a box-owned proxy behind a hidden origin |
 | GitHub Actions | CI with the eval gate; approval-gated CD over forced-command SSH |
 

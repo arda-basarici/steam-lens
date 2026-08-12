@@ -70,15 +70,19 @@ rate** — it is deliberately not called a hallucination rate, because a real qu
 attached to a wrong reading passes it. That failure class (misattribution — sarcasm is
 Steam's native dialect) is measured separately by human audit of ~100 claims.
 Adversarial inputs are a standing harness requirement — the product's entire input
-is attacker-controlled text — but no prompt-injection canary set exists yet: it
-lands with the first surface that renders model prose (deployment, M3), deferred
+is attacker-controlled text — met at deployment (M3) by the prompt-injection canary
+set (its own section under Deployment): beacon-scored synthetic attacks over both
+model surfaces, the render-side walls gating deterministically in CI. Building it
+was deliberately deferred until the first surface rendering model prose existed,
 on the same grounds as the numeric-grounding check.
 
-**Evals gate softly.** The harness runs in CI on prompt/model changes with tolerance
-bands and trend reporting; a hard build-fail on a noisy LLM metric was rejected because
-a red-X-then-override history is worse than no gate. (As built, the CI gate re-scores
-stored output deterministically, where exact-digit failure *is* honest — see the
-evals-in-CI decision; tolerance bands became the label re-buy rule.)
+**Evals gate hard only where determinism makes it honest** (evolved from the
+vision-phase "gate softly" ruling). A hard build-fail on a noisy live LLM metric
+stays rejected — a red-X-then-override history is worse than no gate — so
+fresh-output harness runs report with tolerance bands, and tolerance bands became
+the label re-buy rule. The CI gate as built re-scores *stored* runs of record
+deterministically, where exact-digit failure *is* honest (the evals-in-CI
+decision) — soft where the metric is noisy, hard where it cannot be.
 
 ---
 
