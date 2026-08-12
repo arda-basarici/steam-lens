@@ -69,10 +69,10 @@ sampling-study rulings: holds at 2%, broken by 5%) — past it the trust panel
 states the calibrated bars are not certified for this sample."""
 
 HEADER_ART_ORIGIN: Final = "https://shared.akamai.steamstatic.com"
-"""The one external origin any page loads from — Steam's public asset CDN.
-Public because the Content-Security-Policy (``csp``) must allow exactly this
-origin for images: one constant, so the URL pattern and the policy cannot
-drift apart."""
+"""The origin the header capsule is minted from — one host in Steam's asset
+CDN family. The Content-Security-Policy (``csp``) allows that family by
+wildcard; this stays public so a render test can pin the minted origin
+inside it — the drift a shared constant would otherwise have prevented."""
 
 _HEADER_ART: Final = (
     HEADER_ART_ORIGIN + "/store_item_assets/steam/apps/{app_id}/header.jpg"

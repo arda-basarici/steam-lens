@@ -24,9 +24,14 @@ Two deliberate allowances, both narrow:
   cannot execute script and cannot use selectors (what CSS-exfiltration
   needs); injected ``<style>`` **elements**, the real CSS vector, stay blocked
   by ``style-src 'self'``.
-- ``img-src`` admits Steam's asset CDN — the game capsule, the one external
-  load on any page, minted from the stored ``app_id``
-  (``view.HEADER_ART_ORIGIN``, the shared single definition).
+- ``img-src`` admits Steam's asset CDN family by wildcard. Two image classes
+  need it: the report's header capsule, whose URL *we* mint
+  (``view.HEADER_ART_ORIGIN``; a test pins that origin inside the wildcard),
+  and the search results' thumbnails, whose URLs arrive **verbatim from
+  Steam's storesearch answer** — Valve serves those from several
+  ``steamstatic.com`` hosts and may shift or regionalize them, so an
+  exact-host allowance would break thumbnails silently. The widening is
+  negligible: the domain is Valve's asset CDN wholesale.
 
 Only ``text/html`` responses wear the header: the JSON surface's answers are
 read programmatically, SSE frames are not documents, and the static mount's
@@ -42,14 +47,17 @@ from typing import Final
 from starlette.datastructures import MutableHeaders
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from steamlens.serve.web.view import HEADER_ART_ORIGIN
+STEAM_CDN_FAMILY: Final = "https://*.steamstatic.com"
+"""Valve's asset-CDN domain, allowed wholesale — see the module docstring's
+``img-src`` rationale. Public so the render tests can pin the header-art
+origin (``view.HEADER_ART_ORIGIN``) inside it."""
 
 _POLICY: Final = "; ".join((
     "default-src 'none'",
     "script-src 'self' 'nonce-{nonce}'",
     "style-src 'self'",
     "style-src-attr 'unsafe-inline'",
-    f"img-src 'self' {HEADER_ART_ORIGIN}",
+    f"img-src 'self' {STEAM_CDN_FAMILY}",
     "font-src 'self'",
     "connect-src 'self'",
     "base-uri 'none'",

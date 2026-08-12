@@ -58,8 +58,10 @@ from steamlens.contracts import (
 )
 from steamlens.core.allowance import shipped_interval
 from steamlens.serve.web import OpsData, ReportPageData, attach_web
+from steamlens.serve.web.csp import STEAM_CDN_FAMILY
 from steamlens.serve.web.ops_view import build_ops_view
 from steamlens.serve.web.view import (
+    HEADER_ART_ORIGIN,
     QUOTE_DISPLAY_CHAR_CAP,
     build_report_view,
     narrative_segments,
@@ -613,9 +615,20 @@ def test_html_responses_wear_the_csp_with_a_fresh_nonce() -> None:
     policy = first.headers["content-security-policy"]
     assert "default-src 'none'" in policy
     assert "script-src 'self' 'nonce-" in policy
-    assert "img-src 'self' https://shared.akamai.steamstatic.com" in policy
+    assert f"img-src 'self' {STEAM_CDN_FAMILY}" in policy
     assert "frame-ancestors 'none'" in policy
     assert _nonce(first) != _nonce(_get(app, "/"))
+
+
+def test_the_minted_header_art_stays_inside_the_csp_image_allowance() -> None:
+    """The policy's img-src is a wildcard over Valve's CDN family (search
+    thumbnails arrive verbatim from Steam and hop hosts within it); the
+    header-art URL is the one image origin WE mint, so this pins it inside
+    that family — the drift check a shared exact-origin constant used to
+    give structurally."""
+    assert STEAM_CDN_FAMILY == "https://*.steamstatic.com"
+    assert HEADER_ART_ORIGIN.startswith("https://")
+    assert HEADER_ART_ORIGIN.endswith(".steamstatic.com")
 
 
 def test_error_pages_wear_the_csp_too() -> None:

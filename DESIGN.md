@@ -1725,8 +1725,12 @@ else, so an escaping gap stops yielding execution. Strict except two narrow,
 argued allowances: ``style-src-attr 'unsafe-inline'`` for the report bars'
 per-report percentage widths (attribute-level CSS can neither run script nor
 use selectors; injected ``<style>`` elements — the real CSS vector — stay
-blocked), and the CDN origin in ``img-src`` (one constant shared with the
-URL mint, so policy and pattern cannot drift). The header is stamped by the
+blocked), and Valve's asset-CDN family in ``img-src`` as the wildcard
+``https://*.steamstatic.com`` — the search thumbnails arrive verbatim from
+Steam's storesearch answer and Valve serves them from several hosts in that
+family, so an exact-host allowance would break them silently the day Steam
+shifts or regionalizes the field; the header-art origin the app itself
+mints is pinned inside the family by test. The header is stamped by the
 app (``serve.web.csp``, HTML responses only), not the proxy's static header
 block, because it carries a per-response nonce with exactly one consumer:
 **Cloudflare's bot detection injects an inline bootstrap into proxied HTML**
