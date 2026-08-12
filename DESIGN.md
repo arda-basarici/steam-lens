@@ -1,27 +1,54 @@
 # DESIGN — steam-lens
 
-What is being built and why — the decisions and their reasoning, as a narrative
+What was built and why — the decisions and their reasoning, as a narrative
 snapshot of the current design, edited in place as decisions evolve. **This document is
 the living source of truth for decisions from the vision phase onward**; `VISION.md` is
 the fixed vision-phase snapshot (2026-07-07) and is not updated as the design moves.
 How it's built → ARCHITECTURE; the pitch → README. Executed experiments appear here
 as conclusions with citations to their runs of record.
 
-*Living snapshot · last updated 2026-08-07.*
+*Living snapshot · last updated 2026-08-12 · the project closed complete at
+deployment (M3), live at steamlens.ardabasarici.dev; the chat milestone (M4) is
+designed-and-deferred (the M3 closure ruling, under the redirect).*
+
+---
+
+## The map
+
+One line per section — what's decided there:
+
+- **Objective** — the product, and the success criterion every displayed claim must meet.
+- **The evaluation spine** — trust earned in layers: the human gold anchor first, the calibrated judge on it, production under both.
+- **The two-track engine** — per-review classification, deterministic aggregation; numbers and stories never mix.
+- **The system flow** — module boundaries, the import law, the seams and the contracts crossing them.
+- **Data access** — Steam's narrow, buggy, sufficient API, and the one sampler door that owns all review access.
+- **The labeling engine** — the provider seam, the classify stage, the store, and the label pool's two consumers.
+- **Choosing the labeler** — the bake-off: measured, not reputed; the per-stage tier rule.
+- **The codebook** — the hybrid vocabulary: a pinned core, candidates preserved in reviewer wording.
+- **The eval harness** — the scoring core, certification, and the exact-digit evals-in-CI gate.
+- **The judge** — the second annotator: cross-family by rule, calibrated on gold before use.
+- **The redirect & the product frame** — the investigator deferred, the grounded chat as the story channel, and the M3 closure ruling.
+- **The sampling study (M2)** — the certified draw: the windowed policy, the measured tolerances, the shipped interval rule.
+- **Deployment (M3)** — the serving skeleton · persistence · model prose · episode markers · the frontend · the box · the spend breaker · observability.
+- **Standing rules · Scope & non-goals · Open questions** — what always holds, what's deliberately out, what's parked with a trigger.
 
 ---
 
 ## Objective
 
 An app where entering a game returns what players actually like and dislike — aspect-
-level strengths/weaknesses with verbatim evidence, episode markers on the review
-timeline, and a grounded chat that interrogates the report's evidence — computed live
-at request time on real Steam data, with a rigorous, honest evaluation of whether
-the LLM doing the reading is actually right. **Success
+level strengths/weaknesses with verbatim evidence and episode markers on the review
+timeline — computed live at request time on real Steam data, with a rigorous, honest
+evaluation of whether the LLM doing the reading is actually right. The grounded chat
+that interrogates the report's evidence remains the designed next channel, deferred
+past the project's closure (the M3 closure ruling, under the redirect). **Success
 criterion:** a stranger uses the deployed app unassisted and every claim they see is
 attributable — to specific reviews (quotes), to a measured sampling tolerance, or to a
-published error rate; and each of the four milestones ships a standalone postable
-artifact.
+published error rate; and each shipped milestone ships a standalone postable
+artifact. *Met at the M3 closure (2026-08-12): the app is live and public, and every
+displayed claim carries its quote, its tolerance, or its published error rate.*
+
+---
 
 ## The evaluation spine — trust must be earned in layers
 
@@ -53,6 +80,8 @@ a red-X-then-override history is worse than no gate. (As built, the CI gate re-s
 stored output deterministically, where exact-digit failure *is* honest — see the
 evals-in-CI decision; tolerance bands became the label re-buy rule.)
 
+---
+
 ## The two-track engine — adaptive curiosity without corrupted statistics
 
 **Per-review classification over holistic synthesis.** Each sampled review is
@@ -81,6 +110,8 @@ investigation replaces a spinner; minutes become acceptable).
 loop is deferred with its milestone, and a grounded RAG chat over labeled reviews
 produces the stories instead. The one rule survives translated: chat answers quote
 retrieved reviews and never mint numbers. See "The redirect & the product frame".*
+
+---
 
 ## The system flow — module boundaries, seams, contracts
 
@@ -184,6 +215,8 @@ orthogonal to the content-cache key (model + prompt + ontology versions). The
 narration/telemetry **sink is a Protocol in contracts**, so every shell inherits one
 emission contract and the ops-story observability is structural from the first commit
 rather than retrofitted.
+
+---
 
 ## Data access — a narrow, buggy, sufficient API
 
@@ -499,6 +532,7 @@ default stays v1 (gold's identity pin), so every pool consumer pins v2 explicitl
 flipping the default is a deliberate later step that must rework the runner's
 gold-pin check, never a side effect.
 
+> [!IMPORTANT]
 > **Outcome.** The census is bought and settled (2026-07-20): 135,259 envelopes + 1
 > durable content-filter refusal = 135,260 exact under
 > `deepseek-v4-flash / classify-v1 / v2`, true cost $3.80 all-in, Drive-backed with
@@ -611,6 +645,7 @@ the 33-ruling gold ledger settled what rides vs what stays gold-process-only,
 landing in `src/steamlens/ontology/v2.toml` — same 51 pins, aliases byte-identical,
 every example freshly constructed so no gold span reaches the machine's contract.
 
+> [!IMPORTANT]
 > **Outcome.** v2 vs the frozen v1 baseline on gold: precision **+0.066
 > [+0.039, +0.098]** (real), recall −0.030 (borderline), F1 +0.020 — the honest
 > sentence is *not-worse-and-leaning-better with a confirmed precision gain*. The
@@ -670,6 +705,7 @@ holding a sum type. For pool-label references the pinning property survives by
 digest over the canonically-serialized label set — same tamper-evidence as a file
 hash.
 
+> [!IMPORTANT]
 > **Outcome.** The production census labels certify at **F1 0.766 [0.713–0.811]**
 > against gold on the 245-review intersection (run
 > `certify-20260728T184100Z-5f3f4652`, scorer `census-vs-gold/2`) — the number
@@ -697,6 +733,7 @@ sorted frame — implicit proportional stratification, self-weighting, so the
 audited rate estimates the population rate with no reweighting. 100 primary + 10
 ordered reserves in `eval/audits/misattribution/`.
 
+> [!IMPORTANT]
 > **Outcome.** The audit landed 2026-08-05 (the human pass, 100 claims; two
 > non-English primaries skipped and replaced from the ordered reserves):
 > misattribution **11.6% [6.6–19.6]** Wilson over 95 decidable claims, 5
@@ -802,6 +839,7 @@ metadata from corpus files, never fabricated rows, scoped out of every labeling
 run's selection); a **text handshake** guards instrument identity — an envelope must
 never claim text the judge never read.
 
+> [!IMPORTANT]
 > **Outcome.** Calibration **PASS** (2026-07-23): judge F1 0.816 vs gold, paired
 > Δ **+0.050 [+0.019, +0.083]** over production on the shared reviews — census-
 > sample verdicts are reference-grade; frontier escalation moot. Instrument caveats
@@ -820,6 +858,7 @@ longer hashes to its pin. Everything instrument-defining lives once in a shared
 dispatch engine consumed by two thin shells (gold calibration, census sample), so
 the two runs cannot drift apart.
 
+> [!IMPORTANT]
 > **Outcome.** Judge-vs-production agreement **F1 0.791 [0.772–0.810]** on
 > 1,000/1,000 (run of record `agree-20260728T184121Z-7c975c95`, scorer
 > `judge-vs-production/2`) — between production-vs-gold 0.766 and judge-vs-gold
@@ -837,6 +876,7 @@ into `model_version` (`@n1`/`@n10`) — two label sets expected to differ must n
 share an identity, and the tag buys containment (production folds filter the
 untagged triple) plus verbatim scorer reuse.
 
+> [!IMPORTANT]
 > **Outcome.** **Batch composition is acquitted**: every same-day composition
 > comparison is null, every cross-day comparison shows a ~0.02–0.03 gap including
 > with composition held fixed — the census-vs-lab −0.033 is **buy-time variance of
@@ -933,6 +973,14 @@ adopted when a real loop appears, not before). The session's docket: pool tierin
 embedder choice · retrieval mechanics · eval design on the judge machinery ·
 cost caps · the composition prompt · the `Review` reception-metadata deferral
 reopened as a retrieval signal.
+
+**The M3 closure (ruled 2026-08-12).** The project closed complete at deployment:
+the report product stands on its own — live, evidenced, and coherent without the
+chat — and the chat keeps its milestone slot *deferred*: not cancelled, not
+scheduled. The deferral is revisited explicitly after the polish run and the
+public link, weighed against opening a new project; if taken up, the design
+session works the docket above with the recorded leanings as its starting
+positions.
 
 ---
 
@@ -1034,6 +1082,7 @@ review-level agreement against production with a Wilson interval; the number
 lands in the report's limitations as the measured bound on the reference's
 imperfection.
 
+> [!IMPORTANT]
 > **Outcome.** The holdout landed 2026-08-04/05 (run of record
 > `holdout-20260804T215600Z-c0edb01a`, journaled + mirrored in
 > `eval/holdout/agreement.json`): strict-envelope review-level agreement
@@ -1195,6 +1244,7 @@ never minted for). Base cells reuse the certified population grid with the
 same seeded-draw discipline; blending is offline resampling of stored
 labels, zero LLM spend.
 
+> [!IMPORTANT]
 > **Outcome.** Off run of record `m2mix-20260804T120612Z-c31f92fe`
 > (49 games × anchors × the three sources × the 8-share grid, 200 seeded
 > blends per cell; verdict and figures regenerable via
@@ -1225,6 +1275,7 @@ cell; take-all pools are recorded with an exactness verification rather
 than skipped — in the convergence sweeps take-all was free flattery, here
 the cutoff side is itself part of the promise being validated.
 
+> [!IMPORTANT]
 > **Outcome: the closing test passes — the size rule holds held-out.** Off
 > run of record `m2close-20260804T140340Z-1cc06586` (3 games, 15 cells,
 > 605 rows; verdict and figures regenerable via
@@ -1253,6 +1304,7 @@ and the floor · limitations stated plainly (popular-games corpus, English-only,
 buy-time variance, the reference-imperfection bound) · provenance, every figure
 regenerable. No artifact references REPORT_NOTES.md.
 
+> [!IMPORTANT]
 > **Outcome (frozen 2026-08-05): "Sampling Without Random Access"** —
 > 22 pages, question-driven structure (the three reader questions as the
 > spine, pollution and ground truth as peer chapters), 32 numbers pinned
@@ -1558,6 +1610,7 @@ holding today — and the run uses in-memory bindings throughout, so adversarial
 text never enters the durable provenance archive and a measurement never
 charges a spend row.
 
+> [!IMPORTANT]
 > **Outcome.** The first live readings (2026-08-08, three runs, captures in
 > `probes/captures/canaries/`): **every wall held on both surfaces** — no
 > beacon leaked, classify parsed 7/7 rows cleanly under every attack, and the
@@ -1681,6 +1734,7 @@ micro-window variant gets its trigger judged here, at real rendered
 whiskers — calm ±2.5 and spiky ±15 seen with eyes, reopened only if that
 judgment fails.
 
+> [!IMPORTANT]
 > **Outcome (2026-08-08).** The judgment ran at the step-6 build: the calm
 > case read live (the first real report, Baldur's Gate 3, n=711, Wilson
 > whiskers), the spiky case at the rendered fixture (the widths are the
@@ -1957,6 +2011,17 @@ LLMOps story is told in its real vocabulary while the architecture stays
 honest. The platform *tool experience*, if ever wanted, is an experiment-lab
 afternoon on a hosted free tier, not this box.
 
+> [!IMPORTANT]
+> **Outcome (M3, closed 2026-08-12).** Live and public at
+> steamlens.ardabasarici.dev — the domain behind Cloudflare's proxy, the origin
+> firewalled to the edge, approval-gated delivery shipping since 2026-08-11. The
+> first real report (Baldur's Gate 3, n=711) landed 2026-08-08 inside the designed
+> envelope, and Hades was the first served through the domain (2026-08-10); live
+> jobs settle at $0.007–0.017 against the $1 per-job cap, read from the same
+> journals the ops page renders. The serving walls — edge, gate, canaries — were
+> each probed live at go-public. Product refinement continues as the polish track
+> between milestones, not as milestone remainder.
+
 ---
 
 ## Standing rules
@@ -1976,10 +2041,11 @@ as code. The test for any addition stays: does *this product* need it?
 
 ## Scope & non-goals
 
-- In: aspect reports with receipts, narrated live analysis, the report-interrogation
-  RAG chat, display-only episode markers on the timeline, the trust panel,
-  Docker/FastAPI/SQLite/CI deployment, the evaluation methodology as a public
-  artifact, the ops story as a public artifact.
+- In: aspect reports with receipts, narrated live analysis, display-only episode
+  markers on the timeline, the trust panel, Docker/FastAPI/SQLite/CI deployment,
+  the evaluation methodology as a public artifact, the ops story as a public
+  artifact. The report-interrogation RAG chat is designed-and-deferred (the M3
+  closure ruling, under the redirect) — in the design, not in the shipped scope.
 - Deliberately out: fake-review verdicts (tombstoned under Data access) ·
   multilingual evaluation claims (post-launch experiment, unverified if shipped) ·
   Kubernetes/Terraform/cloud MLOps (zero marginal signal for a portfolio app) ·
@@ -1987,6 +2053,8 @@ as code. The test for any addition stays: does *this product* need it?
   the agentic investigator (deferred 2026-07-27, the redirect above) · any displayed
   number sourced from outside the survey mint (the old investigation-track wall, now
   also covering the chat pool).
+
+---
 
 ## Open questions / deferred
 
