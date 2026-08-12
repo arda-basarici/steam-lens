@@ -40,6 +40,7 @@ own error rates published beside its claims, inside the product.
 ## The pipeline at a glance
 
 ```mermaid
+%%{init: {"flowchart": {"diagramPadding": 150}}}%%
 flowchart LR
     A([game name]) --> B[sample] --> C[classify] --> D[mint] --> E[compose] --> F([report with receipts])
 ```
