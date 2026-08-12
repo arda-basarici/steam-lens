@@ -7,6 +7,90 @@ decisions it feeds.
 
 ---
 
+## 2026-08-12 — The header that audited the app: a CSP pass finds its policy already true, and a month-old default nobody chose
+
+*The polish track after the deployment milestone (M3) closed — the deliberate
+own-session CSP pass the basics sweep had parked. Feeds: the M3 report's
+hardening/edge section; candidate material for a security-hardening post.*
+
+Content-Security-Policy got its own session on purpose: a wrong policy fails
+silently-weirdly in production — the page loads, the JavaScript just doesn't
+run, and the only evidence is a violation in a visitor's browser console that
+no server journal ever sees. The expected work was an audit of inline scripts
+and styles followed by careful allowances. The actual audit came back almost
+empty: no inline scripts anywhere, no event-handler attributes, all DOM
+building in the two JS files via createElement and textContent (string-to-DOM
+APIs banned by a CI scan since the frontend build), fonts and styles
+self-hosted, every fetch and the SSE stream same-origin. The policy mostly
+*ratified* discipline the app had been paying for all along — the strict
+header was cheap because the escaping-paranoid frontend rulings had already
+done the expensive part.
+
+The one real complication was invisible in the repo and found only by
+curling the live page: Cloudflare's bot detection (Bot Fight Mode, enabled at
+the going-public hardening) injects an inline bootstrap script into every
+proxied HTML response, carrying per-response values — the ray ID and a
+timestamp — so no hash can ever pin it, and a strict `script-src 'self'`
+would break the injection. A delegated doc-read settled the mechanism from
+current official docs (developers.cloudflare.com/bots/reference/
+javascript-detections, "last updated" July 2026, checked 2026-08-12):
+Cloudflare's injector *parses the origin's CSP response header* and stamps
+any nonce it finds there onto the scripts it injects. The real alternative on
+the table was disabling Bot Fight Mode and keeping a static policy at the
+proxy — but on the free plan the injection cannot be turned off any other
+way, and dropping it trades away bot cover in front of an endpoint that
+spends real money per analysis. Arda took the nonce route: the header moved
+from the proxy's static block into the app — a pure-ASGI middleware minting a
+fresh nonce per response — with one elegant consequence: the app's own
+templates never render the nonce at all. It exists in the header purely for
+Cloudflare to read. The claim was verifiable only in production, and
+verification confirmed it to the character: the nonce in the response header
+and the nonce attribute on Cloudflare's injected script match within the same
+response (curled live, 2026-08-12).
+
+The audit's side catch is arguably the bigger story. FastAPI auto-mounts
+interactive API documentation — `/docs`, `/redoc`, `/openapi.json` — unless
+told otherwise, and nobody had ever told it otherwise: the pages had been
+live in production for a month, and a grep for any of those names across the
+entire repo (code, DESIGN, tests) came back empty. Nobody chose them; the
+framework did. What they amounted to: an interactive console with a
+"Try it out" button pointed at the money-spending submit route, rendered off
+a third-party CDN — the app's only external script load, on a surface where
+everything else was deliberately self-hosted. Declined in composition
+(`docs_url=None`), pinned by a test so no future re-wiring quietly restores
+it. The transferable lesson: a framework default is a decision someone else
+made for you, and a public surface deserves a "did we choose this?" audit —
+this one sat unexamined until a security pass happened to look.
+
+Strictness was spent deliberately, not absolutely — two narrow allowances,
+each argued, instead of a blanket `unsafe-inline`. The report's aspect bars
+carry per-report percentage widths as style attributes; the alternative
+really considered was quantizing widths into ~100 generated CSS classes, and
+it lost to `style-src-attr 'unsafe-inline'` because attribute-level CSS can
+neither execute script nor use selectors (what CSS-exfiltration needs), while
+injected `<style>` *elements* — the real vector — stay blocked. And images
+allow Valve's CDN: initially the exact host the app mints header art from,
+widened the same day to the `https://*.steamstatic.com` family when live
+verification showed the search thumbnails ride Steam's `tiny_image` URLs
+verbatim — whatever host Steam sends — so an exact-host allowance was a
+silent future-breakage class waiting for Valve to shift or regionalize a
+CDN field. The origin the app itself mints stays pinned inside the family by
+test.
+
+One mechanism was earned through a failing test rather than foresight:
+Starlette's error middleware — where the app-wide 500 handler runs — sits
+*outside* every user middleware, so the styled 500 page never passes the
+nonce-stamping middleware at all; the handler stamps its own header. The
+whole pass shipped through the approval-gated CD and was verified live at
+every layer: headers and nonce-match by curl, a browser console sweep across
+the search flow, a full report page, and the ops page with zero violations,
+and the proxy's interim `X-Frame-Options` retired only after the CSP's
+`frame-ancestors 'none'` was confirmed carrying the protection live.
+
+Figure: the nonce's request path — minted in the app's middleware, read off
+the header by Cloudflare's injector at the edge, enforced by the visitor's
+browser — three parties, one value, one diagram.
+
 ## 2026-08-09 — The ledger joins the bill: a public ops page catches its own 5x accounting fiction on day one
 
 *The observability step of the deployment milestone (M3) — the in-app ops

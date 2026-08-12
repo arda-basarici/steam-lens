@@ -3,8 +3,23 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta property="og:site_name" content="SteamLens">
+  <meta property="og:type" content="website">
+  {% block share_meta %}
   <meta name="description"
-        content="SteamLens reads a game's Steam reviews and publishes an evidence-certified report — aspects, quotes, and a review timeline, every number traceable.">
+        content="SteamLens reads Steam reviews and shows what people praise and complain about — with numbers, quotes, and a timeline behind the answer.">
+  <meta property="og:title" content="SteamLens — What do players think about a game?">
+  <meta property="og:description"
+        content="SteamLens reads Steam reviews and shows what people praise and complain about — with numbers, quotes, and a timeline behind the answer.">
+  {# og:image must be absolute, and this app nowhere else knows its own domain —
+     the one hardcoded self-URL, the seed for a base-URL setting if a second
+     consumer ever appears. #}
+  <meta property="og:image"
+        content="https://steamlens.ardabasarici.dev/static/og-home.png?v={{ static_v }}">
+  <meta property="og:image:width" content="600">
+  <meta property="og:image:height" content="245">
+  <meta name="twitter:card" content="summary_large_image">
+  {% endblock %}
   <title>{% block title %}steam-lens{% endblock %}</title>
   <meta name="theme-color" content="#f9f9f7" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">

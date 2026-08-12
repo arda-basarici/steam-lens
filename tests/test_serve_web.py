@@ -516,6 +516,39 @@ def test_report_page_renders_every_section() -> None:
     assert "0.766 [0.713–0.811]" in html
 
 
+def test_report_page_carries_the_share_card() -> None:
+    """A pasted report link renders a rich preview — the card layer speaks
+    curiosity (the shopper's question as title, no methodology terms), with
+    the Steam header art as the large card image. External scrapers read
+    these tags, so they ride the page, not the CSP."""
+    html = _get(_page_app(_page()), "/reports/440").text
+    assert (
+        '<meta property="og:title" '
+        'content="What do players think about Team Fortress 2? — SteamLens">'
+    ) in html
+    assert (
+        "See what players praise, what they complain about, "
+        "and the reviews behind the numbers."
+    ) in html
+    assert f'property="og:image" content="{HEADER_ART_ORIGIN}' in html
+    assert '<meta name="twitter:card" content="summary_large_image">' in html
+
+
+def test_search_page_wears_the_site_default_card() -> None:
+    """Pages without per-game data inherit the site-wide card: the plain-
+    language pitch and the self-hosted homepage screenshot — whose URL must
+    be absolute (scrapers resolve nothing), the app's one hardcoded self-URL."""
+    html = _get(_page_app(None), "/").text
+    assert '<meta property="og:site_name" content="SteamLens">' in html
+    assert (
+        '<meta property="og:title" '
+        'content="SteamLens — What do players think about a game?">'
+    ) in html
+    assert '<meta name="twitter:card" content="summary_large_image">' in html
+    assert '<meta property="og:image"' in html
+    assert 'content="https://steamlens.ardabasarici.dev/static/og-home.png?v=' in html
+
+
 def test_unanalyzed_game_gets_an_honest_404_page() -> None:
     """No published report and no live job is a 404 with a human answer — the
     page names the app and points at search, instead of a bare JSON error."""
