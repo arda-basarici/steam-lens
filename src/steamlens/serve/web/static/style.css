@@ -8,93 +8,123 @@
 /* --- faces ---------------------------------------------------------------- */
 
 @font-face {
-  font-family: "Literata";
+  font-family: 'Literata';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("/static/fonts/literata-400-latin.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  src: url('/static/fonts/literata-400-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
-  font-family: "Literata";
+  font-family: 'Literata';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("/static/fonts/literata-400-latin-ext.woff2") format("woff2");
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  src: url('/static/fonts/literata-400-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
 @font-face {
-  font-family: "Literata";
+  font-family: 'Literata';
   font-style: italic;
   font-weight: 400;
   font-display: swap;
-  src: url("/static/fonts/literata-400i-latin.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  src: url('/static/fonts/literata-400i-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
-  font-family: "Literata";
+  font-family: 'Literata';
   font-style: italic;
   font-weight: 400;
   font-display: swap;
-  src: url("/static/fonts/literata-400i-latin-ext.woff2") format("woff2");
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  src: url('/static/fonts/literata-400i-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
 @font-face {
-  font-family: "Literata";
+  font-family: 'Literata';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url("/static/fonts/literata-600-latin.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  src: url('/static/fonts/literata-600-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
-  font-family: "Literata";
+  font-family: 'Literata';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url("/static/fonts/literata-600-latin-ext.woff2") format("woff2");
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  src: url('/static/fonts/literata-600-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
 @font-face {
-  font-family: "IBM Plex Mono";
+  font-family: 'IBM Plex Mono';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("/static/fonts/ibm-plex-mono-400-latin.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  src: url('/static/fonts/ibm-plex-mono-400-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
-  font-family: "IBM Plex Mono";
+  font-family: 'IBM Plex Mono';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("/static/fonts/ibm-plex-mono-400-latin-ext.woff2") format("woff2");
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  src: url('/static/fonts/ibm-plex-mono-400-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
 @font-face {
-  font-family: "IBM Plex Mono";
+  font-family: 'IBM Plex Mono';
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url("/static/fonts/ibm-plex-mono-500-latin.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  src: url('/static/fonts/ibm-plex-mono-500-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
-  font-family: "IBM Plex Mono";
+  font-family: 'IBM Plex Mono';
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url("/static/fonts/ibm-plex-mono-500-latin-ext.woff2") format("woff2");
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  src: url('/static/fonts/ibm-plex-mono-500-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
 /* --- tokens ----------------------------------------------------------------
@@ -111,19 +141,19 @@
   --text-muted: #898781;
   --gridline: #e1e0d9;
   --baseline: #c3c2b7;
-  --ring: rgba(11, 11, 11, 0.10);
+  --ring: rgba(11, 11, 11, 0.1);
   --series-1: #2a78d6;
   --series-2: #eb6834;
   --neutral-span: #f0efec;
   --sent-negative: #e34948; /* the diverging pair's red pole */
-  --mint-tint: #cde2fb;   /* sequential blue 100 — selection wash */
+  --mint-tint: #cde2fb; /* sequential blue 100 — selection wash */
   --accent: #2a78d6;
   --accent-strong: #256abf; /* sequential blue 500 — hover/active */
   /* Button colors get their own tokens: --accent at 4.42:1 fails WCAG AA
      for white text (the Lighthouse contrast finding), and the fix must not
      ride the shared accent token — links, focus rings, and borders use it
      at other contrast relationships. Steps stay in the validated palette. */
-  --btn-bg: #256abf;       /* sequential blue 500 — 5.4:1 with white text */
+  --btn-bg: #256abf; /* sequential blue 500 — 5.4:1 with white text */
   --btn-bg-hover: #104281; /* sequential blue 650 */
   --btn-text: #ffffff;
   /* Aspect-family hues for the library's tags — the ontology's seven
@@ -137,9 +167,9 @@
   --cat-presentation-world: #e87ba4;
   --cat-player-experience: #008300;
   --cat-narrative: #4a3aa7;
-  --font-serif: "Literata", Georgia, "Times New Roman", serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
-  --font-ui: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: 'Literata', Georgia, 'Times New Roman', serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', monospace;
+  --font-ui: system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -152,18 +182,18 @@
     --text-muted: #898781;
     --gridline: #2c2c2a;
     --baseline: #383835;
-    --ring: rgba(255, 255, 255, 0.10);
+    --ring: rgba(255, 255, 255, 0.1);
     --series-1: #3987e5;
     --series-2: #d95926;
     --neutral-span: #383835;
     --sent-negative: #e66767; /* the diverging pair's red pole, dark step */
-    --mint-tint: #104281;   /* sequential blue 650 — selection wash */
+    --mint-tint: #104281; /* sequential blue 650 — selection wash */
     --accent: #3987e5;
     --accent-strong: #6da7ec; /* sequential blue 300 — lighter on dark */
     /* Dark mode inverts the button: white text on any passing blue would
        need a step too dark for this theme, so the button goes light with
        dark ink — blue 300 under the page ink reads 7.4:1. */
-    --btn-bg: #6da7ec;       /* sequential blue 300 */
+    --btn-bg: #6da7ec; /* sequential blue 300 */
     --btn-bg-hover: #cde2fb; /* sequential blue 100 */
     --btn-text: #0d0d0d;
     /* The same seven family hues stepped for the dark surface — a selected
@@ -388,6 +418,54 @@ a:hover {
   margin-top: 0.75rem;
 }
 
+/* The recent strip: the newest reports as a teaser row pinned to the bottom
+   of the front door, just above the footer — the library's card plate at
+   teaser scale, picture and name only; the header row hugs its own divider
+   (title left, the way into the full library right), the cards hang below. */
+main:has(> .search) {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem; /* the floor between search results and the strip when full */
+  padding-bottom: 2.5rem;
+}
+
+.recent {
+  margin-top: auto; /* the pin: soak the free height above, sit at the bottom */
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--gridline);
+}
+
+.recent-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4rem 1rem;
+}
+
+.recent-head h2 {
+  font-size: 1.15rem;
+  margin: 0;
+}
+
+.recent-head a {
+  font-size: 0.85rem;
+}
+
+.cards.mini {
+  padding-top: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: 0.75rem;
+}
+
+.mini .card-body {
+  padding: 0.45rem 0.6rem 0.55rem;
+}
+
+.mini .card-name {
+  font-size: 0.82rem;
+}
+
 .status {
   color: var(--text-secondary);
   margin-top: 1.25rem;
@@ -535,13 +613,25 @@ a:hover {
   border-radius: 1.5px;
 }
 
-.seg:first-child { border-radius: 3px 1.5px 1.5px 3px; }
-.seg:last-child { border-radius: 1.5px 3px 3px 1.5px; }
-.seg:only-child { border-radius: 3px; }
+.seg:first-child {
+  border-radius: 3px 1.5px 1.5px 3px;
+}
+.seg:last-child {
+  border-radius: 1.5px 3px 3px 1.5px;
+}
+.seg:only-child {
+  border-radius: 3px;
+}
 
-.seg-positive { background: var(--series-1); }
-.seg-split { background: var(--baseline); }
-.seg-negative { background: var(--sent-negative); }
+.seg-positive {
+  background: var(--series-1);
+}
+.seg-split {
+  background: var(--baseline);
+}
+.seg-negative {
+  background: var(--sent-negative);
+}
 
 .share-label {
   font-family: var(--font-mono);
@@ -655,7 +745,9 @@ a:hover {
   border-radius: 4px;
 }
 
-.volume-bar { fill: var(--series-1); }
+.volume-bar {
+  fill: var(--series-1);
+}
 
 .episode-span {
   fill: none;
@@ -663,7 +755,9 @@ a:hover {
   stroke-width: 1.5;
 }
 
-.valve-span { fill: var(--neutral-span); }
+.valve-span {
+  fill: var(--neutral-span);
+}
 
 .baseline {
   stroke: var(--baseline);
@@ -697,12 +791,25 @@ a:hover {
   margin-right: 4px;
 }
 
-.key-volume { background: var(--series-1); }
-.key-episode { border: 1.5px solid var(--series-2); }
-.key-valve { background: var(--neutral-span); border: 1px solid var(--gridline); }
-.key-positive { background: var(--series-1); }
-.key-split { background: var(--baseline); }
-.key-negative { background: var(--sent-negative); }
+.key-volume {
+  background: var(--series-1);
+}
+.key-episode {
+  border: 1.5px solid var(--series-2);
+}
+.key-valve {
+  background: var(--neutral-span);
+  border: 1px solid var(--gridline);
+}
+.key-positive {
+  background: var(--series-1);
+}
+.key-split {
+  background: var(--baseline);
+}
+.key-negative {
+  background: var(--sent-negative);
+}
 
 /* --- trust panel: the readings plate --------------------------------------- */
 
@@ -798,7 +905,7 @@ a:hover {
 }
 
 .stage-row::before {
-  content: "";
+  content: '';
 }
 
 .stage-name {
@@ -812,23 +919,37 @@ a:hover {
   color: var(--text-muted);
 }
 
-.stage-pending .stage-name { color: var(--text-muted); }
-.stage-pending .stage-name::before { content: "○"; }
+.stage-pending .stage-name {
+  color: var(--text-muted);
+}
+.stage-pending .stage-name::before {
+  content: '○';
+}
 
-.stage-active .stage-name { font-weight: 500; }
+.stage-active .stage-name {
+  font-weight: 500;
+}
 .stage-active .stage-name::before {
-  content: "●";
+  content: '●';
   color: var(--series-1);
   animation: pulse 1.6s ease-in-out infinite;
 }
 
 @keyframes pulse {
-  50% { opacity: 0.35; }
+  50% {
+    opacity: 0.35;
+  }
 }
 
-.stage-done .stage-name::before { content: "✓"; color: var(--text-secondary); }
+.stage-done .stage-name::before {
+  content: '✓';
+  color: var(--text-secondary);
+}
 
-.stage-warn .stage-name::before { content: "!"; font-weight: 700; }
+.stage-warn .stage-name::before {
+  content: '!';
+  font-weight: 700;
+}
 
 .stage-message {
   color: var(--text-secondary);
@@ -1003,17 +1124,39 @@ a:hover {
    (text never wears a series color). Color narrows, the tag's text decides;
    an unmapped family keeps the neutral pill above. */
 .card-tags span[data-cat] {
-  background: color-mix(in oklab, var(--tag-hue, var(--gridline)) 11%, var(--surface-1));
-  border-color: color-mix(in oklab, var(--tag-hue, var(--gridline)) 42%, var(--surface-1));
+  background: color-mix(
+    in oklab,
+    var(--tag-hue, var(--gridline)) 11%,
+    var(--surface-1)
+  );
+  border-color: color-mix(
+    in oklab,
+    var(--tag-hue, var(--gridline)) 42%,
+    var(--surface-1)
+  );
 }
 
-[data-cat="play"] { --tag-hue: var(--cat-play); }
-[data-cat="narrative"] { --tag-hue: var(--cat-narrative); }
-[data-cat="presentation_world"] { --tag-hue: var(--cat-presentation-world); }
-[data-cat="technical"] { --tag-hue: var(--cat-technical); }
-[data-cat="content_value"] { --tag-hue: var(--cat-content-value); }
-[data-cat="live_meta"] { --tag-hue: var(--cat-live-meta); }
-[data-cat="player_experience"] { --tag-hue: var(--cat-player-experience); }
+[data-cat='play'] {
+  --tag-hue: var(--cat-play);
+}
+[data-cat='narrative'] {
+  --tag-hue: var(--cat-narrative);
+}
+[data-cat='presentation_world'] {
+  --tag-hue: var(--cat-presentation-world);
+}
+[data-cat='technical'] {
+  --tag-hue: var(--cat-technical);
+}
+[data-cat='content_value'] {
+  --tag-hue: var(--cat-content-value);
+}
+[data-cat='live_meta'] {
+  --tag-hue: var(--cat-live-meta);
+}
+[data-cat='player_experience'] {
+  --tag-hue: var(--cat-player-experience);
+}
 
 /* --- ops page: the observability surface ----------------------------------- */
 

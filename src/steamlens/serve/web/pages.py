@@ -1,12 +1,14 @@
-"""The HTML pages: search and report, server-rendered off the stored contracts.
+"""The HTML pages, server-rendered off the stored contracts.
 
-Two pages are the whole product surface (the design's frontend ruling — no
-SPA, no bundler): a search page and the report page in the ruled top-to-bottom
-order — header and provenance, the narrative with its certificate rendered
-visibly, aspect share bars with calibrated whiskers, the candidate stratum,
-the timeline with its marker layers, and the trust panel. The routes stay one
-abstraction level up: load the bundle through the injected seam, shape it
-with ``view``'s pure builders, hand the view to the template.
+The whole product surface is server-rendered pages (the design's frontend
+ruling — no SPA, no bundler): the search front door with its recent-reports
+strip, the report page in the ruled top-to-bottom order — header and
+provenance, the narrative with its certificate rendered visibly, aspect
+share bars with calibrated whiskers, the candidate stratum, the timeline
+with its marker layers, and the trust panel — plus the reports library and
+the ops page. The routes stay one abstraction level up: load the bundle
+through the injected seam, shape it with the pure view builders, hand the
+view to the template.
 
 Review-derived text is hostile input by assumption (the canary set is the
 instrument), so templates rely on Jinja's autoescaping and never mark content
@@ -36,6 +38,11 @@ from steamlens.serve.web.view import ReportPageData, build_report_view
 
 _TEMPLATES_DIR: Final = Path(__file__).parent / "templates"
 _STATIC_DIR: Final = Path(__file__).parent / "static"
+
+# The home page's recent strip: enough cards to prove the product works,
+# few enough that search stays the page's job — the library owns the rest.
+# Five fills one row of the strip's compact grid at full desktop width.
+_RECENT_CARDS: Final = 5
 
 
 def _static_version() -> str:
@@ -94,12 +101,31 @@ def attach_web(
     cast(dict[str, object], templates.env.globals)["static_v"] = _static_version()
     router = APIRouter()
 
+    wired_categories: Mapping[str, str] = (
+        aspect_categories if aspect_categories is not None else {}
+    )
+
     # The route functions are "unused" to a type checker — the decorators
     # register them with the router; the suppressions state that, nothing more.
     @router.get("/", response_class=Response)
     def search_page(request: Request) -> Response:  # pyright: ignore[reportUnusedFunction]
-        """The search page — the product's front door."""
-        return templates.TemplateResponse(request, "search.html")
+        """The front door: the search box, plus the newest reports as proof it works.
+
+        The recent strip reuses the library's card builder over the same
+        loader, capped to the leading (newest-first) few and rendered as a
+        compact picture-and-name cut of the same cards — a first visit sees
+        real output to click instead of an empty page, and the strip can
+        never show a card the library wouldn't. No loader, or nothing
+        published yet, renders the plain search page.
+        """
+        recent = (
+            build_index_view(
+                load_report_cards()[:_RECENT_CARDS], wired_categories
+            ).cards
+            if load_report_cards is not None
+            else ()
+        )
+        return templates.TemplateResponse(request, "search.html", {"recent": recent})
 
     def _report_response(request: Request, app_id: int) -> Response:
         """The report if published, the live narration if a job runs, else an honest 404.
@@ -130,9 +156,6 @@ def attach_web(
 
     if load_report_cards is not None:
         wired_cards = load_report_cards
-        wired_categories: Mapping[str, str] = (
-            aspect_categories if aspect_categories is not None else {}
-        )
 
         @router.get("/reports", response_class=Response)
         def reports_index(request: Request) -> Response:  # pyright: ignore[reportUnusedFunction]

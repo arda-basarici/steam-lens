@@ -1,7 +1,10 @@
 """View models for the reports index — the library of published analyses.
 
 The listing page's rendering half, same discipline as ``view`` and
-``ops_view``: pure builders, loaded cards in, display records out. Each card
+``ops_view``: pure builders, loaded cards in, display records out. The home
+page's recently-analyzed strip renders through the same builder — a compact
+picture-and-name cut of the same records, so a card links identically
+wherever it appears. Each card
 is an honest preview of its report page — the same minted header art, the
 same provenance phrase, and the same aspects that lead the page's share bars
 (the store's read orders them identically) — so clicking through confirms

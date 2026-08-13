@@ -618,6 +618,35 @@ def test_reports_index_empty_state_points_home() -> None:
     assert 'href="/"' in html
 
 
+def test_search_page_previews_the_newest_reports() -> None:
+    """The front door shows a recently-analyzed strip off the library's own
+    builder — the newest five as compact picture-and-name teasers (no tags,
+    no provenance: the card here only invites the click), with the header
+    row linking the full library; the sixth-newest stays there."""
+    cards = tuple(
+        ReportCard(
+            app_id=100 + n, game_name=f"Game {n}", created_at=_STAMP,
+            sample_size=500, take_all=False, top_aspects=("combat",),
+        )
+        for n in range(6)
+    )
+    html = _get(_page_app(None, cards=cards, categories={"combat": "play"}), "/").text
+    assert "Recently analyzed games" in html
+    assert 'href="/reports/100/game-0"' in html
+    assert 'href="/reports/104/game-4"' in html
+    assert 'href="/reports/105/game-5"' not in html, "the strip caps at five"
+    assert 'href="/reports">browse all analyzed games' in html
+    assert "data-cat" not in html, "teasers carry no tags"
+    assert "sample of 500" not in html, "teasers carry no provenance"
+
+
+def test_search_page_hides_the_strip_until_a_report_exists() -> None:
+    """Nothing published (and a composition without the loader at all) keeps
+    the front door a plain search page — no heading over an empty grid."""
+    for app in (_page_app(None, cards=()), _page_app(None)):
+        assert "Recently analyzed" not in _get(app, "/").text
+
+
 def test_unanalyzed_game_gets_an_honest_404_page() -> None:
     """No published report and no live job is a 404 with a human answer — the
     page names the app and points at search, instead of a bare JSON error."""

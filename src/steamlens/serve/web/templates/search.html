@@ -10,10 +10,29 @@
     <button type="submit">Search</button>
   </form>
   <p class="search-hint">A game analyzed for the first time takes a few minutes —
-    the page narrates the run live.
-    Or <a href="/reports">browse the games already analyzed</a>.</p>
+    the page narrates the run live.</p>
   <p class="status" id="search-status" hidden></p>
   <ul class="results" id="search-results"></ul>
 </section>
+{% if recent %}
+<section class="recent">
+  <div class="recent-head">
+    <h2>Recently analyzed games</h2>
+    <a href="/reports">browse all analyzed games →</a>
+  </div>
+  <ul class="cards mini">
+    {% for card in recent %}
+    <li>
+      <a class="card" href="{{ card.href }}">
+        <img src="{{ card.image_url }}" alt="" loading="lazy" width="460" height="215">
+        <span class="card-body">
+          <span class="card-name">{{ card.name }}</span>
+        </span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
 <script src="/static/search.js?v={{ static_v }}"></script>
 {% endblock %}
