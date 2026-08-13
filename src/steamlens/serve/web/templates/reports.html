@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}analyzed games — steam-lens{% endblock %}
+{% block content %}
+<section class="library">
+  <h1>Analyzed games</h1>
+  <p class="tagline">Every report steam-lens has published — open one for the
+    numbers, the quotes, and the timeline behind it.</p>
+  {% if view.cards %}
+  <ul class="cards">
+    {% for card in view.cards %}
+    <li>
+      <a class="card" href="{{ card.href }}">
+        <img src="{{ card.image_url }}" alt="" loading="lazy" width="460" height="215">
+        <span class="card-body">
+          <span class="card-name">{{ card.name }}</span>
+          <span class="provenance">{{ card.provenance }}</span>
+          {% if card.tags %}
+          <span class="card-tags">
+            {% for tag in card.tags %}<span{% if tag.category %} data-cat="{{ tag.category }}"{% endif %}>{{ tag.name }}</span>{% endfor %}
+          </span>
+          {% endif %}
+        </span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="placeholder">No reports yet — <a href="/">analyze the first game</a>.</p>
+  {% endif %}
+</section>
+{% endblock %}

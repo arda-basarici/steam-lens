@@ -28,11 +28,12 @@ from pathlib import Path
 import uvicorn
 from fastapi import FastAPI
 
-from steamlens.contracts import EvidenceQuote, Report
+from steamlens.contracts import EvidenceQuote, Report, ReportCard
 from steamlens.dispatch import TeeSink, mint_run_id
 from steamlens.dispatch.census_arm import KEY_ENV
 from steamlens.llm_client import openai_compat_entry
 from steamlens.llm_client.openai_compat import DEEPSEEK_BASE_URL
+from steamlens.ontology import load_ontology
 from steamlens.serve import (
     AnalysisRunner,
     Job,
@@ -167,6 +168,10 @@ def build_app() -> FastAPI:
                 ),
             )
 
+    def load_report_cards() -> tuple[ReportCard, ...]:
+        with Store(db_path) as store:
+            return store.reports.cards()
+
     def admitted_since(since: datetime) -> int:
         with Store(db_path) as store:
             return store.admissions.count_since(since)
@@ -247,11 +252,20 @@ def build_app() -> FastAPI:
         database_ok=database_ok,
         on_shutdown=[queue.close],
     )
+    # The tag-coloring map reads the same pinned artifact the runner labels
+    # with, so the library's families can never disagree with the vocabulary
+    # that minted the tags.
+    aspect_categories = {
+        aspect.label: aspect.category
+        for aspect in load_ontology(ontology_path).aspects
+    }
     attach_web(
         app,
         load_report_page,
         lambda app_id: queue.live(app_id) is not None,
         load_ops_data,
+        load_report_cards,
+        aspect_categories,
     )
     return app
 

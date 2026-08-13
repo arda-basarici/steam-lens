@@ -46,6 +46,7 @@ from steamlens.contracts import (
     PathOutcome,
     Provenance,
     Report,
+    ReportCard,
     Review,
     ReviewEvent,
     RollupUnit,
@@ -469,15 +470,29 @@ def _get(
 
     async def drive() -> Response:
         transport = ASGITransport(app=app, raise_app_exceptions=raise_app_exceptions)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        async with AsyncClient(
+            transport=transport, base_url="http://test", follow_redirects=True
+        ) as client:
             return await client.get(path, headers=headers)
 
     return asyncio.run(asyncio.wait_for(drive(), timeout=10.0))
 
 
-def _page_app(page: ReportPageData | None, *, live: bool = False) -> FastAPI:
+def _page_app(
+    page: ReportPageData | None,
+    *,
+    live: bool = False,
+    cards: tuple[ReportCard, ...] | None = None,
+    categories: dict[str, str] | None = None,
+) -> FastAPI:
     app = FastAPI()
-    attach_web(app, lambda _: page, lambda _: live)
+    attach_web(
+        app,
+        lambda _: page,
+        lambda _: live,
+        load_report_cards=None if cards is None else lambda: cards,
+        aspect_categories=categories,
+    )
     return app
 
 
@@ -547,6 +562,60 @@ def test_search_page_wears_the_site_default_card() -> None:
     assert '<meta name="twitter:card" content="summary_large_image">' in html
     assert '<meta property="og:image"' in html
     assert 'content="https://steamlens.ardabasarici.dev/static/og-home.png?v=' in html
+
+
+def test_report_addresses_canonicalize_to_the_named_url() -> None:
+    """The id resolves, the slug decorates: the bare-id address and any stale
+    slug 301 to the canonical named URL, which renders with no redirect —
+    every address a report ever had keeps working (the OG cards and README
+    link the bare form)."""
+    app = _page_app(_page())
+    for entry in ("/reports/440", "/reports/440/old-stale-name"):
+        response = _get(app, entry)
+        assert [r.status_code for r in response.history] == [301]
+        assert response.url.path == "/reports/440/team-fortress-2"
+        assert "Team Fortress 2" in response.text
+
+    canonical = _get(app, "/reports/440/team-fortress-2")
+    assert canonical.history == []
+    assert canonical.status_code == 200
+
+
+def test_reports_index_renders_a_card_per_game() -> None:
+    """The library page: each card links the canonical named URL and previews
+    its report honestly — header art minted from identity, the provenance
+    phrase, the leading pinned aspects as spaced display names wearing their
+    ontology family's color (an unmapped aspect keeps the neutral pill)."""
+    cards = (
+        ReportCard(
+            app_id=440, game_name="Team Fortress 2", created_at=_STAMP,
+            sample_size=1_000, take_all=False,
+            top_aspects=("combat", "voice_acting", "novel_aspect"),
+        ),
+        ReportCard(
+            app_id=570, game_name="Dota 2", created_at=_STAMP,
+            sample_size=312, take_all=True, top_aspects=(),
+        ),
+    )
+    categories = {"combat": "play", "voice_acting": "narrative"}
+    html = _get(_page_app(None, cards=cards, categories=categories), "/reports").text
+    assert 'href="/reports/440/team-fortress-2"' in html
+    assert 'href="/reports/570/dota-2"' in html
+    assert f"{HEADER_ART_ORIGIN}/store_item_assets/steam/apps/440/header.jpg" in html
+    assert '<span data-cat="play">combat</span>' in html
+    assert (
+        '<span data-cat="narrative">voice acting</span>' in html
+    ), "tags wear display names, not ontology keys"
+    assert "<span>novel aspect</span>" in html, "unmapped stays neutral, never mis-colored"
+    assert "sample of 1,000 English reviews" in html
+    assert "complete count of 312 English reviews" in html
+
+
+def test_reports_index_empty_state_points_home() -> None:
+    """An index with nothing published is an invitation to act, not a blank."""
+    html = _get(_page_app(None, cards=()), "/reports").text
+    assert "No reports yet" in html
+    assert 'href="/"' in html
 
 
 def test_unanalyzed_game_gets_an_honest_404_page() -> None:

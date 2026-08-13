@@ -121,7 +121,12 @@ def _render(page: ReportPageData) -> str:
 
     async def drive() -> str:
         transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # Follows the canonical redirect like a browser: the hostile *name*
+        # 301s the bare id to its slug (plain ascii by construction — the
+        # slugger is lossy), and the claims run on the final rendered page.
+        async with AsyncClient(
+            transport=transport, base_url="http://test", follow_redirects=True
+        ) as client:
             return (await client.get("/reports/440")).text
 
     return asyncio.run(asyncio.wait_for(drive(), timeout=10.0))

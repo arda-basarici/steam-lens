@@ -16,18 +16,21 @@ safe; the render-side canary tests pin that wall in CI.
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Final, cast
 
 from fastapi import APIRouter, FastAPI, Request, Response
 from fastapi.exception_handlers import http_exception_handler
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from steamlens.contracts import ReportCard
+from steamlens.serve.links import report_path
 from steamlens.serve.web.csp import ContentSecurityPolicy, fresh_policy
+from steamlens.serve.web.index_view import build_index_view
 from steamlens.serve.web.ops_view import OpsData, build_ops_view
 from steamlens.serve.web.view import ReportPageData, build_report_view
 
@@ -57,6 +60,8 @@ def attach_web(
     load_report_page: Callable[[int], ReportPageData | None],
     job_live: Callable[[int], bool],
     load_ops_data: Callable[[], OpsData] | None = None,
+    load_report_cards: Callable[[], tuple[ReportCard, ...]] | None = None,
+    aspect_categories: Mapping[str, str] | None = None,
 ) -> None:
     """Mount the pages and static assets onto ``app`` — the composition root's call.
 
@@ -70,7 +75,11 @@ def attach_web(
     all the server-side branch needs; everything else arrives over SSE).
     ``load_ops_data`` is the ops page's aggregate bundle behind the same
     discipline — ``None`` composes an app without the page (tests that only
-    render reports); production always wires it.
+    render reports); production always wires it. ``load_report_cards`` is the
+    reports index's card list (``ReportLog.cards`` behind the store lifetime),
+    optional the same way; ``aspect_categories`` is that page's tag-coloring
+    map (ontology label → category), loaded by the root from the same
+    artifact the runner labels with.
 
     Attaching also registers the app-wide 404 and 500 pages — here rather
     than on the JSON surface because a styled error page is rendering, and
@@ -92,16 +101,22 @@ def attach_web(
         """The search page — the product's front door."""
         return templates.TemplateResponse(request, "search.html")
 
-    @router.get("/reports/{app_id}", response_class=Response)
-    def report_page(request: Request, app_id: int) -> Response:  # pyright: ignore[reportUnusedFunction]
+    def _report_response(request: Request, app_id: int) -> Response:
         """The report if published, the live narration if a job runs, else an honest 404.
 
-        Publication wins over a live job by order here — today the POST never
-        queues a job for an already-reported game, so the branch order is
+        A published report answers only at its canonical path (``links``
+        mints it — id authoritative, slug decoration): the bare-id form and
+        any stale or mangled slug 301 there, so every address a report ever
+        had keeps working and every entry lands on the named URL. Publication
+        wins over a live job by order here — today the POST never queues a
+        job for an already-reported game, so the branch order is
         belt-and-suspenders, not policy.
         """
         page = load_report_page(app_id)
         if page is not None:
+            canonical = report_path(app_id, page.report.game_name)
+            if request.url.path != canonical:
+                return RedirectResponse(canonical, status_code=301)
             return templates.TemplateResponse(
                 request, "report.html", {"view": build_report_view(page)}
             )
@@ -112,6 +127,32 @@ def attach_web(
         return templates.TemplateResponse(
             request, "report_missing.html", {"app_id": app_id}, status_code=404
         )
+
+    if load_report_cards is not None:
+        wired_cards = load_report_cards
+        wired_categories: Mapping[str, str] = (
+            aspect_categories if aspect_categories is not None else {}
+        )
+
+        @router.get("/reports", response_class=Response)
+        def reports_index(request: Request) -> Response:  # pyright: ignore[reportUnusedFunction]
+            """The library of published analyses — one clickable card per game."""
+            return templates.TemplateResponse(
+                request,
+                "reports.html",
+                {"view": build_index_view(wired_cards(), wired_categories)},
+            )
+
+    @router.get("/reports/{app_id}", response_class=Response)
+    def report_page(request: Request, app_id: int) -> Response:  # pyright: ignore[reportUnusedFunction]
+        """The bare-id address — redirects to the named canonical once published."""
+        return _report_response(request, app_id)
+
+    @router.get("/reports/{app_id}/{slug}", response_class=Response)
+    def report_page_named(request: Request, app_id: int, slug: str) -> Response:  # pyright: ignore[reportUnusedFunction]
+        """The named address — the id resolves; the slug never decides anything."""
+        del slug  # decoration by design: a stale one 301s to canonical inside
+        return _report_response(request, app_id)
 
     if load_ops_data is not None:
         wired_ops = load_ops_data

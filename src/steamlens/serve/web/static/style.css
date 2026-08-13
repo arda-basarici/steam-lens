@@ -126,6 +126,17 @@
   --btn-bg: #256abf;       /* sequential blue 500 — 5.4:1 with white text */
   --btn-bg-hover: #104281; /* sequential blue 650 */
   --btn-text: #ffffff;
+  /* Aspect-family hues for the library's tags — the ontology's seven
+     categories on the validated categorical slots (slot 8, red, stays
+     unused: red already means "negative" on the report bars). Light
+     column of the palette; validated as a set against this surface. */
+  --cat-play: #2a78d6;
+  --cat-technical: #eb6834;
+  --cat-live-meta: #1baf7a;
+  --cat-content-value: #eda100;
+  --cat-presentation-world: #e87ba4;
+  --cat-player-experience: #008300;
+  --cat-narrative: #4a3aa7;
   --font-serif: "Literata", Georgia, "Times New Roman", serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
   --font-ui: system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -155,6 +166,15 @@
     --btn-bg: #6da7ec;       /* sequential blue 300 */
     --btn-bg-hover: #cde2fb; /* sequential blue 100 */
     --btn-text: #0d0d0d;
+    /* The same seven family hues stepped for the dark surface — a selected
+       set, never an automatic flip. */
+    --cat-play: #3987e5;
+    --cat-technical: #d95926;
+    --cat-live-meta: #199e70;
+    --cat-content-value: #c98500;
+    --cat-presentation-world: #d55181;
+    --cat-player-experience: #008300;
+    --cat-narrative: #9085e9;
   }
 }
 
@@ -892,6 +912,108 @@ a:hover {
     margin-top: 0.6rem;
   }
 }
+
+/* --- reports index: the library of published analyses -----------------------
+   Cards borrow the search result's grammar (surface plate, gridline border,
+   accent border on hover) at gallery scale: Steam's 460×215 header art on
+   top, the serif name, the mono provenance line, and the report's own
+   leading aspects as quiet tags. */
+
+.library .tagline {
+  font-style: normal;
+  font-size: 0.95rem;
+}
+
+.cards {
+  list-style: none;
+  padding: 1.5rem 0 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14.5rem, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+  background: var(--surface-1);
+  border: 1px solid var(--gridline);
+  border-radius: 6px;
+  overflow: hidden;
+  transition: border-color 120ms ease;
+}
+
+.card:hover {
+  color: inherit;
+  border-color: var(--accent);
+}
+
+.card img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 460 / 215; /* a missing capsule keeps the slot, not the layout */
+  object-fit: cover;
+  background: var(--neutral-span);
+  border-bottom: 1px solid var(--gridline);
+}
+
+.card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.7rem 0.85rem 0.85rem;
+}
+
+.card-name {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 1.02rem;
+  line-height: 1.3;
+}
+
+.card:hover .card-name {
+  color: var(--accent-strong);
+}
+
+.card .provenance {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.15rem;
+}
+
+.card-tags span {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  padding: 0.05rem 0.55rem;
+  background: var(--page);
+  border: 1px solid var(--gridline);
+  border-radius: 999px;
+}
+
+/* Family color as a muted wash — tinted ground and border, ink stays ink
+   (text never wears a series color). Color narrows, the tag's text decides;
+   an unmapped family keeps the neutral pill above. */
+.card-tags span[data-cat] {
+  background: color-mix(in oklab, var(--tag-hue, var(--gridline)) 11%, var(--surface-1));
+  border-color: color-mix(in oklab, var(--tag-hue, var(--gridline)) 42%, var(--surface-1));
+}
+
+[data-cat="play"] { --tag-hue: var(--cat-play); }
+[data-cat="narrative"] { --tag-hue: var(--cat-narrative); }
+[data-cat="presentation_world"] { --tag-hue: var(--cat-presentation-world); }
+[data-cat="technical"] { --tag-hue: var(--cat-technical); }
+[data-cat="content_value"] { --tag-hue: var(--cat-content-value); }
+[data-cat="live_meta"] { --tag-hue: var(--cat-live-meta); }
+[data-cat="player_experience"] { --tag-hue: var(--cat-player-experience); }
 
 /* --- ops page: the observability surface ----------------------------------- */
 

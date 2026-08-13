@@ -83,10 +83,11 @@ async function submitPick(hit) {
     }
     return;
   }
-  // 200 = a published report already answers; 202 = a job queued — either
-  // way the report page is the destination (it becomes the live narration
-  // surface in a later build chunk).
-  window.location = `/reports/${hit.app_id}`;
+  // 200 = a published report already answers, and its receipt carries the
+  // canonical named URL; 202 = a job queued, which has no name yet — the id
+  // address serves the live narration and canonicalizes after publish.
+  const receipt = await response.json();
+  window.location = receipt.report_url || `/reports/${hit.app_id}`;
 }
 
 form.addEventListener("submit", (event) => {

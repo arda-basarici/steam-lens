@@ -265,17 +265,32 @@ class ReportPageData:
 
 
 def provenance_line(report: Report) -> str:
-    """The header one-liner: the date worn openly, and what the numbers stand on.
+    """The header one-liner: the date worn openly, and what the numbers stand on."""
+    return analyzed_line(report.created_at, report.sample_size, report.take_all)
+
+
+def analyzed_line(created_at: datetime, sample_size: int, take_all: bool) -> str:
+    """The provenance phrase every report surface wears — page header and
+    index card say it identically.
 
     A cached report serves as-is with its analysis date displayed — the
     staleness ruling made visible. The sample clause states the two-track
     denominators honestly: a take-all is a complete count, a sampled run names
     its n.
+
+    >>> from datetime import UTC, datetime
+    >>> analyzed_line(datetime(2026, 8, 10, tzinfo=UTC), 1000, take_all=False)
+    'analyzed 2026-08-10 · sample of 1,000 English reviews'
     """
-    date = report.created_at.date().isoformat()
-    if report.take_all:
-        return f"analyzed {date} · complete count of {report.sample_size:,} English reviews"
-    return f"analyzed {date} · sample of {report.sample_size:,} English reviews"
+    date = created_at.date().isoformat()
+    if take_all:
+        return f"analyzed {date} · complete count of {sample_size:,} English reviews"
+    return f"analyzed {date} · sample of {sample_size:,} English reviews"
+
+
+def header_art_url(app_id: int) -> str:
+    """The game's header capsule URL, minted from stored identity at display time."""
+    return _HEADER_ART.format(app_id=app_id)
 
 
 def narrative_segments(
@@ -311,7 +326,7 @@ def build_report_view(page: ReportPageData) -> ReportView:
     spiky = _regime(report)
     return ReportView(
         game_name=report.game_name,
-        header_image_url=_HEADER_ART.format(app_id=report.app_id),
+        header_image_url=header_art_url(report.app_id),
         provenance_line=provenance_line(report),
         narrative=narrative_segments(report.narrative.prose, report.narrative.spans),
         narrative_withheld=report.narrative.outcome is NarrativeOutcome.WITHHELD,
@@ -372,7 +387,7 @@ def _aspect_section(page: ReportPageData, spiky: bool | None) -> AspectSectionVi
             (
                 shares[aggregate.aspect],
                 AspectRowView(
-                    aspect=_display_name(aggregate.aspect),
+                    aspect=display_name(aggregate.aspect),
                     reviews_with_aspect=aggregate.reviews_with_aspect,
                     share_label=(
                         f"{shares[aggregate.aspect]:.1%}{plus_minus}"
@@ -445,7 +460,7 @@ def _axis_ceiling(edge: float) -> float:
     return min(round(steps * 0.10, 2), 1.0)
 
 
-def _display_name(aspect: str) -> str:
+def display_name(aspect: str) -> str:
     """The ontology key as reader-facing text — underscores become spaces.
 
     Display-only: stored identities, quote grouping, and the label pool all
@@ -557,7 +572,7 @@ def _candidate_section(
     )
     recurring = tuple(
         CandidateRowView(
-            aspect=_display_name(a.aspect), reviews_with_aspect=a.reviews_with_aspect
+            aspect=display_name(a.aspect), reviews_with_aspect=a.reviews_with_aspect
         )
         for a in candidates
         if a.reviews_with_aspect >= 2

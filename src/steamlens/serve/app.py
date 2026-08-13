@@ -41,6 +41,7 @@ from steamlens.contracts import GameSearchHit, Report
 from steamlens.serve.config import ServeConfig
 from steamlens.serve.gate import UNLOCK_COOKIE, SearchLimiter, SubmitGate, client_ip
 from steamlens.serve.jobs import JobQueue, JobState
+from steamlens.serve.links import report_path
 from steamlens.serve.sse import stream_job
 from steamlens.steam_client import SteamClientError
 
@@ -101,6 +102,8 @@ class ReportReady:
     serves as-is with its date worn openly, and the receipt carries what the
     client needs to say so. ``run_id`` names the exact publication (multiple
     reports per game are the refresh-ready shape; this one is the newest).
+    ``report_url`` is the page's canonical (named) address, handed out so the
+    client never constructs paths — the same stance as ``events_url``.
     """
 
     app_id: int
@@ -108,6 +111,7 @@ class ReportReady:
     analyzed_at: datetime
     sample_size: int
     run_id: str
+    report_url: str
 
 
 def create_app(
@@ -233,6 +237,7 @@ def create_app(
                 analyzed_at=cached.created_at,
                 sample_size=cached.sample_size,
                 run_id=cached.run.run_id,
+                report_url=report_path(cached.app_id, cached.game_name),
             )
         ip: str | None = None
         if gate is not None and queue.live(request.app_id) is None:

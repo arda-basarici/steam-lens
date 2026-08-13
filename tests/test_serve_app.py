@@ -227,6 +227,7 @@ def test_cached_game_answers_200_without_minting_a_job() -> None:
             assert body["run_id"] == "serve-old"
             assert body["sample_size"] == 250
             assert body["analyzed_at"].startswith("2026-08-01")
+            assert body["report_url"] == "/reports/440/team-fortress-2"
             assert queue.live(440) is None, "the cached answer must not have queued a job"
 
             fresh = await client.post(

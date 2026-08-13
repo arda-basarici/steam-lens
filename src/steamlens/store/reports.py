@@ -40,6 +40,7 @@ from steamlens.contracts import (
     PathOutcome,
     Provenance,
     Report,
+    ReportCard,
     ReviewEvent,
     RollupUnit,
     SentimentCounts,
@@ -48,6 +49,10 @@ from steamlens.contracts import (
 )
 from steamlens.store.convert import parse_enum, parse_utc_isoformat, utc_isoformat
 from steamlens.store.errors import StoreDataError, StoreError
+
+_CARD_ASPECT_LIMIT = 5
+"""How many pinned aspects an index card previews — enough to characterize a
+game's discussion, few enough to stay tags rather than a table."""
 
 _REPORT_COLUMNS = (
     "p.run_id, p.app_id, p.game_name, p.created_at,"
@@ -179,6 +184,49 @@ class ReportLog:
             (app_id,),
         ).fetchone()
         return None if row is None else _report_from_row(row)
+
+    def cards(self) -> tuple[ReportCard, ...]:
+        """Every analyzed game's newest publication as an index card, newest first.
+
+        The reports-index read: re-runs collapse to the newest report per
+        game (the same resolution ``latest_report`` serves), and each card
+        carries its report's five most-mentioned pinned aspects in the report
+        page's own bar order — a card previews exactly what its page leads
+        with. Candidates stay out (the uncalibrated stratum), as do pins
+        nobody mentioned. The per-card snapshot query rides the table's
+        (run_id, aspect, slot) uniqueness index; at index-page row counts
+        the loop is a read a page load cannot feel.
+        """
+        rows = self._conn.execute(
+            "SELECT run_id, app_id, game_name, created_at, sample_size, take_all"
+            " FROM reports ORDER BY created_at DESC, run_id"
+        ).fetchall()
+        cards: list[ReportCard] = []
+        seen: set[int] = set()
+        for run_id, app_id, game_name, created_at, sample_size, take_all in rows:
+            if int(app_id) in seen:
+                continue
+            seen.add(int(app_id))
+            aspects = self._conn.execute(
+                "SELECT aspect FROM aggregate_snapshots"
+                " WHERE run_id = ? AND slot = ? AND reviews_with_aspect > 0"
+                " ORDER BY reviews_with_aspect DESC, aspect"
+                f" LIMIT {_CARD_ASPECT_LIMIT}",
+                (str(run_id), AspectSlot.PINNED.value),
+            ).fetchall()
+            cards.append(
+                ReportCard(
+                    app_id=int(app_id),
+                    game_name=str(game_name),
+                    created_at=parse_utc_isoformat(
+                        str(created_at), context=f"reports[{run_id}].created_at"
+                    ),
+                    sample_size=int(sample_size),
+                    take_all=bool(take_all),
+                    top_aspects=tuple(str(aspect) for (aspect,) in aspects),
+                )
+            )
+        return tuple(cards)
 
     def get_snapshot(self, run_id: str) -> tuple[AspectAggregate, ...]:
         """One run's frozen aggregate snapshot, rebuilt as full contracts.

@@ -57,6 +57,7 @@ from steamlens.contracts.report import (
     LanguageCount,
     MarkedWindowCount,
     Report,
+    ReportCard,
     WindowAccount,
 )
 from steamlens.contracts.reviews import Review
@@ -118,6 +119,7 @@ __all__ = [
     "ComposedNarrative",
     # report
     "Report",
+    "ReportCard",
     "WindowAccount",
     "LanguageCount",
     "EpisodeMarker",

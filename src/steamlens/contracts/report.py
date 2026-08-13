@@ -110,3 +110,22 @@ class Report:
     histogram: HistogramSnapshot
     episodes: tuple[EpisodeMarker, ...]
     marked_window_counts: tuple[MarkedWindowCount, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ReportCard:
+    """One analyzed game's index-page card — navigation facts, not the report.
+
+    The reports-index read produces one per game (re-runs collapse to the
+    newest publication). ``top_aspects`` are the pinned aspects leading the
+    report's own share bars, most-mentioned first — stored ontology keys; the
+    renderer owns display naming. Deliberately no sentiment or share numbers:
+    the card previews what the page discusses, the page owns interpretation.
+    """
+
+    app_id: int
+    game_name: str
+    created_at: datetime
+    sample_size: int
+    take_all: bool
+    top_aspects: tuple[str, ...]
