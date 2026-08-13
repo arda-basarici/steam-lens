@@ -20,10 +20,13 @@ yourself?**
 
 </div>
 
+Type a game's name and get an evidence-backed report of what players praise
+and complain about — every claim on the page traceable to source reviews, a
+measured sampling tolerance, or a published error rate. Under the hood,
 SteamLens reads Steam reviews the way an analyst would: it samples a game's
 reviews under a measured tolerance, classifies each one against a versioned
 aspect vocabulary, aggregates deterministically, and composes a narrative that
-cannot introduce numerals absent from its own minted outputs — with every
+cannot introduce numerals absent from its own computed aggregates — with every
 displayed quotation verified verbatim. The LLM call is deliberately the
 smallest part of the system — the work is the instrument built around it: a
 human-anchored gold set, a calibrated cross-family judge, bootstrap CIs on
@@ -51,14 +54,15 @@ evaluation corpus on a self-managed VPS.*
 ```mermaid
 %%{init: {"flowchart": {"diagramPadding": 150}}}%%
 flowchart LR
-    A([game name]) --> B[sample] --> C[classify] --> D[mint] --> E[compose] --> F([report with receipts])
+    A([game name]) --> B[sample] --> C[classify] --> D[mint] --> E[detect] --> F[compose] --> G([report with receipts])
 ```
 
 **sample** — the certified windowed draw · **classify** — the F1-certified
-labeler · **mint** — deterministic aggregation · **compose** — fenced by
-grounding gates. Every stage narrates itself live over SSE; every numeral the
-prose states must match the job's own outputs; every quote must verify verbatim
-before display.
+labeler · **mint** — deterministic aggregation · **detect** — episode markers
+on the review timeline · **compose** — narrative fenced by grounding gates
+(deterministic checks on every number and quote). Every stage narrates itself
+live over SSE (Server-Sent Events); every numeral the prose states must match
+the job's own outputs; every quote must verify verbatim before display.
 
 Pick your depth: **30 seconds** — this page's diagram and tables ·
 **5 minutes** — **[ARCHITECTURE](ARCHITECTURE.md)**, the whole deployed system
@@ -71,7 +75,7 @@ decision with its alternatives and why they lost.
 | milestone | what shipped | the headline |
 |---|---|---|
 | smoke tests (M0) | Steam's undocumented API surface verified from a datacenter host | the data shapes every later decision cites |
-| extraction + eval (M1) | a 135,260-review census across 49 games, labeled end-to-end for $3.80 | **F1 0.766 [0.713–0.811]** vs human gold |
+| extraction + eval (M1) | a 135,260-review census across 49 games, labeled end-to-end for $3.80 | **F1 0.766 [0.713–0.811]** (95% CI) vs human gold |
 | sampling study (M2) | the windowed draw certified against census ground truth | 95% intervals honest: coverage 0.958–0.959 certified, **0.971 held-out** |
 | deployment (M3) | the live app on a hardened VPS — approval-gated CD, spend breaker, LLMOps journals | a full report for **$0.007–0.017**, walls probed live |
 
@@ -86,14 +90,15 @@ user should see ship inside the product's trust panel, not just here.
 
 | claim | measured | the honest caveat |
 |---|---|---|
-| label quality vs human gold | **F1 0.766 [0.713–0.811]** | 250-review gold set, blind-labeled *before* any model output existed; single annotator, disclosed |
+| label quality vs human gold | **F1 0.766 [0.713–0.811]** | 250-review gold set (scored on the 245 in-scope), blind-labeled *before* any model output existed; single annotator, disclosed |
 | the judge, calibrated before use | F1 0.816 vs gold — paired **Δ +0.050 [+0.019, +0.083]** over production | cross-family, to reduce self-preference risk |
 | the judge check off-gold | **F1 0.791 [0.772–0.810]** agreement on a 1,000-review census sample | no quality cliff outside the gold set's reach |
-| fabricated quotes | **0 in 163,842 stored evidence spans** | failing quotes are nulled at write time; the deployed composer passes the same verbatim gate |
+| fabricated quotes | **0 in 163,842 stored evidence spans** | a construction invariant, not model behavior: ~2.9% of attempted quotes failed verification and were nulled at write time; the deployed composer passes the same verbatim gate |
 | misattribution, by human audit | **11.6% [6.6–19.6]** of sampled claims | dominated by close-family routing (bugs↔stability); zero far-field misreads |
 | the honest weak spot | fresh-holdout agreement **0.557 [0.477–0.634]** | weakest in the long tail (0.444); polarity near-perfect once aspects match (0.988) — shipped in the trust panel |
-| the sampling promise, held out | coverage **0.971**, tolerance 0.991 at the certified n=1,000 | review-bombing breaks coverage by 5% contamination — so marked windows are blanked, residual disclosed |
-| the labeler bake-off | the +0.034-F1 stronger candidate **rejected at ~12× the cost** | the gap closes at the frozen production shape |
+| the sampling promise, held out | coverage **0.971**, tolerance 0.991 at the certified n=1,000 | one held-out game exercised the sampled side (two more validated take-all exactness); the spiky-regime allowance is unvalidated off-corpus |
+| review-bomb contamination, measured | headline intervals break their 95% promise by **5% contamination** (coverage 0.93) | so Valve-marked windows are blanked from samples; an unmarked bomb still bypasses that — damage rate measured, frequency unmeasurable |
+| the labeler bake-off | **rejected the stronger candidate: +0.034 F1 at ~12× the cost** | the gap closes at the frozen production shape |
 
 ## The engineering underneath
 
@@ -145,7 +150,7 @@ look:
   game got, and the published instrument numbers above, scoped honestly inside
   the product.
 - **Episode markers** — statistically detected review-activity spikes on the
-  timeline, threshold calibrated by looking at 35 live histograms, no cause
+  timeline, threshold calibrated by looking at 35 live snapshots, no cause
   ever attributed.
 - **Ops dashboard** — `/ops`: spend, job history, failure and cache rates, read
   from the same journals that priced the reports; public because the ops story
@@ -186,15 +191,17 @@ quickstart. The deployed system's provisioning lives in `deploy/box/`
 
 ## Layout
 
-| layer | modules | responsibility |
+The rows mirror the import-rank law a CI test enforces (rank 0 imports
+nothing; each rank imports only downward):
+
+| rank | modules | responsibility |
 |---|---|---|
-| contracts | `contracts` | frozen plain-data records + enums; imports nothing |
-| vocabulary | `ontology` | the pinned aspect vocabulary, versioned |
-| pure core | `core/*` | vocab resolution · prompt build/parse · the number mint · the plan compiler · intervals · episode detection · compose selection · the grounding gate |
-| effect shells | `steam_client` · `llm_client` · `store` · `corpus` | the Steam door · the provider seam · SQLite/WAL · corpus files |
-| run machinery | `dispatch` | shared batch/run engine the drivers compose |
-| serving | `serve` · `serve/web` | the job queue, runner, gate, SSE — and the renderer behind its own import wall |
-| entry shells | `studies` · `evals` · `scripts` | census + study drivers · the certification harness · tooling |
+| 0 — contracts | `contracts` | frozen plain-data records + enums; imports nothing |
+| 1 — pure core | `core/*` | vocab resolution · prompt build/parse · the number mint · the plan compiler · intervals · episode detection · compose selection · the grounding gate |
+| 2 — the doors | `steam_client` · `llm_client` · `store` · `corpus` · `ontology` | the Steam door · the provider seam · SQLite/WAL · corpus files · the versioned vocabulary artifact |
+| 3 — run machinery | `dispatch` | shared batch/run engine the entry shells compose |
+| 4 — entry shells | `serve` (+ `serve/web`) · `studies` · `evals` | the app (renderer behind its own import wall) · census + study drivers · the certification harness |
+| unranked tooling | `scripts/` | gold sheets, docs regen — outside the ranked package tree |
 
 The full structure — the deployed system, the delivery pipeline, the rank law,
 and the two "life of a run" traces — is [ARCHITECTURE](ARCHITECTURE.md)'s job.

@@ -1,5 +1,5 @@
 {
-  "egress_ip": "188.68.41.104",
+  "egress_ip": "redacted -- origin IP, public repo",
   "appid": 440,
   "histogram": {
     "endpoint": "appreviewhistogram",

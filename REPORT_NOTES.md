@@ -448,8 +448,10 @@ Gate one was free. The smoke-test milestone's (M0) reachability probe was
 built dual-mode — local and datacenter runs are the same file — precisely so
 it could be pointed at whatever host came later, and that design paid off a
 second time: the file ran unchanged on the netcup box and returned every
-verdict true (`all_ok`, `windowed_ok`, `offtopic_filter_ok`) from egress IP
-188.68.41.104, the capture carrying its own proof of where it ran. Steam's
+verdict true (`all_ok`, `windowed_ok`, `offtopic_filter_ok`) from the box's
+own egress IP, the capture carrying its own proof of where it ran (the
+literal address is redacted repo-wide — the origin hides behind Cloudflare).
+Steam's
 store API answers normally from the production host, on the plain walk, the
 date-windowed production path, and the marked-window filter behavior alike.
 

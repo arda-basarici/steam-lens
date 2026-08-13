@@ -27,7 +27,8 @@ flowchart TD
     Origin-CA TLS · security headers
     body cap · immutable static cache`"]
     CADDY -->|"shared docker network"| APP["`steamlens app container
-    FastAPI + one job worker thread`"]
+    FastAPI + one job worker thread
+    (deliberate — see Restraint)`"]
     PING(["external pinger"]) -.-> APP
     APP -->|"paced GETs"| STEAM["Steam Web API"]
     APP -->|"one client seam"| LLM["DeepSeek API"]

@@ -1333,7 +1333,7 @@ SSD, 6-month term, €4.10/mo), bought outright and hardened hands-on: key-only
 SSH, root login off, ufw default-deny, unattended-upgrades — verified by
 test-the-lockout, with the provider web console as the emergency path. Both
 entry gates passed from the host itself: the reused M0 reachability probe
-all-true (egress 188.68.41.104,
+all-true (egress verified from the box; capture
 `probes/captures/reachability_datacenter_netcup.json`), and the rate-budget
 probe clean — 200 requests at the 1.5 s cadence all 200, a 60-request unpaced
 burst refused nothing, no 429 ever seen
