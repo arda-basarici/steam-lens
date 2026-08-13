@@ -3,12 +3,9 @@
 {% block content %}
 <section class="ops">
   <h1>ops</h1>
-  <p class="tagline">The app's own operational journals, aggregated — spend, calls,
-    and the day's allowance, read from the same store the pipeline writes.</p>
+  <p class="tagline">Live operational numbers — spend, calls, latency, and the
+    day's allowance, read from the same journals the pipeline writes.</p>
   <p class="provenance">{{ view.generated_at }}</p>
-  {% for note in view.notes %}
-  <p class="note">{{ note }}</p>
-  {% endfor %}
   <div class="ops-stats">
     {% for stat in view.today %}
     <div class="ops-stat">
@@ -18,6 +15,7 @@
     </div>
     {% endfor %}
   </div>
+  <p class="ops-limits">{{ view.limits }}</p>
   {% for table in view.tables %}
   <section>
     <h2>{{ table.title }}</h2>
@@ -45,8 +43,15 @@
     {% else %}
     <p class="placeholder">nothing journaled yet</p>
     {% endif %}
-    {% if table.note %}<p class="note">{{ table.note }}</p>{% endif %}
   </section>
   {% endfor %}
+  <details class="ops-about">
+    <summary>about these numbers</summary>
+    <ul>
+      {% for note in view.about %}
+      <li>{{ note }}</li>
+      {% endfor %}
+    </ul>
+  </details>
 </section>
 {% endblock %}

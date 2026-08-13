@@ -1173,7 +1173,7 @@ main:has(> .search) {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(11.5rem, 1fr));
   gap: 0.75rem;
-  margin: 1.4rem 0 2.2rem;
+  margin: 1.4rem 0 0.8rem;
 }
 
 .ops-stat {
@@ -1195,13 +1195,21 @@ main:has(> .search) {
 }
 
 .ops-stat-value {
-  font-size: 1.35rem;
+  font-size: 1.5rem;
   font-variant-numeric: tabular-nums;
 }
 
 .ops-stat-note {
   font-size: 0.75rem;
   color: var(--text-secondary);
+}
+
+/* The one always-visible policy line — the caps a visitor is subject to;
+   everything else methodological lives behind the about disclosure. */
+.ops-limits {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
 }
 
 .ops section {
@@ -1247,4 +1255,38 @@ main:has(> .search) {
 .ops-table th.text,
 .ops-table td.text {
   text-align: left;
+}
+
+.ops-table tbody tr:hover td {
+  background: var(--surface-1);
+}
+
+/* The methodology fine print, collapsed by default — the page leads with
+   numbers; the accounting semantics stay one click away, never deleted. */
+.ops-about {
+  margin: 2.5rem 0 1rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.ops-about summary {
+  cursor: pointer;
+  width: fit-content;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.ops-about summary:hover {
+  color: var(--text-primary);
+}
+
+.ops-about ul {
+  margin: 0.6rem 0 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.35rem;
+  max-width: 46rem;
 }

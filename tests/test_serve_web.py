@@ -877,10 +877,8 @@ def test_ops_view_headline_stats_tell_the_day_and_the_unit_economics() -> None:
     view = build_ops_view(_ops_data())
     stats = {stat.label: stat.value for stat in view.today}
     assert stats["public fresh analyses today"] == "2"
-    assert any(
-        "capped at 3 per visitor IP" in note and "allowance of 5" in note
-        for note in view.notes
-    ), "the caps live in the page notes, not on the tile"
+    assert "capped at 3 per visitor IP" in view.limits
+    assert "allowance of 5" in view.limits, "the caps live on the one policy line"
     assert stats["settled LLM spend today"] == "$0.1101"
     assert stats["reports published"] == "2"
     assert stats["LLM spend per report"] == "$0.1000"
@@ -905,12 +903,12 @@ def test_ops_view_daily_table_merges_journal_days_zeros_worn_openly() -> None:
         daily_refusals=(DailyRefusalRow(day="2026-08-09", refusals=3),),
     ))
     daily = view.tables[1]
-    assert daily.headers[1:4] == ("jobs admitted", "refusals", "LLM calls")
+    assert daily.headers[1:4] == ("admitted", "refused", "LLM calls")
     assert [row[0] for row in daily.rows] == ["2026-08-09", "2026-08-08"]
     assert daily.rows[0][1:4] == ("2", "3", "0"), "admission-only day zeros its calls"
     assert daily.rows[1][1:4] == ("0", "0", "90"), "spend-only day zeros its admissions"
-    assert daily.rows[1][5] == "90%", "the provider cache-hit share renders per day"
-    assert daily.rows[1][8] == "$0.1100"
+    assert daily.rows[1][4] == "90%", "the provider cache-hit share renders per day"
+    assert daily.rows[1][5] == "$0.1100"
 
 
 def test_ops_view_cache_hit_reads_dash_when_no_row_measured_the_split() -> None:
@@ -924,14 +922,14 @@ def test_ops_view_cache_hit_reads_dash_when_no_row_measured_the_split() -> None:
                            output_tokens=15_000, thinking_tokens=0, cost=0.766),
         ),
     ))
-    assert build_ops_view(_ops_data()).tables[2].rows[0][4] == "90%"
-    assert view.tables[1].rows[0][5] == "—"
+    assert build_ops_view(_ops_data()).tables[2].rows[0][3] == "90%"
+    assert view.tables[1].rows[0][4] == "—"
 
 
 def test_ops_view_jobs_table_tells_the_trace_without_leaking_error_text() -> None:
-    """The job history renders outcome, duration, banked counts, and joined
-    cost; a never-settled job reads running with dashes; a failed job's raw
-    error text never reaches the public page."""
+    """The job history renders outcome, duration, the pool-reuse count, and
+    joined cost; a never-settled job reads running with dashes; a failed
+    job's raw error text never reaches the public page."""
     jobs = (
         JobRow(
             run_id="serve-2", app_id=570, requested_name="Dota 2",
@@ -950,33 +948,41 @@ def test_ops_view_jobs_table_tells_the_trace_without_leaking_error_text() -> Non
     )
     table = build_ops_view(_ops_data(jobs=jobs)).tables[0]
     assert table.rows[0][2:5] == ("running", "—", "—")
-    assert table.rows[1][2:7] == ("failed", "3m 12s", "120", "30", "$0.0851")
+    assert table.rows[1][2:6] == ("failed", "3m 12s", "30", "$0.0851")
     assert not any(
         "secret path" in cell for row in table.rows for cell in row
     ), "raw error text is operator-only, never public"
 
 
-def test_ops_view_latency_table_summarizes_measured_calls() -> None:
-    table = build_ops_view(_ops_data(
+def test_ops_view_stage_table_merges_economics_with_latency() -> None:
+    """One row per (stage, model) tells the whole operational story — calls,
+    cache leverage, cost, and the latency percentiles keyed by stage; a stage
+    with no measured calls wears dashes instead of fake zeros."""
+    view = build_ops_view(_ops_data(
         stage_latencies=(
             StageLatencyRow(stage="classify", calls=180, p50_s=8.4, p95_s=21.9),
         ),
-    )).tables[3]
-    assert table.rows == (("classify", "180", "8.4s", "21.9s"),)
+    ))
+    assert view.tables[2].rows == (
+        ("classify", "deepseek-chat", "180", "90%", "$0.2000", "8.4s", "21.9s"),
+    )
+    unmeasured = build_ops_view(_ops_data()).tables[2]
+    assert unmeasured.rows[0][5:] == ("—", "—")
 
 
 def test_ops_page_renders_the_full_surface() -> None:
-    """The rendered page carries the stat plate and all four tables — job
-    history, daily, stage/model, latency — plus the pre-fix pricing
-    disclosure."""
+    """The rendered page carries the stat plate, the policy line, the three
+    tables, and the collapsed about block with the pre-fix pricing
+    disclosure inside it."""
     app = FastAPI()
     attach_web(app, lambda _: None, lambda _: False, lambda: _ops_data())
     html = _get(app, "/ops").text
     assert "fresh analyses today" in html
     assert "capped at 3 per visitor IP" in html
     assert "deepseek-chat" in html
-    assert "jobs (newest 20)" in html
-    assert "call latency by stage" in html
+    assert "recent analyses (newest 20)" in html
+    assert "LLM stages (all time)" in html
+    assert "<summary>about these numbers</summary>" in html
     assert "repriced 2026-08-10 from the archive" in html
     assert "generated 2026-08-09 14:30 UTC" in html
 

@@ -9,12 +9,15 @@ itself on display, so it renders aggregates a visitor may see — and the input
 rows are aggregate by construction (``contracts.ops``), so there is no raw
 IP here to leak.
 
-The vocabulary is deliberate LLMOps: cost per call and per report, token
-splits by stage and model, the day's allowance against the spend breaker.
-These are the platform concepts (traces, spans, cost, failure rates) told
-natively over the app's own journals; failure rates and latency join when
-the job journal lands (the designed 3b increment) — the page states that gap
-honestly rather than rendering an empty section.
+The vocabulary is deliberate LLMOps: cost per call and per report, cache
+leverage, per-stage latency, the day's allowance against the spend breaker —
+the platform concepts told natively over the app's own journals. The layout
+is progressive disclosure (the 2026-08-14 simplification pass, off external
+reader feedback that the page read as a diagnostics dump): the default view
+leads with the headline stats and three lean tables, and the accounting
+methodology folds into one collapsed about block instead of captioning every
+table. Token-level splits stay in the ledger journal; the page renders the
+rates and unit costs they produce.
 """
 
 from __future__ import annotations
@@ -79,7 +82,6 @@ class OpsTable:
     title: str
     headers: tuple[str, ...]
     rows: tuple[tuple[str, ...], ...]
-    note: str | None = None
     text_columns: int = 1
     """How many leading columns hold text — the template left-aligns these
     and right-aligns the numeric rest (the tabular-comparison convention)."""
@@ -89,40 +91,38 @@ class OpsTable:
 class OpsView:
     """Everything ``ops.html`` renders, in page order.
 
-    ``notes`` are the page-level honesty lines (the pre-fix pricing
-    disclosure, for one) — rendered under the header, before any table.
+    ``limits`` is the one always-visible policy line under the stat plate —
+    the caps a visitor is actually subject to. ``about`` is the methodology
+    fine print (the repricing disclosure, cache-hit semantics, what "reused"
+    counts), rendered collapsed so the page leads with numbers and keeps its
+    provenance one click away.
     """
 
     generated_at: str
     today: tuple[OpsStat, ...]
+    limits: str
     tables: tuple[OpsTable, ...]
-    notes: tuple[str, ...] = ()
+    about: tuple[str, ...]
 
 
 def build_ops_view(data: OpsData) -> OpsView:
-    """Shape the loaded aggregates into the page: headline stats, then tables."""
+    """Shape the loaded aggregates into the page: stats, tables, fine print."""
     total_cost = sum(row.cost for row in data.stage_model)
     per_report = (
         _usd(total_cost / data.report_count) if data.report_count else "—"
     )
     return OpsView(
-        generated_at=(
-            f"generated {data.now.strftime('%Y-%m-%d %H:%M')} UTC · "
-            "all days are UTC days"
-        ),
+        generated_at=f"generated {data.now.strftime('%Y-%m-%d %H:%M')} UTC",
         today=(
             OpsStat(
                 label="public fresh analyses today",
                 value=f"{data.admissions_today}",
-                note=(
-                    "resets midnight UTC — the operator's unlocked runs are "
-                    "not counted"
-                ),
+                note="resets midnight UTC",
             ),
             OpsStat(
                 label="settled LLM spend today",
                 value=_usd(data.spend_today_usd),
-                note=f"runaway-day backstop at {_usd(data.daily_spend_backstop_usd)}",
+                note=f"backstop at {_usd(data.daily_spend_backstop_usd)}",
             ),
             OpsStat(
                 label="reports published",
@@ -132,22 +132,38 @@ def build_ops_view(data: OpsData) -> OpsView:
             OpsStat(
                 label="LLM spend per report",
                 value=per_report,
-                note="all-time spend ÷ published reports — failed jobs included",
+                note="all-time spend ÷ reports",
             ),
+        ),
+        limits=(
+            f"fresh analyses are capped at {data.per_ip_daily_job_limit} per "
+            f"visitor IP a day, inside one pooled allowance of "
+            f"{data.daily_job_limit} per UTC day"
         ),
         tables=(
             _jobs_table(data.jobs),
             _daily_table(data.daily_ledger, data.daily_admissions, data.daily_refusals),
-            _stage_model_table(data.stage_model),
-            _latency_table(data.stage_latencies),
+            _stages_table(data.stage_model, data.stage_latencies),
         ),
-        notes=(
-            f"fresh analyses are capped at {data.per_ip_daily_job_limit} per "
-            f"visitor IP a day, inside one pooled allowance of "
-            f"{data.daily_job_limit} per UTC day",
-            "ledger rows from before 2026-08-09 were flat-priced at write and "
-            "repriced 2026-08-10 from the archive's recorded cache splits; the "
-            "provider dashboard is billing truth",
+        about=(
+            "all days are UTC days; the operator's unlocked runs spend but "
+            "are never counted as public admissions",
+            "reused counts verdicts served from the app's own label pool "
+            "instead of re-bought — the app-side cache economics; a job's "
+            "cost joins the spend ledger by its run id, failed runs included",
+            "cache hit is the provider-side prefix-cache share of prompt "
+            "tokens, computed over calls measured live at write "
+            "(post-2026-08-09) — a group with none reads a dash, never 0%",
+            "refusals count the spend breaker's and the search limiter's "
+            "firings",
+            "p50/p95 are dispatch-to-response wall clock per LLM call over "
+            "the live-measured calls, retries included",
+            "ledger rows from before 2026-08-09 were flat-priced at write "
+            "and repriced 2026-08-10 from the archive's recorded cache "
+            "splits; the provider dashboard is billing truth",
+            "token-level splits (prompt, cached, output, thinking) stay in "
+            "the ledger journal — this page renders the rates and unit "
+            "costs they produce",
         ),
     )
 
@@ -155,35 +171,28 @@ def build_ops_view(data: OpsData) -> OpsView:
 def _jobs_table(jobs: tuple[JobRow, ...]) -> OpsTable:
     """The job history — every analysis run, its outcome, and what it cost.
 
-    The LLMOps trace table: one row per job with duration, the banked classify
-    counts, and the ledger-joined attributed cost. A never-settled row renders
+    The LLMOps trace table: one row per job with duration, the pool-reuse
+    count, and the ledger-joined attributed cost. A never-settled row renders
     ``running`` (or is the honest trace of a process death). Error *text*
     deliberately never renders — this page is public, and raw exception
     strings can leak internals; the outcome column says failed, the operator
-    reads the journal for why.
+    reads the journal for why. The bought-verdict count stays journal-only
+    since the simplification pass: at a glance the reuse number carries the
+    cache story alone, and cost already prices the buying.
     """
     return OpsTable(
-        title="jobs (newest 20)",
-        headers=(
-            "started (UTC)", "game", "outcome", "duration",
-            "labeled", "reused", "cost",
-        ),
+        title="recent analyses (newest 20)",
+        headers=("started (UTC)", "game", "outcome", "duration", "reused", "cost"),
         rows=tuple(
             (
                 job.started_at[:16].replace("T", " "),
                 job.requested_name,
                 job.outcome if job.outcome is not None else "running",
                 _elapsed(job.started_at, job.finished_at),
-                "—" if job.labeled is None else f"{job.labeled:,}",
                 "—" if job.reused is None else f"{job.reused:,}",
                 _usd(job.cost),
             )
             for job in jobs
-        ),
-        note=(
-            "reused counts verdicts served from the label pool instead of "
-            "re-bought — the app-side cache economics; cost joins the ledger "
-            "by the job's run id"
         ),
         text_columns=4,
     )
@@ -212,75 +221,48 @@ def _daily_table(
             f"{admitted.get(day, 0):,}",
             f"{refused.get(day, 0):,}",
             f"{row.calls:,}" if row else "0",
-            f"{row.prompt_tokens:,}" if row else "0",
             _hit_rate(row.cached_prompt_tokens, row.measured_prompt_tokens)
             if row else "—",
-            f"{row.output_tokens:,}" if row else "0",
-            f"{row.thinking_tokens:,}" if row else "0",
             _usd(row.cost) if row else _usd(0.0),
         ))
     return OpsTable(
         title="by day (last 14)",
-        headers=(
-            "day", "jobs admitted", "refusals", "LLM calls",
-            "prompt tokens", "cache hit", "output tokens", "thinking tokens", "cost",
-        ),
+        headers=("day", "admitted", "refused", "LLM calls", "cache hit", "cost"),
         rows=tuple(rows),
-        note=(
-            "admitted counts the gate's public admissions — the operator's "
-            "unlocked jobs spend but are not admissions; refusals count the "
-            "spend breaker's and the search limiter's firings; cache hit is "
-            "the provider-side prefix-cache share of the live-measured "
-            "prompt tokens (— on days with none)"
-        ),
     )
 
 
-def _stage_model_table(stage_model: tuple[StageModelRow, ...]) -> OpsTable:
-    """All-time totals per (stage, model), costliest first — the unit-economics split."""
+def _stages_table(
+    stage_model: tuple[StageModelRow, ...],
+    latencies: tuple[StageLatencyRow, ...],
+) -> OpsTable:
+    """All-time unit economics and latency per (stage, model), costliest first.
+
+    One row tells a stage's whole operational story — volume, cache leverage,
+    cost, and how long a call takes — merging what used to be two tables over
+    the same two rows. Latency summaries key by stage alone (the ledger
+    measures the call, not the model split), so a stage split across models
+    would repeat its percentiles per row — honest, if redundant, and not the
+    current shape. A stage with no live-measured calls reads a dash.
+    """
+    latency_by_stage = {row.stage: row for row in latencies}
+    rows: list[tuple[str, ...]] = []
+    for row in stage_model:
+        latency = latency_by_stage.get(row.stage)
+        rows.append((
+            row.stage,
+            row.model,
+            f"{row.calls:,}",
+            _hit_rate(row.cached_prompt_tokens, row.measured_prompt_tokens),
+            _usd(row.cost),
+            f"{latency.p50_s:.1f}s" if latency else "—",
+            f"{latency.p95_s:.1f}s" if latency else "—",
+        ))
     return OpsTable(
-        title="by stage and model (all time)",
-        headers=(
-            "stage", "model", "calls",
-            "prompt tokens", "cache hit", "output tokens", "thinking tokens", "cost",
-        ),
-        rows=tuple(
-            (
-                row.stage,
-                row.model,
-                f"{row.calls:,}",
-                f"{row.prompt_tokens:,}",
-                _hit_rate(row.cached_prompt_tokens, row.measured_prompt_tokens),
-                f"{row.output_tokens:,}",
-                f"{row.thinking_tokens:,}",
-                _usd(row.cost),
-            )
-            for row in stage_model
-        ),
-        note=(
-            "cache hit computes over calls measured live at write "
-            "(post-2026-08-09) — earlier repriced rows keep exact costs "
-            "but stay out of the rate"
-        ),
+        title="LLM stages (all time)",
+        headers=("stage", "model", "calls", "cache hit", "cost", "p50", "p95"),
+        rows=tuple(rows),
         text_columns=2,
-    )
-
-
-def _latency_table(latencies: tuple[StageLatencyRow, ...]) -> OpsTable:
-    """Per-stage call latency percentiles over the measured ledger rows."""
-    return OpsTable(
-        title="call latency by stage",
-        headers=("stage", "measured calls", "p50", "p95"),
-        rows=tuple(
-            (
-                row.stage,
-                f"{row.calls:,}",
-                f"{row.p50_s:.1f}s",
-                f"{row.p95_s:.1f}s",
-            )
-            for row in latencies
-        ),
-        note="dispatch-to-response wall clock per LLM call, retries included",
     )
 
 
