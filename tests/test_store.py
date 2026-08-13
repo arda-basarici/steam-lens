@@ -1153,22 +1153,26 @@ class TestOpsReads:
         store.reports.put(_report("serve-1"), [_aggregate("serve-1")])
         assert store.ops.report_count() == 1
 
-    def test_measured_prompt_excludes_rows_without_the_step6_accounting(
+    def test_hit_rate_inputs_exclude_rows_without_the_step6_accounting(
         self, store: Store
     ) -> None:
-        """A pre-step-6 row (no recorded duration) never recorded its cache
-        split — it must fall out of the hit rate's denominator, not read 0%."""
+        """A duration-NULL row falls out of BOTH hit-rate sums — even when the
+        2026-08-10 repricing backfilled a real cache split onto it. A
+        numerator-only leak is exactly the 242%-hit bug (2026-08-13)."""
         store.spend_ledger.append(_record(created_at=_NOON))
         store._conn.execute(  # pyright: ignore[reportPrivateUsage]
             "INSERT INTO spend_ledger (created_at, stage, model, model_version,"
-            " prompt_tokens, output_tokens, thinking_tokens, cost)"
+            " prompt_tokens, output_tokens, thinking_tokens, cost,"
+            " cached_prompt_tokens)"
             " VALUES ('2026-07-14T13:00:00+00:00', 'classify', 'model-a',"
-            " 'model-a-001', 500, 10, 0, 0.01)"
+            " 'model-a-001', 500, 10, 0, 0.01, 450)"
         )
         day = store.ops.daily_ledger(_EPOCH)[0]
         assert day.prompt_tokens == 600
         assert day.measured_prompt_tokens == 100, "only the measured row's prompt counts"
-        assert day.cached_prompt_tokens == 80
+        assert day.cached_prompt_tokens == 80, "the backfilled 450 stays out"
+        totals = store.ops.stage_model_totals()[0]  # same (classify, model-a) group
+        assert (totals.measured_prompt_tokens, totals.cached_prompt_tokens) == (100, 80)
 
     def test_daily_refusals_count_per_day(self, store: Store) -> None:
         store.refusals.record("day_cap", at=_NOON)

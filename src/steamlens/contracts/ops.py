@@ -20,13 +20,16 @@ from dataclasses import dataclass
 class DailyLedgerRow:
     """One UTC day's paid-call totals off the spend ledger.
 
-    ``cached_prompt_tokens`` is the prefix-cache-hit subset of
-    ``prompt_tokens`` — the provider-side cache economics the ops page shows
-    as a hit rate. ``measured_prompt_tokens`` is the prompt volume from rows
-    that carry the step-6 accounting (a recorded duration marks them): the
-    hit rate's honest denominator, because a pre-step-6 row never recorded
-    its split and must read "—", not 0% (the 2026-08-09 display lesson — the
-    designer read the unrecorded zero as a broken number).
+    ``measured_prompt_tokens`` is the prompt volume from rows that carry the
+    step-6 accounting (a recorded duration marks a row the live client
+    measured at write time), and ``cached_prompt_tokens`` is the
+    prefix-cache-hit subset of *that* volume — numerator and denominator of
+    the hit rate the ops page shows, deliberately over the same rows. Rows
+    outside the marker read "—", not 0% (the 2026-08-09 display lesson — the
+    designer read the unrecorded zero as a broken number); the 2026-08-10
+    repricing backfilled true splits onto old rows, which the rate still
+    excludes rather than lean on a migration-shaped invariant
+    (``store.ops`` states the reasoning).
     """
 
     day: str
@@ -43,8 +46,9 @@ class DailyLedgerRow:
 class StageModelRow:
     """All-time paid-call totals for one (stage, model) pair.
 
-    ``measured_prompt_tokens`` plays the same honest-denominator role as on
-    the daily row.
+    ``cached_prompt_tokens`` and ``measured_prompt_tokens`` pair the same way
+    as on the daily row: the hit rate's numerator and denominator, both over
+    the live-measured rows only.
     """
 
     stage: str

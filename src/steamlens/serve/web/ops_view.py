@@ -230,8 +230,8 @@ def _daily_table(
             "admitted counts the gate's public admissions — the operator's "
             "unlocked jobs spend but are not admissions; refusals count the "
             "spend breaker's and the search limiter's firings; cache hit is "
-            "the provider-side prefix-cache share of prompt tokens (— where "
-            "no row recorded it)"
+            "the provider-side prefix-cache share of the live-measured "
+            "prompt tokens (— on days with none)"
         ),
     )
 
@@ -258,8 +258,9 @@ def _stage_model_table(stage_model: tuple[StageModelRow, ...]) -> OpsTable:
             for row in stage_model
         ),
         note=(
-            "cache hit computes over rows that recorded the split "
-            "(post-2026-08-09) — earlier rows never measured it"
+            "cache hit computes over calls measured live at write "
+            "(post-2026-08-09) — earlier repriced rows keep exact costs "
+            "but stay out of the rate"
         ),
         text_columns=2,
     )
@@ -286,8 +287,9 @@ def _latency_table(latencies: tuple[StageLatencyRow, ...]) -> OpsTable:
 def _hit_rate(cached: int, measured_prompt: int) -> str:
     """The prefix-cache share over the *measured* prompt volume.
 
-    "—" when no row in the group recorded the split (pre-step-6 rows carry
-    no measurement) — an unrecorded split must never render as 0% hit.
+    Both inputs aggregate the live-measured rows only (``store.ops`` draws
+    that line); "—" when the group has none — an unmeasured split must
+    never render as 0% hit.
     """
     return f"{cached / measured_prompt:.0%}" if measured_prompt else "—"
 

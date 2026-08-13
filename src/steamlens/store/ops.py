@@ -36,11 +36,18 @@ from steamlens.contracts import (
 )
 from steamlens.store.convert import utc_isoformat
 
-# The step-6 accounting marker: a recorded duration exists exactly on rows
-# written since the observability step, which also recorded the cache split —
-# so "measured" prompt volume is the cache-hit rate's honest denominator
-# (pre-step-6 rows never recorded their split and must not read as 0% hit).
+# The step-6 accounting marker: a recorded duration means the live client
+# wrote the row and measured its cache split at write time. The hit rate
+# computes over these rows ONLY — numerator and denominator both — because
+# the marker is structural where "every row carries a true split" is a fact
+# about one migration: the 2026-08-10 repricing backfilled exact splits onto
+# duration-NULL rows, but counting on that invariant would render fake ~0%
+# hits if it ever broke (a restore from an older snapshot, say). The repriced
+# rows keep their exact costs everywhere; only the rate excludes them.
 _MEASURED_PROMPT = "SUM(CASE WHEN duration_s IS NOT NULL THEN prompt_tokens ELSE 0 END)"
+_MEASURED_CACHED = (
+    "SUM(CASE WHEN duration_s IS NOT NULL THEN cached_prompt_tokens ELSE 0 END)"
+)
 
 
 class OpsReads:
@@ -62,7 +69,7 @@ class OpsReads:
         """Per-UTC-day call/token/cost totals at or after ``since``, newest day first."""
         rows = self._conn.execute(
             "SELECT substr(created_at, 1, 10) AS day, COUNT(*),"
-            " SUM(prompt_tokens), SUM(cached_prompt_tokens), " + _MEASURED_PROMPT + ","
+            " SUM(prompt_tokens), " + _MEASURED_CACHED + ", " + _MEASURED_PROMPT + ","
             " SUM(output_tokens), SUM(thinking_tokens), SUM(cost)"
             " FROM spend_ledger WHERE created_at >= ?"
             " GROUP BY day ORDER BY day DESC",
@@ -86,7 +93,7 @@ class OpsReads:
         """All-time call/token/cost totals per (stage, model), costliest first."""
         rows = self._conn.execute(
             "SELECT stage, model, COUNT(*),"
-            " SUM(prompt_tokens), SUM(cached_prompt_tokens), " + _MEASURED_PROMPT + ","
+            " SUM(prompt_tokens), " + _MEASURED_CACHED + ", " + _MEASURED_PROMPT + ","
             " SUM(output_tokens), SUM(thinking_tokens), SUM(cost)"
             " FROM spend_ledger GROUP BY stage, model ORDER BY SUM(cost) DESC",
         ).fetchall()
