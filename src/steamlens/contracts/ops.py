@@ -86,7 +86,10 @@ class JobRow:
     running — or forever, for a job a process death interrupted, which is
     exactly what the row should say. ``cost`` joins the ledger by the shared
     run id (0.0 for a job whose calls all landed before attribution or that
-    spent nothing). The banked counts are ``None`` on unsettled rows.
+    spent nothing), and ``views`` joins the report-view journal the same way —
+    how many times this job's published report has answered a page load (0
+    for a job that never published). The banked counts are ``None`` on
+    unsettled rows.
     """
 
     run_id: str
@@ -101,6 +104,7 @@ class JobRow:
     failed_durable: int | None
     refused_batches: int | None
     cost: float
+    views: int
 
 
 @dataclass(frozen=True, slots=True)

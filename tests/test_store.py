@@ -1213,7 +1213,7 @@ class TestOpsReads:
         days = store.ops.daily_refusals(_EPOCH)
         assert [(d.day, d.refusals) for d in days] == [("2026-07-14", 2), ("2026-07-13", 1)]
 
-    def test_recent_jobs_join_their_attributed_cost_newest_first(
+    def test_recent_jobs_join_their_attributed_cost_and_views_newest_first(
         self, store: Store
     ) -> None:
         store.jobs.start("serve-1", 440, "Team Fortress 2", at=_NOON)
@@ -1233,15 +1233,20 @@ class TestOpsReads:
                     cost=0.003, duration_s=2.0, run_id="serve-1",
                 )
             )
+        for _ in range(3):
+            store.report_views.record("serve-1", at=_NOON + timedelta(days=1))
+        store.report_views.record("other-run", at=_NOON)
         jobs = store.ops.recent_jobs(10)
         assert [j.run_id for j in jobs] == ["serve-2", "serve-1"]
         settled = jobs[1]
         assert settled.outcome == "done"
         assert (settled.labeled, settled.reused) == (120, 30)
         assert settled.cost == pytest.approx(0.006), "cost joins by run_id only"
+        assert settled.views == 3, "views join by run_id the same way"
         running = jobs[0]
         assert running.outcome is None and running.finished_at is None
         assert running.cost == 0.0
+        assert running.views == 0
 
     def test_stage_latencies_summarize_measured_rows_only(self, store: Store) -> None:
         for duration in (1.0, 2.0, 3.0, 4.0):

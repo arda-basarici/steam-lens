@@ -320,8 +320,27 @@ _STEP_6: tuple[str, ...] = (
     "CREATE INDEX idx_refusals_created ON refusals (created_at)",
 )
 
+# Step 7 — the report-view journal (2026-08-14, the ops simplification's
+# follow-on). One row per report-page render, keyed by the publication's run
+# id so per-job view counts are a join like cost. Counted at the page render
+# because that is the one funnel every door passes through — a search answer
+# redirecting, a library click, a pasted link — each exactly once.
+# Deliberately no IP column (the audit's shape-enforced rule) and no
+# user-agent: the count is identity-blind by construction, crawlers and the
+# operator included, and the ops page says so.
+_STEP_7: tuple[str, ...] = (
+    """
+    CREATE TABLE report_views (
+        id         INTEGER PRIMARY KEY,
+        created_at TEXT NOT NULL,
+        run_id     TEXT NOT NULL
+    )
+    """,
+    "CREATE INDEX idx_report_views_run ON report_views (run_id)",
+)
+
 MIGRATION_STEPS: tuple[tuple[str, ...], ...] = (
-    _STEP_1, _STEP_2, _STEP_3, _STEP_4, _STEP_5, _STEP_6,
+    _STEP_1, _STEP_2, _STEP_3, _STEP_4, _STEP_5, _STEP_6, _STEP_7,
 )
 
 SCHEMA_VERSION = len(MIGRATION_STEPS)

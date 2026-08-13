@@ -192,6 +192,10 @@ def build_app() -> FastAPI:
         with Store(db_path) as store:
             store.refusals.record(kind, at=at)
 
+    def record_report_view(run_id: str) -> None:
+        with Store(db_path) as store:
+            store.report_views.record(run_id, at=datetime.now(UTC))
+
     def load_ops_data() -> OpsData:
         # One clock reading for the whole page: the "today" reads and the
         # generated-at stamp tell one story. 14 days of history is the dial
@@ -266,6 +270,7 @@ def build_app() -> FastAPI:
         load_ops_data,
         load_report_cards,
         aspect_categories,
+        record_report_view=record_report_view,
     )
     return app
 

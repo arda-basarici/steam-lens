@@ -69,6 +69,7 @@ def attach_web(
     load_ops_data: Callable[[], OpsData] | None = None,
     load_report_cards: Callable[[], tuple[ReportCard, ...]] | None = None,
     aspect_categories: Mapping[str, str] | None = None,
+    record_report_view: Callable[[str], None] | None = None,
 ) -> None:
     """Mount the pages and static assets onto ``app`` — the composition root's call.
 
@@ -86,7 +87,11 @@ def attach_web(
     reports index's card list (``ReportLog.cards`` behind the store lifetime),
     optional the same way; ``aspect_categories`` is that page's tag-coloring
     map (ontology label → category), loaded by the root from the same
-    artifact the runner labels with.
+    artifact the runner labels with. ``record_report_view`` journals one view
+    per rendered report page, called with the publication's run id — the
+    render is the one funnel every door passes through (a search answer
+    redirecting, a library click, a pasted link), so counting here counts
+    each read exactly once; ``None`` composes an uncounted app (tests).
 
     Attaching also registers the app-wide 404 and 500 pages — here rather
     than on the JSON surface because a styled error page is rendering, and
@@ -143,6 +148,11 @@ def attach_web(
             canonical = report_path(app_id, page.report.game_name)
             if request.url.path != canonical:
                 return RedirectResponse(canonical, status_code=301)
+            if record_report_view is not None:
+                # After the redirect check, so a stale address counts once at
+                # canonical; only a *published* report counts — the narration
+                # and 404 branches below are not report reads.
+                record_report_view(page.report.run.run_id)
             return templates.TemplateResponse(
                 request, "report.html", {"view": build_report_view(page)}
             )

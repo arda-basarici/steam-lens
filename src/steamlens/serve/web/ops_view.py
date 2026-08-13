@@ -93,7 +93,7 @@ class OpsView:
 
     ``limits`` is the one always-visible policy line under the stat plate —
     the caps a visitor is actually subject to. ``about`` is the methodology
-    fine print (the repricing disclosure, cache-hit semantics, what "reused"
+    fine print (the repricing disclosure, cache-hit semantics, what "views"
     counts), rendered collapsed so the page leads with numbers and keeps its
     provenance one click away.
     """
@@ -148,9 +148,12 @@ def build_ops_view(data: OpsData) -> OpsView:
         about=(
             "all days are UTC days; the operator's unlocked runs spend but "
             "are never counted as public admissions",
-            "reused counts verdicts served from the app's own label pool "
-            "instead of re-bought — the app-side cache economics; a job's "
-            "cost joins the spend ledger by its run id, failed runs included",
+            "views counts report-page loads — search answers, library "
+            "clicks, and direct links alike, each once at render; the count "
+            "is identity-blind by construction (no IP or user-agent stored), "
+            "so crawlers and the operator are included",
+            "a job's cost joins the spend ledger by its run id, failed runs "
+            "included; its views join the report-view journal the same way",
             "cache hit is the provider-side prefix-cache share of prompt "
             "tokens, computed over calls measured live at write "
             "(post-2026-08-09) — a group with none reads a dash, never 0%",
@@ -169,27 +172,29 @@ def build_ops_view(data: OpsData) -> OpsView:
 
 
 def _jobs_table(jobs: tuple[JobRow, ...]) -> OpsTable:
-    """The job history — every analysis run, its outcome, and what it cost.
+    """The job history — every analysis run, its outcome, its cost, its reach.
 
-    The LLMOps trace table: one row per job with duration, the pool-reuse
-    count, and the ledger-joined attributed cost. A never-settled row renders
-    ``running`` (or is the honest trace of a process death). Error *text*
-    deliberately never renders — this page is public, and raw exception
-    strings can leak internals; the outcome column says failed, the operator
-    reads the journal for why. The bought-verdict count stays journal-only
-    since the simplification pass: at a glance the reuse number carries the
-    cache story alone, and cost already prices the buying.
+    The LLMOps trace table: one row per job with duration, the ledger-joined
+    attributed cost, and the view count off the report-view journal — the
+    report-reuse economics (every view after the first is an analysis
+    delivered without new spend). A job that never published wears a dash
+    there, not a fake zero. A never-settled row renders ``running`` (or is
+    the honest trace of a process death). Error *text* deliberately never
+    renders — this page is public, and raw exception strings can leak
+    internals; the outcome column says failed, the operator reads the journal
+    for why. The banked verdict counts (labeled/reused) stay journal-only
+    since the simplification pass: cost already prices the buying.
     """
     return OpsTable(
         title="recent analyses (newest 20)",
-        headers=("started (UTC)", "game", "outcome", "duration", "reused", "cost"),
+        headers=("started (UTC)", "game", "outcome", "duration", "views", "cost"),
         rows=tuple(
             (
                 job.started_at[:16].replace("T", " "),
                 job.requested_name,
                 job.outcome if job.outcome is not None else "running",
                 _elapsed(job.started_at, job.finished_at),
-                "—" if job.reused is None else f"{job.reused:,}",
+                f"{job.views:,}" if job.outcome == "done" else "—",
                 _usd(job.cost),
             )
             for job in jobs

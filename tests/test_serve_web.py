@@ -19,6 +19,7 @@ from __future__ import annotations
 import ast
 import asyncio
 import re
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -484,6 +485,7 @@ def _page_app(
     live: bool = False,
     cards: tuple[ReportCard, ...] | None = None,
     categories: dict[str, str] | None = None,
+    record_view: Callable[[str], None] | None = None,
 ) -> FastAPI:
     app = FastAPI()
     attach_web(
@@ -492,6 +494,7 @@ def _page_app(
         lambda _: live,
         load_report_cards=None if cards is None else lambda: cards,
         aspect_categories=categories,
+        record_report_view=record_view,
     )
     return app
 
@@ -547,6 +550,24 @@ def test_report_page_carries_the_share_card() -> None:
     ) in html
     assert f'property="og:image" content="{HEADER_ART_ORIGIN}' in html
     assert '<meta name="twitter:card" content="summary_large_image">' in html
+
+
+def test_report_render_journals_one_view_per_read() -> None:
+    """The view recorder fires once per rendered report, keyed by the
+    publication's run id — a stale address counts once, after its 301 lands
+    on canonical — and never for the narration page or the 404 (nothing
+    published means nothing was viewed)."""
+    viewed: list[str] = []
+    page = _page()
+    app = _page_app(page, record_view=viewed.append)
+    _get(app, "/reports/440")  # the bare-id door: 301, then one canonical render
+    assert viewed == [page.report.run.run_id]
+    _get(app, "/reports/440/team-fortress-2")
+    assert len(viewed) == 2
+    for unpublished in (_page_app(None, live=True, record_view=viewed.append),
+                        _page_app(None, record_view=viewed.append)):
+        _get(unpublished, "/reports/440")
+    assert len(viewed) == 2, "narration and 404 pages are not report reads"
 
 
 def test_search_page_wears_the_site_default_card() -> None:
@@ -927,28 +948,38 @@ def test_ops_view_cache_hit_reads_dash_when_no_row_measured_the_split() -> None:
 
 
 def test_ops_view_jobs_table_tells_the_trace_without_leaking_error_text() -> None:
-    """The job history renders outcome, duration, the pool-reuse count, and
-    joined cost; a never-settled job reads running with dashes; a failed
-    job's raw error text never reaches the public page."""
+    """The job history renders outcome, duration, the report's view count,
+    and joined cost; views wear a dash on any row that never published (a
+    running or failed job has no report to view); a failed job's raw error
+    text never reaches the public page."""
     jobs = (
         JobRow(
-            run_id="serve-2", app_id=570, requested_name="Dota 2",
+            run_id="serve-3", app_id=570, requested_name="Dota 2",
             started_at="2026-08-09T14:00:00+00:00", finished_at=None,
             outcome=None, error=None, labeled=None, reused=None,
-            failed_durable=None, refused_batches=None, cost=0.0,
+            failed_durable=None, refused_batches=None, cost=0.0, views=0,
         ),
         JobRow(
-            run_id="serve-1", app_id=440, requested_name="Team Fortress 2",
+            run_id="serve-2", app_id=440, requested_name="Team Fortress 2",
             started_at="2026-08-09T12:00:00+00:00",
             finished_at="2026-08-09T12:03:12+00:00",
             outcome="failed", error="RunAbort: /srv/steamlens/secret path leaked",
             labeled=120, reused=30, failed_durable=1, refused_batches=0,
-            cost=0.0851,
+            cost=0.0851, views=0,
+        ),
+        JobRow(
+            run_id="serve-1", app_id=1145360, requested_name="Hades",
+            started_at="2026-08-09T10:00:00+00:00",
+            finished_at="2026-08-09T10:02:13+00:00",
+            outcome="done", error=None,
+            labeled=500, reused=0, failed_durable=0, refused_batches=0,
+            cost=0.0163, views=1234,
         ),
     )
     table = build_ops_view(_ops_data(jobs=jobs)).tables[0]
     assert table.rows[0][2:5] == ("running", "—", "—")
-    assert table.rows[1][2:6] == ("failed", "3m 12s", "30", "$0.0851")
+    assert table.rows[1][2:6] == ("failed", "3m 12s", "—", "$0.0851")
+    assert table.rows[2][2:6] == ("done", "2m 13s", "1,234", "$0.0163")
     assert not any(
         "secret path" in cell for row in table.rows for cell in row
     ), "raw error text is operator-only, never public"
