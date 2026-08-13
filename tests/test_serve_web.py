@@ -3,7 +3,7 @@
 Two layers, tested at their own grain. The view builders are pure (contracts
 in, display records out), so their claims run with no app: the narrative cut
 exactly along its certificate, whiskers through the certified shipped
-interval and absent for take-all, the candidate stratum's singleton fold, the
+interval and absent for take-all, the evidence-floor cut on both strata, the
 quote cap's dominant-polarity preference, timeline geometry on a linear time
 axis, and the trust panel's disclosures. The page tests drive the real app
 over httpx's in-process ASGI transport and claim the sections land in HTML
@@ -236,25 +236,37 @@ def test_bar_segments_stack_the_polarity_split_on_the_bar_scale() -> None:
     assert [s.kind for s in story.segments] == ["positive"]
 
 
-def test_sub_floor_aspect_rows_fold_into_a_disclosed_tail() -> None:
-    """Rows under 1% of the sample fold behind a disclosed tail (never
-    dropped — the ± swallows values that small); a report where nothing
-    clears the floor keeps its rows visible instead of folding everything."""
+def test_aspect_rows_under_the_evidence_floor_are_cut() -> None:
+    """Counts under five sit at the classifier's false-positive floor
+    (observed: 1–2-count rows open onto unrelated quotes), so they are cut
+    from the page entirely — not folded; a report where nothing clears the
+    floor renders no rows at all (the template's honest empty state)."""
     view = build_report_view(
         _page(
             aggregates=(
                 _aggregate("combat", 270),
                 _aggregate("lore", 7),
-                _aggregate("physics", 1),
+                _aggregate("physics", 4),
             )
         )
     )
-    assert [row.aspect for row in view.aspects.rows] == ["combat"]
-    assert [row.aspect for row in view.aspects.tail] == ["lore", "physics"]
-    assert view.aspects.tail_label == "2 more aspects under 1% of the sample"
-    all_tiny = build_report_view(_page(aggregates=(_aggregate("lore", 7),)))
-    assert [row.aspect for row in all_tiny.aspects.rows] == ["lore"]
-    assert all_tiny.aspects.tail == ()
+    assert [row.aspect for row in view.aspects.rows] == ["combat", "lore"]
+    assert view.aspects.tail == ()
+    empty = build_report_view(_page(aggregates=(_aggregate("lore", 4),)))
+    assert empty.aspects.rows == ()
+    assert "the floor is five" in _get(_page_app(_page()), "/reports/440").text
+
+
+def test_aspect_table_folds_past_the_top_ten() -> None:
+    """The fold is presentation, not statistics — the evidence floor already
+    judged what's real, so the table shows the ten weightiest rows and folds
+    the rest behind the template's "see more" toggle."""
+    aggregates = tuple(_aggregate(f"aspect{i:02d}", 200 - i) for i in range(12))
+    view = build_report_view(_page(aggregates=aggregates))
+    assert [row.aspect for row in view.aspects.rows] == [
+        f"aspect{i:02d}" for i in range(10)
+    ]
+    assert [row.aspect for row in view.aspects.tail] == ["aspect10", "aspect11"]
 
 
 def test_take_all_reports_render_no_intervals() -> None:
@@ -272,21 +284,21 @@ def test_take_all_reports_render_no_intervals() -> None:
     assert "exact counts" in view.aspects.axis_label
 
 
-def test_candidate_stratum_folds_singletons() -> None:
-    """Recurring candidates list with counts; once-mentioned ones fold into a
-    single disclosed number instead of a wall of rows."""
+def test_candidate_stratum_wears_the_same_evidence_floor() -> None:
+    """Candidates clearing the floor list with counts; smaller ones are cut —
+    a free-form candidate under it is even likelier to be classifier noise
+    than a pinned aspect, and its quotes read just as wrong."""
     view = build_report_view(
         _page(
             aggregates=(
                 _aggregate("combat", 270),
                 _aggregate("grind", 8, slot=AspectSlot.CANDIDATE),
-                _aggregate("ship bilding", 1, slot=AspectSlot.CANDIDATE),
+                _aggregate("ship bilding", 4, slot=AspectSlot.CANDIDATE),
                 _aggregate("space exploration", 1, slot=AspectSlot.CANDIDATE),
             )
         )
     )
     assert [row.aspect for row in view.candidates.rows] == ["grind"]
-    assert view.candidates.singleton_count == 2
 
 
 def test_quotes_cap_at_three_dominant_polarity_first() -> None:
@@ -514,7 +526,7 @@ def test_report_page_renders_every_section() -> None:
         report=_report(narrative=narrative),
         aggregates=(
             _aggregate("combat", 270),
-            _aggregate("grind", 4, slot=AspectSlot.CANDIDATE),
+            _aggregate("grind", 8, slot=AspectSlot.CANDIDATE),
         ),
         evidence=(
             EvidenceQuote(review_id="r1", aspect="combat",

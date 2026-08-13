@@ -10,13 +10,15 @@ layer below; the report row deliberately stores content, not presentation).
 Presentation needs adapt HERE — never as new fields on the stored contracts,
 which is the discipline that keeps a frontend swap rendering-only.
 
-Three display-only adaptations this module owns: evidence quotes cap at
-three per aspect, dominant-polarity first, and candidate aspects mentioned
-once fold into a single disclosed count instead of listing as rows (both
-judged at the chunk-3 checkpoint); displayed quotes expand from the stored
-minimal span to its containing sentence in the review (the evidence-display
-ruling, 2026-07-17: spans read thin quoted bare — expansion is read-side and
-heuristic, the stored evidence and the labeling contract stay untouched).
+Display-only adaptations this module owns: evidence quotes cap at three per
+aspect, dominant-polarity first (judged at the chunk-3 checkpoint);
+displayed quotes expand from the stored minimal span to its containing
+sentence in the review (the evidence-display ruling, 2026-07-17: spans read
+thin quoted bare — expansion is read-side and heuristic, the stored evidence
+and the labeling contract stay untouched); and the aspect display floors
+(2026-08-14): any aspect, pinned or emergent, needs five supporting reviews
+to appear at all, and the pinned table shows its top ten with the rest
+behind "see more".
 """
 
 from __future__ import annotations
@@ -50,11 +52,19 @@ QUOTES_PER_ASPECT: Final = 3
 """Display cap on verbatim evidence per aspect row — enough to ground the
 number in real voices without turning the table into a corpus dump."""
 
-ASPECT_DISPLAY_FLOOR: Final = 0.01
-"""Share floor for the always-visible aspect rows. Below 1% of the sample
-the interval swallows the value (0.4% ±0.4 is noise wearing a bar), so those
-rows fold into a disclosed tail instead of stretching the table — folded,
-never dropped."""
+ASPECT_EVIDENCE_FLOOR: Final = 5
+"""Hard evidence floor for every displayed aspect, pinned and emergent alike.
+Below five supporting reviews a count is indistinguishable from the
+classifier's false-positive background — observed directly (2026-08-14):
+one-and-two-count rows open onto unrelated quotes — so such rows are cut
+from the page entirely, not folded; mislabeled evidence on display costs
+more trust than a missing row. The trust panel states the rule."""
+
+ASPECT_VISIBLE_ROWS: Final = 10
+"""How many pinned rows show before the rest fold behind "see more". Purely
+presentational: the evidence floor above carries the statistical judgment,
+so this fold only manages page length — a fixed count keeps every report's
+default view the same size."""
 
 QUOTE_DISPLAY_CHAR_CAP: Final = 300
 """Ceiling on an expanded quote's display length. Sentence segmentation over
@@ -166,12 +176,13 @@ class AspectRowView:
 
 @dataclass(frozen=True, slots=True)
 class AspectSectionView:
-    """The pinned-aspect table: visible rows over one stated axis, the
-    sub-floor tail folded behind ``tail_label`` (empty tail = no fold)."""
+    """The pinned-aspect table: the top rows over one stated axis, the rest
+    folded behind a "see more" toggle (empty tail = no fold). Rows under the
+    evidence floor were cut before this view existed; empty ``rows`` means
+    nothing cleared it, and the template says so."""
 
     rows: tuple[AspectRowView, ...]
     tail: tuple[AspectRowView, ...]
-    tail_label: str
     axis_label: str
 
 
@@ -185,10 +196,10 @@ class CandidateRowView:
 
 @dataclass(frozen=True, slots=True)
 class CandidateSectionView:
-    """The candidate stratum, honestly marked: rows plus the folded singletons."""
+    """The candidate stratum, honestly marked: the rows clearing the
+    evidence floor (empty = the section stays off the page)."""
 
     rows: tuple[CandidateRowView, ...]
-    singleton_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -355,10 +366,16 @@ def _regime(report: Report) -> bool | None:
 
 
 def _aspect_section(page: ReportPageData, spiky: bool | None) -> AspectSectionView:
-    """Pinned aspects as share bars: sorted by weight, whiskers per the regime."""
+    """Pinned aspects as share bars: sorted by weight, whiskers per the regime,
+    the evidence floor cut before anything renders."""
     report = page.report
     pinned = sorted(
-        (a for a in page.aggregates if a.slot is AspectSlot.PINNED),
+        (
+            a
+            for a in page.aggregates
+            if a.slot is AspectSlot.PINNED
+            and a.reviews_with_aspect >= ASPECT_EVIDENCE_FLOOR
+        ),
         key=lambda a: (-a.reviews_with_aspect, a.aspect),
     )
     quotes = _quotes_by_aspect(page.evidence, page.quoted_reviews)
@@ -375,7 +392,7 @@ def _aspect_section(page: ReportPageData, spiky: bool | None) -> AspectSectionVi
         ]
     )
     axis_max = _axis_ceiling(edge)
-    rows: list[tuple[float, AspectRowView]] = []
+    rows: list[AspectRowView] = []
     for aggregate in pinned:
         interval = intervals.get(aggregate.aspect)
         plus_minus = (
@@ -384,27 +401,24 @@ def _aspect_section(page: ReportPageData, spiky: bool | None) -> AspectSectionVi
             else f" ±{(interval.high - interval.low) / 2 * 100:.1f}"
         )
         rows.append(
-            (
-                shares[aggregate.aspect],
-                AspectRowView(
-                    aspect=display_name(aggregate.aspect),
-                    reviews_with_aspect=aggregate.reviews_with_aspect,
-                    share_label=(
-                        f"{shares[aggregate.aspect]:.1%}{plus_minus}"
-                        f" · {aggregate.reviews_with_aspect:,}"
-                        f" of {aggregate.sample_size:,} reviews"
-                    ),
-                    interval_title=(
-                        None
-                        if interval is None
-                        else f"sampling interval {interval.low:.1%}–{interval.high:.1%}"
-                    ),
-                    segments=_segments(
-                        aggregate.counts, aggregate.sample_size, axis_max
-                    ),
-                    counts=aggregate.counts,
-                    quotes=quotes.get(aggregate.aspect, ()),
+            AspectRowView(
+                aspect=display_name(aggregate.aspect),
+                reviews_with_aspect=aggregate.reviews_with_aspect,
+                share_label=(
+                    f"{shares[aggregate.aspect]:.1%}{plus_minus}"
+                    f" · {aggregate.reviews_with_aspect:,}"
+                    f" of {aggregate.sample_size:,} reviews"
                 ),
+                interval_title=(
+                    None
+                    if interval is None
+                    else f"sampling interval {interval.low:.1%}–{interval.high:.1%}"
+                ),
+                segments=_segments(
+                    aggregate.counts, aggregate.sample_size, axis_max
+                ),
+                counts=aggregate.counts,
+                quotes=quotes.get(aggregate.aspect, ()),
             )
         )
     interval_note = (
@@ -412,14 +426,9 @@ def _aspect_section(page: ReportPageData, spiky: bool | None) -> AspectSectionVi
         if report.take_all
         else "± is the sampling interval (Wilson + the calibrated allowance)"
     )
-    visible = [row for share, row in rows if share >= ASPECT_DISPLAY_FLOOR]
-    tail = [row for share, row in rows if share < ASPECT_DISPLAY_FLOOR]
-    if not visible:
-        visible, tail = tail, []
     return AspectSectionView(
-        rows=tuple(visible),
-        tail=tuple(tail),
-        tail_label=f"{len(tail)} more aspects under 1% of the sample",
+        rows=tuple(rows[:ASPECT_VISIBLE_ROWS]),
+        tail=tuple(rows[ASPECT_VISIBLE_ROWS:]),
         axis_label=f"share of sample, axis to {axis_max:.0%} · {interval_note}",
     )
 
@@ -565,20 +574,30 @@ def _window_around(sentence: str, span: str) -> str:
 def _candidate_section(
     aggregates: tuple[AspectAggregate, ...]
 ) -> CandidateSectionView:
-    """The emergent stratum: recurring candidates listed, singletons folded."""
+    """The emergent stratum: candidates clearing the evidence floor, counts only.
+
+    The same floor as the pinned table, for the same reason — a free-form
+    candidate under it is even likelier to be classifier noise than a pinned
+    aspect is (uncalibrated by design), and its quotes read just as wrong.
+    """
     candidates = sorted(
-        (a for a in aggregates if a.slot is AspectSlot.CANDIDATE),
+        (
+            a
+            for a in aggregates
+            if a.slot is AspectSlot.CANDIDATE
+            and a.reviews_with_aspect >= ASPECT_EVIDENCE_FLOOR
+        ),
         key=lambda a: (-a.reviews_with_aspect, a.aspect),
     )
-    recurring = tuple(
-        CandidateRowView(
-            aspect=display_name(a.aspect), reviews_with_aspect=a.reviews_with_aspect
+    return CandidateSectionView(
+        rows=tuple(
+            CandidateRowView(
+                aspect=display_name(a.aspect),
+                reviews_with_aspect=a.reviews_with_aspect,
+            )
+            for a in candidates
         )
-        for a in candidates
-        if a.reviews_with_aspect >= 2
     )
-    singletons = sum(1 for a in candidates if a.reviews_with_aspect < 2)
-    return CandidateSectionView(rows=recurring, singleton_count=singletons)
 
 
 def _timeline(
@@ -692,6 +711,12 @@ def _trust_entries(report: Report, spiky: bool | None) -> tuple[tuple[str, str],
         ("Steam-marked windows", _marked_entry(report)),
         ("Marked share", _marked_share_entry(report)),
         ("Narrative", _narrative_entry(report.narrative.outcome)),
+        (
+            "Evidence floor",
+            f"aspects and emergent themes appear only with "
+            f"{ASPECT_EVIDENCE_FLOOR}+ supporting reviews — smaller counts "
+            "sit at the classifier's false-positive floor",
+        ),
         *[(f"Instrument: {name}", value) for name, value in PUBLISHED_READINGS.items()],
         (
             "Versions",

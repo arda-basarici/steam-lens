@@ -79,6 +79,7 @@
 
   <section class="aspects">
     <h2>Aspects</h2>
+    {% if view.aspects.rows %}
     <p class="axis-note">{{ view.aspects.axis_label }}</p>
     <ul class="chart-legend sentiment-legend">
       <li><span class="key key-positive"></span> positive</li>
@@ -90,13 +91,17 @@
     </ul>
     {% if view.aspects.tail %}
     <details class="aspect-tail">
-      <summary>{{ view.aspects.tail_label }}</summary>
+      <summary>see more</summary>
       <ul class="aspect-rows">
         {% for row in view.aspects.tail %}{{ aspect_row(row) }}{% endfor %}
       </ul>
     </details>
     {% endif %}
-    {% if view.candidates.rows or view.candidates.singleton_count %}
+    {% else %}
+    <p class="placeholder">No aspect was mentioned by enough reviews to report —
+      the floor is five supporting reviews.</p>
+    {% endif %}
+    {% if view.candidates.rows %}
     <div class="candidates">
       <h3>Emergent themes <span class="uncalibrated-tag">uncalibrated</span></h3>
       <p class="axis-note">free-form candidates the classifier surfaced beyond the pinned
@@ -106,9 +111,6 @@
         <li>{{ row.aspect }} <span class="candidate-count">{{ row.reviews_with_aspect }}</span></li>
         {% endfor %}
       </ul>
-      {% if view.candidates.singleton_count %}
-      <p class="axis-note">{{ view.candidates.singleton_count }} more mentioned once each</p>
-      {% endif %}
     </div>
     {% endif %}
   </section>
