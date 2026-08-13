@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set nav_active = "reports" %}
 {% block title %}{{ view.game_name }} — steam-lens{% endblock %}
 {% block share_meta %}
   <meta name="description"
@@ -47,6 +48,7 @@
 {% endmacro %}
 {% block content %}
 <article class="report">
+  <p class="back-link"><a href="/reports">← all reports</a></p>
   <header class="report-header">
     <div class="report-title">
       <h1>{{ view.game_name }}</h1>

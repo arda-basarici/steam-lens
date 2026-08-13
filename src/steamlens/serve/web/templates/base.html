@@ -41,6 +41,13 @@
       </svg>
       steam-lens
     </a>
+    {# Pages name themselves via a top-level nav_active set; error pages leave
+       it unset and no link marks active. #}
+    <nav class="site-nav">
+      <a{% if nav_active == "analyze" %} class="active"{% endif %} href="/">analyze</a>
+      <a{% if nav_active == "reports" %} class="active"{% endif %} href="/reports">reports</a>
+      <a{% if nav_active == "ops" %} class="active"{% endif %} href="/ops">ops</a>
+    </nav>
   </header>
   <main>
     {% block content %}{% endblock %}

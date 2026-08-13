@@ -1,8 +1,9 @@
 {% extends "base.html" %}
-{% block title %}analyzed games — steam-lens{% endblock %}
+{% set nav_active = "reports" %}
+{% block title %}all reports — steam-lens{% endblock %}
 {% block content %}
 <section class="library">
-  <h1>Analyzed games</h1>
+  <h1>All reports</h1>
   <p class="tagline">Every report steam-lens has published — open one for the
     numbers, the quotes, and the timeline behind it.</p>
   {% if view.cards %}

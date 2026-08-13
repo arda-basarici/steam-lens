@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set nav_active = "analyze" %}
 {% block title %}steam-lens — search{% endblock %}
 {% block content %}
 <section class="search">
@@ -18,7 +19,7 @@
 <section class="recent">
   <div class="recent-head">
     <h2>Recently analyzed games</h2>
-    <a href="/reports">browse all analyzed games →</a>
+    <a href="/reports">browse all reports →</a>
   </div>
   <ul class="cards mini">
     {% for card in recent %}

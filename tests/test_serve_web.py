@@ -656,7 +656,7 @@ def test_search_page_previews_the_newest_reports() -> None:
     assert 'href="/reports/100/game-0"' in html
     assert 'href="/reports/104/game-4"' in html
     assert 'href="/reports/105/game-5"' not in html, "the strip caps at five"
-    assert 'href="/reports">browse all analyzed games' in html
+    assert 'href="/reports">browse all reports' in html
     assert "data-cat" not in html, "teasers carry no tags"
     assert "sample of 500" not in html, "teasers carry no provenance"
 
@@ -666,6 +666,28 @@ def test_search_page_hides_the_strip_until_a_report_exists() -> None:
     the front door a plain search page — no heading over an empty grid."""
     for app in (_page_app(None, cards=()), _page_app(None)):
         assert "Recently analyzed" not in _get(app, "/").text
+
+
+def test_every_page_wears_the_nav_with_its_own_link_active() -> None:
+    """The header names the app's three destinations on every page with the
+    current one marked active — a report page counts as the reports section
+    and adds the contextual way back to the library."""
+    cards = (
+        ReportCard(
+            app_id=440, game_name="Team Fortress 2", created_at=_STAMP,
+            sample_size=1_000, take_all=False, top_aspects=(),
+        ),
+    )
+    home = _get(_page_app(None, cards=cards), "/").text
+    assert '<a class="active" href="/">analyze</a>' in home
+    library = _get(_page_app(None, cards=cards), "/reports").text
+    assert '<a class="active" href="/reports">reports</a>' in library
+    report = _get(_page_app(_page()), "/reports/440/team-fortress-2").text
+    assert '<a class="active" href="/reports">reports</a>' in report
+    assert '<a href="/reports">← all reports</a>' in report
+    ops_app = FastAPI()
+    attach_web(ops_app, lambda _: None, lambda _: False, lambda: _ops_data())
+    assert '<a class="active" href="/ops">ops</a>' in _get(ops_app, "/ops").text
 
 
 def test_unanalyzed_game_gets_an_honest_404_page() -> None:

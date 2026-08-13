@@ -289,6 +289,9 @@ a:hover {
 /* --- site chrome ----------------------------------------------------------- */
 
 .site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 0.8rem 1.25rem;
   border-bottom: 1px solid var(--gridline);
 }
@@ -312,6 +315,30 @@ a:hover {
 .wordmark svg {
   display: block;
   color: var(--accent);
+}
+
+.site-nav {
+  display: flex;
+  gap: 1.1rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+.site-nav a {
+  color: var(--text-muted);
+  text-decoration: none;
+  /* Transparent placeholder so the active underline adds no height shift. */
+  border-bottom: 1px solid transparent;
+  padding-bottom: 1px;
+}
+
+.site-nav a:hover {
+  color: var(--text-primary);
+}
+
+.site-nav a.active {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent);
 }
 
 .site-footer {
@@ -506,6 +533,21 @@ main:has(> .search) {
 }
 
 /* --- report header --------------------------------------------------------- */
+
+.back-link {
+  margin: 0 0 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+.back-link a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.back-link a:hover {
+  color: var(--text-primary);
+}
 
 .report-header {
   display: grid;
