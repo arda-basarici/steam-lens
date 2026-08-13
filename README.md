@@ -2,7 +2,7 @@
 
 # steam-lens
 
-**What do players actually think about a game — and can you check every claim
+**What do players actually think about a game, and can you check every claim
 yourself?**
 
 [![CI](https://github.com/arda-basarici/steam-lens/actions/workflows/ci.yml/badge.svg)](https://github.com/arda-basarici/steam-lens/actions/workflows/ci.yml)
@@ -16,36 +16,36 @@ yourself?**
 
 <img src="src/steamlens/serve/web/static/og-home.png" alt="SteamLens — the search page" width="600"/>
 
-*(interim shot — full page captures land after the current polish pass)*
+*(interim shot; full page captures land after the current polish pass)*
 
 </div>
 
 Type a game's name and get an evidence-backed report of what players praise
-and complain about — every claim on the page traceable to source reviews, a
+and complain about: every claim on the page traceable to source reviews, a
 measured sampling tolerance, or a published error rate. Under the hood,
 SteamLens reads Steam reviews the way an analyst would: it samples a game's
 reviews under a measured tolerance, classifies each one against a versioned
 aspect vocabulary, aggregates deterministically, and composes a narrative that
-cannot introduce numerals absent from its own computed aggregates — with every
+cannot introduce numerals absent from its own computed aggregates, with every
 displayed quotation verified verbatim. The LLM call is deliberately the
-smallest part of the system — the work is the instrument built around it: a
+smallest part of the system. The work is the instrument built around it: a
 human-anchored gold set, a calibrated cross-family judge, bootstrap CIs on
 every reported number, an eval harness that gates CI, and the system's own
 error rates published beside its claims, inside the product.
 
-*Solo, end-to-end — product design, evaluation methodology, architecture,
+*Solo, end-to-end: product design, evaluation methodology, architecture,
 implementation, experiments, and deployment; a live product with a 135k-review
 evaluation corpus on a self-managed VPS.*
 
 > [!IMPORTANT]
-> **Live: [steamlens.ardabasarici.dev](https://steamlens.ardabasarici.dev)** —
-> type a game, watch the analysis narrate itself, read the report with its
+> **Live: [steamlens.ardabasarici.dev](https://steamlens.ardabasarici.dev)**.
+> Type a game, watch the analysis narrate itself, read the report with its
 > receipts.
 
 > [!NOTE]
 > Scope, stated plainly. Every displayed number comes from a fixed survey
 > sample; stories quote retrieved reviews and never mint numbers. Not vanilla
-> sentiment scoring; not fake-review accusations (unverifiable — cut by
+> sentiment scoring; not fake-review accusations (unverifiable, cut by
 > design); not cross-game comparison (the per-report frame is the product's
 > identity); not a notebook with a URL.
 
@@ -77,27 +77,27 @@ decision with its alternatives and why they lost.
 | smoke tests (M0) | Steam's undocumented API surface verified from a datacenter host | the data shapes every later decision cites |
 | extraction + eval (M1) | a 135,260-review census across 49 games, labeled end-to-end for $3.80 | **F1 0.766 [0.713–0.811]** (95% CI) vs human gold |
 | sampling study (M2) | the windowed draw certified against census ground truth | 95% intervals honest: coverage 0.958–0.959 certified, **0.971 held-out** |
-| deployment (M3) | the live app on a hardened VPS — approval-gated CD, spend breaker, LLMOps journals | a full report for **$0.007–0.017**, walls probed live |
+| deployment (M3) | the live app on a hardened VPS: approval-gated CD, spend breaker, LLMOps journals | a full report for **$0.007–0.017**, walls probed live |
 
-The report-interrogation chat (M4) is designed and deliberately deferred — the
+The report-interrogation chat (M4) is designed and deliberately deferred: the
 docket and leanings are recorded in [DESIGN](DESIGN.md); the report product
 stands complete without it.
 
 ## Measured, not asserted
 
-Every number below has a baseline, a CI, and an honest caveat — and the ones a
+Every number below has a baseline, a CI, and an honest caveat, and the ones a
 user should see ship inside the product's trust panel, not just here.
 
 | claim | measured | the honest caveat |
 |---|---|---|
 | label quality vs human gold | **F1 0.766 [0.713–0.811]** | 250-review gold set (scored on the 245 in-scope), blind-labeled *before* any model output existed; single annotator, disclosed |
-| the judge, calibrated before use | F1 0.816 vs gold — paired **Δ +0.050 [+0.019, +0.083]** over production | cross-family, to reduce self-preference risk |
+| the judge, calibrated before use | F1 0.816 vs gold: paired **Δ +0.050 [+0.019, +0.083]** over production | cross-family, to reduce self-preference risk |
 | the judge check off-gold | **F1 0.791 [0.772–0.810]** agreement on a 1,000-review census sample | no quality cliff outside the gold set's reach |
 | fabricated quotes | **0 in 163,842 stored evidence spans** | a construction invariant, not model behavior: ~2.9% of attempted quotes failed verification and were nulled at write time; the deployed composer passes the same verbatim gate |
 | misattribution, by human audit | **11.6% [6.6–19.6]** of sampled claims | dominated by close-family routing (bugs↔stability); zero far-field misreads |
-| the honest weak spot | fresh-holdout agreement **0.557 [0.477–0.634]** | weakest in the long tail (0.444); polarity near-perfect once aspects match (0.988) — shipped in the trust panel |
+| the honest weak spot | fresh-holdout agreement **0.557 [0.477–0.634]** | weakest in the long tail (0.444); polarity near-perfect once aspects match (0.988), shipped in the trust panel |
 | the sampling promise, held out | coverage **0.971**, tolerance 0.991 at the certified n=1,000 | one held-out game exercised the sampled side (two more validated take-all exactness); the spiky-regime allowance is unvalidated off-corpus |
-| review-bomb contamination, measured | headline intervals break their 95% promise by **5% contamination** (coverage 0.93) | so Valve-marked windows are blanked from samples; an unmarked bomb still bypasses that — damage rate measured, frequency unmeasurable |
+| review-bomb contamination, measured | headline intervals break their 95% promise by **5% contamination** (coverage 0.93) | so Valve-marked windows are blanked from samples; an unmarked bomb still bypasses that: damage rate measured, frequency unmeasurable |
 | the labeler bake-off | **rejected the stronger candidate: +0.034 F1 at ~12× the cost** | the gap closes at the frozen production shape |
 
 ## The engineering underneath
@@ -112,25 +112,25 @@ look:
 - **A narrative that cannot launder numbers.** The composer is fenced by
   deterministic gates: every numeral in composed prose must match the job's own
   outputs at the numeral's precision, every quote must be a verbatim substring
-  of supplied evidence — violations retry once, then offending sentences drop,
+  of supplied evidence. Violations retry once, then offending sentences drop,
   then the report renders numbers-and-quotes-only with a disclosed line. The
   gate emits a certificate the page renders, so the reader *sees* model voice
   vs. minted fact.
 - **Spend is admission-controlled and journaled.** A public submit gate counts
   fresh analyses per visitor and per day (a count can't be burst past the way a
   settling dollar total can), a per-job budget reserves atomically before every
-  call, and the ledger records billed truth — cache-split pricing, per-call
+  call, and the ledger records billed truth: cache-split pricing, per-call
   latency, every row joined to its job.
 - **Statistical integrity is enforced by structure.** Displayed numbers can
   only come from survey-origin labels: origin tags in the pool, an origin
   predicate in the store's fold, and a CI import-graph test that keeps the
-  walls standing. Uncertainty is first-class — bootstrap CIs, paired
+  walls standing. Uncertainty is first-class: bootstrap CIs, paired
   comparisons, and statistics that say "undefined" instead of a fake 0.0.
 - **The delivery pipeline trusts nothing by default.** CI mints the image; a
   human click ships the exact reviewed sha over a forced-command SSH key that
   can deploy and do nothing else; the deploy script refuses while a visitor's
   job is live; rollback is the previous tag. The origin answers only
-  Cloudflare, and a prompt-injection canary set measures the serving walls —
+  Cloudflare, and a prompt-injection canary set measures the serving walls:
   render-side in CI, model-side at prompt-change cadence.
 - **The seams are hand-built where the seam is the skill.** Raw httpx behind
   one typed provider seam (vendor SDKs rejected with recorded reasons); SQLite
@@ -161,9 +161,9 @@ look:
 | stack | where it earns its place |
 |---|---|
 | Python 3.13 · uv · pyright `--strict` | typed src-layout app; lint + types + doctests gate every change |
-| FastAPI · SSE · Jinja2 · vanilla JS | the serving shell — no SPA, no bundler; the narration stream is the one dynamic surface |
-| SQLite (WAL) | labels, ledger, reports, journals — one file, bind-mounted, nightly `.backup` shipped off-box |
-| DeepSeek + Gemini, one client seam | labeler/composer and judge, deliberately cross-family — so the instrument doesn't inherit self-preference |
+| FastAPI · SSE · Jinja2 · vanilla JS | the serving shell: no SPA, no bundler; the narration stream is the one dynamic surface |
+| SQLite (WAL) | labels, ledger, reports, journals: one file, bind-mounted, nightly `.backup` shipped off-box |
+| DeepSeek + Gemini, one client seam | labeler/composer and judge, deliberately cross-family, so the instrument doesn't inherit self-preference |
 | Docker · GHCR · Caddy · Cloudflare | the deployed system: CI-minted images behind a box-owned proxy behind a hidden origin |
 | GitHub Actions | CI with the eval gate; approval-gated CD over forced-command SSH |
 
@@ -185,7 +185,7 @@ uv run python scripts/regen_docs.py  # regenerate the API reference (pdoc)
 ```
 
 Tests and evals run offline from committed artifacts. Label buying, judge runs,
-and live analyses are deliberate, key-gated spends — never part of a clean-clone
+and live analyses are deliberate, key-gated spends, never part of a clean-clone
 quickstart. The deployed system's provisioning lives in `deploy/box/`
 (compose, Caddyfile, firewall and backup units, the runbook).
 
@@ -201,23 +201,23 @@ nothing; each rank imports only downward):
 | 2 — the doors | `steam_client` · `llm_client` · `store` · `corpus` · `ontology` | the Steam door · the provider seam · SQLite/WAL · corpus files · the versioned vocabulary artifact |
 | 3 — run machinery | `dispatch` | shared batch/run engine the entry shells compose |
 | 4 — entry shells | `serve` (+ `serve/web`) · `studies` · `evals` | the app (renderer behind its own import wall) · census + study drivers · the certification harness |
-| unranked tooling | `scripts/` | gold sheets, docs regen — outside the ranked package tree |
+| unranked tooling | `scripts/` | gold sheets, docs regen (outside the ranked package tree) |
 
-The full structure — the deployed system, the delivery pipeline, the rank law,
-and the two "life of a run" traces — is [ARCHITECTURE](ARCHITECTURE.md)'s job.
+The full structure (the deployed system, the delivery pipeline, the rank law,
+and the two "life of a run" traces) is [ARCHITECTURE](ARCHITECTURE.md)'s job.
 
 ## What it demonstrates
 
 Evaluation-first LLM engineering, carried to production: the measurement
 instrument was built, calibrated, and pointed at the system before any UI
-existed — it gates the build, its numbers ship inside the product, and the
+existed: it gates the build, its numbers ship inside the product, and the
 deployment is the same discipline applied to infrastructure: every trust
 boundary explicit, every spend journaled, every claim attributable.
 
 ## Development note
 
 **AI-assisted development.** Claude Code was used extensively during
-implementation — code, refactoring, test writing, docs drafting, codebase
+implementation: code, refactoring, test writing, docs drafting, codebase
 exploration. Architecture, product decisions, evaluation methodology, the
 hand-labeled gold set, experiment design, and final review remained
 human-directed.
@@ -233,7 +233,7 @@ human-directed.
 ## License
 
 Code is released under the [MIT License](LICENSE). Steam review content fetched
-or quoted by the app belongs to its respective authors and Valve — it is
+or quoted by the app belongs to its respective authors and Valve; it is
 analyzed and excerpted as evidence, not redistributed under this license.
 Generated reports are LLM-derived analyses of that content, provided as-is;
 their reliability is what the product's own published error rate measures.
