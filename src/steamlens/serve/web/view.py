@@ -24,7 +24,8 @@ behind "see more".
 from __future__ import annotations
 
 import math
-from collections.abc import Callable, Mapping
+import re
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Final
@@ -331,6 +332,33 @@ def narrative_segments(
     return tuple(segments)
 
 
+def _humanize_echoed_keys(
+    segments: tuple[NarrativeSegment, ...], aspect_keys: Iterable[str]
+) -> tuple[NarrativeSegment, ...]:
+    """Model-voice segments with echoed ontology keys worn spaced.
+
+    The composer is prompted with the vocabulary's keys and sometimes writes
+    one verbatim into prose ("the most notable split is game_length") — the
+    same reader-facing cleanup the aspect rows get, applied to the report
+    text. Display-only and scoped to this report's own aspect keys at word
+    boundaries, never generic underscore stripping. Certified segments pass
+    untouched: a quote stays verbatim from its review, and rewriting any
+    certified span would misstate the certificate.
+    """
+    keyed = sorted((k for k in aspect_keys if "_" in k), key=len, reverse=True)
+    if not keyed:
+        return segments
+    echoed = re.compile("|".join(rf"\b{re.escape(key)}\b" for key in keyed))
+    return tuple(
+        segment
+        if segment.kind is not None
+        else NarrativeSegment(
+            text=echoed.sub(lambda hit: display_name(hit.group()), segment.text)
+        )
+        for segment in segments
+    )
+
+
 def build_report_view(page: ReportPageData) -> ReportView:
     """The one entry: a loaded bundle shaped into the page, top to bottom."""
     report = page.report
@@ -339,7 +367,10 @@ def build_report_view(page: ReportPageData) -> ReportView:
         game_name=report.game_name,
         header_image_url=header_art_url(report.app_id),
         provenance_line=provenance_line(report),
-        narrative=narrative_segments(report.narrative.prose, report.narrative.spans),
+        narrative=_humanize_echoed_keys(
+            narrative_segments(report.narrative.prose, report.narrative.spans),
+            {a.aspect for a in page.aggregates},
+        ),
         narrative_withheld=report.narrative.outcome is NarrativeOutcome.WITHHELD,
         aspects=_aspect_section(page, spiky),
         candidates=_candidate_section(page.aggregates),

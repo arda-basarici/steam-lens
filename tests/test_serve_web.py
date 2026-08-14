@@ -198,6 +198,33 @@ def test_narrative_cuts_exactly_along_the_certificate() -> None:
     assert segments[0].kind is None
 
 
+def test_narrative_model_voice_wears_spaced_aspect_keys() -> None:
+    """The composer sometimes echoes an ontology key into prose
+    ("game_length"); model voice renders it spaced — the same reader-facing
+    cleanup the aspect rows get — while a quote span containing the key stays
+    verbatim: certified text is never rewritten."""
+    prose = 'Reviews split on game_length. "game_length is fine" said one.'
+    span = GroundedSpan(
+        start=30, end=51, text='"game_length is fine"', kind=SpanKind.QUOTE,
+        review_id="r1",
+    )
+    view = build_report_view(
+        _page(
+            report=_report(
+                narrative=ComposedNarrative(
+                    prose=prose, spans=(span,), outcome=NarrativeOutcome.COMPOSED
+                )
+            ),
+            aggregates=(_aggregate("game_length", 13),),
+        )
+    )
+    assert [seg.text for seg in view.narrative] == [
+        "Reviews split on game length. ",
+        '"game_length is fine"',
+        " said one.",
+    ]
+
+
 def test_aspect_rows_sort_by_weight_and_wear_certified_intervals() -> None:
     """Pinned rows sort by evidence weight; a calm sampled game's ± IS the
     shipped interval's half-width (certified seam, never re-derived), with
