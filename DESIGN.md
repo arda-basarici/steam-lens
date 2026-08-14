@@ -37,8 +37,8 @@ One line per section, what's decided there:
 ## Objective
 
 An app where entering a game returns what players actually like and dislike (aspect-
-level strengths/weaknesses with verbatim evidence and episode markers on the review
-timeline), computed live at request time on real Steam data, with a rigorous, honest
+level strengths/weaknesses with verbatim evidence and the review timeline),
+computed live at request time on real Steam data, with a rigorous, honest
 evaluation of whether the LLM doing the reading is actually right. The grounded chat
 that interrogates the report's evidence remains the designed next channel, deferred
 past the project's closure (the M3 closure ruling, under the redirect). **Success
@@ -1695,6 +1695,20 @@ volume; no cause attributed"), turning the absence of explanation into
 visible method. The chat milestone becomes where "what happened here?" gets
 asked, with receipts.
 
+**Dropped from display (2026-08-14, the polish run).** The markers no longer
+render on the report page: however disciplined the vocabulary, a highlighted
+span puts a question on the page the report refuses to answer — the reader
+sees "something happened here" and the product declines to say what, which
+reads as withholding rather than method. Detection still runs and every
+report still persists its markers (the investigator milestone's raw
+material); the drop is view-layer only. In the same pass the timeline gained
+a positive-share companion chart on the volume chart's x scale — share of
+each month's reviews rated positive, a dashed 50% midline, months under five
+reviews faded because a share over a handful of reviews is binomial noise.
+Volume and share read together let a reader spot the telling conjunctions
+themselves (a volume spike wearing a share dip) without the page asserting
+a detection it cannot explain.
+
 ### The frontend
 
 **Server-rendered pages plus a small vanilla-JS layer; no SPA, no bundler.**
@@ -1717,17 +1731,23 @@ aspect table as polarity-stacked share bars (the diverging blue/red pair,
 mixed+neutral folded gray; the share says how much talk, the stack says
 what kind) with the interval carried as the share label's ± (Wilson plus the
 regime allowance, half-width; exact bounds on hover; take-all games show no
-± and read "exact counts") and sub-1% rows folded behind a disclosed tail,
+± and read "exact counts"), rows under the five-review evidence floor cut
+entirely and the table folding past its top ten behind "see more" (the
+display floors, 2026-08-14: counts under five sit at the classifier's
+false-positive floor, so a cut costs less trust than mislabeled evidence),
 each aspect expanding to verbatim evidence quotes (sentence-expanded from
 the review at display time and dated), the candidate stratum below honestly
-marked emergent-uncalibrated; the all-language timeline with episode markers
-and Valve-marked windows as separate layers; and the trust panel (the
+marked emergent-uncalibrated; the all-language timeline as a volume chart
+and a positive-share companion on one x scale, Valve-marked windows
+overlaid (episode markers dropped from display 2026-08-14 — the ruling
+sits with the marker design above); and the trust panel (the
 protected element under any schedule pressure, folded as reference material
 but born open whenever the marked-share caveat says the calibrated bars are
 not certified), carrying the sample method, the interval regime this game
-got, language mix, marked-share state against the 2% floor, the published
-instrument numbers (classifier F1 with CI, misattribution rate, judge
-agreement), the versions triple, and the methodology link. (The aspect
+got, language mix, marked-share state against the 2% floor, the evidence
+floor rule, the published instrument numbers (classifier F1 with CI,
+misattribution rate, judge agreement), the versions triple, and the
+methodology link. (The aspect
 table's encoding was re-ruled at the aesthetics pass, 2026-08-08: drawn
 whisker hardware read badly and a shaded interval band proved confusable
 with the gray polarity segment, so uncertainty moved off the chart into the
@@ -2045,8 +2065,9 @@ as code. The test for any addition stays: does *this product* need it?
 
 ## Scope & non-goals
 
-- In: aspect reports with receipts, narrated live analysis, display-only episode
-  markers on the timeline, the trust panel, Docker/FastAPI/SQLite/CI deployment,
+- In: aspect reports with receipts, narrated live analysis, the volume +
+  positive-share timeline (episode detection stored, dropped from display
+  2026-08-14), the trust panel, Docker/FastAPI/SQLite/CI deployment,
   the evaluation methodology as a public artifact, the ops story as a public
   artifact. The report-interrogation RAG chat is designed-and-deferred (the M3
   closure ruling, under the redirect): in the design, not in the shipped scope.

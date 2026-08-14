@@ -791,10 +791,57 @@ main:has(> .search) {
   fill: var(--series-1);
 }
 
-.episode-span {
+.plot-label {
+  fill: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.share-line {
   fill: none;
-  stroke: var(--series-2);
-  stroke-width: 1.5;
+  stroke: var(--series-1);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.share-dot {
+  fill: var(--series-1);
+}
+
+.share-dot.low-sample {
+  opacity: 0.35;
+}
+
+.midline {
+  stroke: var(--text-muted);
+  stroke-width: 1;
+  stroke-dasharray: 5 3;
+}
+
+.year-grid,
+.scale-rule {
+  stroke: var(--gridline);
+  stroke-width: 1;
+}
+
+.scale-label {
+  fill: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-anchor: end;
+  dominant-baseline: middle;
+}
+
+.hover-strip {
+  fill: transparent;
+}
+
+.hover-strip:hover {
+  fill: var(--baseline);
+  fill-opacity: 0.18;
 }
 
 .valve-span {
@@ -833,12 +880,6 @@ main:has(> .search) {
   margin-right: 4px;
 }
 
-.key-volume {
-  background: var(--series-1);
-}
-.key-episode {
-  border: 1.5px solid var(--series-2);
-}
 .key-valve {
   background: var(--neutral-span);
   border: 1px solid var(--gridline);

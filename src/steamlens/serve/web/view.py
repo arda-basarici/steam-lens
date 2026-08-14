@@ -18,7 +18,11 @@ thin quoted bare — expansion is read-side and heuristic, the stored evidence
 and the labeling contract stay untouched); and the aspect display floors
 (2026-08-14): any aspect, pinned or emergent, needs five supporting reviews
 to appear at all, and the pinned table shows its top ten with the rest
-behind "see more".
+behind "see more". The review timeline renders volume, Steam-marked
+windows, and a positive-share companion chart; stored episode markers
+deliberately stay off the page (2026-08-14) — the render rule forbids
+attributing a cause, so a highlighted span was a question the report
+refuses to answer.
 """
 
 from __future__ import annotations
@@ -33,7 +37,6 @@ from typing import Final
 from steamlens.contracts import (
     AspectAggregate,
     AspectSlot,
-    EpisodeMarker,
     EvidenceQuote,
     GroundedSpan,
     HistogramBucket,
@@ -67,6 +70,13 @@ presentational: the evidence floor above carries the statistical judgment,
 so this fold only manages page length — a fixed count keeps every report's
 default view the same size."""
 
+SHARE_SAMPLE_FLOOR: Final = 5
+"""Buckets with fewer reviews than this render their positive share faded.
+A percentage over a handful of reviews is binomial noise (two of three
+reviews reads as 67% positive), but dropping the bar would misread as a
+gap in Steam's series — so the bar stays, muted, its tooltip carrying the
+count that explains the fade."""
+
 QUOTE_DISPLAY_CHAR_CAP: Final = 300
 """Ceiling on an expanded quote's display length. Sentence segmentation over
 punctuation-poor reviews is heuristic — a review with no terminal punctuation
@@ -95,13 +105,21 @@ URLs). A delisted game may 404 here; the header renders it as decoration
 claim."""
 
 # Timeline SVG geometry, in viewBox units — the template draws rects and
-# labels from these coordinates and knows no dates or counts.
+# labels from these coordinates and knows no dates or counts. Both plots
+# live in ONE SVG on one x scale — volume bars on top, the positive-share
+# line below — so a bucket-wide hover strip can span the pair and highlight
+# a month in both at once without any script. Y anchors run top to bottom;
+# the share plot's axis is absolute (0–100%), so its midline is exactly 50%.
 _VIEW_W: Final = 800.0
-_VIEW_H: Final = 200.0
-_PLOT_LEFT: Final = 6.0
+_VIEW_H: Final = 326.0
+_PLOT_LEFT: Final = 46.0
 _PLOT_RIGHT: Final = 794.0
-_PLOT_TOP: Final = 12.0
-_PLOT_BASE: Final = 172.0
+_VOL_CAPTION_Y: Final = 18.0
+_PLOT_TOP: Final = 30.0
+_PLOT_BASE: Final = 170.0
+_SHARE_CAPTION_Y: Final = 206.0
+_SHARE_TOP: Final = 218.0
+_SHARE_BASE: Final = 298.0
 
 # The nominal duration closing a histogram's last bucket — buckets stamp at
 # period start, so the final bucket's extent is the rollup unit itself.
@@ -205,18 +223,49 @@ class CandidateSectionView:
 
 @dataclass(frozen=True, slots=True)
 class TimelineBar:
-    """One histogram bucket as plot geometry, tooltip text riding along."""
+    """One histogram bucket as volume-plot geometry (hover strips carry the text)."""
 
     x: float
     width: float
     y: float
     height: float
-    label: str
 
 
 @dataclass(frozen=True, slots=True)
 class TimelineSpan:
-    """One overlay span (episode marker or Valve-marked window) in plot units."""
+    """One Valve-marked window as an overlay span in plot units."""
+
+    x: float
+    width: float
+
+
+@dataclass(frozen=True, slots=True)
+class AxisMark:
+    """One y-scale anchor: a gutter label at ``y``, ruling a faint line across
+    the plot when ``ruled`` (marks whose line something else already draws —
+    the baseline, the dashed midline — carry the label alone)."""
+
+    y: float
+    label: str
+    ruled: bool
+
+
+@dataclass(frozen=True, slots=True)
+class ShareDot:
+    """A share point drawn as a dot instead of joining the line: a low-sample
+    bucket (faded — its share is binomial noise) or an isolated healthy bucket
+    a one-point line could never show."""
+
+    x: float
+    y: float
+    low_sample: bool
+
+
+@dataclass(frozen=True, slots=True)
+class HoverStrip:
+    """One bucket-wide hover target spanning both plots. Its tooltip joins the
+    month's whole story — volume, up/down split, positive share, a small-sample
+    caveat, Steam-marked overlap — so hovering either chart reads both."""
 
     x: float
     width: float
@@ -224,19 +273,55 @@ class TimelineSpan:
 
 
 @dataclass(frozen=True, slots=True)
+class ShareChartView:
+    """The positive-share plot: a line where the data supports one, dots
+    where it doesn't.
+
+    ``line_segments`` are ready ``points`` strings, one polyline per
+    contiguous run of healthy buckets — the line breaks at empty and
+    low-sample months rather than interpolating through them. The axis is
+    absolute 0–100% (a flat line near the top is stability, not a rendering
+    problem); ``midline_y`` is the 50% reference and ``note`` the fine print.
+    """
+
+    line_segments: tuple[str, ...]
+    dots: tuple[ShareDot, ...]
+    marks: tuple[AxisMark, ...]
+    caption: str
+    note: str
+    midline_y: float
+    caption_y: float = _SHARE_CAPTION_Y
+    baseline_y: float = _SHARE_BASE
+
+
+@dataclass(frozen=True, slots=True)
 class TimelineView:
-    """The all-language timeline: volume bars plus the two marker layers.
+    """The all-language timeline as one SVG: volume bars over a positive-share
+    line, Steam-marked windows and year gridlines spanning both plots, and
+    per-bucket hover strips tying the pair together.
 
     ``view_w``/``view_h`` are the SVG viewBox the coordinates live in;
-    ``baseline_y`` is the x-axis position. The discipline line renders with
-    the layer legend — detection stated as method, never cause.
+    ``baseline_y`` is the volume plot's x-axis, ``overlay_top``/``overlay_bottom``
+    bound the full-height layers. Stored episode markers deliberately do not
+    render (dropped 2026-08-14): the render rule forbids attributing a cause,
+    so a highlighted span was a question the report refuses to answer —
+    detection stays in ``core/detect`` and in storage for the investigator
+    milestone.
     """
 
     bars: tuple[TimelineBar, ...]
-    episodes: tuple[TimelineSpan, ...]
     valve_windows: tuple[TimelineSpan, ...]
+    hover_strips: tuple[HoverStrip, ...]
     ticks: tuple[tuple[float, str], ...]
+    marks: tuple[AxisMark, ...]
+    caption: str
     peak_label: str
+    share: ShareChartView
+    caption_y: float = _VOL_CAPTION_Y
+    overlay_top: float = _PLOT_TOP
+    overlay_bottom: float = _SHARE_BASE
+    plot_left: float = _PLOT_LEFT
+    plot_right: float = _PLOT_RIGHT
     view_w: float = _VIEW_W
     view_h: float = _VIEW_H
     baseline_y: float = _PLOT_BASE
@@ -374,7 +459,7 @@ def build_report_view(page: ReportPageData) -> ReportView:
         narrative_withheld=report.narrative.outcome is NarrativeOutcome.WITHHELD,
         aspects=_aspect_section(page, spiky),
         candidates=_candidate_section(page.aggregates),
-        timeline=_timeline(report.histogram, report.episodes),
+        timeline=_timeline(report.histogram),
         trust_entries=_trust_entries(report, spiky),
         # The panel folds by default (reference material), but a report whose
         # calibrated bars are not certified must not hide that disclosure
@@ -631,15 +716,19 @@ def _candidate_section(
     )
 
 
-def _timeline(
-    histogram: HistogramSnapshot, episodes: tuple[EpisodeMarker, ...]
-) -> TimelineView | None:
-    """The rollup buckets as plot geometry, marker layers mapped to the same scale.
+def _timeline(histogram: HistogramSnapshot) -> TimelineView | None:
+    """The rollup buckets as plot geometry: volume bars, the positive-share
+    line, Steam-marked windows, and per-bucket hover strips on one x scale.
 
     ``None`` when the histogram holds no populated bucket — a section absent
     is honest for a game Steam serves no volume series for. Bars sit on a
     linear time axis (buckets tile the lifetime, so index and time agree);
-    heights scale to the busiest bucket, which the y-label states.
+    volume heights scale to the busiest bucket, which the y-label states,
+    while share heights are absolute (the plot's top is 100% positive). The
+    share line joins only contiguous healthy buckets: it breaks at empty
+    months instead of interpolating data that isn't there, and low-sample
+    months fall out of the line as faded dots instead of lending their
+    binomial noise the authority of a trend.
     """
     populated = [
         b for b in histogram.rollups if b.recommendations_up + b.recommendations_down > 0
@@ -667,47 +756,118 @@ def _timeline(
             width=max(slot_w - gap, 0.75),
             y=_PLOT_BASE - height,
             height=height,
-            label=(
-                f"{bucket.start.strftime('%b %Y')}: {volume:,} reviews"
-                f" ({bucket.recommendations_up:,} up · {bucket.recommendations_down:,} down)"
-            ),
         )
 
-    bars = tuple(bar(bucket) for bucket in populated)
-    return TimelineView(
-        bars=bars,
-        episodes=tuple(
-            TimelineSpan(
-                x=x_of(e.start),
-                width=max(x_of(e.end) - x_of(e.start), 2.0),
-                label=_episode_label(e),
+    def center_x(bucket: HistogramBucket) -> float:
+        return x_of(bucket.start) + slot_w / 2
+
+    def share_y(bucket: HistogramBucket) -> float:
+        total = bucket.recommendations_up + bucket.recommendations_down
+        share = bucket.recommendations_up / total
+        return _SHARE_BASE - share * (_SHARE_BASE - _SHARE_TOP)
+
+    segments: list[str] = []
+    dots: list[ShareDot] = []
+    run: list[HistogramBucket] = []
+
+    def close_run() -> None:
+        if len(run) == 1:
+            dots.append(ShareDot(x=center_x(run[0]), y=share_y(run[0]), low_sample=False))
+        elif run:
+            segments.append(
+                " ".join(f"{center_x(b):.2f},{share_y(b):.2f}" for b in run)
             )
-            for e in episodes
-        ),
+        run.clear()
+
+    for bucket in histogram.rollups:
+        total = bucket.recommendations_up + bucket.recommendations_down
+        if total == 0:
+            close_run()
+        elif total < SHARE_SAMPLE_FLOOR:
+            close_run()
+            dots.append(
+                ShareDot(x=center_x(bucket), y=share_y(bucket), low_sample=True)
+            )
+        else:
+            run.append(bucket)
+    close_run()
+
+    def strip(bucket: HistogramBucket) -> HoverStrip:
+        total = bucket.recommendations_up + bucket.recommendations_down
+        share = bucket.recommendations_up / total
+        marked = any(
+            event.start < bucket.start + unit and bucket.start < event.end
+            for event in histogram.past_events
+        )
+        label = (
+            f"{bucket.start.strftime('%b %Y')} · {total:,} reviews"
+            f" ({bucket.recommendations_up:,} up · {bucket.recommendations_down:,} down)"
+            f" · {share:.0%} positive"
+        )
+        if total < SHARE_SAMPLE_FLOOR:
+            label += " · small sample"
+        if marked:
+            label += " · Steam-marked period"
+        return HoverStrip(x=x_of(bucket.start), width=slot_w, label=label)
+
+    unit_name = histogram.rollup_unit.value
+    adverb = {"month": "monthly", "week": "weekly"}[unit_name]
+    midline_y = (_SHARE_TOP + _SHARE_BASE) / 2
+    return TimelineView(
+        bars=tuple(bar(bucket) for bucket in populated),
         valve_windows=tuple(
             TimelineSpan(
                 x=x_of(event.start),
                 width=max(x_of(event.end) - x_of(event.start), 2.0),
-                label=(
-                    f"Steam-marked period · {_span_dates(event.start, event.end)}"
-                ),
             )
             for event in histogram.past_events
         ),
+        hover_strips=tuple(strip(bucket) for bucket in populated),
         ticks=_year_ticks(start, end, x_of),
-        peak_label=f"peak {peak:,} reviews / {histogram.rollup_unit.value}",
+        marks=_volume_marks(peak),
+        caption="review volume",
+        peak_label=f"{adverb} peak {peak:,} reviews",
+        share=ShareChartView(
+            line_segments=tuple(segments),
+            dots=tuple(dots),
+            marks=(
+                AxisMark(y=_SHARE_TOP, label="100%", ruled=True),
+                AxisMark(y=midline_y, label="50%", ruled=False),
+                AxisMark(y=_SHARE_BASE, label="0%", ruled=False),
+            ),
+            caption="positive review share",
+            note=(
+                f"{adverb} share rated positive · 50% reference · "
+                f"{unit_name}s with <{SHARE_SAMPLE_FLOOR} reviews faded"
+            ),
+            midline_y=midline_y,
+        ),
     )
 
 
-def _episode_label(episode: EpisodeMarker) -> str:
-    """The marker's observation, in the render rule's vocabulary — no causal noun."""
-    overlap = (
-        " · overlaps a Steam-marked period" if episode.overlaps_marked_window else ""
+def _volume_marks(peak: int) -> tuple[AxisMark, ...]:
+    """Round-number scale anchors for the peak-scaled volume plot.
+
+    The step is the smallest 1/2/5×10ᵏ giving at most four lines under the
+    peak (floored at one review), so the axis reads in round numbers at any
+    magnitude while the bars keep their exact peak-anchored scale. The
+    baseline carries an unruled "0" — the axis line itself already draws it.
+    """
+    raw = peak / 4
+    if raw < 1:
+        step = 1
+    else:
+        magnitude = 10.0 ** math.floor(math.log10(raw))
+        step = int(next(c * magnitude for c in (1, 2, 5, 10) if c * magnitude >= raw))
+
+    def y_of(volume: int) -> float:
+        return _PLOT_BASE - volume / peak * (_PLOT_BASE - _PLOT_TOP)
+
+    ruled = tuple(
+        AxisMark(y=y_of(volume), label=f"{volume:,}", ruled=True)
+        for volume in range(step, peak + 1, step)
     )
-    return (
-        f"review activity spike · {_span_dates(episode.start, episode.end)} · "
-        f"{episode.reviews:,} reviews at {episode.peak_multiple:.1f}× baseline{overlap}"
-    )
+    return ruled + (AxisMark(y=_PLOT_BASE, label="0", ruled=False),)
 
 
 def _span_dates(start: datetime, end: datetime) -> str:

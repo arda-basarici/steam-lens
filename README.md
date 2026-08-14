@@ -149,9 +149,9 @@ look:
 - **Trust panel** — sample provenance, language mix, the interval regime this
   game got, and the published instrument numbers above, scoped honestly inside
   the product.
-- **Episode markers** — statistically detected review-activity spikes on the
-  timeline, threshold calibrated by looking at 35 live snapshots, no cause
-  ever attributed.
+- **Review timeline** — monthly volume and positive-share charts on one time
+  axis, Steam-marked periods overlaid; a volume spike wearing a share dip is
+  the reader's to spot, no cause ever attributed.
 - **Ops dashboard** — `/ops`: spend, job history, failure and cache rates, read
   from the same journals that priced the reports; public because the ops story
   is part of the portfolio, IP-free by construction.

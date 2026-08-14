@@ -120,37 +120,66 @@
     {% if view.timeline %}
     <p class="axis-note">{{ view.timeline.peak_label }} · all languages</p>
     <svg class="timeline-chart" viewBox="0 0 {{ view.timeline.view_w }} {{ view.timeline.view_h }}"
-         role="img" aria-label="review volume over time">
+         role="img" aria-label="review volume and positive share over time">
+      {% for x, label in view.timeline.ticks %}
+      <line class="year-grid" x1="{{ '%.2f' % x }}" y1="{{ view.timeline.overlay_top }}"
+            x2="{{ '%.2f' % x }}" y2="{{ view.timeline.overlay_bottom }}"></line>
+      {% endfor %}
       {% for span in view.timeline.valve_windows %}
-      <rect class="valve-span" x="{{ '%.2f' % span.x }}" y="0"
-            width="{{ '%.2f' % span.width }}" height="{{ view.timeline.baseline_y }}">
-        <title>{{ span.label }}</title>
-      </rect>
+      <rect class="valve-span" x="{{ '%.2f' % span.x }}" y="{{ view.timeline.overlay_top }}"
+            width="{{ '%.2f' % span.width }}"
+            height="{{ view.timeline.overlay_bottom - view.timeline.overlay_top }}"></rect>
+      {% endfor %}
+      <text class="plot-label" x="6" y="{{ view.timeline.caption_y }}">{{ view.timeline.caption }}</text>
+      {% for mark in view.timeline.marks %}
+      {% if mark.ruled %}
+      <line class="scale-rule" x1="{{ view.timeline.plot_left }}" y1="{{ '%.2f' % mark.y }}"
+            x2="{{ view.timeline.plot_right }}" y2="{{ '%.2f' % mark.y }}"></line>
+      {% endif %}
+      <text class="scale-label" x="{{ view.timeline.plot_left - 6 }}" y="{{ '%.2f' % mark.y }}">{{ mark.label }}</text>
       {% endfor %}
       {% for bar in view.timeline.bars %}
       <rect class="volume-bar" x="{{ '%.2f' % bar.x }}" y="{{ '%.2f' % bar.y }}"
-            width="{{ '%.2f' % bar.width }}" height="{{ '%.2f' % bar.height }}">
-        <title>{{ bar.label }}</title>
-      </rect>
+            width="{{ '%.2f' % bar.width }}" height="{{ '%.2f' % bar.height }}"></rect>
       {% endfor %}
-      {% for span in view.timeline.episodes %}
-      <rect class="episode-span" x="{{ '%.2f' % span.x }}" y="0"
-            width="{{ '%.2f' % span.width }}" height="{{ view.timeline.baseline_y }}">
-        <title>{{ span.label }}</title>
-      </rect>
+      <line class="baseline" x1="{{ view.timeline.plot_left }}" y1="{{ view.timeline.baseline_y }}"
+            x2="{{ view.timeline.plot_right }}" y2="{{ view.timeline.baseline_y }}"></line>
+      <text class="plot-label" x="6" y="{{ view.timeline.share.caption_y }}">{{ view.timeline.share.caption }}</text>
+      {% for mark in view.timeline.share.marks %}
+      {% if mark.ruled %}
+      <line class="scale-rule" x1="{{ view.timeline.plot_left }}" y1="{{ '%.2f' % mark.y }}"
+            x2="{{ view.timeline.plot_right }}" y2="{{ '%.2f' % mark.y }}"></line>
+      {% endif %}
+      <text class="scale-label" x="{{ view.timeline.plot_left - 6 }}" y="{{ '%.2f' % mark.y }}">{{ mark.label }}</text>
       {% endfor %}
-      <line class="baseline" x1="0" y1="{{ view.timeline.baseline_y }}"
-            x2="{{ view.timeline.view_w }}" y2="{{ view.timeline.baseline_y }}"></line>
+      <line class="midline" x1="{{ view.timeline.plot_left }}" y1="{{ '%.2f' % view.timeline.share.midline_y }}"
+            x2="{{ view.timeline.plot_right }}" y2="{{ '%.2f' % view.timeline.share.midline_y }}"></line>
+      {% for points in view.timeline.share.line_segments %}
+      <polyline class="share-line" points="{{ points }}"></polyline>
+      {% endfor %}
+      {% for dot in view.timeline.share.dots %}
+      <circle class="share-dot{% if dot.low_sample %} low-sample{% endif %}"
+              cx="{{ '%.2f' % dot.x }}" cy="{{ '%.2f' % dot.y }}" r="2.5"></circle>
+      {% endfor %}
+      <line class="baseline" x1="{{ view.timeline.plot_left }}" y1="{{ view.timeline.share.baseline_y }}"
+            x2="{{ view.timeline.plot_right }}" y2="{{ view.timeline.share.baseline_y }}"></line>
       {% for x, label in view.timeline.ticks %}
       <text class="tick" x="{{ '%.2f' % x }}" y="{{ view.timeline.view_h - 8 }}">{{ label }}</text>
       {% endfor %}
+      {% for strip in view.timeline.hover_strips %}
+      <rect class="hover-strip" x="{{ '%.2f' % strip.x }}" y="{{ view.timeline.overlay_top }}"
+            width="{{ '%.2f' % strip.width }}"
+            height="{{ view.timeline.overlay_bottom - view.timeline.overlay_top }}">
+        <title>{{ strip.label }}</title>
+      </rect>
+      {% endfor %}
     </svg>
+    {% if view.timeline.valve_windows %}
     <ul class="chart-legend timeline-legend">
-      <li><span class="key key-volume"></span> review volume</li>
-      <li><span class="key key-episode"></span> unusual review volume (detected)</li>
       <li><span class="key key-valve"></span> Steam-marked period</li>
     </ul>
-    <p class="legend-line">statistical detection over all-language volume; no cause attributed</p>
+    {% endif %}
+    <p class="axis-note">{{ view.timeline.share.note }}</p>
     {% else %}
     <p class="placeholder">Steam serves no volume series for this game.</p>
     {% endif %}

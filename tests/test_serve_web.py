@@ -422,33 +422,62 @@ def test_sentence_expansion_caps_punctuation_poor_walls() -> None:
     assert shown.endswith(" …")
 
 
-def test_timeline_maps_buckets_and_marker_layers_to_one_scale() -> None:
-    """Bars scale to the busiest bucket on a linear time axis; episode and
-    Valve layers land as spans on the same scale, labels in the no-causal-noun
-    vocabulary; an empty histogram renders no timeline at all."""
-    episode = EpisodeMarker(
-        start=datetime(2024, 3, 1, tzinfo=UTC), end=datetime(2024, 4, 1, tzinfo=UTC),
-        buckets=1, reviews=900, peak_multiple=4.2, overlaps_marked_window=True,
-    )
+def test_timeline_maps_buckets_and_layers_to_one_scale() -> None:
+    """Volume bars scale to the busiest bucket on a linear time axis; the
+    positive-share line rides the same x geometry with absolute heights,
+    dropping low-sample buckets out of the line as faded dots; every bucket
+    gets one hover strip whose label joins volume, split, share, and
+    Steam-marked overlap; an empty histogram renders no timeline at all."""
     event = ReviewEvent(
         event_type=0,
         start=datetime(2024, 3, 5, tzinfo=UTC), end=datetime(2024, 3, 20, tzinfo=UTC),
     )
+    thin_month = _bucket(2025, 7, 2, 1)  # 3 reviews: under the sample floor
     view = build_report_view(
-        _page(report=_report(histogram=_histogram(_CALM_BUCKETS, (event,)),
-                             episodes=(episode,)))
+        _page(report=_report(
+            histogram=_histogram(_CALM_BUCKETS + (thin_month,), (event,))
+        ))
     )
     timeline = view.timeline
     assert timeline is not None
-    assert len(timeline.bars) == len(_CALM_BUCKETS)
+    assert len(timeline.bars) == len(_CALM_BUCKETS) + 1
     peak_bar = max(timeline.bars, key=lambda b: b.height)
-    assert peak_bar.height == timeline.baseline_y - 12.0  # full plot height
-    assert "74 reviews" in peak_bar.label
-    assert len(timeline.episodes) == 1
-    assert "review activity spike" in timeline.episodes[0].label
-    assert "overlaps a Steam-marked period" in timeline.episodes[0].label
+    assert peak_bar.height == timeline.baseline_y - 30.0  # full plot height
     assert len(timeline.valve_windows) == 1
-    assert timeline.episodes[0].x < timeline.episodes[0].x + timeline.episodes[0].width
+    assert timeline.caption == "review volume"
+    assert timeline.peak_label == "monthly peak 74 reviews"
+    # Round-number scale anchors under the 74-review peak: step 20, plus the
+    # unruled zero the baseline itself draws.
+    assert [(m.label, m.ruled) for m in timeline.marks] == [
+        ("20", True), ("40", True), ("60", True), ("0", False),
+    ]
+
+    share = timeline.share
+    assert [(m.label, m.ruled) for m in share.marks] == [
+        ("100%", True), ("50%", False), ("0%", False),
+    ]
+    assert share.caption == "positive review share"
+    # The 30 healthy months join as one line; the thin month falls out as a
+    # faded dot instead of lending its noise the authority of a trend.
+    assert len(share.line_segments) == 1
+    points = share.line_segments[0].split()
+    assert len(points) == len(_CALM_BUCKETS)
+    first_y = float(points[0].split(",")[1])
+    plot_height = 80.0  # the share plot's fixed frame; a full bar is 100%
+    assert first_y == pytest.approx(
+        share.baseline_y - 40 / 45 * plot_height, abs=0.01
+    )
+    assert len(share.dots) == 1
+    assert share.dots[0].low_sample
+    assert share.midline_y == pytest.approx(share.baseline_y - plot_height / 2)
+
+    strips = timeline.hover_strips
+    assert len(strips) == len(timeline.bars)
+    assert "Jun 2025 · 74 reviews (69 up · 5 down) · 93% positive" in strips[-2].label
+    assert "67% positive" in strips[-1].label
+    assert "small sample" in strips[-1].label
+    marked = [s for s in strips if "Steam-marked period" in s.label]
+    assert [s.label.startswith("Mar 2024") for s in marked] == [True]
     # An empty histogram is only coherent for a take-all game (a sampled plan
     # compiled off this snapshot, so emptiness there fails loud in _regime).
     empty = build_report_view(
@@ -541,16 +570,20 @@ def _page_app(
 def test_report_page_renders_every_section() -> None:
     """The ruled top-to-bottom structure lands in HTML: header + provenance,
     narrative with certified spans marked, aspect bars with quotes, the
-    candidate stratum tagged uncalibrated, the timeline SVG with its
-    discipline line, and the trust panel."""
+    candidate stratum tagged uncalibrated, the volume and positive-share
+    charts (stored episode markers rendering nowhere), and the trust panel."""
     narrative = ComposedNarrative(
         prose="Players praise combat.",
         spans=(GroundedSpan(start=15, end=21, text="combat", kind=SpanKind.QUOTE,
                             review_id="r1"),),
         outcome=NarrativeOutcome.COMPOSED,
     )
+    episode = EpisodeMarker(
+        start=datetime(2024, 3, 1, tzinfo=UTC), end=datetime(2024, 4, 1, tzinfo=UTC),
+        buckets=1, reviews=900, peak_multiple=4.2, overlaps_marked_window=False,
+    )
     page = _page(
-        report=_report(narrative=narrative),
+        report=_report(narrative=narrative, episodes=(episode,)),
         aggregates=(
             _aggregate("combat", 270),
             _aggregate("grind", 8, slot=AspectSlot.CANDIDATE),
@@ -568,7 +601,12 @@ def test_report_page_renders_every_section() -> None:
     assert "great gunplay" in html
     assert "uncalibrated" in html
     assert "timeline-chart" in html
-    assert "no cause attributed" in html
+    assert "review volume" in html
+    assert "share-line" in html
+    assert "positive review share" in html
+    assert "hover-strip" in html
+    assert "unusual review volume" not in html
+    assert "review activity spike" not in html
     assert "How this report was made" in html
     assert "0.766 [0.713–0.811]" in html
 
