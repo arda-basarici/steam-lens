@@ -62,7 +62,11 @@ _NUMERAL: Final = re.compile(r"\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?")
 # and contractions would make them unpairable.
 _CURLY_QUOTES: Final = {"“": '"', "”": '"', "„": '"', "«": '"', "»": '"'}
 
-_SENTENCE_END: Final = re.compile(r"[.!?]+(?=\s|$)")
+# A sentence ends at terminal punctuation followed by whitespace, or at the
+# closing quotation mark of a quote that swallowed the punctuation ("…too
+# high." Next) — provided what follows does not read as the sentence
+# continuing (a lowercase word: "…too high." and 99 agreed).
+_SENTENCE_END: Final = re.compile(r'[.!?]+(?:"(?=\s+[^\sa-z]|\s*$)|(?=\s|$))')
 
 # Sentence punctuation a writer closes a quotation with — the American
 # convention puts it inside the mark. Stripped from the quoted words before
@@ -260,7 +264,8 @@ def drop_violating_sentences(prose: str, report: GroundingReport) -> str:
     """Cut every sentence a violation touches; survivors keep their own text.
 
     The ladder's second rung: sentence boundaries are terminal punctuation
-    outside quotations (a period inside a quote never splits), each violating
+    outside quotations (a period mid-quote never splits; one that closes the
+    quotation does), each violating
     sentence is removed whole, and the surviving text — possibly empty —
     returns for the shell to re-ground, so the final certificate's offsets
     refer to exactly what renders.
@@ -343,13 +348,16 @@ def _sentence_spans(prose: str) -> list[tuple[int, int]]:
     Each span runs through its terminal punctuation and the whitespace that
     follows, so concatenating survivors preserves the original spacing
     (paragraph breaks ride the trailing whitespace of the sentence before
-    them). Trailing text with no terminator is a final span of its own.
+    them). Trailing text with no terminator is a final span of its own. A
+    period the writer tucked inside a closing quotation mark still ends the
+    sentence when the mark closes the quote (the boundary sits just past the
+    mark); punctuation deeper inside a quotation never splits.
     """
     pairs, _ = _quote_pairs(prose)
     spans: list[tuple[int, int]] = []
     start = 0
     for match in _SENTENCE_END.finditer(prose):
-        if _inside_any(match.start(), pairs):
+        if _inside_any(match.end(), pairs):
             continue
         end = match.end()
         while end < len(prose) and prose[end].isspace():

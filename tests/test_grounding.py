@@ -209,6 +209,24 @@ def test_drop_never_splits_inside_a_quotation() -> None:
     assert drop_violating_sentences(prose, report) == "The rest moved on."
 
 
+def test_drop_splits_after_a_quotation_that_closes_its_sentence() -> None:
+    """A period tucked inside the closing mark still ends the sentence when a
+    new one follows, so the quote-ending sentence keeps its text while its
+    violating neighbour goes; the same shape read as a continuation (lowercase
+    after the mark) stays one sentence."""
+    evidence = [_evidence("r7", "the price is too high")]
+    prose = 'Reviewers write "too high." Roughly 40% complain. The rest hold up.'
+    report = ground(prose, frozenset(), evidence)
+    assert [violation.text for violation in report.violations] == ["40"]
+    assert (
+        drop_violating_sentences(prose, report)
+        == 'Reviewers write "too high." The rest hold up.'
+    )
+    continued = 'Reviewers write "too high." and 40% agree. The rest hold up.'
+    report = ground(continued, frozenset(), evidence)
+    assert drop_violating_sentences(continued, report) == "The rest hold up."
+
+
 def test_drop_can_leave_nothing() -> None:
     """Every sentence condemned returns empty — the ladder's withholding rung decides next."""
     prose = "Roughly 40% complain."

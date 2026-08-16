@@ -37,6 +37,7 @@ from typing import Final
 from steamlens.contracts import (
     AspectAggregate,
     AspectSlot,
+    ComposedNarrative,
     EvidenceQuote,
     GroundedSpan,
     HistogramBucket,
@@ -140,6 +141,26 @@ class NarrativeSegment:
     text: str
     kind: SpanKind | None = None
     review_id: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class NarrativeView:
+    """The narrative section: the prose cut along its certificate, plus what the
+    reader must be told about it.
+
+    ``trimmed`` and ``withheld`` are the gate's two degraded rungs made
+    visible on the page itself (the trust panel says the same one click
+    deeper); ``has_numerals`` / ``has_quotes`` drive the caption, which only
+    names the span kinds this narrative actually certifies — a legend
+    promising verbatim quotes over prose that quotes nothing would misstate
+    the certificate.
+    """
+
+    segments: tuple[NarrativeSegment, ...]
+    trimmed: bool
+    withheld: bool
+    has_numerals: bool
+    has_quotes: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -335,8 +356,7 @@ class ReportView:
     game_name: str
     header_image_url: str
     provenance_line: str
-    narrative: tuple[NarrativeSegment, ...]
-    narrative_withheld: bool
+    narrative: NarrativeView
     aspects: AspectSectionView
     candidates: CandidateSectionView
     timeline: TimelineView | None
@@ -450,6 +470,22 @@ def _humanize_echoed_keys(
     )
 
 
+def _narrative_section(
+    narrative: ComposedNarrative, aspect_keys: Iterable[str]
+) -> NarrativeView:
+    """The stored narrative shaped for the page: segments plus its disclosures."""
+    kinds = {span.kind for span in narrative.spans}
+    return NarrativeView(
+        segments=_humanize_echoed_keys(
+            narrative_segments(narrative.prose, narrative.spans), aspect_keys
+        ),
+        trimmed=narrative.outcome is NarrativeOutcome.TRIMMED,
+        withheld=narrative.outcome is NarrativeOutcome.WITHHELD,
+        has_numerals=SpanKind.NUMERAL in kinds,
+        has_quotes=SpanKind.QUOTE in kinds,
+    )
+
+
 def build_report_view(page: ReportPageData) -> ReportView:
     """The one entry: a loaded bundle shaped into the page, top to bottom."""
     report = page.report
@@ -458,11 +494,9 @@ def build_report_view(page: ReportPageData) -> ReportView:
         game_name=report.game_name,
         header_image_url=header_art_url(report.app_id),
         provenance_line=provenance_line(report),
-        narrative=_humanize_echoed_keys(
-            narrative_segments(report.narrative.prose, report.narrative.spans),
-            {a.aspect for a in page.aggregates},
+        narrative=_narrative_section(
+            report.narrative, {a.aspect for a in page.aggregates}
         ),
-        narrative_withheld=report.narrative.outcome is NarrativeOutcome.WITHHELD,
         aspects=_aspect_section(page, spiky),
         candidates=_candidate_section(page.aggregates),
         timeline=_timeline(report.histogram),

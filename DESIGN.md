@@ -1607,14 +1607,26 @@ the strict gate bought (a distinct "regrounded" rung that would disclose the
 repair on the page was considered and set aside for now, 2026-08-16). The
 repair reached twelve reports: the seven trimmed, and the five retried whose
 corrective retries had obeyed "remove or replace the violating quotations"
-by dropping quotations wholesale, one to none at all.
+by dropping quotations wholesale, one to none at all. The same convention had
+a second-order effect on the trim rung: the sentence splitter read a period
+inside a closing mark as mid-quote and never split there, so a sentence
+ending on a quotation merged with its neighbour and both fell when either
+violated. The splitter now ends a sentence just past a closing mark that
+swallowed the punctuation, unless what follows reads as the sentence
+continuing (a lowercase word); punctuation deeper inside a quotation still
+never splits (2026-08-16).
 
 Prose failure never fails a job: a compose call that hits our own capacity
 refusal, outlives the client's transient retries, or finishes uncleanly
 degrades to the disclosed withholding rather than aborting a pipeline whose
 labels are already bought and banked. Ladder rungs are recorded, not
 inferred: the report carries which one produced its narrative, so the page
-discloses without re-deriving.
+discloses without re-deriving: a trimmed or withheld rung wears a notice on
+the report page itself, not only in the folded trust panel, and the caption
+under the prose names only the span kinds the certificate actually holds
+(a narrative that quotes nothing does not promise verbatim quotes; one that
+certifies nothing says so). The stored record carries no count of removed
+sentences, so the trimmed notice stays generic (2026-08-16).
 
 **The prompt-injection canary set lands with this milestone**: the first
 surface rendering model prose, over a product whose entire input is

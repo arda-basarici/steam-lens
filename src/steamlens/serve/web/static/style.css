@@ -376,7 +376,7 @@ a:hover {
   color: var(--text-muted);
 }
 
-.withheld {
+.narrative-notice {
   color: var(--text-secondary);
   font-style: italic;
 }

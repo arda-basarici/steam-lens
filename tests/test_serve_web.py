@@ -220,7 +220,7 @@ def test_narrative_model_voice_wears_spaced_aspect_keys() -> None:
             aggregates=(_aggregate("game_length", 13),),
         )
     )
-    assert [seg.text for seg in view.narrative] == [
+    assert [seg.text for seg in view.narrative.segments] == [
         "Reviews split on game length. ",
         '"game_length is fine"',
         " said one.",
@@ -647,6 +647,70 @@ def test_report_page_renders_every_section() -> None:
     assert "review activity spike" not in html
     assert "How this report was made" in html
     assert "0.766 [0.713–0.811]" in html
+
+
+def _narrative_section(narrative: ComposedNarrative) -> str:
+    html = _get(_page_app(_page(report=_report(narrative=narrative))), "/reports/440").text
+    start = html.index('<section class="narrative">')
+    return html[start : html.index("</section>", start)]
+
+
+def test_degraded_narrative_rungs_disclose_on_the_page_itself() -> None:
+    """A trimmed narrative wears a visible notice above its prose and a
+    withheld one a notice in place of it — the trust panel says the same one
+    click deeper, but a degraded rung must not read as a normal report; the
+    passing rungs carry no notice."""
+    numeral = GroundedSpan(start=23, end=26, text="27%", kind=SpanKind.NUMERAL, value=0.27)
+    trimmed = _narrative_section(ComposedNarrative(
+        prose="Players praise combat. 27% mention it.", spans=(numeral,),
+        outcome=NarrativeOutcome.TRIMMED,
+    ))
+    assert "Part of this narrative was removed" in trimmed
+    assert '<mark class="span-numeral"' in trimmed, "the surviving prose still renders"
+
+    withheld = _narrative_section(ComposedNarrative(
+        prose="", spans=(), outcome=NarrativeOutcome.WITHHELD,
+    ))
+    assert "Narrative withheld" in withheld
+    assert "certificate-legend" not in withheld, "no prose, no caption"
+
+    for rung in (NarrativeOutcome.COMPOSED, NarrativeOutcome.RETRIED):
+        section = _narrative_section(ComposedNarrative(
+            prose="Players praise combat. 27% mention it.", spans=(numeral,), outcome=rung,
+        ))
+        assert "narrative-notice" not in section, rung
+
+
+def test_certificate_caption_names_only_the_span_kinds_present() -> None:
+    """The legend under the prose promises only what the certificate holds:
+    a narrative with numbers and no quotes does not claim verbatim quotes, one
+    that certifies nothing says so, and one with both wears both."""
+    numeral = GroundedSpan(start=23, end=26, text="27%", kind=SpanKind.NUMERAL, value=0.27)
+    quote = GroundedSpan(start=0, end=8, text='"lovely"', kind=SpanKind.QUOTE, review_id="r1")
+
+    numbers_only = _narrative_section(ComposedNarrative(
+        prose="Players praise combat. 27% mention it.", spans=(numeral,),
+        outcome=NarrativeOutcome.COMPOSED,
+    ))
+    assert "checked against this report's stored data" in numbers_only
+    assert "copied verbatim from reviews" not in numbers_only
+    assert "plain text is the language model's own wording" in numbers_only
+
+    nothing_certified = _narrative_section(ComposedNarrative(
+        prose="Players praise combat.", spans=(), outcome=NarrativeOutcome.COMPOSED,
+    ))
+    assert "cites no numbers and quotes no reviews" in nothing_certified
+    assert "checked against" not in nothing_certified
+    assert "copied verbatim" not in nothing_certified
+
+    both = _narrative_section(ComposedNarrative(
+        prose='"lovely" combat, say 27% of them.',
+        spans=(quote, GroundedSpan(start=21, end=24, text="27%", kind=SpanKind.NUMERAL,
+                                   value=0.27)),
+        outcome=NarrativeOutcome.COMPOSED,
+    ))
+    assert "checked against this report's stored data" in both
+    assert "copied verbatim from reviews" in both
 
 
 def test_report_page_carries_the_share_card() -> None:

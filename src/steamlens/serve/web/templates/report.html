@@ -58,11 +58,19 @@
   </header>
 
   <section class="narrative">
-    {% if view.narrative_withheld %}
-      <p class="withheld">Narrative withheld — this report shows numbers and quotes only.</p>
+    {% if view.narrative.withheld %}
+      <p class="narrative-notice">Narrative withheld. No language-model prose passed this report's
+        checks: either too little evidence cleared the floor to write from, or no draft
+        survived the grounding check against the stored data. The numbers and quotes below
+        stand on their own.</p>
     {% else %}
+      {% if view.narrative.trimmed %}
+      <p class="narrative-notice">Part of this narrative was removed: sentences that failed the
+        grounding check against this report's stored data are not shown. What remains
+        passed.</p>
+      {% endif %}
       <p class="prose">
-        {%- for seg in view.narrative -%}
+        {%- for seg in view.narrative.segments -%}
           {%- if seg.kind -%}
             <mark class="span-{{ seg.kind.value }}"
                   {%- if seg.review_id %} title="copied verbatim from review {{ seg.review_id }}"
@@ -71,9 +79,19 @@
           {%- else -%}{{ seg.text }}{%- endif -%}
         {%- endfor -%}
       </p>
-      <p class="legend-line certificate-legend"><mark class="span-numeral">numbers</mark>
-        checked against this report's stored data · <mark class="span-quote">quotes</mark>
-        copied verbatim from reviews · plain text is the language model's own wording</p>
+      <p class="legend-line certificate-legend">
+        {%- if view.narrative.has_numerals -%}
+        <mark class="span-numeral">numbers</mark> checked against this report's stored data ·
+        {% endif -%}
+        {%- if view.narrative.has_quotes -%}
+        <mark class="span-quote">quotes</mark> copied verbatim from reviews ·
+        {% endif -%}
+        {%- if view.narrative.has_numerals or view.narrative.has_quotes -%}
+        plain text is the language model's own wording
+        {%- else -%}
+        this narrative cites no numbers and quotes no reviews; all of it is the language model's own wording
+        {%- endif -%}
+      </p>
     {% endif %}
   </section>
 
