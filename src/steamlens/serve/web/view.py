@@ -929,7 +929,7 @@ def _trust_entries(
             "frozen calibration, not properties of this run",
         ),
         *[
-            (f"· {_READING_GLOSSES[name][0]}", _READING_GLOSSES[name][1].format(value=value))
+            (f"· {READING_GLOSSES[name][0]}", READING_GLOSSES[name][1].format(value=value))
             for name, value in PUBLISHED_READINGS.items()
         ],
         (
@@ -946,7 +946,7 @@ def _trust_entries(
 # template). Keyed by the instrument's own reading names so a renamed or added
 # reading fails loud here instead of rendering unglossed; the technical name
 # rides inside the value for the reader who wants it.
-_READING_GLOSSES: dict[str, tuple[str, str]] = {
+READING_GLOSSES: dict[str, tuple[str, str]] = {
     "classifier F1 vs gold": (
         "aspect tagging vs. human labels",
         "{value} (F1 against a human-labeled test set; 1.0 is best)",

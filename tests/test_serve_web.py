@@ -539,9 +539,9 @@ def test_every_published_reading_carries_a_gloss() -> None:
     table — a reading renamed or added in ``census_arm`` without a gloss fails
     here, never renders as bare jargon."""
     from steamlens.dispatch.census_arm import PUBLISHED_READINGS
-    from steamlens.serve.web.view import _READING_GLOSSES
+    from steamlens.serve.web.view import READING_GLOSSES
 
-    assert set(_READING_GLOSSES) == set(PUBLISHED_READINGS)
+    assert set(READING_GLOSSES) == set(PUBLISHED_READINGS)
 
 
 def test_trust_panel_dates_steam_flagging_when_no_window_is_marked() -> None:
