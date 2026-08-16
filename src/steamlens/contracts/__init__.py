@@ -50,6 +50,7 @@ from steamlens.contracts.ops import (
     JobRow,
     StageLatencyRow,
     StageModelRow,
+    UnattributedTotals,
 )
 from steamlens.contracts.provenance import ClassifierVersions, Provenance
 from steamlens.contracts.report import (
@@ -146,4 +147,5 @@ __all__ = [
     "DailyRefusalRow",
     "JobRow",
     "StageLatencyRow",
+    "UnattributedTotals",
 ]

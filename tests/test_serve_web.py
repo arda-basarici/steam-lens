@@ -56,6 +56,7 @@ from steamlens.contracts import (
     SpanKind,
     StageLatencyRow,
     StageModelRow,
+    UnattributedTotals,
     WindowAccount,
 )
 from steamlens.core.allowance import shipped_interval
@@ -1097,6 +1098,9 @@ def test_json_surface_never_imports_the_renderer() -> None:
 # --- the ops page ----------------------------------------------------------------
 
 
+_NOTHING_UNATTRIBUTED = UnattributedTotals(unjournaled_reports=0, unattributed_cost=0.0)
+
+
 def _ops_data(
     *,
     report_count: int = 2,
@@ -1114,6 +1118,7 @@ def _ops_data(
     daily_refusals: tuple[DailyRefusalRow, ...] = (),
     jobs: tuple[JobRow, ...] = (),
     stage_latencies: tuple[StageLatencyRow, ...] = (),
+    unattributed: UnattributedTotals = _NOTHING_UNATTRIBUTED,
 ) -> OpsData:
     return OpsData(
         now=datetime(2026, 8, 9, 14, 30, tzinfo=UTC),
@@ -1129,6 +1134,7 @@ def _ops_data(
         daily_refusals=daily_refusals,
         jobs=jobs,
         stage_latencies=stage_latencies,
+        unattributed=unattributed,
     )
 
 
@@ -1239,6 +1245,23 @@ def test_ops_view_jobs_table_tells_the_trace_without_leaking_error_text() -> Non
     assert not any(
         "secret path" in cell for row in table.rows for cell in row
     ), "raw error text is operator-only, never public"
+
+
+def test_ops_view_about_block_states_the_trace_tables_scope_in_this_stores_numbers() -> None:
+    """A store holding reports no job row accounts for says so in the about
+    block — how many the table cannot list, how much spend joins no job —
+    and a store born after the journal carries no such line at all."""
+    about = build_ops_view(_ops_data(
+        unattributed=UnattributedTotals(unjournaled_reports=10, unattributed_cost=0.1609),
+    )).about
+    scope = [note for note in about if "job journal began 2026-08-09" in note]
+    assert len(scope) == 1
+    assert "10 published reports predate it" in scope[0]
+    assert "$0.1609 spent before run attribution joins no job" in scope[0]
+
+    silent = build_ops_view(_ops_data()).about
+    assert not any("job journal began" in note for note in silent)
+    assert len(silent) == len(about) - 1, "the static disclosures are otherwise identical"
 
 
 def test_ops_view_stage_table_merges_economics_with_latency() -> None:

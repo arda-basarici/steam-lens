@@ -225,6 +225,7 @@ def build_app() -> FastAPI:
                 daily_refusals=store.ops.daily_refusals(since),
                 jobs=store.ops.recent_jobs(20),
                 stage_latencies=store.ops.stage_latencies(),
+                unattributed=store.ops.unattributed_totals(),
             )
 
     def database_ok() -> bool:

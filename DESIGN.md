@@ -2103,6 +2103,27 @@ parked narration-ETA calibration needs. Gate refusals journal to `refusals`
 (timestamp and which guard fired, no IP by shape) so "how often does the
 breaker fire" is answerable from the store.
 
+**The trace table states what the journal cannot see (2026-08-17).** The
+ops page's "recent analyses" table is one row per journaled job, and the
+journal is younger than the store: ten reports were published before it
+existed, their calls carry no run id, and both lenses of the live-app sweep
+read the missing rows as an unstated operator exclusion (tier 3 #11). The
+query excludes nothing; the rows predate the instrument. Ruled: the
+aggregates stay all-time (they reconcile with the library and the bill),
+the heading stays, and the collapsed about block carries one computed line:
+how many published reports no job row accounts for and how much ledger
+spend joins no job (`OpsReads.unattributed_totals`, keyed on the structural
+markers, no job row / NULL run id, never on a date, so the number stays
+true should a report ever lack a job row for another reason; absent on a
+store born after the journal). Considered and set aside: a caption under
+the table (the 2026-08-14 simplification pass folded per-table captions
+into the about block, and this is provenance); scoping the whole page to
+the journal's era (trades an in-page mismatch for a cross-page one against
+the library and understates spend against the provider dashboard the page
+names as billing truth); deleting or re-running the pre-journal reports
+(destroys or re-buys real history to fit a heading; the ledger rows would
+still join no job).
+
 **Tier-3 platforms, named and rejected.** Langfuse (now wanting Postgres +
 ClickHouse), Prometheus+Grafana, and LangSmith all fail the standing "does
 *this product* need it?" test on a 4 GB box running one process over one

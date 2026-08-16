@@ -55,6 +55,7 @@ from steamlens.contracts import (
     SpendLedger,
     SpendRecord,
     TokenUsage,
+    UnattributedTotals,
     WindowAccount,
 )
 from steamlens.llm_client import (
@@ -1326,6 +1327,36 @@ class TestJobLog:
         trimmed = replace(_narrative(), outcome=NarrativeOutcome.TRIMMED)
         store.reports.put(_report("serve-1", narrative=trimmed), [_aggregate("serve-1")])
         assert store.ops.recent_jobs(1)[0].narrative_outcome == "trimmed"
+
+    def test_unattributed_totals_count_what_no_job_row_accounts_for(
+        self, store: Store
+    ) -> None:
+        """A report with no job row and a ledger row with no run id — the
+        pre-journal shape (2026-08-09) — land in the disclosure totals; a
+        journaled report and an attributed row do not. Keyed on the marker,
+        not on any date."""
+        _record_run(store, "serve-old")
+        store.reports.put(_report("serve-old"), [_aggregate("serve-old")])
+        _record_run(store, "serve-new")
+        store.jobs.start("serve-new", 440, "Team Fortress 2", at=_NOON)
+        store.reports.put(_report("serve-new"), [_aggregate("serve-new")])
+        store.spend_ledger.append(_record(cost=0.002))  # run-attributed
+        store.spend_ledger.append(
+            SpendRecord(
+                created_at=_NOON, stage=LlmStage.CLASSIFY, model="model-a",
+                model_version="model-a-001",
+                usage=TokenUsage(prompt_tokens=10, output_tokens=5, thinking_tokens=0),
+                cost=0.03, duration_s=2.0, run_id=None,
+            )
+        )
+        totals = store.ops.unattributed_totals()
+        assert totals.unjournaled_reports == 1
+        assert totals.unattributed_cost == pytest.approx(0.03)
+
+    def test_unattributed_totals_read_zero_on_a_store_born_after_the_journal(
+        self, store: Store
+    ) -> None:
+        assert store.ops.unattributed_totals() == UnattributedTotals(0, 0.0)
 
     def test_start_then_settle_round_trips_through_the_ops_read(self, store: Store) -> None:
         store.jobs.start("serve-1", 440, "Team Fortress 2", at=_NOON)

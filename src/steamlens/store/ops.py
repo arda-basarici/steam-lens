@@ -33,6 +33,7 @@ from steamlens.contracts import (
     JobRow,
     StageLatencyRow,
     StageModelRow,
+    UnattributedTotals,
 )
 from steamlens.store.convert import utc_isoformat
 
@@ -208,6 +209,27 @@ class OpsReads:
         """How many analyses have ever published a report — the unit-economics denominator."""
         row = self._conn.execute("SELECT COUNT(*) FROM reports").fetchone()
         return int(row[0])
+
+    def unattributed_totals(self) -> UnattributedTotals:
+        """What no job row accounts for: published reports without a journaled
+        job, and ledger spend carrying no run id.
+
+        The trace table's disclosure input — reports and calls from before the
+        job journal and run attribution existed (step 6, 2026-08-09) count in
+        the report total and the stage totals but can join no job, and the
+        ops page says so rather than letting the table's heading imply the
+        store holds fewer analyses than the library shows. Both reads key on
+        the structural marker (no job row / NULL run id), never on a date.
+        """
+        reports, cost = self._conn.execute(
+            "SELECT (SELECT COUNT(*) FROM reports r"
+            "        WHERE NOT EXISTS (SELECT 1 FROM jobs j WHERE j.run_id = r.run_id)),"
+            "       (SELECT COALESCE(SUM(cost), 0.0) FROM spend_ledger"
+            "        WHERE run_id IS NULL)"
+        ).fetchone()
+        return UnattributedTotals(
+            unjournaled_reports=int(reports), unattributed_cost=float(cost)
+        )
 
 
 def _nearest_rank(ordered: list[float], quantile: float) -> float:

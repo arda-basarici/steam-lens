@@ -33,6 +33,7 @@ from steamlens.contracts import (
     NarrativeOutcome,
     StageLatencyRow,
     StageModelRow,
+    UnattributedTotals,
 )
 
 # The ladder rungs whose report shipped with partial or no prose; the two
@@ -51,7 +52,9 @@ class OpsData:
     the "today" reads were computed against (one clock, one story);
     ``admissions_today``/``spend_today_usd`` are the gate's own reads reused,
     and the limits are the serving config's dials so the page always shows
-    the numbers actually enforcing.
+    the numbers actually enforcing. ``unattributed`` is what the trace table
+    cannot list (reports and spend no job row accounts for), so the about
+    block can state the table's scope in this store's own numbers.
     """
 
     now: datetime
@@ -67,6 +70,7 @@ class OpsData:
     daily_refusals: tuple[DailyRefusalRow, ...] = ()
     jobs: tuple[JobRow, ...] = ()
     stage_latencies: tuple[StageLatencyRow, ...] = ()
+    unattributed: UnattributedTotals = UnattributedTotals(0, 0.0)
 
 
 @dataclass(frozen=True, slots=True)
@@ -153,7 +157,38 @@ def build_ops_view(data: OpsData) -> OpsView:
             _daily_table(data.daily_ledger, data.daily_admissions, data.daily_refusals),
             _stages_table(data.stage_model, data.stage_latencies),
         ),
-        about=(
+        about=_about_notes(data.unattributed),
+    )
+
+
+def _about_notes(unattributed: UnattributedTotals) -> tuple[str, ...]:
+    """The collapsed methodology fine print, in reading order.
+
+    Static disclosures plus one line this store computes: when published
+    reports exist that no job row accounts for, the trace table's scope is
+    stated here in numbers — how many reports it cannot list and how much
+    ledger spend joins no job — beside the repricing note about the same
+    pre-observability era. The line is absent for a store born after the
+    journal, which has nothing to disclose. Per-table captions were folded
+    into this block at the 2026-08-14 simplification pass, so a scope note
+    belongs here, not under the table (tier 3 #11 of the live-app sweep, whose
+    lenses read the missing rows as an unstated operator exclusion — the
+    query excludes nothing; the rows predate the journal).
+    """
+    scope = (
+        (
+            "the recent-analyses table lists journaled jobs, and the job "
+            f"journal began 2026-08-09: {unattributed.unjournaled_reports} "
+            "published reports predate it, so they count in reports published "
+            "but list no row there, and the ledger's "
+            f"{_usd(unattributed.unattributed_cost)} spent before run "
+            "attribution joins no job",
+        )
+        if unattributed.unjournaled_reports
+        else ()
+    )
+    return (
+        (
             "all days are UTC days; the operator's unlocked runs spend but "
             "are never counted as public admissions",
             "views counts report-page loads — search answers, library "
@@ -162,6 +197,9 @@ def build_ops_view(data: OpsData) -> OpsView:
             "so crawlers and the operator are included",
             "a job's cost joins the spend ledger by its run id, failed runs "
             "included; its views join the report-view journal the same way",
+        )
+        + scope
+        + (
             "done (degraded) marks a published report whose narrative the "
             "grounding gate trimmed or withheld — the numbers and quotes are "
             "whole, the prose is partial or absent, and the report's own "
@@ -179,7 +217,7 @@ def build_ops_view(data: OpsData) -> OpsView:
             "token-level splits (prompt, cached, output, thinking) stay in "
             "the ledger journal — this page renders the rates and unit "
             "costs they produce",
-        ),
+        )
     )
 
 
