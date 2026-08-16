@@ -303,7 +303,7 @@ class TimelineView:
     ``view_w``/``view_h`` are the SVG viewBox the coordinates live in;
     ``baseline_y`` is the volume plot's x-axis, ``overlay_top``/``overlay_bottom``
     bound the full-height layers. Stored episode markers deliberately do not
-    render (dropped 2026-08-14): the render rule forbids attributing a cause,
+    render (ruled 2026-08-14): the render rule forbids attributing a cause,
     so a highlighted span was a question the report refuses to answer —
     detection stays in ``core/detect`` and in storage for the investigator
     milestone.

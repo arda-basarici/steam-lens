@@ -274,9 +274,10 @@ no ground truth exists, the claim is unfalsifiable, and an unvalidatable accusat
 makes every other claim less trustworthy.)*
 
 *Redirect 2026-07-27: the explanation half is deferred with the investigator:
-deployment (M3) ships display-only episode markers, pure statistics over the
-all-language histogram; the detection layer and the tombstone stand. See "The
-redirect & the product frame".*
+deployment (M3) built display-only episode markers, pure statistics over the
+all-language histogram; the detection layer and the tombstone stand. The
+markers have since left the report display too — the marker design's
+2026-08-14 ruling. See "The redirect & the product frame".*
 
 ### The door as built (`steam_client`)
 
@@ -930,8 +931,9 @@ test guards). Roadmap shape: the chat is **the new M4**, sequenced after the
 sampling study (M2) and deployment (M3): M3 ships a URL sooner, and the chat's
 offline prototype + eval can run against the 49-game census before deployment
 exists, so the eval story is never hostage to M3. `core/detect` survives as
-**display-only episode markers** built at M3: pure statistics over the
-all-language histogram, no explainer. The M1 post tells the redirect straight: a
+**stored episode markers** built at M3: pure statistics over the
+all-language histogram, no explainer — persisted with every report, no
+longer rendered (the marker design's 2026-08-14 ruling). The M1 post tells the redirect straight: a
 measured scope call on stated grounds, not a retreat.
 
 **Type a game name, get the report, then interrogate it** (product frame ruled
@@ -1174,7 +1176,7 @@ Constants re-derive from the run of record, never hand-carried.)*
   default marked-window blanking, which the production fetch inherits and
   the probes verified on the wire, is certified **load-bearing** (even a 5%
   bomb admixture voids the calibrated bars), and marked windows stay
-  display-only episode markers, never folded into displayed numbers.
+  a display overlay, never folded into displayed numbers.
 - **Standing caveat, carried to the report:** the constants are
   self-calibrated on the study corpus, with the spiky calibration resting on
   thin cells and its off-corpus transfer undemonstrated (the closing test's
@@ -1695,19 +1697,16 @@ volume; no cause attributed"), turning the absence of explanation into
 visible method. The chat milestone becomes where "what happened here?" gets
 asked, with receipts.
 
-**Dropped from display (2026-08-14, the polish run).** The markers no longer
-render on the report page: however disciplined the vocabulary, a highlighted
-span puts a question on the page the report refuses to answer — the reader
-sees "something happened here" and the product declines to say what, which
-reads as withholding rather than method. Detection still runs and every
-report still persists its markers (the investigator milestone's raw
-material); the drop is view-layer only. In the same pass the timeline gained
-a positive-share companion chart on the volume chart's x scale — share of
-each month's reviews rated positive, a dashed 50% midline, months under five
-reviews faded because a share over a handful of reviews is binomial noise.
-Volume and share read together let a reader spot the telling conjunctions
-themselves (a volume spike wearing a share dip) without the page asserting
-a detection it cannot explain.
+**The markers do not render on the report page (ruled 2026-08-14, the polish
+run).** However disciplined the vocabulary, a highlighted span puts a
+question on the page the report refuses to answer — the reader sees
+"something happened here" and the product declines to say what, which reads
+as withholding rather than method. Detection still runs and every report
+persists its episode list (the investigator milestone's raw material); the
+report page simply doesn't draw it. The timeline's reading instead comes
+from pairing volume bars with a positive-share line on the same time axis:
+a reader spots the telling conjunctions themselves — a volume spike wearing
+a share dip — without the page asserting a detection it cannot explain.
 
 ### The frontend
 
@@ -1737,10 +1736,11 @@ display floors, 2026-08-14: counts under five sit at the classifier's
 false-positive floor, so a cut costs less trust than mislabeled evidence),
 each aspect expanding to verbatim evidence quotes (sentence-expanded from
 the review at display time and dated), the candidate stratum below honestly
-marked emergent-uncalibrated; the all-language timeline as a volume chart
-and a positive-share companion on one x scale, Valve-marked windows
-overlaid (episode markers dropped from display 2026-08-14 — the ruling
-sits with the marker design above); and the trust panel (the
+marked emergent-uncalibrated; the all-language timeline as one panel —
+volume bars over a positive-share line on a shared time axis with numeric
+scales, one per-month hover joining both readings, Valve-marked windows
+overlaid, episode markers deliberately unrendered (the marker design above
+carries that 2026-08-14 ruling); and the trust panel (the
 protected element under any schedule pressure, folded as reference material
 but born open whenever the marked-share caveat says the calibrated bars are
 not certified), carrying the sample method, the interval regime this game
@@ -2066,8 +2066,8 @@ as code. The test for any addition stays: does *this product* need it?
 ## Scope & non-goals
 
 - In: aspect reports with receipts, narrated live analysis, the volume +
-  positive-share timeline (episode detection stored, dropped from display
-  2026-08-14), the trust panel, Docker/FastAPI/SQLite/CI deployment,
+  positive-share timeline (episode detection stored, not rendered), the
+  trust panel, Docker/FastAPI/SQLite/CI deployment,
   the evaluation methodology as a public artifact, the ops story as a public
   artifact. The report-interrogation RAG chat is designed-and-deferred (the M3
   closure ruling, under the redirect): in the design, not in the shipped scope.

@@ -839,12 +839,12 @@ def test_live_job_renders_the_narration_page() -> None:
 
 
 def test_search_page_serves_at_the_root() -> None:
-    """The front door: GET / is the search page, HTML, spine sentence on it,
+    """The front door: GET / is the search page, HTML, the tagline on it,
     with the search flow's script wired in."""
     response = _get(_page_app(None), "/")
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/html")
-    assert "Type a game name" in response.text
+    assert "What players praise and criticize" in response.text
     assert '<script src="/static/search.js?v=' in response.text
 
 
