@@ -72,6 +72,16 @@ def test_candidate_keeps_reviewer_wording() -> None:
     )
 
 
+def test_candidate_folds_the_models_snake_case_echo() -> None:
+    """An underscore is never a reviewer's wording — it is the classifier
+    imitating the pinned keys — so ``base_building`` and ``Base Building``
+    count as one candidate rather than two rows that render identically."""
+    index = build_surface_index(_ontology(_aspect("combat")))
+    assert normalize_label("base_building", index) == normalize_label(
+        "Base  Building", index
+    ) == NormalizedAspect("base building", AspectSlot.CANDIDATE)
+
+
 def test_empty_label_rejected() -> None:
     """A phrase that canonicalizes to nothing is a parser bug, not a candidate."""
     index = build_surface_index(_ontology(_aspect("combat")))

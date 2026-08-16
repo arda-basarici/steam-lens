@@ -14,7 +14,11 @@ correction path — so the conservative policy pays only the recoverable price.
 Candidates keep the reviewer's own wording (a codebook global rule): they are
 casefolded and whitespace-collapsed so recurrences count as one, but hyphens
 and phrasing survive — and spaces keep them visually distinct from the
-snake_case pinned namespace.
+snake_case pinned namespace. Underscores are the one exception: no reviewer
+writes ``base_building``; that is the classifier imitating the pinned keys
+it was shown, and left alone it split one theme into two countable rows
+(``base building`` 6 · ``base_building`` 6 on a live report, 2026-08-14), so
+underscores fold to spaces (ruled 2026-08-17).
 """
 
 from __future__ import annotations
@@ -27,6 +31,7 @@ from dataclasses import dataclass
 from steamlens.contracts import AspectOntology, AspectSlot
 
 _SEPARATORS_RE = re.compile(r"[_\-]+")
+_UNDERSCORES_RE = re.compile(r"_+")
 _WHITESPACE_RE = re.compile(r"\s+")
 
 
@@ -124,5 +129,14 @@ def match_key(text: str) -> str:
 
 
 def _candidate_form(text: str) -> str:
-    """The countable normal form of a free-form label — reviewer's wording kept."""
-    return _WHITESPACE_RE.sub(" ", text.casefold()).strip()
+    """The countable normal form of a free-form label — reviewer's wording kept.
+
+    Casefold, underscores to spaces (the model's snake_case echo, never a
+    reviewer's), whitespace collapsed; hyphens and phrasing survive.
+
+    >>> _candidate_form("Base_Building")
+    'base building'
+    >>> _candidate_form("Co-Op  partner")
+    'co-op partner'
+    """
+    return _WHITESPACE_RE.sub(" ", _UNDERSCORES_RE.sub(" ", text.casefold())).strip()

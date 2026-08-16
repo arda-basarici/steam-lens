@@ -527,7 +527,16 @@ recoverably in the candidate stratum for human-gated alias promotion (an offline
 loop: new ontology version + cheap deterministic re-normalize, no LLM re-buy). No
 floor at mint: the contract keeps the number a raw tally and the floor a display
 rule, so C2 has exactly one job (count everything, honestly) and every policy
-question lives downstream in one place.
+question lives downstream in one place. One typographic fold does apply before
+the exact grouping (ruled 2026-08-17): underscores become spaces in the candidate
+normal form. A reviewer never writes ``base_building``; that spelling is the
+classifier echoing the pinned snake_case keys it was shown, and it had split one
+theme into two rows that render identically on a live report (``base building 6 ·
+base building 6``, 2026-08-14). Hyphens and phrasing still survive as the
+reviewer's wording. The stored labels of the affected runs were folded in place
+by ``scripts/fold_candidate_underscores.py`` (8 mention rows, 3 snapshot rows,
+merges verified disjoint), because cached labels are reused by later runs of the
+same reviews and would otherwise reproduce the split.
 
 **The denominator is the per-game survey envelope count, empties included.**
 Dropping the ~46% empty-mentions envelopes would inflate every share; this is
