@@ -163,6 +163,9 @@ def build_app() -> FastAPI:
                 report=report,
                 aggregates=store.reports.get_snapshot(report.run.run_id),
                 evidence=evidence,
+                aspect_bearing_reviews=store.labels.count_members_with_mentions(
+                    report.run.run_id, report.versions
+                ),
                 quoted_reviews=store.reviews.get_many(
                     {quote.review_id for quote in evidence}
                 ),

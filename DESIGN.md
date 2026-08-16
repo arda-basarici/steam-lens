@@ -1593,9 +1593,12 @@ strips closing punctuation from the quoted words before the check
 quotation is empty, never a match to everything); the certified span still
 covers the quotation as written. This is the same class of normalization as
 folding curly quotes: typography, not content. The prompt-side alternative
-(tell the composer to punctuate outside the marks) was declined: it fights
-the model's default, and it would bump the prompt version to repair a defect
-that was the gate's own. The affected reports are repaired from their runs'
+was not merely declined, it had already lost: the compose prompt's quote rule
+tells the model, with a worked example, to put its own punctuation outside
+the closing mark, and the model disobeyed in fifteen of twenty-two runs. A
+convention that ingrained is absorbed by the deterministic side, not
+requested of the model (and a prompt edit would bump the prompt version to
+repair a defect that was the gate's own). The affected reports are repaired from their runs'
 own archived first drafts, which pass under the corrected gate, no new model
 call and no re-sample (the ledger-repricing precedent: exact recovery from
 archived provider bodies); they read as ``composed``, the rung the corrected

@@ -271,6 +271,33 @@ class LabelPool:
                 parse_enum(Sentiment, str(row[3]), context="mentions.sentiment"),
             )
 
+    def count_members_with_mentions(
+        self, run_id: str, versions: ClassifierVersions
+    ) -> int:
+        """The member reviews of ``run_id`` whose survey envelope holds at least
+        one mention under ``versions`` — the aspect-bearing count.
+
+        The trust panel's aspect-yield row: every displayed share divides by
+        the envelope count (all reviews looked at), and this read says how
+        many of those actually carried an aspect, so a reader comparing two
+        reports' shares knows the denominators include the silent majority.
+        """
+        row = self._conn.execute(
+            "SELECT COUNT(DISTINCT c.review_id) FROM sample_members s"
+            " JOIN classifications c ON c.review_id = s.review_id"
+            " JOIN mentions m ON m.classification_id = c.id"
+            " WHERE s.run_id = ? AND c.origin = ? AND c.model_version = ?"
+            " AND c.prompt_version = ? AND c.ontology_version = ?",
+            (
+                run_id,
+                Origin.SURVEY,
+                versions.model_version,
+                versions.prompt_version,
+                versions.ontology_version,
+            ),
+        ).fetchone()
+        return int(row[0])
+
     def count_member_envelopes(self, run_id: str, versions: ClassifierVersions) -> int:
         """The member reviews of ``run_id`` holding a survey envelope under ``versions``.
 

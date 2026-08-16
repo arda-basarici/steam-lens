@@ -162,12 +162,14 @@ def _page(
     aggregates: tuple[AspectAggregate, ...] = (),
     evidence: tuple[EvidenceQuote, ...] = (),
     quoted_reviews: dict[str, Review] | None = None,
+    aspect_bearing_reviews: int = 380,
 ) -> ReportPageData:
     return ReportPageData(
         report=report or _report(),
         aggregates=aggregates,
         evidence=evidence,
         quoted_reviews=quoted_reviews or {},
+        aspect_bearing_reviews=aspect_bearing_reviews,
     )
 
 
@@ -504,15 +506,34 @@ def test_trust_panel_discloses_the_ruled_facts() -> None:
         )
     )
     entries = dict(view.trust_entries)
+    assert "only English-language reviews are analyzed" in entries["Population"]
     assert "time-proportional draw" in entries["Sample"]
+    assert entries["Aspect yield"].startswith("380 of 1,000 analyzed reviews carry"), (
+        "the aspect-bearing count over the envelope count — the denominator disclosure"
+    )
+    assert "(38.0%)" in entries["Aspect yield"]
     assert entries["Interval regime"].startswith("calm")
     assert "1 windowed" in entries["Fetch paths"]
     assert "1 fallback-walked" in entries["Fetch paths"]
     assert "english 900" in entries["Language mix"]
     assert "3.5%" in entries["Marked share"]
     assert "over the 2% floor" in entries["Marked share"]
-    assert entries["Instrument: classifier F1 vs gold"] == "0.766 [0.713–0.811]"
+    assert "frozen calibration, not properties of this run" in entries["Instrument readings"]
+    assert entries["· classifier F1 vs gold"] == "0.766 [0.713–0.811]"
     assert "deepseek-v4-flash" in entries["Versions"]
+    labels = [label for label, _ in view.trust_entries]
+    assert labels.index("Instrument readings") < labels.index("· classifier F1 vs gold"), (
+        "the framing row precedes the readings it frames"
+    )
+
+
+def test_trust_panel_dates_steam_flagging_when_no_window_is_marked() -> None:
+    """A game with no Steam-marked window says so and dates the flagging era,
+    so 'none flagged' over a 2016 launch is not read as 'nothing happened'."""
+    entries = dict(build_report_view(_page()).trust_entries)
+    assert entries["Steam-marked windows"] == (
+        "none flagged by Steam (Valve's off-topic flagging began March 2019)"
+    )
 
 
 def test_provenance_line_states_the_two_denominators() -> None:
@@ -522,10 +543,10 @@ def test_provenance_line_states_the_two_denominators() -> None:
         provenance_line(_report(take_all=True))
         == "analyzed 2026-08-01 · complete count of 1,000 English reviews"
     )
-    assert (
-        provenance_line(_report())
-        == "analyzed 2026-08-01 · sample of 1,000 English reviews"
-    )
+    assert provenance_line(_report()) == (
+        "analyzed 2026-08-01 · sample of 1,000 English reviews across the whole "
+        "review history"
+    ), "the lifetime-pooling frame stated where the numbers are introduced"
 
 
 # --- the rendered page ----------------------------------------------------------

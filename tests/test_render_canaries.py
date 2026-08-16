@@ -112,6 +112,7 @@ def _hostile_page(text: str, *, review_id: str = "r1") -> ReportPageData:
                 text=f"Opening thought. Reviewers say {text} loudly. Coda.",
             )
         },
+        aspect_bearing_reviews=35,
     )
 
 
@@ -170,6 +171,7 @@ def test_hostile_review_id_cannot_break_out_of_an_attribute() -> None:
         aggregates=page.aggregates,
         evidence=page.evidence,
         quoted_reviews=page.quoted_reviews,
+        aspect_bearing_reviews=page.aspect_bearing_reviews,
     )
     html = _render(page)
     assert 'onmouseover="alert' not in html

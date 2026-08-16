@@ -352,13 +352,15 @@ class ReportPageData:
     receipts and the narrative's grounding are one pool by construction), and
     the reviews that pool quotes — the sentence-expansion and date-stamp
     source (an id absent from the map degrades that quote to its stored
-    span, undated).
+    span, undated), and the aspect-bearing count (members whose envelope
+    holds at least one mention) for the trust panel's yield row.
     """
 
     report: Report
     aggregates: tuple[AspectAggregate, ...]
     evidence: tuple[EvidenceQuote, ...]
     quoted_reviews: Mapping[str, Review]
+    aspect_bearing_reviews: int
 
 
 def provenance_line(report: Report) -> str:
@@ -377,12 +379,15 @@ def analyzed_line(created_at: datetime, sample_size: int, take_all: bool) -> str
 
     >>> from datetime import UTC, datetime
     >>> analyzed_line(datetime(2026, 8, 10, tzinfo=UTC), 1000, take_all=False)
-    'analyzed 2026-08-10 · sample of 1,000 English reviews'
+    'analyzed 2026-08-10 · sample of 1,000 English reviews across the whole review history'
     """
     date = created_at.date().isoformat()
     if take_all:
         return f"analyzed {date} · complete count of {sample_size:,} English reviews"
-    return f"analyzed {date} · sample of {sample_size:,} English reviews"
+    return (
+        f"analyzed {date} · sample of {sample_size:,} English reviews across the "
+        "whole review history"
+    )
 
 
 def header_art_url(app_id: int) -> str:
@@ -460,7 +465,7 @@ def build_report_view(page: ReportPageData) -> ReportView:
         aspects=_aspect_section(page, spiky),
         candidates=_candidate_section(page.aggregates),
         timeline=_timeline(report.histogram),
-        trust_entries=_trust_entries(report, spiky),
+        trust_entries=_trust_entries(report, spiky, page.aspect_bearing_reviews),
         # The panel folds by default (reference material), but a report whose
         # calibrated bars are not certified must not hide that disclosure
         # behind a click — the caveat forces it open.
@@ -887,15 +892,21 @@ def _year_ticks(
     return tuple(ticks)
 
 
-def _trust_entries(report: Report, spiky: bool | None) -> tuple[tuple[str, str], ...]:
+def _trust_entries(
+    report: Report, spiky: bool | None, aspect_bearing: int
+) -> tuple[tuple[str, str], ...]:
     """The trust panel as (label, value) rows — the protected element, complete.
 
     Every value is a stored fact or a deterministic recomputation from one;
     the instrument block quotes the published readings that ride the model
-    identity (``dispatch.census_arm``).
+    identity (``dispatch.census_arm``), framed as the frozen calibration they
+    are rather than properties of this run (the live-app sweep's ask,
+    2026-08-14, with the population, aspect-yield, and flagging-era rows).
     """
     entries = [
+        ("Population", _POPULATION_ENTRY),
         ("Sample", _sample_entry(report)),
+        ("Aspect yield", _aspect_yield_entry(report, aspect_bearing)),
         ("Interval regime", _regime_entry(spiky)),
         ("Fetch paths", _paths_entry(report)),
         ("Language mix", _language_entry(report)),
@@ -905,10 +916,15 @@ def _trust_entries(report: Report, spiky: bool | None) -> tuple[tuple[str, str],
         (
             "Evidence floor",
             f"aspects and emergent themes appear only with "
-            f"{ASPECT_EVIDENCE_FLOOR}+ supporting reviews — smaller counts "
+            f"{ASPECT_EVIDENCE_FLOOR}+ supporting reviews; smaller counts "
             "sit at the classifier's false-positive floor",
         ),
-        *[(f"Instrument: {name}", value) for name, value in PUBLISHED_READINGS.items()],
+        (
+            "Instrument readings",
+            "measured once on the study corpus for this model and prompt: "
+            "frozen calibration, not properties of this run",
+        ),
+        *[(f"· {name}", value) for name, value in PUBLISHED_READINGS.items()],
         (
             "Versions",
             f"{report.versions.model_version} · prompt {report.versions.prompt_version}"
@@ -919,10 +935,31 @@ def _trust_entries(report: Report, spiky: bool | None) -> tuple[tuple[str, str],
     return tuple(entries)
 
 
+# The fetch population is a fixed contract of the one sampler module: every
+# review Steam serves for the app, walked newest-first per window, with the
+# English-only cut applied at analysis, not at fetch.
+_POPULATION_ENTRY = (
+    "all Steam reviews of the game (every language, purchase type, and "
+    "verdict), walked newest-first per window; only English-language reviews "
+    "are analyzed"
+)
+
+
+def _aspect_yield_entry(report: Report, aspect_bearing: int) -> str:
+    if report.sample_size == 0:
+        return "no reviews analyzed"
+    share = aspect_bearing / report.sample_size
+    return (
+        f"{aspect_bearing:,} of {report.sample_size:,} analyzed reviews carry at "
+        f"least one aspect ({share:.1%}); every share on this page divides by "
+        f"all {report.sample_size:,}"
+    )
+
+
 def _sample_entry(report: Report) -> str:
     if report.take_all:
         return (
-            f"complete count — every usable English review ({report.sample_size:,}), "
+            f"complete count: every usable English review ({report.sample_size:,}), "
             "fetched whole-life"
         )
     return (
@@ -933,13 +970,13 @@ def _sample_entry(report: Report) -> str:
 
 def _regime_entry(spiky: bool | None) -> str:
     if spiky is None:
-        return "exact counts — no sampling intervals to calibrate"
+        return "exact counts, no sampling intervals to calibrate"
     if spiky:
         return (
-            "spiky (one window holds ≥ ⅔ of the pool) — intervals widened by the "
+            "spiky (one window holds ≥ ⅔ of the pool): intervals widened by the "
             "calibrated allowance"
         )
-    return "calm — Wilson intervals, zero allowance needed at calibration"
+    return "calm: Wilson intervals, zero allowance needed at calibration"
 
 
 def _paths_entry(report: Report) -> str:
@@ -965,9 +1002,9 @@ def _language_entry(report: Report) -> str:
 
 def _marked_entry(report: Report) -> str:
     if not report.marked_window_counts:
-        return "none flagged by Steam"
+        return "none flagged by Steam (Valve's off-topic flagging began March 2019)"
     return "; ".join(
-        f"{_span_dates(row.start, row.end)} — {row.members_inside:,} sampled inside"
+        f"{_span_dates(row.start, row.end)}: {row.members_inside:,} sampled inside"
         for row in report.marked_window_counts
     )
 
@@ -982,10 +1019,10 @@ def _marked_share_entry(report: Report) -> str:
     share = _marked_share(report)
     if share > MARKED_SHARE_FLOOR:
         return (
-            f"{share:.1%} of sample inside marked windows — over the 2% floor; "
+            f"{share:.1%} of sample inside marked windows, over the 2% floor; "
             "the calibrated bars are not certified at this admixture"
         )
-    return f"{share:.1%} of sample inside marked windows — under the 2% floor"
+    return f"{share:.1%} of sample inside marked windows, under the 2% floor"
 
 
 def _narrative_entry(outcome: NarrativeOutcome) -> str:
@@ -993,5 +1030,5 @@ def _narrative_entry(outcome: NarrativeOutcome) -> str:
         NarrativeOutcome.COMPOSED: "passed the grounding gate first try",
         NarrativeOutcome.RETRIED: "passed the grounding gate after one corrective retry",
         NarrativeOutcome.TRIMMED: "sentences failing the grounding gate were removed",
-        NarrativeOutcome.WITHHELD: "withheld — numbers and quotes render without prose",
+        NarrativeOutcome.WITHHELD: "withheld; numbers and quotes render without prose",
     }[outcome]

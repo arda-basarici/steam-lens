@@ -87,8 +87,12 @@ mid-quote stays strict (a comma the reviewer never wrote still fails), a
 punctuation-only quotation counts as empty rather than matching everything as
 the empty substring, and the certified span still covers the quotation as
 written with its source review id. Two real alternatives died. Telling the
-composer to punctuate outside the marks fights the model's default convention
-and would bump the prompt version to repair a defect that was the gate's own.
+composer to punctuate outside the marks had already been tried, it turned out:
+the compose prompt's quote rule says exactly that, worked example included
+("write the quote "solid game", then your comma"), and the model disobeyed in
+fifteen of twenty-two runs. A convention that ingrained belongs to the
+deterministic side, and a prompt edit would bump the prompt version to repair
+a defect that was the gate's own.
 Rewriting the prose to British-style punctuation before grounding is
 deterministic too, but it edits reader-visible text to suit the checker. The
 replay under the corrected gate closed the loop: 122 violations became 3, the

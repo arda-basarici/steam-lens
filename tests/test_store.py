@@ -751,6 +751,7 @@ class TestMemberFolds:
         store.labels.put(_classification("r1"))
 
         assert store.labels.count_member_envelopes("serve-2", _versions()) == 1
+        assert store.labels.count_members_with_mentions("serve-2", _versions()) == 1
         mentions = list(store.labels.iter_member_mentions("serve-2", _versions()))
         assert {(m[0], m[1]) for m in mentions} == {("r1", "gunplay"), ("r1", "netcode")}
         evidence = list(store.labels.iter_member_evidence("serve-2", _versions()))
@@ -764,12 +765,26 @@ class TestMemberFolds:
         store.labels.put(_classification("r2"))  # labeled, but not a member
 
         assert store.labels.count_member_envelopes("serve-2", _versions()) == 1
+        assert store.labels.count_members_with_mentions("serve-2", _versions()) == 1
         assert all(
             m[0] == "r1"
             for m in store.labels.iter_member_mentions("serve-2", _versions())
         )
         bumped = _versions(prompt_version="classify-v2")
         assert store.labels.count_member_envelopes("serve-2", bumped) == 0
+
+    def test_an_empty_envelope_counts_as_looked_at_but_not_aspect_bearing(
+        self, store: Store
+    ) -> None:
+        """The aspect-yield pair: a member whose envelope holds no mention is in
+        the denominator (looked at) and out of the numerator (carried nothing)."""
+        _seed(store, "r1", "r2")
+        _record_run(store, "serve-2")
+        store.sample_members.add_members("serve-2", ["r1", "r2"])
+        store.labels.put(_classification("r1"))
+        store.labels.put(_classification("r2", mentions=()))
+        assert store.labels.count_member_envelopes("serve-2", _versions()) == 2
+        assert store.labels.count_members_with_mentions("serve-2", _versions()) == 1
 
     def test_investigation_labels_never_enter_the_fold(self, store: Store) -> None:
         """The two-track wall asserted at this fold boundary like every other."""
