@@ -185,6 +185,24 @@ class ReportLog:
         ).fetchone()
         return None if row is None else _report_from_row(row)
 
+    def published_names(self) -> dict[int, str]:
+        """Every analyzed game's newest published name, keyed by app id.
+
+        The search page's decoration read: a storefront hit that already has
+        a report is offered as "open report" rather than "analyze", so the
+        row's verb says what the click will do. One query for the whole
+        table (a set-membership question, never a per-hit read); newest per
+        app so a re-run's name wins, the same resolution ``latest_report``
+        and ``cards`` serve.
+        """
+        rows = self._conn.execute(
+            "SELECT app_id, game_name FROM reports ORDER BY created_at DESC, run_id"
+        ).fetchall()
+        names: dict[int, str] = {}
+        for app_id, game_name in rows:
+            names.setdefault(int(app_id), str(game_name))
+        return names
+
     def cards(self) -> tuple[ReportCard, ...]:
         """Every analyzed game's newest publication as an index card, newest first.
 

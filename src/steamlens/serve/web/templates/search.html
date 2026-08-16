@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% set nav_active = "analyze" %}
-{% block title %}steam-lens — search{% endblock %}
+{% block title %}search — steam-lens{% endblock %}
 {% block content %}
 <section class="search">
   <h1>steam-lens</h1>
@@ -8,7 +8,7 @@
   <form class="search-form" id="search-form">
     <input type="search" id="search-input" name="q" placeholder="Steam game name"
            autocomplete="off" autofocus aria-label="Steam game name">
-    <button type="submit">Search</button>
+    <button type="submit">search</button>
   </form>
   <p class="search-hint">A game's first analysis takes a few minutes. You can follow the run live.</p>
   <p class="status" id="search-status" hidden></p>

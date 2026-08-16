@@ -1,8 +1,12 @@
 // The search flow: resolve a typed name to pickable games (GET /search),
-// then submit the pick as an analysis request (POST /analyses) and open its
-// report page. All text lands via textContent — result names are hostile
-// input under the same assumption the templates hold; string-to-DOM APIs are
-// banned outright (a CI test scans this file for them).
+// then act on the pick — a game with a published report opens it (plain
+// navigation, nothing requested), an unanalyzed one is submitted as an
+// analysis request (POST /analyses) and its report page opened. Each row
+// wears the verb for what its click will do; the server decides which
+// (report_url present or not), the page never guesses. All text lands via
+// textContent — result names are hostile input under the same assumption the
+// templates hold; string-to-DOM APIs are banned outright (a CI test scans
+// this file for them).
 
 const form = document.getElementById("search-form");
 const input = document.getElementById("search-input");
@@ -25,8 +29,17 @@ function hitRow(hit) {
   capsule.loading = "lazy";
   const name = document.createElement("span");
   name.textContent = hit.name;
-  pick.append(capsule, name);
-  pick.addEventListener("click", () => submitPick(hit));
+  const verb = document.createElement("span");
+  verb.className = "result-verb";
+  verb.textContent = hit.report_url ? "open report →" : "analyze →";
+  pick.append(capsule, name, verb);
+  pick.addEventListener("click", () => {
+    if (hit.report_url) {
+      window.location = hit.report_url;
+    } else {
+      submitPick(hit);
+    }
+  });
   item.append(pick);
   return item;
 }
@@ -47,7 +60,7 @@ async function runSearch(term) {
   }
   const hits = await response.json();
   if (hits.length === 0) {
-    setStatus("no games found for that name");
+    setStatus("no games found for that name — the store search needs the exact spelling; check it and try again");
     return;
   }
   setStatus("");

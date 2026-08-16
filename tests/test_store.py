@@ -965,6 +965,31 @@ class TestReportLog:
         assert cards[0].created_at == _NOON + timedelta(hours=1)
         assert (cards[0].sample_size, cards[0].take_all) == (20, False)
 
+    def test_published_names_map_every_analyzed_game_to_its_newest_name(
+        self, store: Store
+    ) -> None:
+        """One entry per analyzed game; a re-run's newer name wins (the same
+        resolution the cards and the instant read serve); an empty table
+        answers an empty map."""
+        assert store.reports.published_names() == {}
+        self._publish(store)
+        _record_run(store, "serve-2")
+        store.reports.put(
+            replace(
+                _report("serve-2", created_at=_NOON + timedelta(hours=1)),
+                game_name="Team Fortress 2 (renamed)",
+            ),
+            [_aggregate("serve-2")],
+        )
+        _record_run(store, "serve-3")
+        store.reports.put(
+            _report("serve-3", app_id=570, created_at=_NOON - timedelta(days=1)),
+            [_aggregate("serve-3", app_id=570)],
+        )
+        names = store.reports.published_names()
+        assert names[440] == "Team Fortress 2 (renamed)"
+        assert set(names) == {440, 570}
+
     def test_missing_report_and_empty_snapshot_answer_quietly(self, store: Store) -> None:
         assert store.reports.get("absent") is None
         assert store.reports.latest_report(440) is None

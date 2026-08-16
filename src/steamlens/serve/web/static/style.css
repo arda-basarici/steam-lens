@@ -532,6 +532,20 @@ main:has(> .search) {
   border-radius: 3px;
 }
 
+/* The click's outcome, named on the row: "open report" for an analyzed
+   game, "analyze" for one whose click starts a run. */
+.result-verb {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.result:hover .result-verb {
+  color: var(--accent);
+}
+
 /* --- report header --------------------------------------------------------- */
 
 .back-link {

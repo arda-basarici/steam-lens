@@ -511,9 +511,12 @@ def test_search_flood_is_refused_per_ip_and_the_unlock_cookie_exempts() -> None:
 
 
 def test_search_answers_typed_hits_and_translates_steam_trouble() -> None:
-    """GET /search serializes the seam's hits verbatim; a Steam-door failure
-    surfaces as 502 (the upstream broke, not the request); a blank query is
-    the request being wrong — 422 before the seam is ever called."""
+    """GET /search serializes the seam's hits, each saying what its click
+    does: a hit with a published report carries the report's canonical
+    address (open, no request), an unanalyzed one carries none (analyze); a
+    Steam-door failure surfaces as 502 (the upstream broke, not the request);
+    a blank query is the request being wrong — 422 before the seam is ever
+    called."""
     runner = GatedNarrator()
     runner.release.set()
     queue = JobQueue(runner)
@@ -523,9 +526,15 @@ def test_search_answers_typed_hits_and_translates_steam_trouble() -> None:
         calls.append(term)
         if term == "down":
             raise SteamUnavailableError("storefront 503 outlived the retry budget")
-        return (GameSearchHit(app_id=440, name="Team Fortress 2", capsule_url="https://c/t.jpg"),)
+        return (
+            GameSearchHit(app_id=440, name="Team Fortress 2", capsule_url="https://c/t.jpg"),
+            GameSearchHit(app_id=570, name="Dota 2", capsule_url="https://c/d.jpg"),
+        )
 
-    app = create_app(queue, _CONFIG, lambda _: None, search_games)
+    app = create_app(
+        queue, _CONFIG, lambda _: None, search_games,
+        published_names=lambda: {440: "Team Fortress 2"},
+    )
 
     async def drive() -> None:
         transport = ASGITransport(app=app)
@@ -533,7 +542,10 @@ def test_search_answers_typed_hits_and_translates_steam_trouble() -> None:
             found = await client.get("/search", params={"q": "team fortress"})
             assert found.status_code == 200
             assert found.json() == [
-                {"app_id": 440, "name": "Team Fortress 2", "capsule_url": "https://c/t.jpg"}
+                {"app_id": 440, "name": "Team Fortress 2", "capsule_url": "https://c/t.jpg",
+                 "report_url": "/reports/440/team-fortress-2"},
+                {"app_id": 570, "name": "Dota 2", "capsule_url": "https://c/d.jpg",
+                 "report_url": None},
             ]
 
             down = await client.get("/search", params={"q": "down"})

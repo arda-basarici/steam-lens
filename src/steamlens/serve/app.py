@@ -28,7 +28,7 @@ an external job queue, an external event log — with the routes untouched.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Annotated
@@ -78,6 +78,25 @@ class AnalysisAccepted:
 
 
 @dataclass(frozen=True, slots=True)
+class GameSearchResult:
+    """One pickable game on the search page: the storefront hit plus what the
+    click will do.
+
+    ``report_url`` is the canonical page address when a published report
+    already answers this game (the row reads "open report" and the click is
+    a plain navigation, no request minted) and ``None`` when the click would
+    start an analysis (the row reads "analyze"). The verb on the row must
+    say what the click does, and only the serving layer knows which; the
+    storefront hit itself stays the Steam door's contract.
+    """
+
+    app_id: int
+    name: str
+    capsule_url: str
+    report_url: str | None
+
+
+@dataclass(frozen=True, slots=True)
 class HealthReport:
     """What ``/healthz`` answers: the two real things, checked cheaply.
 
@@ -114,6 +133,25 @@ class ReportReady:
     report_url: str
 
 
+def _decorate_hits(
+    hits: Sequence[GameSearchHit], published: Mapping[int, str]
+) -> tuple[GameSearchResult, ...]:
+    """Storefront hits joined to the published-report set, one row per hit."""
+    return tuple(
+        GameSearchResult(
+            app_id=hit.app_id,
+            name=hit.name,
+            capsule_url=hit.capsule_url,
+            report_url=(
+                report_path(hit.app_id, published[hit.app_id])
+                if hit.app_id in published
+                else None
+            ),
+        )
+        for hit in hits
+    )
+
+
 def create_app(
     queue: JobQueue,
     config: ServeConfig,
@@ -122,6 +160,7 @@ def create_app(
     *,
     gate: SubmitGate | None = None,
     search_limiter: SearchLimiter | None = None,
+    published_names: Callable[[], Mapping[int, str]] | None = None,
     database_ok: Callable[[], bool] | None = None,
     on_shutdown: Sequence[Callable[[], None]] = (),
 ) -> FastAPI:
@@ -143,7 +182,11 @@ def create_app(
     production always wires one, and with it the ``/unlock/{token}`` route
     that mints the operator's exemption cookie. ``search_limiter`` guards
     ``/search`` the same way (the politeness-budget guard) — ``None``
-    composes an unlimited search; production always wires one. ``database_ok`` is
+    composes an unlimited search; production always wires one.
+    ``published_names`` is the persistence layer's app-id → name read of
+    every analyzed game, consulted once per search so each hit can say
+    whether its click opens a report or starts an analysis — ``None`` (tests
+    without a store) decorates nothing; production always wires one. ``database_ok`` is
     ``/healthz``'s injected store check (does the file open?) — ``None``
     composes an app whose health answer says so honestly; production always
     wires one, same language as the gate.
@@ -188,8 +231,8 @@ def create_app(
     def search(  # pyright: ignore[reportUnusedFunction]
         q: Annotated[str, Query(min_length=1, max_length=200)],
         http_request: Request,
-    ) -> tuple[GameSearchHit, ...]:
-        """Typed hits for a game-name query — resolution, never job creation.
+    ) -> tuple[GameSearchResult, ...]:
+        """Pickable games for a game-name query — resolution, never job creation.
 
         Read-only and spend-free by construction: the only job creator stays
         ``POST /analyses``. Every query does spend the box's Steam politeness
@@ -197,6 +240,8 @@ def create_app(
         message) before the seam is called; the unlock cookie exempts, the
         same as the submit guards. The storefront failing is the one error
         translated here — 502, because the upstream broke, not the request.
+        Each hit is decorated with its report's address when one is
+        published, so the page can name the click's outcome per row.
         """
         if search_limiter is not None:
             peer = http_request.client.host if http_request.client else ""
@@ -209,11 +254,12 @@ def create_app(
                 if message is not None:
                     raise HTTPException(status_code=429, detail=message)
         try:
-            return search_games(q)
+            hits = search_games(q)
         except SteamClientError as exc:
             raise HTTPException(
                 status_code=502, detail=f"storefront search unavailable: {exc}"
             ) from exc
+        return _decorate_hits(hits, published_names() if published_names else {})
 
     # The route functions are "unused" to a type checker — the decorators
     # register them with the app; the suppressions state that, nothing more.

@@ -175,6 +175,10 @@ def build_app() -> FastAPI:
         with Store(db_path) as store:
             return store.reports.cards()
 
+    def published_names() -> dict[int, str]:
+        with Store(db_path) as store:
+            return store.reports.published_names()
+
     def admitted_since(since: datetime) -> int:
         with Store(db_path) as store:
             return store.admissions.count_since(since)
@@ -256,6 +260,7 @@ def build_app() -> FastAPI:
         search_limiter=SearchLimiter(
             config.search_per_minute, record_refusal=record_refusal
         ),
+        published_names=published_names,
         database_ok=database_ok,
         on_shutdown=[queue.close],
     )
