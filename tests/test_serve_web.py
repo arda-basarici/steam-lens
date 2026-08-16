@@ -240,7 +240,7 @@ def test_aspect_rows_sort_by_weight_and_wear_certified_intervals() -> None:
     half_width = (interval.high - interval.low) / 2 * 100
     assert combat.share_label.startswith(f"27.0% ±{half_width:.1f}")
     assert combat.interval_title == (
-        f"sampling interval {interval.low:.1%}–{interval.high:.1%}"
+        f"plausible range from sampling: {interval.low:.1%}–{interval.high:.1%}"
     )
     assert "axis to 30%" in view.aspects.axis_label
 
@@ -513,18 +513,35 @@ def test_trust_panel_discloses_the_ruled_facts() -> None:
     )
     assert "(38.0%)" in entries["Aspect yield"]
     assert entries["Interval regime"].startswith("calm")
-    assert "1 windowed" in entries["Fetch paths"]
-    assert "1 fallback-walked" in entries["Fetch paths"]
+    assert "1 time window fetched directly (windowed)" in entries["Fetch paths"]
+    assert "1 time window fetched by newest-first walk" in entries["Fetch paths"], (
+        "the path in the reader's words, the enum value riding along for the operator"
+    )
     assert "english 900" in entries["Language mix"]
     assert "3.5%" in entries["Marked share"]
     assert "over the 2% floor" in entries["Marked share"]
     assert "frozen calibration, not properties of this run" in entries["Instrument readings"]
-    assert entries["· classifier F1 vs gold"] == "0.766 [0.713–0.811]"
+    assert entries["· aspect tagging vs. human labels"].startswith("0.766 [0.713–0.811]"), (
+        "the published reading verbatim, then its gloss"
+    )
+    assert "1.0 is best" in entries["· aspect tagging vs. human labels"]
     assert "deepseek-v4-flash" in entries["Versions"]
     labels = [label for label, _ in view.trust_entries]
-    assert labels.index("Instrument readings") < labels.index("· classifier F1 vs gold"), (
+    assert labels.index("Instrument readings") < labels.index(
+        "· aspect tagging vs. human labels"
+    ), (
         "the framing row precedes the readings it frames"
     )
+
+
+def test_every_published_reading_carries_a_gloss() -> None:
+    """The instrument's readings render only through the panel's translation
+    table — a reading renamed or added in ``census_arm`` without a gloss fails
+    here, never renders as bare jargon."""
+    from steamlens.dispatch.census_arm import PUBLISHED_READINGS
+    from steamlens.serve.web.view import _READING_GLOSSES
+
+    assert set(_READING_GLOSSES) == set(PUBLISHED_READINGS)
 
 
 def test_trust_panel_dates_steam_flagging_when_no_window_is_marked() -> None:

@@ -65,15 +65,15 @@
         {%- for seg in view.narrative -%}
           {%- if seg.kind -%}
             <mark class="span-{{ seg.kind.value }}"
-                  {%- if seg.review_id %} title="verbatim from review {{ seg.review_id }}"
-                  {%- else %} title="minted from this job's numbers"{% endif -%}
+                  {%- if seg.review_id %} title="copied verbatim from review {{ seg.review_id }}"
+                  {%- else %} title="checked against this report's stored numbers"{% endif -%}
             >{{ seg.text }}</mark>
           {%- else -%}{{ seg.text }}{%- endif -%}
         {%- endfor -%}
       </p>
       <p class="legend-line certificate-legend"><mark class="span-numeral">numbers</mark>
-        matched to this job's minted values · <mark class="span-quote">quotes</mark>
-        verbatim from reviews · plain text is model voice</p>
+        checked against this report's stored data · <mark class="span-quote">quotes</mark>
+        copied verbatim from reviews · plain text is the language model's own wording</p>
     {% endif %}
   </section>
 
@@ -103,9 +103,9 @@
     {% endif %}
     {% if view.candidates.rows %}
     <div class="candidates">
-      <h3>Emergent themes <span class="uncalibrated-tag">uncalibrated</span></h3>
-      <p class="axis-note">free-form candidates the classifier surfaced beyond the pinned
-        vocabulary — counts only, no calibrated intervals</p>
+      <h3>Emergent themes <span class="uncalibrated-tag">unvalidated</span></h3>
+      <p class="axis-note">topics reviewers bring up that are not on the validated list;
+        raw counts only, no error bars</p>
       <ul class="candidate-rows">
         {% for row in view.candidates.rows %}
         <li>{{ row.aspect }} <span class="candidate-count">{{ row.reviews_with_aspect }}</span></li>

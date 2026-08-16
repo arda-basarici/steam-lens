@@ -42,6 +42,7 @@ from steamlens.contracts import (
     HistogramBucket,
     HistogramSnapshot,
     NarrativeOutcome,
+    PathOutcome,
     Report,
     Review,
     RollupUnit,
@@ -533,7 +534,10 @@ def _aspect_section(page: ReportPageData, spiky: bool | None) -> AspectSectionVi
                 interval_title=(
                     None
                     if interval is None
-                    else f"sampling interval {interval.low:.1%}–{interval.high:.1%}"
+                    else (
+                        f"plausible range from sampling: "
+                        f"{interval.low:.1%}–{interval.high:.1%}"
+                    )
                 ),
                 segments=_segments(
                     aggregate.counts, aggregate.sample_size, axis_max
@@ -543,9 +547,9 @@ def _aspect_section(page: ReportPageData, spiky: bool | None) -> AspectSectionVi
             )
         )
     interval_note = (
-        "exact counts — no sampling interval"
+        "exact counts, no margin of error"
         if report.take_all
-        else "± is the sampling interval (Wilson + the calibrated allowance)"
+        else "± is the sampling uncertainty around each share"
     )
     return AspectSectionView(
         rows=tuple(rows[:ASPECT_VISIBLE_ROWS]),
@@ -924,7 +928,10 @@ def _trust_entries(
             "measured once on the study corpus for this model and prompt: "
             "frozen calibration, not properties of this run",
         ),
-        *[(f"· {name}", value) for name, value in PUBLISHED_READINGS.items()],
+        *[
+            (f"· {_READING_GLOSSES[name][0]}", _READING_GLOSSES[name][1].format(value=value))
+            for name, value in PUBLISHED_READINGS.items()
+        ],
         (
             "Versions",
             f"{report.versions.model_version} · prompt {report.versions.prompt_version}"
@@ -934,6 +941,25 @@ def _trust_entries(
     ]
     return tuple(entries)
 
+
+# The published readings translated for the panel's reader: (plain label, value
+# template). Keyed by the instrument's own reading names so a renamed or added
+# reading fails loud here instead of rendering unglossed; the technical name
+# rides inside the value for the reader who wants it.
+_READING_GLOSSES: dict[str, tuple[str, str]] = {
+    "classifier F1 vs gold": (
+        "aspect tagging vs. human labels",
+        "{value} (F1 against a human-labeled test set; 1.0 is best)",
+    ),
+    "quote misattribution rate": (
+        "quotes filed under the wrong aspect",
+        "{value} of quotes, measured by hand on a sample; lower is better",
+    ),
+    "judge–production agreement F1": (
+        "independent model vs. production labels",
+        "{value} (F1 of the production labeler against an independent judge model)",
+    ),
+}
 
 # The fetch population is a fixed contract of the one sampler module: every
 # review Steam serves for the app, walked newest-first per window, with the
@@ -970,13 +996,17 @@ def _sample_entry(report: Report) -> str:
 
 def _regime_entry(spiky: bool | None) -> str:
     if spiky is None:
-        return "exact counts, no sampling intervals to calibrate"
+        return "exact counts, no margins of error to calibrate"
     if spiky:
         return (
-            "spiky (one window holds ≥ ⅔ of the pool): intervals widened by the "
-            "calibrated allowance"
+            "spiky (one time window holds two-thirds or more of the sample): margins "
+            "of error widened by the allowance calibrated for that shape (Wilson "
+            "interval + allowance)"
         )
-    return "calm: Wilson intervals, zero allowance needed at calibration"
+    return (
+        "calm: standard margins of error for a share of a sample (Wilson interval), "
+        "no widening needed"
+    )
 
 
 def _paths_entry(report: Report) -> str:
@@ -985,7 +1015,20 @@ def _paths_entry(report: Report) -> str:
     tallies: dict[str, int] = {}
     for window in report.windows:
         tallies[window.outcome.value] = tallies.get(window.outcome.value, 0) + 1
-    return " · ".join(f"{count} {path}" for path, count in sorted(tallies.items()))
+    return " · ".join(
+        f"{count} time window{'s' if count != 1 else ''} {_PATH_NAMES.get(path, path)}"
+        for path, count in sorted(tallies.items())
+    )
+
+
+# The sampler's two fetch paths in the reader's words; the enum value rides
+# along for the operator (a third path would render as its raw value, visibly).
+_PATH_NAMES = {
+    PathOutcome.WINDOWED.value: "fetched directly (windowed)",
+    PathOutcome.FALLBACK_WALKED.value: (
+        "fetched by newest-first walk after the direct fetch failed (fallback-walked)"
+    ),
+}
 
 
 def _language_entry(report: Report) -> str:
