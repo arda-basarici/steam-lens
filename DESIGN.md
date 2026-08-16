@@ -2112,10 +2112,16 @@ query excludes nothing; the rows predate the instrument. Ruled: the
 aggregates stay all-time (they reconcile with the library and the bill),
 the heading stays, and the collapsed about block carries one computed line:
 how many published reports no job row accounts for and how much ledger
-spend joins no job (`OpsReads.unattributed_totals`, keyed on the structural
-markers, no job row / NULL run id, never on a date, so the number stays
-true should a report ever lack a job row for another reason; absent on a
-store born after the journal). Considered and set aside: a caption under
+spend joins no job row (`OpsReads.unjournaled_totals`, keyed on the one
+structural marker, no job row, never on a date, so the number stays true
+should a report ever lack a job row for another reason; absent on a store
+born after the journal). The cost is defined as "joins no job", not
+"carries no run id", off the live verification: run attribution and the
+journal's insert shipped in two deploys 57 minutes apart on 2026-08-09,
+and one report (Europa Universalis IV, 00:38 UTC) ran in the gap,
+attributed but unjournaled; the narrower definition left $0.0138 of the
+skeptic's arithmetic unexplained, the wider one makes all-time spend equal
+the table's rows plus the line by construction. Considered and set aside: a caption under
 the table (the 2026-08-14 simplification pass folded per-table captions
 into the about block, and this is provenance); scoping the whole page to
 the journal's era (trades an in-page mismatch for a cross-page one against

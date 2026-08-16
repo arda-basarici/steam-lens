@@ -79,23 +79,25 @@ class DailyRefusalRow:
 
 
 @dataclass(frozen=True, slots=True)
-class UnattributedTotals:
+class UnjournaledTotals:
     """What the job journal cannot account for — the trace table's blind spot.
 
-    ``unjournaled_reports`` counts published reports with no job row, and
-    ``unattributed_cost`` is the ledger spend whose rows carry no run id (the
-    step-6 "not attributed" marker — priced exactly since the 2026-08-10
-    repricing, joinable to no job). Both are structural markers, not a date:
-    today they are exactly the reports and calls from before the journal
-    existed (2026-08-09), and the ops page states the count as the
-    measurement and the journal's birth as its explanation, so the number
-    stays true if a report ever lacks a job row for another reason. The
+    ``reports`` counts published reports with no job row; ``cost`` is the
+    ledger spend whose rows join no job row — rows with no run id (the
+    step-6 "not attributed" marker) *and* rows attributed to a run the
+    journal never saw. Both key on the one structural fact (no job row),
+    never on a date, so all-time spend equals the trace table's rows plus
+    this number by construction. Today that is the pre-journal era: ten
+    reports and their calls, one of them (Europa Universalis IV, 2026-08-09
+    00:38 UTC) attributed but unjournaled because attribution and the
+    journal's insert shipped in two deploys 57 minutes apart — which is why
+    the cost is defined as "joins no job" and not "carries no run id". The
     live-app sweep's skeptic derived both by hand (tier 3 #11, 2026-08-14);
     the page now says them.
     """
 
-    unjournaled_reports: int
-    unattributed_cost: float
+    reports: int
+    cost: float
 
 
 @dataclass(frozen=True, slots=True)

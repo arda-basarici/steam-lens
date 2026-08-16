@@ -55,7 +55,7 @@ from steamlens.contracts import (
     SpendLedger,
     SpendRecord,
     TokenUsage,
-    UnattributedTotals,
+    UnjournaledTotals,
     WindowAccount,
 )
 from steamlens.llm_client import (
@@ -1328,35 +1328,41 @@ class TestJobLog:
         store.reports.put(_report("serve-1", narrative=trimmed), [_aggregate("serve-1")])
         assert store.ops.recent_jobs(1)[0].narrative_outcome == "trimmed"
 
-    def test_unattributed_totals_count_what_no_job_row_accounts_for(
+    def test_unjournaled_totals_count_what_no_job_row_accounts_for(
         self, store: Store
     ) -> None:
-        """A report with no job row and a ledger row with no run id — the
-        pre-journal shape (2026-08-09) — land in the disclosure totals; a
-        journaled report and an attributed row do not. Keyed on the marker,
-        not on any date."""
+        """Reports with no job row and ledger spend joining no job row land in
+        the disclosure totals — a row with no run id AND a row attributed to
+        a run the journal never saw (the EU IV shape: attribution shipped 57
+        minutes before the journal's insert, 2026-08-09) — while a journaled
+        report and its attributed rows do not. Keyed on the job row, not on
+        the run-id column or any date, so all-time spend equals the table's
+        rows plus this by construction."""
         _record_run(store, "serve-old")
         store.reports.put(_report("serve-old"), [_aggregate("serve-old")])
         _record_run(store, "serve-new")
         store.jobs.start("serve-new", 440, "Team Fortress 2", at=_NOON)
         store.reports.put(_report("serve-new"), [_aggregate("serve-new")])
-        store.spend_ledger.append(_record(cost=0.002))  # run-attributed
-        store.spend_ledger.append(
-            SpendRecord(
+
+        def call(cost: float, run_id: str | None) -> SpendRecord:
+            return SpendRecord(
                 created_at=_NOON, stage=LlmStage.CLASSIFY, model="model-a",
                 model_version="model-a-001",
                 usage=TokenUsage(prompt_tokens=10, output_tokens=5, thinking_tokens=0),
-                cost=0.03, duration_s=2.0, run_id=None,
+                cost=cost, duration_s=2.0, run_id=run_id,
             )
-        )
-        totals = store.ops.unattributed_totals()
-        assert totals.unjournaled_reports == 1
-        assert totals.unattributed_cost == pytest.approx(0.03)
 
-    def test_unattributed_totals_read_zero_on_a_store_born_after_the_journal(
+        store.spend_ledger.append(call(0.002, "serve-new"))  # journaled: stays out
+        store.spend_ledger.append(call(0.03, None))  # pre-attribution
+        store.spend_ledger.append(call(0.014, "serve-old"))  # attributed, unjournaled
+        totals = store.ops.unjournaled_totals()
+        assert totals.reports == 1
+        assert totals.cost == pytest.approx(0.044)
+
+    def test_unjournaled_totals_read_zero_on_a_store_born_after_the_journal(
         self, store: Store
     ) -> None:
-        assert store.ops.unattributed_totals() == UnattributedTotals(0, 0.0)
+        assert store.ops.unjournaled_totals() == UnjournaledTotals(0, 0.0)
 
     def test_start_then_settle_round_trips_through_the_ops_read(self, store: Store) -> None:
         store.jobs.start("serve-1", 440, "Team Fortress 2", at=_NOON)
