@@ -88,8 +88,12 @@ class JobRow:
     run id (0.0 for a job whose calls all landed before attribution or that
     spent nothing), and ``views`` joins the report-view journal the same way —
     how many times this job's published report has answered a page load (0
-    for a job that never published). The banked counts are ``None`` on
-    unsettled rows.
+    for a job that never published). ``narrative_outcome`` joins the report
+    row by run id too: the grounding ladder's rung as the report records it
+    (``"composed"`` … ``"withheld"``), ``None`` for a job that never
+    published — so the page can say a report shipped with its narrative
+    trimmed or withheld instead of a plain ``done``. The banked counts are
+    ``None`` on unsettled rows.
     """
 
     run_id: str
@@ -105,6 +109,7 @@ class JobRow:
     refused_batches: int | None
     cost: float
     views: int
+    narrative_outcome: str | None
 
 
 @dataclass(frozen=True, slots=True)

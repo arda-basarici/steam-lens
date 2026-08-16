@@ -7,6 +7,148 @@ decisions it feeds.
 
 ---
 
+## 2026-08-16 — The gate that fired on a period: a "MAJOR" panel finding replayed against the archive, inverted, and repaired without a new model call
+
+*The polish run after the deployment milestone (M3) closed — the tier-1 item of
+the 2026-08-14 six-lens live-app sweep, taken up first because it gated the
+publish step. Feeds: the M3 portfolio page's narrative layer if it grows one;
+the polish-run write-up; candidate material for a standalone post on
+evaluation-first LLM engineering (a grounding gate is only as good as its
+normalization).*
+
+The six-lens sweep of the live app (2026-08-14) ranked one finding at the top
+of its punch list, and both live-browser lenses had hit it independently: the
+compose stage's grounding gate had degraded their fresh reports to a single
+sentence each — No Man's Sky and ELDEN RING — and published them looking like
+normal reports, the disclosure buried inside the collapsed methodology panel,
+the "quotes verbatim from reviews" caption still sitting under a quote-free
+narrative. The skeptic lens sharpened it further: the surviving No Man's Sky
+sentence ("the tone there is largely positive") was the single most favorable
+claim available for a report whose own aspect data was majority-negative on
+developer conduct, bugs, and stability. The gate, it argued, was fail-safe
+against fabrication but not against bias in what survives. Its framing, and
+ours going in: Hades-era reports had passed first try, and *new games
+apparently hit the gate routinely*.
+
+The plan put diagnosis ahead of design — the fix shape depended entirely on
+*why* two of two fresh runs had been cut. One hypothesis was named up front and
+turned out wrong: that the numeric fence was over-firing on honest numerals it
+had no whitelist door for (years like "since its 2016 launch", "10/10" scores,
+patch numbers). What actually settled it was Arda's push to stop reasoning
+from two reports and observe the gate's behavior on every game in the data.
+The response archive keeps every bought provider body, the report rows keep
+every run's aggregate snapshot and evidence pool, and the gate is a pure
+function of prose, whitelist, and pool — so the entire population was
+replayable offline, for free, exactly. The replay ran over a copy of the box
+database (`serve-box-2026-08-16.db`, pulled by Arda): 37 archived compose
+drafts behind 22 published reports, whitelist and quote pool rebuilt from
+each run's stored aggregates and evidence, drafts paired to runs by exact
+ledger token tuple where the ledger row carried a run id (22 drafts, runs from
+2026-08-09 on) and by content otherwise — a foreign draft cannot certify a
+single quotation against another run's pool, so a clean certificate is itself
+the identity check.
+
+The stored outcomes already told a bigger story than "two fresh runs": of 22
+reports, 7 had passed first try, 8 had paid a corrective retry, and 7 had
+published trimmed. Then the violation tally: 122 violations across the 37
+drafts, **every one a quotation — the numeric fence had never fired once.**
+The nearest-evidence pass on those 122 showed the pattern in every line: the
+model closes a quotation American-style, the sentence's period or comma inside
+the closing mark (`"…asking price is far too high,"`, `"…the ending really made
+me tear up."`), and the evidence spans it was quoting end without that
+punctuation. The verbatim substring check was failing on the punctuation,
+never on the words. Stripping trailing punctuation from the quoted text made
+**119 of the 122 violations vanish**; every one of the 22 runs had a fully
+clean draft under that rule, and for the 13 ledger-linked runs *both* drafts
+passed. The three violations that remained were the whole archive's genuine
+paraphrases: Little Nightmares' first draft dropped a word ("pretty easy [levels]
+to figure out"), Anno 1800's case-folded a shouted review ("be friends on
+ubisoft connect" against "YOU ALL HAVE TO BE FRIENDS ON UBISOFT CONNECT"),
+Cities: Skylines II's changed a tense ("requires" against "requiring") — and
+each sat in a first draft whose corrective retry had rewritten it and passed.
+Those three retries were the ladder working. Every other retry, and every
+trim, traced to a period. (Numbers from the replay script's output over the
+box copy, 2026-08-16; the analysis lives in the panel's synthesis rulings.)
+
+So a "MAJOR" finding inverted. The gate had not been miscalibrated on content;
+it had been treating a typographic convention as a content violation — the
+same class of thing the gate already normalized for curly quotes before the
+scan. The composer never stated an ungrounded number, and its quotations were
+verbatim in 119 of 122 cases; the product's honesty layer had been deleting
+true sentences from public reports over punctuation. The remnant-bias
+observation stands as structure — sentence-drop keeps whatever the model got
+right, not what is representative — but its base rate collapsed to three real
+paraphrases in 37 drafts, all of which the retry rung catches first.
+
+The fix (commit `bc135a6`, live 2026-08-16) is one deliberate widening: the
+gate judges verbatim on the *quoted words* — the text between the marks less
+sentence punctuation tucked inside the closing one — while punctuation
+mid-quote stays strict (a comma the reviewer never wrote still fails), a
+punctuation-only quotation counts as empty rather than matching everything as
+the empty substring, and the certified span still covers the quotation as
+written with its source review id. Two real alternatives died. Telling the
+composer to punctuate outside the marks fights the model's default convention
+and would bump the prompt version to repair a defect that was the gate's own.
+Rewriting the prose to British-style punctuation before grounding is
+deterministic too, but it edits reader-visible text to suit the checker. The
+replay under the corrected gate closed the loop: 122 violations became 3, the
+right 3.
+
+The repair of the already-published reports followed the precedent set by the
+2026-08-10 ledger repricing — exact recovery from archived provider bodies, not
+regeneration. Each affected run's *first* draft sat in the archive and passed
+the corrected gate against the run's own stored aggregates and pool, so it
+became the narrative the ladder would have published, with a fresh
+certificate: no model call, no re-sample, provenance still this run's
+purchase. The mechanics had to respect that the box carries the package only
+inside its container: `scripts/reground_narratives.py` plans locally over the
+database copy and writes a manifest (per run, the narrative row as it must
+read now and as it will read after), rehearses the manifest on a scratch copy
+and reads every repaired report back through the store's own decoder, and
+then a stdlib-only apply on the box writes inside one transaction — refusing
+outright if any live row differs from the manifest's "before". Draft order was
+recovered from the stored narrative itself: the stored prose *is* the second
+draft (retried) or a sentence-subset of it (trimmed), so the other draft is
+the first. Twelve reports were repaired (12 rows written on the box by Arda,
+2026-08-16; undo path `serve-pre-reground-2026-08-16.db`): the seven trimmed —
+No Man's Sky 1 → 11 sentences, ELDEN RING 1 → 11, Frostpunk 4 → 8, Stardew
+Valley 8 → 13, Mount & Blade II 8 → 12, GRIS 4 → 10, Satisfactory 11 → 13 —
+and five retried whose corrective retries had obeyed the instruction "remove
+or replace the violating quotations" by dropping quotations wholesale;
+Clair Obscur: Expedition 33's published narrative had zero certified spans,
+pure model voice, where its first draft carried three quotes. The three
+genuine-paraphrase runs were left as they were, correctly. Verified live: the
+repaired pages render their full first drafts with quote spans styled and the
+methodology row reading "passed the grounding gate first try".
+
+Two choices were made deliberately and recorded rather than resolved. The
+repaired rows read as `composed`, the rung the corrected ladder would have
+recorded, so their spend ledgers still show the two compose calls the strict
+gate bought — a distinct, disclosed "regrounded" rung was considered and set
+aside for now. And a second-order effect of the same convention was found and
+parked: the gate's sentence splitter treats terminal punctuation followed by
+whitespace as a sentence end, so a sentence ending in `…high."` merges with its
+neighbor and a trim would cut both; low stakes now that a trim needs a real
+paraphrase, one optional character in a regex when the gate is next touched.
+
+The money side is almost the punchline: the fifteen wasted retries cost about
+half a cent in total. The damage was entirely product truth — seven public
+reports missing true sentences, two of them down to one line each, for a
+period. The transferable lesson is about evidence, not punctuation: a panel
+finding's framing ("new games hit the gate routinely", "the remnant is
+biased") was reasoning about a mechanism from two samples, and it was
+plausible enough that the first hypothesis chased was also wrong. What made
+the difference was that every input to the gate had been kept — bought bodies,
+aggregate snapshots, evidence pools — so the whole population could be
+replayed exactly, and the finding inverted on the population. Keep the
+inputs, and a "MAJOR" can be re-asked of all the data instead of argued from
+two points.
+
+Figure: a before/after of the No Man's Sky narrative (the one surviving
+sentence against the eleven restored), or a two-bar chart of violation kinds
+under the strict and corrected gate (122 → 3, with the 119 labeled "closing
+punctuation").
+
 ## 2026-08-12 — The header that audited the app: a CSP pass finds its policy already true, and a month-old default nobody chose
 
 *The polish track after the deployment milestone (M3) closed — the deliberate

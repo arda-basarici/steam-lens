@@ -1049,14 +1049,16 @@ def test_ops_view_cache_hit_reads_dash_when_no_row_measured_the_split() -> None:
 def test_ops_view_jobs_table_tells_the_trace_without_leaking_error_text() -> None:
     """The job history renders outcome, duration, the report's view count,
     and joined cost; views wear a dash on any row that never published (a
-    running or failed job has no report to view); a failed job's raw error
-    text never reaches the public page."""
+    running or failed job has no report to view); a done job whose narrative
+    the gate trimmed or withheld reads done (degraded); a failed job's raw
+    error text never reaches the public page."""
     jobs = (
         JobRow(
             run_id="serve-3", app_id=570, requested_name="Dota 2",
             started_at="2026-08-09T14:00:00+00:00", finished_at=None,
             outcome=None, error=None, labeled=None, reused=None,
             failed_durable=None, refused_batches=None, cost=0.0, views=0,
+            narrative_outcome=None,
         ),
         JobRow(
             run_id="serve-2", app_id=440, requested_name="Team Fortress 2",
@@ -1064,7 +1066,7 @@ def test_ops_view_jobs_table_tells_the_trace_without_leaking_error_text() -> Non
             finished_at="2026-08-09T12:03:12+00:00",
             outcome="failed", error="RunAbort: /srv/steamlens/secret path leaked",
             labeled=120, reused=30, failed_durable=1, refused_batches=0,
-            cost=0.0851, views=0,
+            cost=0.0851, views=0, narrative_outcome=None,
         ),
         JobRow(
             run_id="serve-1", app_id=1145360, requested_name="Hades",
@@ -1072,13 +1074,26 @@ def test_ops_view_jobs_table_tells_the_trace_without_leaking_error_text() -> Non
             finished_at="2026-08-09T10:02:13+00:00",
             outcome="done", error=None,
             labeled=500, reused=0, failed_durable=0, refused_batches=0,
-            cost=0.0163, views=1234,
+            cost=0.0163, views=1234, narrative_outcome="retried",
+        ),
+        JobRow(
+            run_id="serve-0", app_id=275850, requested_name="No Man's Sky",
+            started_at="2026-08-09T09:00:00+00:00",
+            finished_at="2026-08-09T09:03:19+00:00",
+            outcome="done", error=None,
+            labeled=655, reused=0, failed_durable=0, refused_batches=0,
+            cost=0.0255, views=7, narrative_outcome="trimmed",
         ),
     )
     table = build_ops_view(_ops_data(jobs=jobs)).tables[0]
     assert table.rows[0][2:5] == ("running", "—", "—")
     assert table.rows[1][2:6] == ("failed", "3m 12s", "—", "$0.0851")
-    assert table.rows[2][2:6] == ("done", "2m 13s", "1,234", "$0.0163")
+    assert table.rows[2][2:6] == ("done", "2m 13s", "1,234", "$0.0163"), (
+        "a retried narrative passed the gate whole — plain done"
+    )
+    assert table.rows[3][2:6] == ("done (degraded)", "3m 19s", "7", "$0.0255"), (
+        "a trimmed narrative surfaces on the trace table, views still counted"
+    )
     assert not any(
         "secret path" in cell for row in table.rows for cell in row
     ), "raw error text is operator-only, never public"

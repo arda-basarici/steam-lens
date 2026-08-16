@@ -30,8 +30,16 @@ from steamlens.contracts import (
     DailyLedgerRow,
     DailyRefusalRow,
     JobRow,
+    NarrativeOutcome,
     StageLatencyRow,
     StageModelRow,
+)
+
+# The ladder rungs whose report shipped with partial or no prose; the two
+# gate-passing rungs (composed, retried) are whole narratives and read as
+# plain done.
+_DEGRADED_NARRATIVES = frozenset(
+    {NarrativeOutcome.TRIMMED.value, NarrativeOutcome.WITHHELD.value}
 )
 
 
@@ -154,6 +162,10 @@ def build_ops_view(data: OpsData) -> OpsView:
             "so crawlers and the operator are included",
             "a job's cost joins the spend ledger by its run id, failed runs "
             "included; its views join the report-view journal the same way",
+            "done (degraded) marks a published report whose narrative the "
+            "grounding gate trimmed or withheld — the numbers and quotes are "
+            "whole, the prose is partial or absent, and the report's own "
+            "panel says which",
             "cache hit is the provider-side prefix-cache share of prompt "
             "tokens, computed over calls measured live at write "
             "(post-2026-08-09) — a group with none reads a dash, never 0%",
@@ -171,6 +183,15 @@ def build_ops_view(data: OpsData) -> OpsView:
     )
 
 
+def _outcome_cell(job: JobRow) -> str:
+    """``running`` / ``failed`` / ``done`` / ``done (degraded)`` for the trace table."""
+    if job.outcome is None:
+        return "running"
+    if job.outcome == "done" and job.narrative_outcome in _DEGRADED_NARRATIVES:
+        return "done (degraded)"
+    return job.outcome
+
+
 def _jobs_table(jobs: tuple[JobRow, ...]) -> OpsTable:
     """The job history — every analysis run, its outcome, its cost, its reach.
 
@@ -179,7 +200,11 @@ def _jobs_table(jobs: tuple[JobRow, ...]) -> OpsTable:
     report-reuse economics (every view after the first is an analysis
     delivered without new spend). A job that never published wears a dash
     there, not a fake zero. A never-settled row renders ``running`` (or is
-    the honest trace of a process death). Error *text* deliberately never
+    the honest trace of a process death), and a done job whose report shipped
+    with its narrative trimmed or withheld by the grounding gate renders
+    ``done (degraded)`` — the ladder's rung surfaced where the operator
+    scans, not only inside the report's collapsed panel (the live-app sweep's
+    ask, 2026-08-14). Error *text* deliberately never
     renders — this page is public, and raw exception strings can leak
     internals; the outcome column says failed, the operator reads the journal
     for why. The banked verdict counts (labeled/reused) stay journal-only
@@ -192,7 +217,7 @@ def _jobs_table(jobs: tuple[JobRow, ...]) -> OpsTable:
             (
                 job.started_at[:16].replace("T", " "),
                 job.requested_name,
-                job.outcome if job.outcome is not None else "running",
+                _outcome_cell(job),
                 _elapsed(job.started_at, job.finished_at),
                 f"{job.views:,}" if job.outcome == "done" else "—",
                 _usd(job.cost),

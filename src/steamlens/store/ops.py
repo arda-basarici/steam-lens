@@ -137,8 +137,8 @@ class OpsReads:
         )
 
     def recent_jobs(self, limit: int) -> tuple[JobRow, ...]:
-        """The newest ``limit`` journaled jobs with their ledger-joined cost
-        and view count.
+        """The newest ``limit`` journaled jobs with their ledger-joined cost,
+        view count, and the published report's narrative rung.
 
         The cost and view subqueries scan their journals per job — fine at a
         history-table limit over this store's row counts (the view journal is
@@ -151,7 +151,8 @@ class OpsReads:
             " j.failed_durable, j.refused_batches,"
             " COALESCE((SELECT SUM(cost) FROM spend_ledger l"
             "           WHERE l.run_id = j.run_id), 0.0),"
-            " (SELECT COUNT(*) FROM report_views v WHERE v.run_id = j.run_id)"
+            " (SELECT COUNT(*) FROM report_views v WHERE v.run_id = j.run_id),"
+            " (SELECT r.narrative_outcome FROM reports r WHERE r.run_id = j.run_id)"
             " FROM jobs j ORDER BY j.started_at DESC LIMIT ?",
             (limit,),
         ).fetchall()
@@ -170,11 +171,12 @@ class OpsReads:
                 refused_batches=None if refused is None else int(refused),
                 cost=float(cost),
                 views=int(views),
+                narrative_outcome=narrative_outcome,
             )
             for (
                 run_id, app_id, requested_name, started_at, finished_at,
                 outcome, error, labeled, reused, failed_durable, refused, cost,
-                views,
+                views, narrative_outcome,
             ) in rows
         )
 

@@ -1243,6 +1243,7 @@ class TestOpsReads:
         assert (settled.labeled, settled.reused) == (120, 30)
         assert settled.cost == pytest.approx(0.006), "cost joins by run_id only"
         assert settled.views == 3, "views join by run_id the same way"
+        assert settled.narrative_outcome is None, "no report row published for it"
         running = jobs[0]
         assert running.outcome is None and running.finished_at is None
         assert running.cost == 0.0
@@ -1271,6 +1272,20 @@ class TestOpsReads:
 
 class TestJobLog:
     """The lifecycle journal: started rows settle by update, orphans fail loud."""
+
+    def test_recent_jobs_join_the_published_reports_narrative_rung(self, store: Store) -> None:
+        """A done job whose report shipped trimmed carries that rung on its row —
+        the ops page's ``done (degraded)`` reads it, never re-derives it."""
+        _record_run(store, "serve-1")
+        store.jobs.start("serve-1", 440, "Team Fortress 2", at=_NOON)
+        store.jobs.settle(
+            "serve-1", at=_NOON + timedelta(minutes=3), outcome="done", error=None,
+            labeled=120, reused=0, failed_durable=0, refused_batches=0,
+            stage_timings_json=None,
+        )
+        trimmed = replace(_narrative(), outcome=NarrativeOutcome.TRIMMED)
+        store.reports.put(_report("serve-1", narrative=trimmed), [_aggregate("serve-1")])
+        assert store.ops.recent_jobs(1)[0].narrative_outcome == "trimmed"
 
     def test_start_then_settle_round_trips_through_the_ops_read(self, store: Store) -> None:
         store.jobs.start("serve-1", 440, "Team Fortress 2", at=_NOON)
