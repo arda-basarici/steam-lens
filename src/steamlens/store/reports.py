@@ -117,7 +117,7 @@ class ReportLog:
                         if w.outcome is PathOutcome.SKIPPED_INFEASIBLE
                     ),
                     report.narrative.outcome,
-                    _narrative_payload(report.narrative),
+                    narrative_payload(report.narrative),
                     _histogram_payload(report.histogram),
                     _episodes_payload(report.episodes),
                     _language_mix_payload(report.language_mix),
@@ -304,7 +304,10 @@ def _check_publishable(report: Report, aggregates: Sequence[AspectAggregate]) ->
 # enums serialize as their wire values and re-prove membership on the way back.
 
 
-def _narrative_payload(narrative: ComposedNarrative) -> str:
+def narrative_payload(narrative: ComposedNarrative) -> str:
+    """The narrative column's exact JSON — public so a repair that writes the
+    column from outside the store (the 2026-08-16 re-grounding) encodes
+    byte-for-byte what ``put`` would."""
     return json.dumps(
         {
             "prose": narrative.prose,

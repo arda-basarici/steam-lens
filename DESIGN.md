@@ -1598,7 +1598,13 @@ the model's default, and it would bump the prompt version to repair a defect
 that was the gate's own. The affected reports are repaired from their runs'
 own archived first drafts, which pass under the corrected gate, no new model
 call and no re-sample (the ledger-repricing precedent: exact recovery from
-archived provider bodies).
+archived provider bodies); they read as ``composed``, the rung the corrected
+ladder would have recorded, so their ledgers still show the two compose calls
+the strict gate bought (a distinct "regrounded" rung that would disclose the
+repair on the page was considered and set aside for now, 2026-08-16). The
+repair reached twelve reports: the seven trimmed, and the five retried whose
+corrective retries had obeyed "remove or replace the violating quotations"
+by dropping quotations wholesale, one to none at all.
 
 Prose failure never fails a job: a compose call that hits our own capacity
 refusal, outlives the client's transient retries, or finishes uncleanly
