@@ -1576,6 +1576,30 @@ context, which is the judge machinery's territory at the chat milestone, not
 this gate's), and the canary set's quote-laundering pair exists to quantify
 exactly that cost.
 
+**Verbatim is judged on the quoted words, not the closing punctuation**
+(ruled 2026-08-16). The composer closes quotations in the American
+convention, sentence punctuation inside the mark ("…too high," / "…tear
+up."), while evidence spans end without it, so the substring check failed on
+the period, never on the words. The ruling came from a full replay of the
+gate over the archive: 37 compose drafts behind 22 published reports, 122
+violations, every one a quotation, the numeric fence never fired; 119 of the
+122 vanished with the trailing punctuation stripped, and the three that
+remained were real light edits (a dropped word, a tense change, a case
+change), each caught in a first draft whose corrective retry passed. Under
+the strict reading eight reports had paid a retry and seven had published
+with true sentences cut, two of them down to a single sentence. The gate now
+strips closing punctuation from the quoted words before the check
+(punctuation mid-quote still must be verbatim, and a punctuation-only
+quotation is empty, never a match to everything); the certified span still
+covers the quotation as written. This is the same class of normalization as
+folding curly quotes: typography, not content. The prompt-side alternative
+(tell the composer to punctuate outside the marks) was declined: it fights
+the model's default, and it would bump the prompt version to repair a defect
+that was the gate's own. The affected reports are repaired from their runs'
+own archived first drafts, which pass under the corrected gate, no new model
+call and no re-sample (the ledger-repricing precedent: exact recovery from
+archived provider bodies).
+
 Prose failure never fails a job: a compose call that hits our own capacity
 refusal, outlives the client's transient retries, or finishes uncleanly
 degrades to the disclosed withholding rather than aborting a pipeline whose

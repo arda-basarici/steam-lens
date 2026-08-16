@@ -142,6 +142,39 @@ def test_a_fabricated_quote_is_a_violation() -> None:
     assert [violation.kind for violation in report.violations] == [SpanKind.QUOTE]
 
 
+def test_sentence_punctuation_inside_the_closing_mark_is_not_content() -> None:
+    """The American convention — a period or comma tucked inside the closing
+    quote — certifies against evidence that ends without it, and the span
+    still covers the quotation as written, source id attached. (The replay
+    that ruled this: 119 of 122 archived violations were exactly this.)"""
+    evidence = [_evidence("r7", "the asking price is far too high")]
+    for prose in (
+        'One wrote "asking price is far too high," and refunded.',
+        'One wrote "asking price is far too high."',
+        'One wrote "asking price is far too high..." and left.',
+    ):
+        report = ground(prose, frozenset(), evidence)
+        assert report.passed, prose
+        assert report.certified[0].review_id == "r7"
+        assert report.certified[0].text.startswith('"asking price is far too high')
+
+
+def test_punctuation_mid_quote_still_must_be_verbatim() -> None:
+    """Only the closing punctuation is typography; a comma the reviewer never
+    wrote inside the quoted words is a real deviation and fails."""
+    evidence = [_evidence("r7", "far too high and ugly")]
+    report = ground('One wrote "far too high, and ugly".', frozenset(), evidence)
+    assert [violation.kind for violation in report.violations] == [SpanKind.QUOTE]
+
+
+def test_a_punctuation_only_quotation_is_empty() -> None:
+    """'"..."' asserts no words — reported as empty, never matched as the empty
+    substring of everything."""
+    evidence = [_evidence("r7", "far too high")]
+    report = ground('They wrote "..." and left.', frozenset(), evidence)
+    assert report.violations[0].reason == "empty quotation"
+
+
 def test_curly_typography_normalizes_before_the_scan() -> None:
     """A model emitting curly quotes still grounds — normalize first, then judge."""
     evidence = [_evidence("r7", "barely holds 60 fps on a 4090")]

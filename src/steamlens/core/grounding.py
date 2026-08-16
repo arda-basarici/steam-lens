@@ -8,9 +8,15 @@ numeral's *own* precision — honest rounding passes ("27.3%" may appear as
 "27%"), an estimate with no match ("roughly 40%" over a 27.3% share) dies,
 which is the laundering case the gate exists for. Every quotation must be a
 verbatim substring of the supplied evidence — the compose-side mirror of the
-classify parse's write-time quote check. The known caveat rides along
-unchanged: verbatim passes a quote used misleadingly out of context; that is
-the judge machinery's territory (the chat milestone), never this gate's.
+classify parse's write-time quote check — where "verbatim" is judged on the
+quoted words: sentence punctuation the writer tucks inside the closing mark
+("…too high," / "…tear up.") is typography, not content, and is stripped
+before the check (ruled 2026-08-16 off a full replay of the archive: 119 of
+122 gate violations across 37 drafts were exactly this, the numeric fence
+never fired once, and seven public reports had true sentences cut for a
+period). The known caveat rides along unchanged: verbatim passes a quote
+used misleadingly out of context; that is the judge machinery's territory
+(the chat milestone), never this gate's.
 
 The whitelist derives from pinned aggregates plus the job-level values the
 shell hands in. Candidate aggregates contribute nothing *by ruling* — themes
@@ -57,6 +63,11 @@ _NUMERAL: Final = re.compile(r"\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?")
 _CURLY_QUOTES: Final = {"“": '"', "”": '"', "„": '"', "«": '"', "»": '"'}
 
 _SENTENCE_END: Final = re.compile(r"[.!?]+(?=\s|$)")
+
+# Sentence punctuation a writer closes a quotation with — the American
+# convention puts it inside the mark. Stripped from the quoted words before
+# the verbatim check; never from the evidence side, and never mid-quote.
+_QUOTE_TAIL_PUNCTUATION: Final = re.compile(r"[.,!?;:…]+$")
 
 
 def normalize_quotes(prose: str) -> str:
@@ -158,21 +169,26 @@ def ground(
     """Judge one prose text against the whitelist and the evidence pool.
 
     Quotations are read as sequentially paired straight double quotes (run
-    ``normalize_quotes`` first): each pair must be a non-empty verbatim
-    substring of some evidence text — a verified pair certifies with its
-    source ``review_id`` (the lowest matching id, for determinism), a failed
-    pair is one violation, and an unpaired trailing mark is a violation of its
-    own. Numerals inside *any* paired quotation are exempt from the numeric
-    check — a verified quote's numbers belong to the reviewer, and a failed
-    quote already condemns its sentence. Every numeral outside quotations must
-    round-match a whitelisted value at the numeral's own decimal precision
-    (half rounds up); the certified span carries the lowest matching value.
+    ``normalize_quotes`` first): each pair's quoted words — the text between
+    the marks, less any sentence punctuation tucked inside the closing mark —
+    must be a non-empty verbatim substring of some evidence text; a verified
+    pair certifies with its source ``review_id`` (the lowest matching id, for
+    determinism), a failed pair is one violation, and an unpaired trailing
+    mark is a violation of its own. Numerals inside *any* paired quotation are
+    exempt from the numeric check — a verified quote's numbers belong to the
+    reviewer, and a failed quote already condemns its sentence. Every numeral
+    outside quotations must round-match a whitelisted value at the numeral's
+    own decimal precision (half rounds up); the certified span carries the
+    lowest matching value.
 
     >>> report = ground('Performance comes up in 273 reviews.', frozenset({273.0}), ())
     >>> report.passed, report.certified[0].text
     (True, '273')
     >>> ground('Roughly 40% complain.', frozenset({27.3}), ()).violations[0].text
     '40'
+    >>> pool = [EvidenceQuote('r1', 'price', 'negative', 'the asking price is far too high')]
+    >>> ground('One wrote "asking price is far too high," and left.', frozenset(), pool).passed
+    True
     """
     certified: list[GroundedSpan] = []
     violations: list[Violation] = []
@@ -188,8 +204,8 @@ def ground(
             )
         )
     for start, end in pairs:
-        inner = prose[start + 1 : end - 1]
-        if not inner.strip():
+        words = _quoted_words(prose[start + 1 : end - 1])
+        if not words:
             violations.append(
                 Violation(
                     start=start, end=end, text=prose[start:end],
@@ -197,7 +213,7 @@ def ground(
                 )
             )
             continue
-        sources = sorted(quote.review_id for quote in evidence if inner in quote.text)
+        sources = sorted(quote.review_id for quote in evidence if words in quote.text)
         if sources:
             certified.append(
                 GroundedSpan(
@@ -262,6 +278,23 @@ def drop_violating_sentences(prose: str, report: GroundingReport) -> str:
         if not hit:
             survivors.append(prose[start:end])
     return "".join(survivors).strip()
+
+
+def _quoted_words(inner: str) -> str:
+    """The words a quotation asserts verbatim: its content less closing punctuation.
+
+    A writer's period or comma inside the closing mark belongs to the
+    sentence, not the reviewer (edge whitespace goes with it); a quotation
+    holding nothing but punctuation
+    asserts no words and returns empty (the caller's "empty quotation" case),
+    which also keeps an empty string from matching every evidence text.
+
+    >>> _quoted_words('runs great.')
+    'runs great'
+    >>> _quoted_words('...')
+    ''
+    """
+    return _QUOTE_TAIL_PUNCTUATION.sub("", inner.strip()).strip()
 
 
 def _quote_pairs(prose: str) -> tuple[list[tuple[int, int]], int | None]:
