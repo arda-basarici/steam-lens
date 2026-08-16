@@ -273,6 +273,21 @@ a:hover {
   border-radius: 2px;
 }
 
+/* Present to assistive technology, absent from the layout — the standard
+   clip recipe (display:none would hide it from screen readers too). */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 ::selection {
   background: var(--mint-tint);
 }
@@ -345,7 +360,7 @@ a:hover {
   border-top: 1px solid var(--gridline);
   padding: 1.25rem;
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: 0.75rem; /* 12px at the root size — the phone-legibility floor */
   line-height: 1.7;
   color: var(--text-muted);
   text-align: center;
@@ -874,6 +889,38 @@ main:has(> .search) {
   text-anchor: middle;
 }
 
+.timeline-data {
+  margin-top: 0.75rem;
+}
+
+.timeline-data > summary {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  cursor: pointer;
+  padding: 0.2rem 0.3rem;
+}
+
+.timeline-data[open] > summary {
+  margin-bottom: 0.4rem;
+}
+
+.timeline-table tbody th {
+  /* row headers name a period in body text, not column-header capitals */
+  font-family: inherit;
+  font-size: inherit;
+  text-transform: none;
+  letter-spacing: 0;
+  color: inherit;
+}
+
+.timeline-table caption {
+  caption-side: top;
+  text-align: left;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  padding: 0 0.6rem 0.4rem;
+}
+
 .chart-legend {
   list-style: none;
   padding: 0;
@@ -1197,7 +1244,7 @@ main:has(> .search) {
 }
 
 .card .provenance {
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
@@ -1209,7 +1256,7 @@ main:has(> .search) {
 }
 
 .card-tags span {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: var(--text-secondary);
   padding: 0.05rem 0.55rem;
   background: var(--page);
@@ -1318,18 +1365,23 @@ main:has(> .search) {
   margin-bottom: 0.6rem;
 }
 
-.ops-table-wrap {
+/* The data-table grid, shared by the ops tables and the report timeline's
+   table alternative (the same numbers-in-columns look, one home). */
+.ops-table-wrap,
+.timeline-table-wrap {
   overflow-x: auto;
 }
 
-.ops-table {
+.ops-table,
+.timeline-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.85rem;
   font-variant-numeric: tabular-nums;
 }
 
-.ops-table th {
+.ops-table th,
+.timeline-table th {
   font-family: var(--font-mono);
   font-size: 0.7rem;
   font-weight: 400;
@@ -1342,7 +1394,8 @@ main:has(> .search) {
   white-space: nowrap;
 }
 
-.ops-table td {
+.ops-table td,
+.timeline-table td {
   text-align: right;
   padding: 0.35rem 0.6rem;
   border-bottom: 1px solid var(--gridline);
@@ -1350,11 +1403,14 @@ main:has(> .search) {
 }
 
 .ops-table th.text,
-.ops-table td.text {
+.ops-table td.text,
+.timeline-table th.text,
+.timeline-table td.text {
   text-align: left;
 }
 
-.ops-table tbody tr:hover td {
+.ops-table tbody tr:hover td,
+.timeline-table tbody tr:hover td {
   background: var(--surface-1);
 }
 

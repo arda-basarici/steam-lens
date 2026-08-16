@@ -1881,6 +1881,31 @@ money-spending submit route, rendered off the app's only third-party CDN
 load. Declined deliberately (no consumer exists; the JSON surface feeds
 this app's own pages), pinned by test.
 
+**Accessibility (2026-08-17, the polish run).** The automated audit is a
+floor, not a verdict: every page scored 100 on Lighthouse's accessibility
+category while three real gaps stood, all of the kind an axe rule cannot
+see (data behind a mouse hover, a silent visual, an accepted-but-weaker
+labeling form). The rulings: the timeline's per-bucket numbers, previously
+hover-only tooltips, are restated as a collapsed table under the chart (the
+chart's text alternative — keyboard and screen-reader path in one, and the
+exact month for a sighted reader who wants it), over a tab stop per bucket,
+which would make a long history a hundred stops to cross; the tooltip and
+the table row render from one story, so they cannot drift. Each aspect bar
+is one accessible object (``role="img"`` named by the four-way sentiment
+split, its segments hidden from assistive technology), since a screen
+reader on a collapsed row otherwise heard the aspect and its share and
+nothing about polarity; visible counts inside the segments were declined
+(thin segments cannot hold them; the detail line already carries them). The
+search input gained a real off-screen ``<label>``. Artwork alt text was
+declined twice over: the library cards' images sit inside a link whose text
+already names the game (a non-empty alt double-announces), and the report
+header's capsule keeps its recorded empty alt (a delisted game's 404 would
+render a real alt as broken-image text) with the h1 beside it. The library
+page's provenance line, tags, and the site footer rose to 12px, the phone
+legibility floor Lighthouse's mobile run flagged (only 14% of that page's
+text cleared it). Method: Lighthouse and axe as the regression floor, one
+keyboard-only pass and one screen-reader pass as the audit.
+
 ### The box
 
 **Docker Compose behind one shared Caddy; SQLite bind-mounted on the host.**

@@ -429,7 +429,8 @@ def test_timeline_maps_buckets_and_layers_to_one_scale() -> None:
     positive-share line rides the same x geometry with absolute heights,
     dropping low-sample buckets out of the line as faded dots; every bucket
     gets one hover strip whose label joins volume, split, share, and
-    Steam-marked overlap; an empty histogram renders no timeline at all."""
+    Steam-marked overlap, and one table row restating the same story as text
+    (the keyboard path); an empty histogram renders no timeline at all."""
     event = ReviewEvent(
         event_type=0,
         start=datetime(2024, 3, 5, tzinfo=UTC), end=datetime(2024, 3, 20, tzinfo=UTC),
@@ -480,6 +481,35 @@ def test_timeline_maps_buckets_and_layers_to_one_scale() -> None:
     assert "small sample" in strips[-1].label
     marked = [s for s in strips if "Steam-marked period" in s.label]
     assert [s.label.startswith("Mar 2024") for s in marked] == [True]
+    # The table restates every strip, field by field, from one story.
+    rows = timeline.rows
+    assert len(rows) == len(strips)
+    assert timeline.unit_name == "month"
+    assert (rows[-2].period, rows[-2].reviews, rows[-2].up, rows[-2].down) == (
+        "Jun 2025", 74, 69, 5
+    )
+    assert (rows[-2].share_label, rows[-2].note) == ("93%", "")
+    assert rows[-1].note == "small sample"
+    assert [r.period for r in rows if "Steam-marked" in r.note] == ["Mar 2024"]
+    # A weekly rollup names its buckets by their first day, so the table
+    # rows (and tooltips) do not read as five identical months.
+    weekly = build_report_view(
+        _page(report=_report(histogram=HistogramSnapshot(
+            app_id=440, rollup_unit=RollupUnit.WEEK, recent_daily=(),
+            past_events=(), fetched_at=_STAMP,
+            rollups=tuple(
+                HistogramBucket(
+                    start=datetime(2026, 7, day, tzinfo=UTC),
+                    recommendations_up=30, recommendations_down=6,
+                )
+                for day in (6, 13, 20, 27)
+            ),
+        )))
+    )
+    assert weekly.timeline is not None
+    assert weekly.timeline.unit_name == "week"
+    assert weekly.timeline.rows[0].period == "week of 06 Jul 2026"
+    assert weekly.timeline.hover_strips[0].label.startswith("week of 06 Jul 2026 · 36")
     # An empty histogram is only coherent for a take-all game (a sampled plan
     # compiled off this snapshot, so emptiness there fails loud in _regime).
     empty = build_report_view(
@@ -643,6 +673,13 @@ def test_report_page_renders_every_section() -> None:
     assert "share-line" in html
     assert "positive review share" in html
     assert "hover-strip" in html
+    # The chart's keyboard and screen-reader paths: the table restating each
+    # bucket, and the aspect bar's accessible name carrying the split the
+    # silent segments only draw.
+    assert "<summary>the timeline as a table</summary>" in html
+    assert '<th scope="row" class="text">Jun 2025</th>' in html
+    assert 'role="img" aria-label="270 positive · 0 negative · 0 mixed · 0 neutral"' in html
+    assert '<p class="sentiment-line">270 positive · 0 negative · 0 mixed · 0 neutral</p>' in html
     assert "unusual review volume" not in html
     assert "review activity spike" not in html
     assert "How this report was made" in html
@@ -948,6 +985,9 @@ def test_search_page_serves_at_the_root() -> None:
     assert response.headers["content-type"].startswith("text/html")
     assert "What players praise and criticize" in response.text
     assert '<script src="/static/search.js?v=' in response.text
+    # A real label, off-screen: the input's name for assistive technology
+    # without a visible caption the placeholder already provides.
+    assert '<label for="search-input" class="visually-hidden">' in response.text
 
 
 def _nonce(response: Response) -> str:

@@ -17,9 +17,9 @@
         <details>
           <summary>
             <span class="aspect-name">{{ row.aspect }}</span>
-            <span class="bar-track">
+            <span class="bar-track" role="img" aria-label="{{ row.counts_label }}">
               {%- for seg in row.segments -%}
-              <span class="seg seg-{{ seg.kind }}" title="{{ seg.label }}"
+              <span class="seg seg-{{ seg.kind }}" title="{{ seg.label }}" aria-hidden="true"
                     style="width: {{ '%.2f' % seg.pct }}%"></span>
               {%- endfor -%}
             </span>
@@ -27,9 +27,7 @@
                   {%- if row.interval_title %} title="{{ row.interval_title }}"{% endif %}>{{ row.share_label }}</span>
           </summary>
           <div class="aspect-detail">
-            <p class="sentiment-line">{{ row.counts.positive }} positive ·
-              {{ row.counts.negative }} negative · {{ row.counts.mixed }} mixed ·
-              {{ row.counts.neutral }} neutral</p>
+            <p class="sentiment-line">{{ row.counts_label }}</p>
             {% if row.quotes %}
             <ul class="quotes">
               {% for quote in row.quotes %}
@@ -198,6 +196,37 @@
     </ul>
     {% endif %}
     <p class="axis-note">{{ view.timeline.share.note }}</p>
+    <details class="timeline-data">
+      <summary>the timeline as a table</summary>
+      <div class="timeline-table-wrap">
+        <table class="timeline-table">
+          <caption>Reviews per {{ view.timeline.unit_name }}, all languages;
+            {{ view.timeline.unit_name }}s with no reviews are left out.</caption>
+          <thead>
+            <tr>
+              <th scope="col" class="text">{{ view.timeline.unit_name }}</th>
+              <th scope="col">reviews</th>
+              <th scope="col">up</th>
+              <th scope="col">down</th>
+              <th scope="col">positive</th>
+              <th scope="col" class="text">note</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in view.timeline.rows %}
+            <tr>
+              <th scope="row" class="text">{{ row.period }}</th>
+              <td>{{ '{:,}'.format(row.reviews) }}</td>
+              <td>{{ '{:,}'.format(row.up) }}</td>
+              <td>{{ '{:,}'.format(row.down) }}</td>
+              <td>{{ row.share_label }}</td>
+              <td class="text">{{ row.note }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
     {% else %}
     <p class="placeholder">Steam serves no volume series for this game.</p>
     {% endif %}

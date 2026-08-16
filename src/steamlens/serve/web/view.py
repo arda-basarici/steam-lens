@@ -104,7 +104,11 @@ _HEADER_ART: Final = (
 stored ``app_id`` at display time (the report stores identity, never asset
 URLs). A delisted game may 404 here; the header renders it as decoration
 (empty ``alt``), so a missing capsule degrades to layout, not to a broken
-claim."""
+claim — a non-empty alt would render as broken-image text in the header.
+The empty alt is also the accessible choice (ruled 2026-08-17 at the
+accessibility pass): the h1 beside it names the game, and the library
+cards' copies sit inside a link whose text already names it, so any alt
+would only double-announce the name."""
 
 # Timeline SVG geometry, in viewBox units — the template draws rects and
 # labels from these coordinates and knows no dates or counts. Both plots
@@ -203,7 +207,10 @@ class AspectRowView:
     ``segments`` scale to the section's axis maximum so the bars use the
     width without lying about the scale (the axis states its range), and
     carry the polarity split visibly — the share alone says how much talk,
-    the stack says what kind.
+    the stack says what kind. ``counts_label`` is the same split as one
+    line ("127 positive · 40 negative · 12 mixed · 3 neutral"): the detail
+    line under the bar, and the bar's own accessible name (the segments are
+    silent spans; a screen reader hears the split through this).
     """
 
     aspect: str
@@ -211,7 +218,7 @@ class AspectRowView:
     share_label: str
     interval_title: str | None
     segments: tuple[BarSegment, ...]
-    counts: SentimentCounts
+    counts_label: str
     quotes: tuple[QuoteView, ...]
 
 
@@ -284,6 +291,24 @@ class ShareDot:
 
 
 @dataclass(frozen=True, slots=True)
+class TimelineRow:
+    """One populated bucket's whole story as text: the period, its volume and
+    up/down split, its positive share, and the caveats (small sample,
+    Steam-marked overlap) joined as one ``note`` (empty when none applies).
+    Rendered twice — as the hover strip's tooltip and as a row of the table
+    under the chart, the keyboard and screen-reader path to the same numbers
+    (ruled 2026-08-17: a table alternative over a tab stop per bucket, which
+    would make a long history a hundred stops to cross)."""
+
+    period: str
+    reviews: int
+    up: int
+    down: int
+    share_label: str
+    note: str
+
+
+@dataclass(frozen=True, slots=True)
 class HoverStrip:
     """One bucket-wide hover target spanning both plots. Its tooltip joins the
     month's whole story — volume, up/down split, positive share, a small-sample
@@ -320,7 +345,10 @@ class ShareChartView:
 class TimelineView:
     """The all-language timeline as one SVG: volume bars over a positive-share
     line, Steam-marked windows and year gridlines spanning both plots, and
-    per-bucket hover strips tying the pair together.
+    per-bucket hover strips tying the pair together. ``rows`` restate every
+    populated bucket as text for the table under the chart (mouse-only
+    tooltips are no path for keyboards or screen readers; a table is);
+    ``unit_name`` names the bucket length ("month" · "week") for its caption.
 
     ``view_w``/``view_h`` are the SVG viewBox the coordinates live in;
     ``baseline_y`` is the volume plot's x-axis, ``overlay_top``/``overlay_bottom``
@@ -334,6 +362,8 @@ class TimelineView:
     bars: tuple[TimelineBar, ...]
     valve_windows: tuple[TimelineSpan, ...]
     hover_strips: tuple[HoverStrip, ...]
+    rows: tuple[TimelineRow, ...]
+    unit_name: str
     ticks: tuple[tuple[float, str], ...]
     marks: tuple[AxisMark, ...]
     caption: str
@@ -576,7 +606,7 @@ def _aspect_section(page: ReportPageData, spiky: bool | None) -> AspectSectionVi
                 segments=_segments(
                     aggregate.counts, aggregate.sample_size, axis_max
                 ),
-                counts=aggregate.counts,
+                counts_label=_counts_label(aggregate.counts),
                 quotes=quotes.get(aggregate.aspect, ()),
             )
         )
@@ -589,6 +619,14 @@ def _aspect_section(page: ReportPageData, spiky: bool | None) -> AspectSectionVi
         rows=tuple(rows[:ASPECT_VISIBLE_ROWS]),
         tail=tuple(rows[ASPECT_VISIBLE_ROWS:]),
         axis_label=f"share of sample, axis to {axis_max:.0%} · {interval_note}",
+    )
+
+
+def _counts_label(counts: SentimentCounts) -> str:
+    """The four-way sentiment split as one line, poles first."""
+    return (
+        f"{counts.positive:,} positive · {counts.negative:,} negative"
+        f" · {counts.mixed:,} mixed · {counts.neutral:,} neutral"
     )
 
 
@@ -835,25 +873,38 @@ def _timeline(histogram: HistogramSnapshot) -> TimelineView | None:
             run.append(bucket)
     close_run()
 
-    def strip(bucket: HistogramBucket) -> HoverStrip:
+    unit_name = histogram.rollup_unit.value
+    period_format = {"month": "%b %Y", "week": "week of %d %b %Y"}[unit_name]
+
+    def row(bucket: HistogramBucket) -> TimelineRow:
         total = bucket.recommendations_up + bucket.recommendations_down
-        share = bucket.recommendations_up / total
         marked = any(
             event.start < bucket.start + unit and bucket.start < event.end
             for event in histogram.past_events
         )
-        label = (
-            f"{bucket.start.strftime('%b %Y')} · {total:,} reviews"
-            f" ({bucket.recommendations_up:,} up · {bucket.recommendations_down:,} down)"
-            f" · {share:.0%} positive"
+        notes = (["small sample"] if total < SHARE_SAMPLE_FLOOR else []) + (
+            ["Steam-marked period"] if marked else []
         )
-        if total < SHARE_SAMPLE_FLOOR:
-            label += " · small sample"
-        if marked:
-            label += " · Steam-marked period"
+        return TimelineRow(
+            period=bucket.start.strftime(period_format),
+            reviews=total,
+            up=bucket.recommendations_up,
+            down=bucket.recommendations_down,
+            share_label=f"{bucket.recommendations_up / total:.0%}",
+            note=" · ".join(notes),
+        )
+
+    def strip(bucket: HistogramBucket, story: TimelineRow) -> HoverStrip:
+        label = (
+            f"{story.period} · {story.reviews:,} reviews"
+            f" ({story.up:,} up · {story.down:,} down)"
+            f" · {story.share_label} positive"
+        )
+        if story.note:
+            label += f" · {story.note}"
         return HoverStrip(x=x_of(bucket.start), width=slot_w, label=label)
 
-    unit_name = histogram.rollup_unit.value
+    rows = tuple(row(bucket) for bucket in populated)
     adverb = {"month": "monthly", "week": "weekly"}[unit_name]
     midline_y = (_SHARE_TOP + _SHARE_BASE) / 2
     return TimelineView(
@@ -865,7 +916,11 @@ def _timeline(histogram: HistogramSnapshot) -> TimelineView | None:
             )
             for event in histogram.past_events
         ),
-        hover_strips=tuple(strip(bucket) for bucket in populated),
+        hover_strips=tuple(
+            strip(bucket, story) for bucket, story in zip(populated, rows, strict=True)
+        ),
+        rows=rows,
+        unit_name=unit_name,
         ticks=_year_ticks(start, end, x_of),
         marks=_volume_marks(peak),
         caption="review volume",
