@@ -14,9 +14,7 @@ yourself?**
 ![LLM evals](https://img.shields.io/badge/LLM%20evals-in%20CI-8250df)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-<img src="src/steamlens/serve/web/static/og-home.png" alt="SteamLens — the search page" width="600"/>
-
-*(interim shot; full page captures land after the current polish pass)*
+<img src="docs/screenshots/home.png" alt="The SteamLens home page: the search box and the recently analyzed games" width="720"/>
 
 </div>
 
@@ -63,6 +61,16 @@ on the review timeline · **compose** — narrative fenced by grounding gates
 (deterministic checks on every number and quote). Every stage narrates itself
 live over SSE (Server-Sent Events); every numeral the prose states must match
 the job's own outputs; every quote must verify verbatim before display.
+
+What that produces, on the live Stardew Valley report — the narrative, with
+every number and quote it states underlined as certified, and the aspects
+panel beneath it, each share carrying its sampling interval:
+
+<div align="center">
+<img src="docs/screenshots/report-narrative.png" alt="The Stardew Valley report: title, sample line, and the certified narrative" width="720"/>
+
+<img src="docs/screenshots/report-aspects.png" alt="The Stardew Valley report's aspects panel: shares with sampling intervals, split by sentiment" width="720"/>
+</div>
 
 Pick your depth: **30 seconds** — this page's diagram and tables ·
 **5 minutes** — **[ARCHITECTURE](ARCHITECTURE.md)**, the whole deployed system
