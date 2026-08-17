@@ -93,7 +93,7 @@ def test_submit_receipts_honestly_and_same_game_attaches() -> None:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             first = await client.post(
-                "/analyses", json={"app_id": 440, "requested_name": "Team Fortress 2"}
+                "/analyses", json={"app_id": 440}
             )
             assert first.status_code == 202
             receipt = first.json()
@@ -103,12 +103,12 @@ def test_submit_receipts_honestly_and_same_game_attaches() -> None:
             assert receipt["events_url"] == "/analyses/440/events"
 
             attach = await client.post(
-                "/analyses", json={"app_id": 440, "requested_name": "Team Fortress 2"}
+                "/analyses", json={"app_id": 440}
             )
             assert attach.status_code == 202
 
             behind = await client.post(
-                "/analyses", json={"app_id": 570, "requested_name": "Dota 2"}
+                "/analyses", json={"app_id": 570}
             )
             assert behind.json()["state"] == JobState.QUEUED
             assert behind.json()["position"] == 1
@@ -123,9 +123,11 @@ def test_submit_receipts_honestly_and_same_game_attaches() -> None:
 
 
 class AttachObservableQueue(JobQueue):
-    """The real queue plus one test-only observable: the SSE route's read-only
-    ``live`` lookup signals — the race-free moment to release the gated
-    pipeline, since the buffering transport lets no client-side read do it."""
+    """The real queue plus one test-only observable: a ``live`` lookup that
+    *finds* the job signals — the SSE route's read, the race-free moment to
+    release the gated pipeline, since the buffering transport lets no
+    client-side read do it. The submit door's own pre-submit lookup misses
+    (no job yet) and so stays silent."""
 
     def __init__(self, run_job: Callable[[Job], None]) -> None:
         super().__init__(run_job)
@@ -133,7 +135,8 @@ class AttachObservableQueue(JobQueue):
 
     def live(self, app_id: int) -> Job | None:
         job = super().live(app_id)
-        self.attached.set()
+        if job is not None:
+            self.attached.set()
         return job
 
 
@@ -156,7 +159,7 @@ def test_a_mid_run_attach_streams_the_complete_story_to_the_end_frame() -> None:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             await client.post(
-                "/analyses", json={"app_id": 440, "requested_name": "Team Fortress 2"}
+                "/analyses", json={"app_id": 440}
             )
             await _until(lambda: bool(runner.order), "the pipeline to start")
             reader = asyncio.create_task(collect(client))
@@ -220,7 +223,7 @@ def test_cached_game_answers_200_without_minting_a_job() -> None:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             cached = await client.post(
-                "/analyses", json={"app_id": 440, "requested_name": "Team Fortress 2"}
+                "/analyses", json={"app_id": 440}
             )
             assert cached.status_code == 200
             body = cached.json()
@@ -231,7 +234,7 @@ def test_cached_game_answers_200_without_minting_a_job() -> None:
             assert queue.live(440) is None, "the cached answer must not have queued a job"
 
             fresh = await client.post(
-                "/analyses", json={"app_id": 570, "requested_name": "Dota 2"}
+                "/analyses", json={"app_id": 570}
             )
             assert fresh.status_code == 202
             assert fresh.json()["events_url"] == "/analyses/570/events"
@@ -259,7 +262,7 @@ def test_events_is_read_only_and_404s_without_a_live_job() -> None:
             assert missing.status_code == 404
 
             await client.post(
-                "/analyses", json={"app_id": 440, "requested_name": "Team Fortress 2"}
+                "/analyses", json={"app_id": 440}
             )
             await _until(lambda: queue.live(440) is None, "the job to finish and leave the index")
             finished = await client.get("/analyses/440/events")
@@ -312,27 +315,27 @@ def test_gate_holds_one_slot_per_visitor_and_lets_attach_and_others_pass() -> No
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             first = await client.post(
-                "/analyses", json={"app_id": 440, "requested_name": "Team Fortress 2"}
+                "/analyses", json={"app_id": 440}
             )
             assert first.status_code == 202
             assert len(admitted) == 1
             assert admitted[0][1] == 440
 
             second_game = await client.post(
-                "/analyses", json={"app_id": 570, "requested_name": "Dota 2"}
+                "/analyses", json={"app_id": 570}
             )
             assert second_game.status_code == 429
             assert second_game.json()["detail"] == IN_FLIGHT_MESSAGE
 
             attach = await client.post(
-                "/analyses", json={"app_id": 440, "requested_name": "Team Fortress 2"}
+                "/analyses", json={"app_id": 440}
             )
             assert attach.status_code == 202
             assert len(admitted) == 1, "an attach must not consume the day's allowance"
 
             other_visitor = await client.post(
                 "/analyses",
-                json={"app_id": 570, "requested_name": "Dota 2"},
+                json={"app_id": 570},
                 headers={"X-Forwarded-For": "203.0.113.9"},
             )
             assert other_visitor.status_code == 202
@@ -356,13 +359,13 @@ def test_gate_exhausted_day_refuses_with_the_honest_message() -> None:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             first = await client.post(
-                "/analyses", json={"app_id": 440, "requested_name": "Team Fortress 2"}
+                "/analyses", json={"app_id": 440}
             )
             assert first.status_code == 202
             await _until(lambda: queue.live(440) is None, "the first job to finish")
 
             refused = await client.post(
-                "/analyses", json={"app_id": 570, "requested_name": "Dota 2"}
+                "/analyses", json={"app_id": 570}
             )
             assert refused.status_code == 429
             assert refused.json()["detail"] == DAY_USED_MESSAGE
@@ -386,7 +389,7 @@ def test_gate_settled_spend_backstop_closes_the_day() -> None:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             refused = await client.post(
-                "/analyses", json={"app_id": 440, "requested_name": "Team Fortress 2"}
+                "/analyses", json={"app_id": 440}
             )
             assert refused.status_code == 429
             assert refused.json()["detail"] == DAY_USED_MESSAGE
@@ -412,7 +415,7 @@ def test_unlock_mints_the_cookie_and_exempts_from_every_abuse_guard() -> None:
         # (rightly) refuses to send a Secure cookie back over plain http.
         async with AsyncClient(transport=transport, base_url="https://test") as client:
             locked = await client.post(
-                "/analyses", json={"app_id": 440, "requested_name": "Team Fortress 2"}
+                "/analyses", json={"app_id": 440}
             )
             assert locked.status_code == 429, "a zero-allowance day refuses the public"
 
@@ -425,7 +428,7 @@ def test_unlock_mints_the_cookie_and_exempts_from_every_abuse_guard() -> None:
             assert client.cookies.get(UNLOCK_COOKIE) == "sesame"
 
             exempt = await client.post(
-                "/analyses", json={"app_id": 440, "requested_name": "Team Fortress 2"}
+                "/analyses", json={"app_id": 440}
             )
             assert exempt.status_code == 202
             assert admitted == [], "exempt admissions stay off the public journal"
@@ -434,32 +437,67 @@ def test_unlock_mints_the_cookie_and_exempts_from_every_abuse_guard() -> None:
     queue.close()
 
 
-def test_an_overlong_requested_name_is_refused_before_anything_runs() -> None:
-    """The body-side half of the request-size guard (Caddy's ``max_size`` is
-    the outer wall): a name past the search box's own 200-char cap 422s at
-    validation — the gate never consults, the queue never sees it."""
+def test_the_door_names_the_job_by_the_store_and_never_by_the_caller() -> None:
+    """The id-only submit (2026-08-17): the store's answer names a fresh job,
+    ``app N`` when the store has none, and a typed ``requested_name`` in the
+    body is ignored — never stored, never echoed. Only a fresh submit asks the
+    store: an attach reuses the live job's name, and a cached answer never
+    reaches the door. Steam trouble at the door is the same 502 ``/search``
+    gives, and nothing is admitted or queued on it."""
     runner = GatedNarrator()
-    runner.release.set()
     queue = JobQueue(runner)
     gate, admitted = _recording_gate(queue)
-    app = create_app(queue, _CONFIG, lambda _: None, _no_search, gate=gate)
+    asked: list[int] = []
+
+    def resolve(app_id: int) -> str | None:
+        asked.append(app_id)
+        if app_id == 999:
+            raise SteamUnavailableError("store lookup timed out")
+        return {440: "Team Fortress 2"}.get(app_id)
+
+    app = create_app(
+        queue, _CONFIG, lambda _: None, _no_search, gate=gate, resolve_name=resolve
+    )
 
     async def drive() -> None:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            refused = await client.post(
-                "/analyses", json={"app_id": 440, "requested_name": "x" * 201}
+            first = await client.post(
+                "/analyses", json={"app_id": 440, "requested_name": "<planted label>"}
             )
-            assert refused.status_code == 422
-            assert admitted == [], "a rejected body must not consume the allowance"
-            assert queue.live(440) is None, "a rejected body must never queue"
+            assert first.status_code == 202
+            assert first.json()["game_name"] == "Team Fortress 2"
+            live = queue.live(440)
+            assert live is not None and live.requested_name == "Team Fortress 2", (
+                "the job wears the store's name; the typed one is discarded"
+            )
+            attach = await client.post("/analyses", json={"app_id": 440})
+            assert attach.status_code == 202
+            assert asked == [440], "an attach reuses the live job's name — no second lookup"
 
-            at_the_cap = await client.post(
-                "/analyses", json={"app_id": 440, "requested_name": "x" * 200}
+            # Other visitors (the in-flight guard holds one job per IP).
+            unknown = await client.post(
+                "/analyses", json={"app_id": 12345},
+                headers={"x-forwarded-for": "203.0.113.2"},
             )
-            assert at_the_cap.status_code == 202
+            assert unknown.status_code == 202, unknown.text
+            assert unknown.json()["game_name"] == "app 12345", (
+                "no store record → the honest label, not the caller's"
+            )
+
+            trouble = await client.post(
+                "/analyses", json={"app_id": 999},
+                headers={"x-forwarded-for": "203.0.113.3"},
+            )
+            assert trouble.status_code == 502
+            assert "store lookup unavailable" in trouble.json()["detail"]
+            assert queue.live(999) is None, "nothing queues on a failed lookup"
+            assert [app_id for _, app_id, _ in admitted] == [440, 12345], (
+                "the failed lookup burned no admission; the two fresh jobs did"
+            )
 
     asyncio.run(asyncio.wait_for(drive(), timeout=10.0))
+    runner.release.set()
     queue.close()
 
 

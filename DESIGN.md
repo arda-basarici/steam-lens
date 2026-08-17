@@ -2067,6 +2067,37 @@ from any device, revoked by rotating the token). Exempt requests skip the
 abuse guards but keep the per-job $1 budget: that one is a
 correctness guard, not an abuse guard.
 
+**The submit is id-only; the store names the job (2026-08-17).** The
+endpoint is the product surface and the page is one client of it: a
+scripted `POST` reaches `/analyses` through Cloudflare exactly as the search
+page's own fetch does, bounded by the same walls (verified live: a curl
+submit ran and published Dwarf Fortress under the visitor's ordinary
+allowance). A `GET` never triggers anything, by the safe-method rule the
+whole internet relies on (crawlers and link previews fetch every URL). What
+the walls did not bound was one string: the request carried a
+`requested_name` for the runner's identity guard — a CLI-era protection
+against a wrong-appid pull that the storefront pick, made by id, cannot
+produce — and that string was the only visitor-typed text the app stored
+and rendered (the ops trace table's game column from the row's insert; a
+pulled game's report title via the runner's fallback). Ruled: the request
+carries the app id alone; after the gate has agreed to admit and before the
+admission is journaled, the door asks the Steam door's name-only read
+(`SteamClient.store_name`, one paced appdetails call — a refused caller
+never makes the app call Steam, a Steam hiccup burns no allowance slot and
+answers the same 502 as `/search`), and the job is named by the store or,
+honestly, `app N`. An attach reuses the live job's name; a cached answer
+never reaches the door. The receipt returns `game_name`; an old client's
+extra field is ignored, not refused. The identity guard stays in the Steam
+door for its CLI callers; in the serving path its mismatch case cannot
+arise, and its no-data case narrates plainly ("the store has no record for
+app N — analyzing its reviews as 'app N'"): a game pulled from the store
+keeps its reviews (Deadpool, 224060: no page, 3,311 reviews, probed
+2026-08-17) and is analyzable by a direct submit only — the storefront search
+cannot offer it — so `app N` is its honest title. Refusing no-data ids at
+the door was considered and set aside: appdetails alone cannot tell a false
+id from a pulled game, and the runner already settles a review-less id
+failed at no LLM cost.
+
 **Admissions persist; the day is UTC midnight, computed in the serve
 layer.** A new `admissions` table (timestamp, ip, app id; the schema's
 append-only migration discipline) makes the daily count survive restarts

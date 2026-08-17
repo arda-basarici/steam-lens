@@ -223,6 +223,19 @@ def test_resolve_no_data_still_captures_totals() -> None:
     assert ref.total_reviews == 5000
 
 
+def test_store_name_is_the_one_read_the_submit_door_makes() -> None:
+    """The name-only read behind the id-only submit: one appdetails request,
+    the store's name back, ``None`` when the store has no record — the
+    Deadpool shape (page gone, reviews kept; probed live 2026-08-17)."""
+    named = Harness([httpx.Response(200, text=_details_body(440, "Team Fortress 2"))])
+    assert named.client.store_name(440) == "Team Fortress 2"
+    assert len(named.requests) == 1, "the door pays one request, not resolve_game's two"
+    assert "appdetails" in str(named.requests[0].url)
+
+    pulled = Harness([httpx.Response(200, text=json.dumps({"224060": {"success": False}}))])
+    assert pulled.client.store_name(224060) is None
+
+
 def test_resolve_without_summary_leaves_totals_none() -> None:
     """A totals read that comes back without query_summary answers None, not 0 —
     an absent claim is not a zero claim."""

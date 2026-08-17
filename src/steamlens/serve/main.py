@@ -262,6 +262,7 @@ def build_app() -> FastAPI:
             config.search_per_minute, record_refusal=record_refusal
         ),
         published_names=published_names,
+        resolve_name=steam.store_name,
         database_ok=database_ok,
         on_shutdown=[queue.close],
     )

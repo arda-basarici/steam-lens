@@ -119,10 +119,7 @@ class SteamClient:
         review totals (delisted games keep their reviews), so the two reads
         are independent by design.
         """
-        details = self._transport.get_json(
-            _APPDETAILS_URL, {"appids": app_id, "cc": "us", "l": "english"}
-        )
-        store_name = parse_appdetails(details, app_id)
+        store_name = self.store_name(app_id)
         summary = self.fetch_totals(app_id)
         return GameRef(
             app_id=app_id,
@@ -133,6 +130,21 @@ class SteamClient:
             total_positive=summary.total_positive if summary else None,
             total_negative=summary.total_negative if summary else None,
         )
+
+    def store_name(self, app_id: int) -> str | None:
+        """What the store currently calls ``app_id`` — one paced appdetails read.
+
+        ``None`` when the store has no record for the id (a false id, or a
+        game pulled from the store entirely — Deadpool-shaped: no page, yet
+        thousands of reviews still served, probed 2026-08-17). The submit
+        door names every job by this answer (the id-only submit ruling), so
+        no caller-typed string is ever stored or shown; the runner's fuller
+        ``resolve_game`` builds on the same read.
+        """
+        details = self._transport.get_json(
+            _APPDETAILS_URL, {"appids": app_id, "cc": "us", "l": "english"}
+        )
+        return parse_appdetails(details, app_id)
 
     def fetch_totals(self, app_id: int, *, language: str = "all") -> QuerySummary | None:
         """Steam's population claim for ``app_id`` — one paced totals-only read.

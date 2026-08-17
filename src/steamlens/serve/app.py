@@ -35,7 +35,6 @@ from typing import Annotated
 
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.responses import RedirectResponse, StreamingResponse
-from pydantic import Field
 
 from steamlens.contracts import GameSearchHit, Report
 from steamlens.serve.config import ServeConfig
@@ -48,17 +47,20 @@ from steamlens.steam_client import SteamClientError
 
 @dataclass(frozen=True, slots=True)
 class AnalysisRequest:
-    """What a viewer asks for: the app and the name they typed.
+    """What a viewer asks for: the app, by id — nothing else.
 
-    The name rides along for the runner's identity guard — a mismatch against
-    the store's name is narrated, never silently corrected. Its cap matches
-    ``/search``'s query cap, so no name the search box accepts can fail here;
-    an over-long body 422s cleanly inside the proxy's request-size envelope
-    (the audit's body-limit finding — Caddy's ``max_size`` is the outer wall).
+    The id is the identity; the store names it. The name a caller might type
+    used to ride along for the runner's identity guard, and was the one
+    visitor-supplied string the app ever stored and rendered (the ops trace
+    table, and a pulled game's report title): a direct ``POST`` could plant
+    any label on the public ops page at the price of one admission. Ruled
+    2026-08-17: the door resolves the name from the store before the job
+    exists, so no caller-typed text is stored anywhere. Extra body fields
+    (an old client still sending ``requested_name``) are ignored, not
+    refused.
     """
 
     app_id: int
-    requested_name: Annotated[str, Field(max_length=200)]
 
 
 @dataclass(frozen=True, slots=True)
@@ -71,7 +73,7 @@ class AnalysisAccepted:
     """
 
     app_id: int
-    requested_name: str
+    game_name: str
     state: JobState
     position: int
     events_url: str
@@ -161,6 +163,7 @@ def create_app(
     gate: SubmitGate | None = None,
     search_limiter: SearchLimiter | None = None,
     published_names: Callable[[], Mapping[int, str]] | None = None,
+    resolve_name: Callable[[int], str | None] | None = None,
     database_ok: Callable[[], bool] | None = None,
     on_shutdown: Sequence[Callable[[], None]] = (),
 ) -> FastAPI:
@@ -186,7 +189,13 @@ def create_app(
     ``published_names`` is the persistence layer's app-id → name read of
     every analyzed game, consulted once per search so each hit can say
     whether its click opens a report or starts an analysis — ``None`` (tests
-    without a store) decorates nothing; production always wires one. ``database_ok`` is
+    without a store) decorates nothing; production always wires one.
+    ``resolve_name`` is the Steam door's name-only read (app id → the store's
+    current name, ``None`` when the store has no record), consulted once per
+    *fresh* submit after the gate has agreed to admit — cached answers and
+    attaches never pay the call, and a refused caller cannot make the app
+    call Steam — so every job is named by the store or, honestly, ``app N``;
+    ``None`` (tests without Steam) names every job ``app N``. ``database_ok`` is
     ``/healthz``'s injected store check (does the file open?) — ``None``
     composes an app whose health answer says so honestly; production always
     wires one, same language as the gate.
@@ -285,26 +294,49 @@ def create_app(
                 run_id=cached.run.run_id,
                 report_url=report_path(cached.app_id, cached.game_name),
             )
+        live = queue.live(request.app_id)
         ip: str | None = None
-        if gate is not None and queue.live(request.app_id) is None:
+        admitting: SubmitGate | None = None
+        if gate is not None and live is None:
             peer = http_request.client.host if http_request.client else ""
             ip = client_ip(http_request.headers.get("x-forwarded-for"), peer)
             if not gate.is_exempt(http_request.cookies.get(UNLOCK_COOKIE)):
                 message = gate.refusal(ip)
                 if message is not None:
                     raise HTTPException(status_code=429, detail=message)
-                # Journaled here rather than after submit: if a same-app race
-                # turns this submit into an attach, the one extra row errs on
-                # the conservative side of the day's allowance.
-                gate.admit(ip, request.app_id)
-        job = queue.submit(request.app_id, request.requested_name, client_ip=ip)
+                admitting = gate
+        # A live job already carries its name; only a fresh one asks the store —
+        # after the gate has agreed (a refused caller never makes Steam work)
+        # and before the admission is journaled (a Steam hiccup burns no slot).
+        name = live.requested_name if live is not None else _store_name(request.app_id)
+        if admitting is not None and ip is not None:
+            # Journaled before submit: if a same-app race turns this submit
+            # into an attach, the one extra row errs on the conservative side
+            # of the day's allowance.
+            admitting.admit(ip, request.app_id)
+        job = queue.submit(request.app_id, name, client_ip=ip)
         return AnalysisAccepted(
             app_id=job.app_id,
-            requested_name=job.requested_name,
+            game_name=job.requested_name,
             state=job.state,
             position=queue.position(job),
             events_url=f"/analyses/{job.app_id}/events",
         )
+
+    def _store_name(app_id: int) -> str:
+        """The store's name for the id, or ``app N`` when it has none — the
+        only two names a job can ever wear. Steam trouble surfaces as the
+        same honest 502 ``/search`` gives; nothing is queued or admitted on
+        a failed read."""
+        if resolve_name is None:
+            return f"app {app_id}"
+        try:
+            store_name = resolve_name(app_id)
+        except SteamClientError as exc:
+            raise HTTPException(
+                status_code=502, detail=f"store lookup unavailable: {exc}"
+            ) from exc
+        return store_name if store_name else f"app {app_id}"
 
     @app.get("/analyses/{app_id}/events")
     def analysis_events(app_id: int) -> StreamingResponse:  # pyright: ignore[reportUnusedFunction]

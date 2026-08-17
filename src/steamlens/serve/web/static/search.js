@@ -74,7 +74,9 @@ async function submitPick(hit) {
     response = await fetch("/analyses", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ app_id: hit.app_id, requested_name: hit.name }),
+      // The id is the whole request: the door names the job by the store's
+      // own answer, so no typed or displayed name ever travels (2026-08-17).
+      body: JSON.stringify({ app_id: hit.app_id }),
     });
   } catch {
     setStatus("request failed — check the connection and try again");

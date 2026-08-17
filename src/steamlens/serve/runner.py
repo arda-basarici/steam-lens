@@ -245,7 +245,16 @@ class AnalysisRunner:
         )
         with Store(self._db_path) as client_store, Store(self._db_path) as driver_store:
             ref = self._steam.resolve_game(app_id, requested_name)
-            if ref.verdict is not IdentityVerdict.OK:
+            if ref.verdict is IdentityVerdict.NO_DATA:
+                # The door already named the job by the store, so the guard's
+                # mismatch case cannot arise from a submit; no-data can — a
+                # pulled game keeps its reviews and loses its page.
+                narrate(
+                    sink, "serve.resolve", StageKind.WARN,
+                    f"the store has no record for app {app_id} (delisted or unknown) — "
+                    f"analyzing its reviews as {requested_name!r}",
+                )
+            elif ref.verdict is not IdentityVerdict.OK:
                 narrate(
                     sink, "serve.resolve", StageKind.WARN,
                     f"identity guard: requested {requested_name!r} but the store says "
