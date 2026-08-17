@@ -22,6 +22,7 @@ const appId = document.querySelector(".live").dataset.appId;
 const stageList = document.getElementById("live-stages");
 const statusLine = document.getElementById("live-status");
 const log = document.getElementById("live-log");
+const announcer = document.getElementById("live-announce");
 
 // Honest time-awareness: elapsed since the page opened (the requester lands
 // here the moment the job queues), never a predicted remainder — there is no
@@ -46,7 +47,27 @@ for (const [stage, label] of STAGES) {
   message.className = "stage-message";
   item.append(name, message);
   stageList.append(item);
-  rows.set(stage, { item, message });
+  rows.set(stage, { item, name, message });
+}
+
+// What the screen reader has already been told, per stage — deliberately
+// NOT cleared by reset(): a reconnect replay rebuilds the visible rows from
+// scratch, but re-announcing every transition would narrate the run twice.
+const announced = new Map(STAGES.map(([stage]) => [stage, new Set()]));
+
+// Transitions only: a stage's first activity, each done, each warn (the
+// disclosed holes). Per-window and per-batch progress stays visual — read
+// aloud it would drown the run, and the compose stage narrates its whole
+// prose as progress, which the report page reads out anyway.
+function announce(stage, label, kind, message) {
+  const active = kind === "progress" || kind === "started";
+  const key = active ? "active" : `${kind}:${message}`;
+  const seen = announced.get(stage);
+  if (seen.has(key)) return;
+  seen.add(key);
+  announcer.textContent = active
+    ? `${label} — in progress`
+    : `${label} — ${kind}: ${message}`;
 }
 
 function reset() {
@@ -65,6 +86,7 @@ function onStage(payload) {
     if (payload.kind === "done") row.item.className = "stage-row stage-done";
     else if (payload.kind === "warn") row.item.className = "stage-row stage-warn";
     else row.item.className = "stage-row stage-active";
+    announce(payload.stage, row.name.textContent, payload.kind, payload.message);
   }
   const line = document.createElement("li");
   line.textContent = `${payload.stage} ${payload.kind}: ${payload.message}`;
@@ -91,6 +113,8 @@ source.addEventListener("end", (event) => {
   statusLine.hidden = false;
   statusLine.textContent = `analysis failed: ${error} — searching again re-queues it;
  labels already bought make the re-run nearly free`;
+  // Un-hiding a line is announced unreliably; the region always is.
+  announcer.textContent = statusLine.textContent;
 });
 source.onerror = () => {
   // EventSource reconnects on its own; a 404 here means the job settled and

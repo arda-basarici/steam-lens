@@ -7,6 +7,11 @@
   <p class="provenance">app {{ app_id }} · elapsed <span id="live-elapsed">0:00</span>
     — a fresh game typically takes a few minutes; the page follows the job live and
     becomes the report when it publishes</p>
+  {# The screen reader's view of the run: a polite live region present from
+     page load (regions inserted later are announced unreliably) that the
+     script feeds stage transitions only, so the checklist filling in is
+     heard as well as seen. #}
+  <p id="live-announce" class="visually-hidden" role="status"></p>
   <ol class="stages" id="live-stages"></ol>
   <p class="status" id="live-status" hidden></p>
   <details class="live-log">

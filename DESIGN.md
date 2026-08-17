@@ -1947,7 +1947,17 @@ render a real alt as broken-image text) with the h1 beside it. The library
 page's provenance line, tags, and the site footer rose to 12px, the phone
 legibility floor Lighthouse's mobile run flagged (only 14% of that page's
 text cleared it). Method: Lighthouse and axe as the regression floor, one
-keyboard-only pass and one screen-reader pass as the audit.
+keyboard-only pass and one screen-reader pass as the audit. The gap that
+pass left, closed the same day: the live progress page filled its stage
+checklist in silence for a screen reader (no live region anywhere in the
+templates or scripts). It now carries an off-screen ``role="status"`` region,
+present from first paint (a region inserted later is announced unreliably),
+that the script feeds transitions only: a stage's first activity, each done,
+each warn, and the terminal failure. Per-window and per-batch progress stays
+visual, since read aloud it would drown the run, and the compose stage
+narrates its whole prose as progress, which the report page reads anyway.
+The set of announced transitions survives the reconnect replay on purpose,
+so a replay rebuilds the visible rows without narrating the run twice.
 
 ### The box
 

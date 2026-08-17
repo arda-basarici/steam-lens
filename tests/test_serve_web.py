@@ -979,6 +979,9 @@ def test_live_job_renders_the_narration_page() -> None:
     assert live.status_code == 200
     assert 'data-app-id="570"' in live.text
     assert '<script src="/static/report_live.js?v=' in live.text
+    # The screen reader's channel: a live region present from first paint,
+    # off-screen, that the script feeds stage transitions.
+    assert '<p id="live-announce" class="visually-hidden" role="status">' in live.text
 
     published = _get(_page_app(_page(), live=True), "/reports/440")
     assert published.status_code == 200
