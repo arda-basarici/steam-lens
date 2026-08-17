@@ -1819,6 +1819,21 @@ Skeleton first, polish after it demonstrably works; the app-UI aesthetics
 plugin styles the shell at build time and the dataviz conventions own the
 charts.
 
+**The live page's checklist lists the stages in the pipeline's own order
+(2026-08-17).** Episode markers detect off the planning histogram before the
+first window is fetched, so their row sits after plan and before fetch;
+listed after classify, the early tick read as a state bug (the sweep's two
+live lenses called it legitimate parallelism showing through, but the cause
+was a mis-ordered list). Fetch and classify do overlap, as a producer-consumer
+pair, and neither narrates a done of its own; on a clean run classify narrates
+nothing at all (its messages are rebatch, isolate, and refusal warns), so the
+"labels banked" line is the pair's joint completion and settles both rows on
+the page. A classify pulse of its own on clean runs would add narration in
+the interleaved path, which the job journal reads for stage timings — a
+pipeline change, recorded not built. Lanes for parallel stages (the sweep's
+item) dissolve once the order tells the truth: fetch and classify are the only
+real overlap.
+
 **The report page, top to bottom:** header with capsule art and the
 provenance one-liner (analysis date, sample-of-population, path, language
 note); the composed narrative with mint citations rendered visually distinct

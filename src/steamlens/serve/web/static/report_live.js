@@ -5,13 +5,18 @@
 // replay rebuilds it — idempotent by construction. All narration text lands
 // via textContent; messages quote review content and are hostile input.
 
+// Listed in the pipeline's own order: markers detect off the planning
+// histogram before the first window is fetched, and fetch and classify
+// overlap as a producer-consumer pair whose joint completion is the "labels
+// banked" line — neither narrates a done of its own, so that line settles
+// both rows (see onStage).
 const STAGES = [
   ["serve.job", "queue"],
   ["serve.resolve", "resolve the game"],
   ["serve.plan", "plan the sample"],
+  ["serve.detect", "episode markers"],
   ["serve.fetch", "fetch reviews"],
   ["serve.classify", "classify"],
-  ["serve.detect", "episode markers"],
   ["serve.runner", "labels banked"],
   ["serve.mint", "mint the numbers"],
   ["serve.compose", "compose the narrative"],
@@ -87,6 +92,11 @@ function onStage(payload) {
     else if (payload.kind === "warn") row.item.className = "stage-row stage-warn";
     else row.item.className = "stage-row stage-active";
     announce(payload.stage, row.name.textContent, payload.kind, payload.message);
+  }
+  if (payload.stage === "serve.runner" && payload.kind === "done") {
+    for (const pair of ["serve.fetch", "serve.classify"]) {
+      rows.get(pair).item.className = "stage-row stage-done";
+    }
   }
   const line = document.createElement("li");
   line.textContent = `${payload.stage} ${payload.kind}: ${payload.message}`;
