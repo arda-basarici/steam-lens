@@ -1421,6 +1421,49 @@ pool inside a huge all-language game) degrades to the sampled draw with
 disclosure, and a sampled plan still over budget refuses the job loudly: a
 public box never self-inflicts an hour-long fetch.
 
+**The share correction's trigger has fired; the correction is designed, not
+built (2026-08-17).** Deployed reports show the real language mixes the
+ruling above waited for: a minority-English game realizes roughly n × its
+English share (a 25%-English game near 250 of the 1,000 drawn). Three
+findings, in weight order. *The shape is right:* each window's English yield
+is its all-language quota × its English share, i.e. proportional to the
+window's English volume — the shape the study certified from the English
+pool's own histogram — so the draw follows English density, as a survey of
+English reviews should. *The n is short,* so the precision the study
+certified at 1,000 is not reached on those games; every share and interval
+computes honestly at the realized n, and the app never promised the target
+(the design number stays off the page; the trust panel's Sample row names
+the mechanism and where the whiskers are computed, and the README's results
+section says the gap in one paragraph). *Two calibration inputs are applied a
+little outside their minted conditions,* unmeasured: the within-window time
+slice is shorter for English (kept from the newest q all-language reviews,
+not the newest q English), so the recency skew inside a window is somewhat
+stronger at low share than the spiky-regime allowance priced; and the regime
+itself is judged on the all-language histogram where the study judged it on
+the English pool (usually the conservative direction, a non-English review
+bomb widening a calm English pool's whiskers; the reverse possible in
+principle). **The designed correction:** over-fetch every window's quota by
+1/s, where s is the English claim over the all-language claim (both already
+read pre-fetch by the two totals queries), then English-filter as now. It
+preserves the certified shape by construction (the same post-filter keeps
+weighting windows by their English share; the constant lifts the total) and
+returns the expected English n to the target; pages scale by 1/s (the
+page-budget guard already prices, degrades, or refuses), LLM calls do not
+(still ~1,000 English classified). It can be certified rather than argued:
+the raw corpus files are all-language (the reader drops non-English at
+read), so the closing study re-runs with the exact live policy — all-language
+newest-first prefix at quota/s, English kept — against the same census fold
+and gates, at zero LLM spend. Storage riders: planned n, s, realized n on the
+report (the "planned n" the Draw row could not show, 2026-08-16). Rejected:
+`language=english` on the walk with today's quotas — it fills each window's
+all-language-sized quota with English, so per-window n follows all-language
+volume, not English (a non-English review-bomb era over-drawn from its few
+English reviews): n reaches the target, the shape drifts from certification;
+the walk under a language filter was never wire-probed (only the totals
+query was), the sample-based language mix collapses, and LLM cost per report
+scales by 1/s. Deferred to a future increment at the project's closure; the
+derivation lived on the whiteboard and is captured here.
+
 **Narration streams over SSE, with history replay.** The stream is
 one-directional typed events, which is precisely what server-sent events are:
 plain HTTP that Caddy proxies without ceremony, browser-native `EventSource`

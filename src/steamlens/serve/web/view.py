@@ -1072,14 +1072,28 @@ def _aspect_yield_entry(report: Report, aspect_bearing: int) -> str:
 
 
 def _sample_entry(report: Report) -> str:
+    """The Sample row: what was drawn, how, and — for a sampled report — why
+    the sample can run smaller than the draw.
+
+    The sampled branch names the mechanism the Population and Language-mix
+    rows only imply between them: the walk is all-language and English is
+    kept after, so a minority-English game realizes fewer reviews than its
+    windows drew, and every margin of error is computed at that realized
+    count (the sample-size shortfall observed live 2026-08-17; the target
+    itself is a design number and stays off the page — DESIGN carries the
+    parked correction). A take-all report has no draw to fall short of.
+    """
     if report.take_all:
         return (
             f"complete count: every usable English review ({report.sample_size:,}), "
             "fetched whole-life"
         )
     return (
-        f"{report.sample_size:,} reviews, time-proportional draw over "
-        f"{len(report.windows)} windows (newest-first within each)"
+        f"{report.sample_size:,} English reviews, time-proportional draw over "
+        f"{len(report.windows)} windows (newest-first within each), taken from "
+        "an all-language walk and kept English-only — where English is a "
+        "minority the sample runs smaller than the draw, and every margin of "
+        f"error is computed at {report.sample_size:,}"
     )
 
 

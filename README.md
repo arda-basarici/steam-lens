@@ -100,6 +100,18 @@ user should see ship inside the product's trust panel, not just here.
 | review-bomb contamination, measured | headline intervals break their 95% promise by **5% contamination** (coverage 0.93) | so Valve-marked windows are blanked from samples; an unmarked bomb still bypasses that: damage rate measured, frequency unmeasurable |
 | the labeler bake-off | **rejected the stronger candidate: +0.034 F1 at ~12× the cost** | the gap closes at the frozen production shape |
 
+> [!IMPORTANT]
+> **One known gap between the study and the live app.** The sampling row
+> above was measured on English-only pools at n = 1,000. The live app draws
+> each sampled window in every language and keeps the English, so on a game
+> where English is a minority it realizes fewer than 1,000 English reviews (a
+> 25%-English game lands near 250) and computes every share and interval at
+> the count it actually has. Every report says so on its own page (the trust
+> panel's Sample and Language mix rows). The numbers stay honest; the
+> precision the study certified is not reached on those games. A correction
+> that restores it without changing the draw's shape is designed and recorded
+> in DESIGN, not built.
+
 ## The engineering underneath
 
 What separates this from prompt-and-parse, in the places a code reader will

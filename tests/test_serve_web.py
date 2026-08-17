@@ -312,6 +312,9 @@ def test_take_all_reports_render_no_intervals() -> None:
     assert "±" not in row.share_label
     assert row.interval_title is None
     assert "exact counts" in view.aspects.axis_label
+    sample = dict(view.trust_entries)["Sample"]
+    assert sample.startswith("complete count: every usable English review (300)")
+    assert "runs smaller than the draw" not in sample, "a census has no draw to fall short of"
 
 
 def test_candidate_stratum_wears_the_same_evidence_floor() -> None:
@@ -538,7 +541,11 @@ def test_trust_panel_discloses_the_ruled_facts() -> None:
     )
     entries = dict(view.trust_entries)
     assert "only English-language reviews are analyzed" in entries["Population"]
-    assert "time-proportional draw" in entries["Sample"]
+    assert entries["Sample"].startswith("1,000 English reviews, time-proportional draw")
+    assert "kept English-only" in entries["Sample"]
+    assert "every margin of error is computed at 1,000" in entries["Sample"], (
+        "the sampled branch says where the whiskers are computed"
+    )
     assert entries["Aspect yield"].startswith("380 of 1,000 analyzed reviews carry"), (
         "the aspect-bearing count over the envelope count — the denominator disclosure"
     )
