@@ -222,7 +222,9 @@ class AnalysisRunner:
         row and its aggregate snapshot commit in one transaction, so the next
         request for this game reads instantly and no half-published state
         exists. Episode markers detect off the planning histogram and narrate
-        mid-job. Raises on the honest aborts — an over-budget sampled plan,
+        mid-job. Raises on the honest aborts — a game Steam
+        lists no reviews for (unreleased, refused before the histogram fetch
+        whose wire shape changes for those games), an over-budget sampled plan,
         the refusal breaker, provider trouble outliving retries, annotator
         drift mid-job — and the job queue records the failure; labels bought
         before an abort are already banked and make the re-run nearly free. A
@@ -270,6 +272,21 @@ class AnalysisRunner:
                 f"{ref.store_name or requested_name} (app {app_id}): "
                 f"{all_claim:,} reviews claimed, {english_claim:,} English",
             )
+            if all_claim == 0 and english_claim == 0:
+                # The designed refusal, not an accident: before this guard the
+                # job died one line later on a wire surprise — Steam omits the
+                # histogram's rollups key entirely for zero-review games
+                # (probed live 2026-08-20 on unreleased titles), so the strict
+                # parse failed with a message that read as breakage. A game
+                # with no reviews is a product answer, and it must sound like
+                # one; the parser stays strict for games that have reviews,
+                # where a missing series is genuine damage.
+                raise RunAbort(
+                    f"Steam lists no reviews for "
+                    f"{ref.store_name or requested_name} yet (likely unreleased "
+                    "or review-less) — nothing to analyze; try again once the "
+                    "game has reviews"
+                )
             histogram = self._steam.fetch_histogram(app_id)
             specs = self._plan(english_claim, all_claim, histogram, sink)
             episodes = _detect_markers(histogram, sink)

@@ -386,6 +386,24 @@ def test_page_budget_degrades_take_all_and_refuses_a_heavy_plan(tmp_path: Path) 
         refusing.run(_APP, "Test Game", CollectingSink())
 
 
+def test_review_less_game_refuses_before_the_histogram_fetch(tmp_path: Path) -> None:
+    """A game Steam claims zero reviews for (unreleased titles, live-probed
+    2026-08-20) refuses as a designed abort with a human-readable reason —
+    not by crashing on the histogram's changed wire shape (Steam omits the
+    rollups key for those games). The refusal must land before the histogram
+    request: the fragile parse is never reached, and no report publishes."""
+    wire = SteamWire(totals_all=0, totals_english=0, buckets=[], pages={})
+    db_path = tmp_path / "serve.sqlite3"
+    runner = _runner(wire, FakeProvider(), ServeConfig(), db_path)
+    with pytest.raises(RunAbort, match="no reviews.*yet.*nothing to analyze"):
+        runner.run(_APP, "Test Game", CollectingSink())
+    assert not any("appreviewhistogram" in str(r.url) for r in wire.requests), (
+        "the refusal must precede the histogram fetch — its wire shape is the crash"
+    )
+    with Store(db_path) as store:
+        assert store.reports.latest_report(_APP) is None
+
+
 def test_mint_and_compose_extend_the_spine(tmp_path: Path) -> None:
     """After labels bank, the mint folds the run's own labels read back from
     the store and the fenced narrative composes over them: the mint narration
