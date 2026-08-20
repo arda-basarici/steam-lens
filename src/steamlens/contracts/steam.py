@@ -50,16 +50,20 @@ class GameRef:
     store returned (``None`` when the store had no data for the id); ``verdict``
     is the identity guard's comparison of the two — absorbed into the record
     because a mismatch is an honest answer about what Steam returned, not an
-    exception (a wrapper record was rejected as a layer for one field). The
-    totals are Steam's own population claim from the one-request totals-only
-    read (``query_summary``): captured for feasibility estimates and coverage
-    checks, never trusted as ground truth; ``None`` when the read yielded
-    nothing.
+    exception (a wrapper record was rejected as a layer for one field).
+    ``header_image`` is Steam's own header-art URL from the same appdetails
+    read, verbatim — carried because it cannot be re-derived from the app id
+    (newer titles' assets live under a content-hash path segment); ``None``
+    when the store offered none. The totals are Steam's own population claim
+    from the one-request totals-only read (``query_summary``): captured for
+    feasibility estimates and coverage checks, never trusted as ground truth;
+    ``None`` when the read yielded nothing.
     """
 
     app_id: int
     requested_name: str
     store_name: str | None
+    header_image: str | None
     verdict: IdentityVerdict
     total_reviews: int | None
     total_positive: int | None

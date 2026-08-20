@@ -100,15 +100,21 @@ inside it — the drift a shared constant would otherwise have prevented."""
 _HEADER_ART: Final = (
     HEADER_ART_ORIGIN + "/store_item_assets/steam/apps/{app_id}/header.jpg"
 )
-"""Steam's public CDN pattern for a game's header capsule — minted from the
-stored ``app_id`` at display time (the report stores identity, never asset
-URLs). A delisted game may 404 here; the header renders it as decoration
-(empty ``alt``), so a missing capsule degrades to layout, not to a broken
-claim — a non-empty alt would render as broken-image text in the header.
-The empty alt is also the accessible choice (ruled 2026-08-17 at the
-accessibility pass): the h1 beside it names the game, and the library
-cards' copies sit inside a link whose text already names it, so any alt
-would only double-announce the name."""
+"""Steam's legacy CDN pattern for a game's header capsule — the fallback
+minted from ``app_id`` when the report stored no art URL. It was the only
+source until 2026-08-20, on the belief that identity could always mint the
+URL; that quietly stopped holding — newer titles' assets live only under a
+per-game content-hash path segment this pattern cannot guess (probed live:
+the hash-free path 404s for them on every asset name and CDN host), so the
+report now stores Steam's own URL at job time and this mint serves the
+pre-capture rows, whose older games mostly still resolve. A 404 (a delisted
+game, a pre-capture hashed-asset title) renders as decoration (empty
+``alt``), degrading to layout rather than a broken claim — a non-empty alt
+would render as broken-image text in the header. The empty alt is also the
+accessible choice (ruled 2026-08-17 at the accessibility pass): the h1
+beside it names the game, and the library cards' copies sit inside a link
+whose text already names it, so any alt would only double-announce the
+name."""
 
 # Timeline SVG geometry, in viewBox units — the template draws rects and
 # labels from these coordinates and knows no dates or counts. Both plots
@@ -441,9 +447,15 @@ def analyzed_line(created_at: datetime, sample_size: int, take_all: bool) -> str
     )
 
 
-def header_art_url(app_id: int) -> str:
-    """The game's header capsule URL, minted from stored identity at display time."""
-    return _HEADER_ART.format(app_id=app_id)
+def header_art(stored_url: str | None, app_id: int) -> str:
+    """The header art to render: the report's stored Steam URL, else the minted fallback.
+
+    The stored URL is Steam's own answer from the job's appdetails read and
+    renders verbatim (the CSP admits its CDN family the same way it admits
+    the search thumbnails); ``None`` — a pre-capture row, or a store page
+    without art — falls back to the legacy identity-minted pattern.
+    """
+    return stored_url if stored_url else _HEADER_ART.format(app_id=app_id)
 
 
 def narrative_segments(
@@ -522,7 +534,7 @@ def build_report_view(page: ReportPageData) -> ReportView:
     spiky = _regime(report)
     return ReportView(
         game_name=report.game_name,
-        header_image_url=header_art_url(report.app_id),
+        header_image_url=header_art(report.header_image, report.app_id),
         provenance_line=provenance_line(report),
         narrative=_narrative_section(
             report.narrative, {a.aspect for a in page.aggregates}

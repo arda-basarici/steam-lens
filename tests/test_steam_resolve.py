@@ -19,6 +19,7 @@ from fakes import NullSink
 
 from steamlens.contracts import IdentityVerdict
 from steamlens.steam_client import (
+    AppDetails,
     SteamClient,
     SteamClientConfig,
     SteamResponseError,
@@ -51,8 +52,11 @@ class Harness:
         )
 
 
-def _details_body(app_id: int, name: str) -> str:
-    return json.dumps({str(app_id): {"success": True, "data": {"name": name}}})
+def _details_body(app_id: int, name: str, header_image: str | None = None) -> str:
+    data: dict[str, str] = {"name": name}
+    if header_image is not None:
+        data["header_image"] = header_image
+    return json.dumps({str(app_id): {"success": True, "data": data}})
 
 
 def _totals_body(total: int, positive: int, negative: int) -> str:
@@ -145,9 +149,40 @@ def test_no_store_answer_is_its_own_verdict() -> None:
 # --- parse_appdetails ----------------------------------------------------------
 
 
+_HASHED_HEADER = (
+    "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3450310/"
+    "9944293cf93d5c11430d3b69941221b614c3ea70/header.jpg?t=1783587668"
+)
+"""A real hashed-path header URL (Europa Universalis V, captured 2026-08-20) —
+the shape identity-minting cannot produce, which is why the field is kept."""
+
+
 def test_appdetails_reads_the_string_keyed_entry() -> None:
     payload = json.loads(_details_body(440, "Team Fortress 2"))
-    assert parse_appdetails(payload, 440) == "Team Fortress 2"
+    assert parse_appdetails(payload, 440) == AppDetails(
+        name="Team Fortress 2", header_image=None
+    )
+
+
+def test_appdetails_keeps_the_header_art_url_verbatim() -> None:
+    """The header URL carries a content hash and cache-buster only this read
+    knows — stored as Steam spoke it, never reconstructed."""
+    payload = json.loads(_details_body(3450310, "Europa Universalis V", _HASHED_HEADER))
+    details = parse_appdetails(payload, 3450310)
+    assert details is not None
+    assert details.header_image == _HASHED_HEADER
+
+
+def test_appdetails_header_art_is_soft_on_absence_loud_on_type() -> None:
+    """Art is garnish: a store page without the field (or with it empty) answers
+    None rather than failing a paid job — but a type surprise is a wire-shape
+    change and stays loud like every field."""
+    empty = {"440": {"success": True, "data": {"name": "TF2", "header_image": ""}}}
+    parsed = parse_appdetails(empty, 440)
+    assert parsed is not None and parsed.header_image is None
+    mistyped = {"440": {"success": True, "data": {"name": "TF2", "header_image": 7}}}
+    with pytest.raises(SteamResponseError, match="header_image is int"):
+        parse_appdetails(mistyped, 440)
 
 
 def test_appdetails_no_data_is_none() -> None:
@@ -182,13 +217,14 @@ def test_resolve_assembles_the_ref_from_both_reads() -> None:
     honest record: verdict OK, store name verbatim, Steam's totals captured."""
     h = Harness(
         [
-            httpx.Response(200, text=_details_body(440, "Team Fortress 2")),
+            httpx.Response(200, text=_details_body(440, "Team Fortress 2", _HASHED_HEADER)),
             httpx.Response(200, text=_totals_body(1_000_000, 900_000, 100_000)),
         ]
     )
     ref = h.client.resolve_game(440, "Team Fortress 2")
     assert ref.verdict is IdentityVerdict.OK
     assert ref.store_name == "Team Fortress 2"
+    assert ref.header_image == _HASHED_HEADER
     assert ref.requested_name == "Team Fortress 2"
     assert (ref.total_reviews, ref.total_positive, ref.total_negative) == (
         1_000_000,
@@ -220,6 +256,7 @@ def test_resolve_no_data_still_captures_totals() -> None:
     ref = h.client.resolve_game(49520, "Borderlands 2")
     assert ref.verdict is IdentityVerdict.NO_DATA
     assert ref.store_name is None
+    assert ref.header_image is None
     assert ref.total_reviews == 5000
 
 

@@ -190,6 +190,7 @@ def _cached_report(app_id: int = 440) -> Report:
         ),
         app_id=app_id,
         game_name="Team Fortress 2",
+        header_image=None,
         created_at=stamp,
         versions=ClassifierVersions(
             model_version="m", prompt_version="p", ontology_version="v"

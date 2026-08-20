@@ -5,7 +5,7 @@ The listing page's rendering half, same discipline as ``view`` and
 page's recently-analyzed strip renders through the same builder — a compact
 picture-and-name cut of the same records, so a card links identically
 wherever it appears. Each card
-is an honest preview of its report page — the same minted header art, the
+is an honest preview of its report page — the same header art, the
 same provenance phrase, and the same aspects that lead the page's share bars
 (the store's read orders them identically) — so clicking through confirms
 the card rather than re-ranking it. Cards carry no sentiment or share
@@ -30,7 +30,7 @@ from dataclasses import dataclass
 
 from steamlens.contracts import ReportCard
 from steamlens.serve.links import report_path
-from steamlens.serve.web.view import analyzed_line, display_name, header_art_url
+from steamlens.serve.web.view import analyzed_line, display_name, header_art
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,7 +67,7 @@ def build_index_view(
         cards=tuple(
             CardView(
                 href=report_path(card.app_id, card.game_name),
-                image_url=header_art_url(card.app_id),
+                image_url=header_art(card.header_image, card.app_id),
                 name=card.game_name,
                 provenance=analyzed_line(
                     card.created_at, card.sample_size, card.take_all

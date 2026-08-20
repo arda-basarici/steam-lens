@@ -1555,6 +1555,29 @@ cached-game read is POST-level: a published report answers 200 with a
 receipt naming the run and wearing its date (no job, no spend), which also
 settles that the POST alone never refreshes a game.
 
+**The report keeps Steam's header-art URL (2026-08-20).** The renderer had
+minted every header capsule from the stored app id alone (the legacy
+``…/store_item_assets/steam/apps/{app_id}/header.jpg`` pattern), on the
+belief that identity could always reconstruct the URL — the report row
+deliberately stored no asset URLs. That belief quietly expired: Steam now
+serves newer titles' assets only under a per-game content-hash path segment
+(``apps/{app_id}/{hash}/header.jpg``), and the hash-free pattern 404s for
+them on every asset name and on both legacy CDN hosts (probed live
+2026-08-20, after visitor-submitted new releases put four broken cards on
+the library page — the same minted URL also feeds those report pages'
+``og:image``). The hash is unguessable, so the only honest source is
+Steam's own answer: the job's existing appdetails read (the resolve step —
+no new request) already carries ``header_image``, which now lands verbatim
+on the report row (schema step 8, additive). The renderer prefers the
+stored URL and keeps the minted pattern as the fallback for pre-capture
+rows, whose older games mostly still resolve;
+``scripts/backfill_header_art.py`` resolves those rows one paced appdetails
+read per game, and a game the store no longer answers for stays NULL. The
+stored URL is content-shaped provenance (what Steam said at capture time),
+not rendered presentation, so the content-never-presentation ruling stands;
+it renders verbatim under the CSP's existing ``*.steamstatic.com``
+allowance, the same argument the search thumbnails carry.
+
 ### Model prose
 
 **The composer routes to the survey labeler's model, cross-family from the

@@ -93,13 +93,19 @@ class Report:
     provenance. ``narrative`` is the gate-passed prose with its certificate
     (outcome recorded, never inferred), ``histogram`` the timeline as Steam
     served it at job time, ``episodes`` and ``marked_window_counts`` the
-    timeline's marker layers. A dated report served later is this record
-    unchanged, its date worn openly.
+    timeline's marker layers. ``header_image`` is Steam's own header-art URL
+    from the job's appdetails read — kept because identity alone can no
+    longer mint it (newer titles' assets live under a content-hash path
+    segment only that read knows); ``None`` for reports minted before the
+    capture, or when the store offered none — the renderer falls back to
+    the legacy identity-minted pattern. A dated report served later is this
+    record unchanged, its date worn openly.
     """
 
     run: Provenance
     app_id: int
     game_name: str
+    header_image: str | None
     created_at: datetime
     versions: ClassifierVersions
     sample_size: int
@@ -119,12 +125,15 @@ class ReportCard:
     The reports-index read produces one per game (re-runs collapse to the
     newest publication). ``top_aspects`` are the pinned aspects leading the
     report's own share bars, most-mentioned first — stored ontology keys; the
-    renderer owns display naming. Deliberately no sentiment or share numbers:
+    renderer owns display naming. ``header_image`` is the report's stored
+    Steam art URL (``None`` on pre-capture rows — the renderer falls back to
+    the minted legacy pattern). Deliberately no sentiment or share numbers:
     the card previews what the page discusses, the page owns interpretation.
     """
 
     app_id: int
     game_name: str
+    header_image: str | None
     created_at: datetime
     sample_size: int
     take_all: bool

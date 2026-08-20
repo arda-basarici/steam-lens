@@ -24,13 +24,15 @@ Two deliberate allowances, both narrow:
   cannot execute script and cannot use selectors (what CSS-exfiltration
   needs); injected ``<style>`` **elements**, the real CSS vector, stay blocked
   by ``style-src 'self'``.
-- ``img-src`` admits Steam's asset CDN family by wildcard. Two image classes
-  need it: the report's header capsule, whose URL *we* mint
-  (``view.HEADER_ART_ORIGIN``; a test pins that origin inside the wildcard),
-  and the search results' thumbnails, whose URLs arrive **verbatim from
-  Steam's storesearch answer** — Valve serves those from several
+- ``img-src`` admits Steam's asset CDN family by wildcard. The image classes
+  that need it: the report's header capsule — stored **verbatim from Steam's
+  appdetails answer** since 2026-08-20 (identity alone stopped minting a
+  working URL for newer titles), with the legacy minted pattern
+  (``view.HEADER_ART_ORIGIN``; a test pins that origin inside the wildcard)
+  as the pre-capture fallback — and the search results' thumbnails, verbatim
+  from the storesearch answer. Valve serves these from several
   ``steamstatic.com`` hosts and may shift or regionalize them, so an
-  exact-host allowance would break thumbnails silently. The widening is
+  exact-host allowance would break images silently. The widening is
   negligible: the domain is Valve's asset CDN wholesale.
 
 Only ``text/html`` responses wear the header: the JSON surface's answers are

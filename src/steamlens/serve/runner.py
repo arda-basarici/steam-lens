@@ -301,6 +301,7 @@ class AnalysisRunner:
                 run=run,
                 app_id=app_id,
                 game_name=game_name,
+                header_image=ref.header_image,
                 created_at=datetime.now(UTC),
                 versions=self._versions,
                 sample_size=minted.sample_size,

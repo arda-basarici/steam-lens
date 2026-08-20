@@ -139,15 +139,37 @@ def parse_review_page(payload: Mapping[str, object], app_id: int) -> ReviewPage:
     return ReviewPage(success=success, cursor=cursor, summary=summary, reviews=tuple(reviews))
 
 
-def parse_appdetails(payload: Mapping[str, object], app_id: int) -> str | None:
-    """The store's current name for ``app_id``, or ``None`` when it has no data.
+@dataclass(frozen=True, slots=True)
+class AppDetails:
+    """The store's answer about one app — the fields production reads, typed.
+
+    ``name`` is what the store currently calls the app (the identity guard's
+    comparand and the id-only submit's job name). ``header_image`` is Steam's
+    own URL for the game's header art, verbatim including its cache-buster —
+    it cannot be minted from the app id alone, because newer titles' assets
+    live under a per-game content-hash path segment (probed live 2026-08-20:
+    the hash-free pattern 404s for every post-migration title on every asset
+    name and CDN host). ``None`` when the store offered no usable URL: art is
+    garnish, and a game page without an image field is an answer, not damage.
+    Internal to the door like ``QuerySummary``; ``GameRef`` carries the
+    fields across the seam.
+    """
+
+    name: str
+    header_image: str | None
+
+
+def parse_appdetails(payload: Mapping[str, object], app_id: int) -> AppDetails | None:
+    """The store's current record for ``app_id``, or ``None`` when it has no data.
 
     The appdetails response is keyed by the app id *as a string*; the entry
     answers no-data (falsy ``success``, no ``data``, or a JSON-null entry —
     a delisted or invalid id) as ``None``, which the identity guard turns
     into its no-data verdict. A *missing* key is different — the response
     doesn't answer the id at all — and fails loud, as does a successful
-    entry whose ``name`` is missing or mistyped.
+    entry whose ``name`` is missing or mistyped. ``header_image`` is softer
+    on absence (absent or empty parses as ``None`` — the store may honestly
+    have no art) but stays loud on a type surprise, like every field here.
     """
     key = str(app_id)
     if key in payload and payload[key] is None:
@@ -161,7 +183,13 @@ def parse_appdetails(payload: Mapping[str, object], app_id: int) -> str | None:
         raise SteamResponseError(
             f"appdetails[{app_id}]: name is {name!r}, expected a non-empty string"
         )
-    return name
+    header_image = data.get("header_image")
+    if header_image is not None and not isinstance(header_image, str):
+        raise SteamResponseError(
+            f"appdetails[{app_id}]: header_image is "
+            f"{type(header_image).__name__}, expected a string"
+        )
+    return AppDetails(name=name, header_image=header_image or None)
 
 
 def parse_storesearch(payload: Mapping[str, object]) -> tuple[GameSearchHit, ...]:

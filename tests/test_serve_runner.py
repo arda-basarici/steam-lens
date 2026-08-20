@@ -35,6 +35,10 @@ from steamlens.store import Store
 from steamlens.studies.mix_corpus import RULED_SAMPLE_SIZE, TAKE_ALL_CUTOFF
 
 _APP = 440
+_HEADER_ART = (
+    "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/440/"
+    "abf6e7b3b01ed20c35a8dc0a009a8f9fc3e57b93/header.jpg?t=1768303991"
+)
 _NOW = datetime(2026, 8, 1, tzinfo=UTC)
 _JUNE = datetime(2026, 6, 1, tzinfo=UTC)
 _JULY = datetime(2026, 7, 1, tzinfo=UTC)
@@ -146,7 +150,9 @@ class SteamWire:
         if request.url.path == "/api/appdetails":
             return httpx.Response(
                 200,
-                text=json.dumps({str(_APP): {"success": True, "data": {"name": "Test Game"}}}),
+                text=json.dumps({str(_APP): {"success": True, "data": {
+                    "name": "Test Game", "header_image": _HEADER_ART,
+                }}}),
             )
         if request.url.path == f"/appreviewhistogram/{_APP}":
             return httpx.Response(200, text=self._histogram)
@@ -483,6 +489,9 @@ def test_completed_job_publishes_the_report_whole(tmp_path: Path) -> None:
         report = store.reports.latest_report(_APP)
         assert report is not None
         assert report.game_name == "Test Game"
+        assert report.header_image == _HEADER_ART, (
+            "the resolve read's art URL must reach the published report"
+        )
         assert report.sample_size == 5
         assert report.take_all is True
         assert report.versions == _versions()

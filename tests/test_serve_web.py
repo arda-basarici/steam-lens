@@ -126,6 +126,7 @@ def _report(
     histogram: HistogramSnapshot | None = None,
     episodes: tuple[EpisodeMarker, ...] = (),
     marked: tuple[MarkedWindowCount, ...] = (),
+    header_image: str | None = None,
 ) -> Report:
     return Report(
         run=Provenance(
@@ -134,6 +135,7 @@ def _report(
         ),
         app_id=440,
         game_name=game_name,
+        header_image=header_image,
         created_at=_STAMP,
         versions=_VERSIONS,
         sample_size=sample_size,
@@ -776,6 +778,28 @@ def test_report_page_carries_the_share_card() -> None:
     assert '<meta name="twitter:card" content="summary_large_image">' in html
 
 
+_STORED_ART = (
+    "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3450310/"
+    "9944293cf93d5c11430d3b69941221b614c3ea70/header.jpg?t=1783587668"
+)
+"""A hashed-path header URL as appdetails serves them (captured 2026-08-20) —
+unmintable from identity, which is why stored art must win over the mint."""
+
+
+def test_stored_header_art_beats_the_minted_fallback() -> None:
+    """A report that captured Steam's own art URL renders it verbatim — header
+    capsule and og:image both — while a pre-capture report (no stored URL)
+    keeps the legacy identity-minted pattern. Newer titles exist only at the
+    hashed URL, so preferring the mint here would re-break their art."""
+    stored = _get(_page_app(_page(_report(header_image=_STORED_ART))), "/reports/440").text
+    assert f'<img class="capsule" src="{_STORED_ART}"' in stored
+    assert f'property="og:image" content="{_STORED_ART}"' in stored
+    minted = _get(_page_app(_page()), "/reports/440").text
+    assert (
+        f'src="{HEADER_ART_ORIGIN}/store_item_assets/steam/apps/440/header.jpg"'
+    ) in minted
+
+
 def test_report_render_journals_one_view_per_read() -> None:
     """The view recorder fires once per rendered report, keyed by the
     publication's run id — a stale address counts once, after its 301 lands
@@ -828,18 +852,19 @@ def test_report_addresses_canonicalize_to_the_named_url() -> None:
 
 def test_reports_index_renders_a_card_per_game() -> None:
     """The library page: each card links the canonical named URL and previews
-    its report honestly — header art minted from identity, the provenance
-    phrase, the leading pinned aspects as spaced display names wearing their
-    ontology family's color (an unmapped aspect keeps the neutral pill)."""
+    its report honestly — the stored Steam art (the minted legacy pattern
+    when none was captured), the provenance phrase, the leading pinned
+    aspects as spaced display names wearing their ontology family's color
+    (an unmapped aspect keeps the neutral pill)."""
     cards = (
         ReportCard(
-            app_id=440, game_name="Team Fortress 2", created_at=_STAMP,
-            sample_size=1_000, take_all=False,
+            app_id=440, game_name="Team Fortress 2", header_image=None,
+            created_at=_STAMP, sample_size=1_000, take_all=False,
             top_aspects=("combat", "voice_acting", "novel_aspect"),
         ),
         ReportCard(
-            app_id=570, game_name="Dota 2", created_at=_STAMP,
-            sample_size=312, take_all=True, top_aspects=(),
+            app_id=570, game_name="Dota 2", header_image=_STORED_ART,
+            created_at=_STAMP, sample_size=312, take_all=True, top_aspects=(),
         ),
     )
     categories = {"combat": "play", "voice_acting": "narrative"}
@@ -847,6 +872,7 @@ def test_reports_index_renders_a_card_per_game() -> None:
     assert 'href="/reports/440/team-fortress-2"' in html
     assert 'href="/reports/570/dota-2"' in html
     assert f"{HEADER_ART_ORIGIN}/store_item_assets/steam/apps/440/header.jpg" in html
+    assert f'src="{_STORED_ART}"' in html, "stored art renders verbatim on its card"
     assert '<span data-cat="play">combat</span>' in html
     assert (
         '<span data-cat="narrative">voice acting</span>' in html
@@ -870,8 +896,9 @@ def test_search_page_previews_the_newest_reports() -> None:
     row linking the full library; the sixth-newest stays there."""
     cards = tuple(
         ReportCard(
-            app_id=100 + n, game_name=f"Game {n}", created_at=_STAMP,
-            sample_size=500, take_all=False, top_aspects=("combat",),
+            app_id=100 + n, game_name=f"Game {n}", header_image=None,
+            created_at=_STAMP, sample_size=500, take_all=False,
+            top_aspects=("combat",),
         )
         for n in range(6)
     )
@@ -898,8 +925,9 @@ def test_every_page_wears_the_nav_with_its_own_link_active() -> None:
     and adds the contextual way back to the library."""
     cards = (
         ReportCard(
-            app_id=440, game_name="Team Fortress 2", created_at=_STAMP,
-            sample_size=1_000, take_all=False, top_aspects=(),
+            app_id=440, game_name="Team Fortress 2", header_image=None,
+            created_at=_STAMP, sample_size=1_000, take_all=False,
+            top_aspects=(),
         ),
     )
     home = _get(_page_app(None, cards=cards), "/").text

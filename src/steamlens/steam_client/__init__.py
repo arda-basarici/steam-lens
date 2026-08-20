@@ -17,6 +17,7 @@ from steamlens.steam_client.errors import (
 )
 from steamlens.steam_client.identity import identity_verdict, normalize_name
 from steamlens.steam_client.parse import (
+    AppDetails,
     QuerySummary,
     ReviewPage,
     parse_appdetails,
@@ -43,6 +44,7 @@ __all__ = [
     "parse_appdetails",
     "parse_storesearch",
     "review_from_raw",
+    "AppDetails",
     "ReviewPage",
     "QuerySummary",
     # errors

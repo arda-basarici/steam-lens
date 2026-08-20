@@ -61,6 +61,7 @@ _REPORT_COLUMNS = (
     " p.windowed_windows, p.fallback_windows, p.skipped_windows,"
     " p.narrative_outcome, p.narrative_json, p.histogram_json, p.episodes_json,"
     " p.language_mix_json, p.marked_windows_json, p.fetch_windows_json,"
+    " p.header_image,"
     " r.code_version, r.created_at, r.config_hash"
 )
 
@@ -95,8 +96,9 @@ class ReportLog:
                 " model_version, prompt_version, ontology_version, sample_size,"
                 " take_all, windowed_windows, fallback_windows, skipped_windows,"
                 " narrative_outcome, narrative_json, histogram_json, episodes_json,"
-                " language_mix_json, marked_windows_json, fetch_windows_json)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                " language_mix_json, marked_windows_json, fetch_windows_json,"
+                " header_image)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     report.run.run_id,
                     report.app_id,
@@ -123,6 +125,7 @@ class ReportLog:
                     _language_mix_payload(report.language_mix),
                     _marked_windows_payload(report.marked_window_counts),
                     _fetch_windows_payload(report.windows),
+                    report.header_image,
                 ),
             )
             cursor.executemany(
@@ -216,12 +219,12 @@ class ReportLog:
         the loop is a read a page load cannot feel.
         """
         rows = self._conn.execute(
-            "SELECT run_id, app_id, game_name, created_at, sample_size, take_all"
-            " FROM reports ORDER BY created_at DESC, run_id"
+            "SELECT run_id, app_id, game_name, created_at, sample_size, take_all,"
+            " header_image FROM reports ORDER BY created_at DESC, run_id"
         ).fetchall()
         cards: list[ReportCard] = []
         seen: set[int] = set()
-        for run_id, app_id, game_name, created_at, sample_size, take_all in rows:
+        for run_id, app_id, game_name, created_at, sample_size, take_all, art in rows:
             if int(app_id) in seen:
                 continue
             seen.add(int(app_id))
@@ -236,6 +239,7 @@ class ReportLog:
                 ReportCard(
                     app_id=int(app_id),
                     game_name=str(game_name),
+                    header_image=None if art is None else str(art),
                     created_at=parse_utc_isoformat(
                         str(created_at), context=f"reports[{run_id}].created_at"
                     ),
@@ -463,12 +467,13 @@ def _report_from_row(row: tuple[Any, ...]) -> Report:
     return Report(
         run=Provenance(
             run_id=run_id,
-            code_version=str(row[19]),
-            created_at=parse_utc_isoformat(str(row[20]), context=f"runs[{run_id}].created_at"),
-            config_hash=str(row[21]),
+            code_version=str(row[20]),
+            created_at=parse_utc_isoformat(str(row[21]), context=f"runs[{run_id}].created_at"),
+            config_hash=str(row[22]),
         ),
         app_id=app_id,
         game_name=str(row[2]),
+        header_image=None if row[19] is None else str(row[19]),
         created_at=parse_utc_isoformat(
             str(row[3]), context=f"reports[{run_id}].created_at"
         ),

@@ -339,8 +339,20 @@ _STEP_7: tuple[str, ...] = (
     "CREATE INDEX idx_report_views_run ON report_views (run_id)",
 )
 
+# Step 8 — the report keeps Steam's header-art URL (2026-08-20). Identity
+# alone stopped minting a working URL: newer titles' assets live only under a
+# per-game content-hash path segment (the hash-free pattern 404s for them on
+# every asset name and CDN host — probed live), so the runner now stores the
+# URL verbatim from the job's own appdetails read. NULL is the honest value
+# for the rows minted before the capture ("not captured", never fabricated —
+# the step-6 precedent); the renderer falls back to the legacy minted pattern
+# there, and scripts/backfill_header_art.py resolves them one paced read each.
+_STEP_8: tuple[str, ...] = (
+    "ALTER TABLE reports ADD COLUMN header_image TEXT",
+)
+
 MIGRATION_STEPS: tuple[tuple[str, ...], ...] = (
-    _STEP_1, _STEP_2, _STEP_3, _STEP_4, _STEP_5, _STEP_6, _STEP_7,
+    _STEP_1, _STEP_2, _STEP_3, _STEP_4, _STEP_5, _STEP_6, _STEP_7, _STEP_8,
 )
 
 SCHEMA_VERSION = len(MIGRATION_STEPS)

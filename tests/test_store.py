@@ -844,6 +844,12 @@ def _narrative() -> ComposedNarrative:
     )
 
 
+_HEADER_ART = (
+    "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/440/"
+    "abf6e7b3b01ed20c35a8dc0a009a8f9fc3e57b93/header.jpg?t=1768303991"
+)
+
+
 def _report(
     run_id: str = "serve-1",
     *,
@@ -852,11 +858,13 @@ def _report(
     sample_size: int = 20,
     narrative: ComposedNarrative | None = None,
     histogram: HistogramSnapshot | None = None,
+    header_image: str | None = _HEADER_ART,
 ) -> Report:
     return Report(
         run=_provenance(run_id),
         app_id=app_id,
         game_name="Team Fortress 2",
+        header_image=header_image,
         created_at=created_at,
         versions=_versions(),
         sample_size=sample_size,
@@ -928,6 +936,16 @@ class TestReportLog:
         report = self._publish(store)
         assert store.reports.get("serve-1") == report
 
+    def test_absent_header_art_round_trips_as_none(self, store: Store) -> None:
+        """NULL is the pre-capture rows' shape (the step-8 migration adds the
+        column without a value) and the no-art store answer's — the read must
+        hand back None, never an empty string the renderer would trust."""
+        _record_run(store, "serve-1")
+        store.reports.put(_report("serve-1", header_image=None), [_aggregate("serve-1")])
+        read = store.reports.get("serve-1")
+        assert read is not None and read.header_image is None
+        assert store.reports.cards()[0].header_image is None
+
     def test_snapshot_rebuilds_full_aggregates_in_write_order(self, store: Store) -> None:
         self._publish(store)
         assert store.reports.get_snapshot("serve-1") == (
@@ -965,6 +983,9 @@ class TestReportLog:
         ], "newest first; app 440's superseded report contributes nothing"
         assert cards[0].created_at == _NOON + timedelta(hours=1)
         assert (cards[0].sample_size, cards[0].take_all) == (20, False)
+        assert cards[0].header_image == _HEADER_ART, (
+            "the card carries its report's stored art for the index to render"
+        )
 
     def test_published_names_map_every_analyzed_game_to_its_newest_name(
         self, store: Store

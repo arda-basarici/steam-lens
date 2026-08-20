@@ -68,6 +68,7 @@ def _hostile_page(text: str, *, review_id: str = "r1") -> ReportPageData:
         ),
         app_id=440,
         game_name=f"Hostile {text}",
+        header_image=None,
         created_at=_STAMP,
         versions=_VERSIONS,
         sample_size=100,
