@@ -77,3 +77,17 @@ steamlens.ardabasarici.dev {
 		header_up X-Forwarded-For {client_ip}
 	}
 }
+
+# Frappe HR for leave-impact-agent (that repo's deploy/frappe/ owns the stack;
+# this is its one stanza). Same origin-CA pair — it covers *.ardabasarici.dev.
+# No request_body cap: Frappe uploads (attachments, CSV imports) are legitimate;
+# nginx inside the stack enforces its own 50m. No security-header block either:
+# Frappe's nginx already sends HSTS (2 y, preload) and nosniff, and a second copy
+# with different values is noise a browser resolves by taking the first.
+hr.ardabasarici.dev {
+	tls /etc/caddy/certs/ardabasarici.dev.pem /etc/caddy/certs/ardabasarici.dev.key
+
+	reverse_proxy frappe-frontend-1:8080 {
+		header_up X-Forwarded-For {client_ip}
+	}
+}
