@@ -91,3 +91,14 @@ hr.ardabasarici.dev {
 		header_up X-Forwarded-For {client_ip}
 	}
 }
+
+# leave-impact world sites: one Frappe site per world version (ruled 2026-08-24),
+# same bench — the Host header selects the site, so each world is one stanza here
+# + one DNS record. Teardown removes the stanza with the site.
+hr-w1.ardabasarici.dev {
+	tls /etc/caddy/certs/ardabasarici.dev.pem /etc/caddy/certs/ardabasarici.dev.key
+
+	reverse_proxy frappe-frontend-1:8080 {
+		header_up X-Forwarded-For {client_ip}
+	}
+}
