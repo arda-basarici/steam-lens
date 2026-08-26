@@ -8,9 +8,14 @@
 # (~/.config/sops/age/keys.txt on the admin workstation), which never leaves
 # it and is never committed.
 #
-# Today there is one recipient (the admin workstation). Adding the box as a
-# second recipient later is one more `age:` line here plus `sops updatekeys
-# deploy/box/secrets.enc.env` — the values are re-wrapped, never re-entered.
+# Two recipients: the admin workstation (daily use) and a recovery identity
+# whose private key lives outside the workstation, so losing the machine
+# does not lose the values (added 2026-08-27; policy in the platform repo's
+# SECRETS.md). Adding the box as a runtime recipient later is one more key
+# in the list plus `sops updatekeys deploy/box/secrets.enc.env` — the values
+# are re-wrapped, never re-entered.
 creation_rules:
   - path_regex: deploy/box/secrets\.enc\.env$
-    age: age15zv5z24wpuvnm505x4rwc60g79glmq88s370d4jrg7psga0fep0q4xvufr
+    age: >-
+      age15zv5z24wpuvnm505x4rwc60g79glmq88s370d4jrg7psga0fep0q4xvufr,
+      age1pyl2d8qn4njd4dykyn7p92xnsw73e3wjul4esauzur4wnk32rs6qkscv78
