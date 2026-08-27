@@ -22,7 +22,8 @@ services:
       - web
 
 networks:
-  # Owned by the box's Caddy stack (deploy/box/), shared across projects —
+  # Owned by the box's Caddy stack (the platform repository, `box/`; it rode
+  # this repo's deploy/box/ until 2026-08-27), shared across projects —
   # created once per host: `docker network create web`. Caddy reaches the app
   # as `steamlens-app-1:8000`; nothing is published to the host directly.
   web:

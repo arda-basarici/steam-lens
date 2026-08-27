@@ -43,6 +43,11 @@ Everything web-facing is containerized: **Caddy runs once per host as the box-ow
 proxy** on a shared Docker network, and each project on the box is a self-contained
 compose stack plus one Caddyfile stanza: the multi-project box made mechanical.
 The app container publishes nothing itself; Caddy reaches it by compose DNS name.
+Since 2026-08-27 that shared layer (proxy, firewall, TLS material, backup
+units) is owned and operated from the platform repository; it was born in
+this repo's `deploy/box/` as the first tenant's provision-as-code and was
+extracted once a second tenant arrived. This section describes the box as
+built; the platform repository is where it now changes.
 
 The rules, stated once:
 
@@ -110,8 +115,9 @@ approved deploy", which keeps **rollback = point compose at the previous sha tag
 The script refuses, naming the job, while an analysis is live: a recreate would
 cut a visitor's minutes-long, money-spending job mid-run, which is the argument
 that kept a human on the trigger at all. The manual pull
-(`docker compose pull && up -d`) survives as the runbook fallback; mechanics and
-runbooks live in `deploy/box/README.md`.
+(`docker compose pull && up -d`) survives as the runbook fallback; the deploy
+mechanics live in `deploy/box/README.md`, the host and proxy runbooks in the
+platform repository.
 
 ## Inside the app — the rank law
 
@@ -285,7 +291,9 @@ tests/               the suite: behavior, the import law, escaping walls, the ev
 eval/                versioned instruments: gold + holdout sets, audit sheets, canaries, the ci fixture
 probes/              one-shot investigation scripts; their findings live in captures/
 scripts/             gold tooling · docs regen · the ledger reprice (one sanctioned revision)
-deploy/box/          provision-as-code: compose, Caddyfile, firewall + backup units, the runbook
+deploy/box/          the deploy entrypoint (deploy.sh) + the app's SOPS secrets; the box layer
+                     it once carried (compose, Caddyfile, firewall + backup units) moved to
+                     the platform repo on 2026-08-27 — the README there records what went where
 .github/workflows/   CI and the approval-gated deploy
 docs/api/            the pdoc-rendered reference — generated, never hand-edited
 data/ · runs/        gitignored working state: the local db, corpus snapshot, run directories

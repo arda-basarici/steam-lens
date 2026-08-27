@@ -2059,6 +2059,17 @@ makes it real: verified by restore at setup, not by upload: a backup never
 restored is a hope. Litestream stays parked; its trigger remains the chat
 milestone's write pattern.
 
+**The box layer left this repository on 2026-08-27.** Everything above
+describes the box as it was designed and built here: `deploy/box/` carried
+the proxy stack, the Caddyfile, the firewall and backup units and the
+runbook, because the first tenant had to carry the box. A second tenant
+(the leave-impact Frappe stack, 2026-08-26) made "first project in carries
+it" the wrong owner: the shared layer was extracted into the platform
+repository (github.com/arda-basarici/platform) and cut over live; this repo
+keeps its deployment entrypoint and its application secrets, and
+`deploy/box/README.md` records file by file what moved where. The design
+choices stand unchanged; only their home moved.
+
 ### The spend breaker
 
 **The public submit gate counts jobs, not dollars: a daily fresh-analysis cap,

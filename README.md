@@ -206,8 +206,11 @@ uv run python scripts/regen_docs.py  # regenerate the API reference (pdoc)
 
 Tests and evals run offline from committed artifacts. Label buying, judge runs,
 and live analyses are deliberate, key-gated spends, never part of a clean-clone
-quickstart. The deployed system's provisioning lives in `deploy/box/`
-(compose, Caddyfile, firewall and backup units, the runbook).
+quickstart. The deployment entrypoint and the app's secrets live in
+`deploy/box/`; the host it runs on (proxy, firewall, TLS, backups) is operated
+from the [platform repository](https://github.com/arda-basarici/platform) —
+until 2026-08-27 that layer lived here too, as the first tenant's
+provision-as-code, and was extracted when a second tenant arrived.
 
 ## Layout
 
@@ -248,7 +251,8 @@ human-directed.
 [VISION](VISION.md) — the frozen founding snapshot ·
 [DESIGN](DESIGN.md) — the living decisions narrative ·
 [ARCHITECTURE](ARCHITECTURE.md) — the whole system, how it runs ·
-[deploy runbook](deploy/box/README.md) — provisioning as code
+[deploy runbook](deploy/box/README.md) — the app's deploy path ·
+[platform](https://github.com/arda-basarici/platform) — the box it runs on
 
 ## License
 

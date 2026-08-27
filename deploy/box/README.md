@@ -1,154 +1,43 @@
-# The box — provisioning and deploy
+# Deploying steam-lens to the box
 
-One small VPS runs every project as a self-contained Docker Compose stack
-behind a single box-owned Caddy (this directory), all joined by one shared
-Docker network. A new project lands as: its own compose file + one Caddyfile
-stanza. Nothing here is box-specific — a rebuilt box replays this file.
+The box is operated from the **platform** repository
+(github.com/arda-basarici/platform): host provisioning, the shared Caddy
+proxy, the origin firewall, TLS, and the nightly backup all live there
+(`box/README.md` for the host and proxy, `projects/steamlens/README.md` for
+this tenant's stanza, backup, and restore drill). This directory holds what
+the application itself owns: its deployment entrypoint (`deploy.sh`, the
+only command the CI ssh key may run) and its application secrets
+(`secrets.enc.env`).
 
-## One-time host provisioning
+## What moved, and where (2026-08-27)
 
-```sh
-# Docker Engine + compose plugin, per docs.docker.com/engine/install/debian
-# (apt repo, not the distro package — the distro's lags majors behind).
-sudo apt-get update && sudo apt-get install -y ca-certificates curl
-sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
-  https://download.docker.com/linux/debian $(. /etc/os-release && echo $VERSION_CODENAME) stable" \
-  | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo apt-get update && sudo apt-get install -y docker-ce docker-ce-cli containerd.io \
-  docker-buildx-plugin docker-compose-plugin
+Until 2026-08-27 this directory carried the whole box layer, because
+steam-lens was the box's first tenant and the provision-as-code had to live
+somewhere. When a second tenant arrived the layer was extracted into the
+platform repository and cut over live; the copies here became a liability
+(an edit to them would change nothing on the box while looking as if it
+did), so they were removed. The git history before that date still shows
+them, and the platform repository's DESIGN tells the extraction story.
 
-# Run docker as the login user (re-log to take effect).
-sudo usermod -aG docker $USER
-
-# The one shared proxy network every project stack joins.
-docker network create web
-```
-
-## Hardening — verify, then fix only what fails
-
-A fresh provider image may already ship most of this (the 2026-08-08 box did:
-ssh key-only, ufw active, unattended-upgrades wired). Verify the actual state
-first; change only what a check refutes.
-
-```sh
-# ssh: key-only, no root login. sshd -T prints the *effective* config with
-# /etc/ssh/sshd_config.d/ drop-ins resolved — grepping sshd_config alone can lie.
-sudo sshd -T | grep -Ei '^(passwordauthentication|permitrootlogin|kbdinteractiveauthentication)'
-# Want all three "no". If not, fix via a drop-in (never edit sshd_config itself),
-# and keep the current session open while testing a fresh login:
-#   printf 'PasswordAuthentication no\nPermitRootLogin no\nKbdInteractiveAuthentication no\n' \
-#     | sudo tee /etc/ssh/sshd_config.d/50-hardening.conf && sudo systemctl reload ssh
-
-# Firewall: default deny incoming; ssh is the ONLY host-level allowance.
-# Allow 22 BEFORE enable, while the session that would be locked out is
-# still open. 80/443 are deliberately not allowed: the web ports' guard is
-# the DOCKER-USER layer below — and the absence of a ufw allowance is
-# itself load-bearing (it is what closes the docker-proxy path; see below).
-sudo ufw allow 22/tcp comment 'ssh'
-sudo ufw enable
-
-# Security patches auto-install; the timers must show a next-fire time.
-sudo apt-get install -y unattended-upgrades
-systemctl list-timers 'apt-daily*' --all
-```
-
-## Origin firewall — only Cloudflare reaches the published ports
-
-The trap that shapes this design: **Docker-published ports bypass ufw** —
-inbound IPv4 to a published port is DNAT'ed and *forwarded* into the
-container, consulting the FORWARD chain (where Docker gives user rules
-first say via the `DOCKER-USER` hook) and never ufw's INPUT rules. So the
-web ports are guarded in two layers, one per path the traffic actually
-takes:
-
-- **IPv4 (forwarded): `firewall.sh`** owns the DOCKER-USER chain — 443
-  admitted from Cloudflare's published ranges only (the same list the
-  Caddyfile's `trusted_proxies` pins; refresh both together), everything
-  else the internet sends at a container dropped. `box-firewall.service`
-  re-applies it each boot, ordered `Before=docker.service` so no gap opens.
-- **IPv6 (docker-proxy): ufw's default deny.** The containers have no v6
-  address, so the `[::]:443` publish is served by docker-proxy — a *host
-  process*, which answers to INPUT and therefore to ufw. With no 80/443
-  allow rules, default-deny closes that door. No allowance is missing:
-  Cloudflare dials the origin v4-only (the origin DNS record is an A
-  record) and exclusively over 443 (SSL Full (strict)).
-
-Lockout safety, why this is safe to apply over ssh: DOCKER-USER sees only
-traffic forwarded into containers; the ssh session rides INPUT, which the
-script never touches — a botched rule set can dark the site, never the
-shell.
-
-```sh
-# Install script + unit, apply now (idempotent — safe to re-run):
-scp deploy/box/firewall.sh steamlens:/srv/box-proxy/firewall.sh
-scp deploy/box/box-firewall.service steamlens:/tmp/
-ssh steamlens 'chmod +x /srv/box-proxy/firewall.sh \
-  && sudo mv /tmp/box-firewall.service /etc/systemd/system/ \
-  && sudo systemctl daemon-reload && sudo systemctl enable --now box-firewall.service'
-
-# Verify: domain green, bare origin IP (never written here — the repo is
-# public and the proxy hides it; the `steamlens` ssh alias resolves it) dead
-# on both ports.
-curl -s https://steamlens.ardabasarici.dev/healthz          # → {"status":"ok",...}
-curl -s --connect-timeout 5 http://<origin-ip>/healthz      # → timeout
-curl -sk --connect-timeout 5 https://<origin-ip>/           # → timeout
-```
-
-The compose convention still stands as the inner wall: only the box proxy
-ever publishes a port. Check the live surface with
-`docker ps --format 'table {{.Names}}\t{{.Ports}}'`: only the Caddy container
-may show port arrows.
-
-## Domain + TLS (Cloudflare, orange-cloud)
-
-`steamlens.ardabasarici.dev` fronts the box through Cloudflare's proxy. The
-DNS A record is **proxied and must stay proxied** — a grey-cloud save, even
-briefly, puts the origin IP into passive-DNS archives permanently, and the
-origin-hiding half of the proxy dies retroactively.
-
-The visitor→Cloudflare leg rides Cloudflare's edge certificate; the
-Cloudflare→origin leg runs SSL mode **Full (strict)** against a Cloudflare
-Origin CA pair at `/srv/box-proxy/certs/` (dashboard → SSL/TLS → Origin
-Server; covers the apex + `*.ardabasarici.dev`, 15-year validity). The pair
-is trusted only by Cloudflare's edge — exactly its job — and is re-issuable
-from the dashboard at any time, so the box-side files are the whole story:
-never committed, nothing to back up.
-
-Two Caddyfile pieces make the proxy honest (both explained in place there):
-`trusted_proxies` lists Cloudflare's published ranges (cloudflare.com/ips —
-refresh the list if Cloudflare ever announces a change) so a forwarded
-identity is only believed when the peer really is Cloudflare, and the domain
-stanza *replaces* `X-Forwarded-For` with the one verified visitor IP,
-preserving the app's last-entry contract (`serve/gate.py`). There is no
-bare-IP `:80` stanza and the proxy publishes 443 only: Cloudflare dials the
-origin exclusively over HTTPS in Full (strict), visitor HTTP is redirected
-at the edge, and the origin firewall (above) drops direct-to-IP callers
-before Caddy ever sees them.
+| Was here | Lives now (platform repo) |
+|---|---|
+| `Caddyfile` (global config + the steamlens stanza) | `box/Caddyfile` + `projects/steamlens/sites.caddy` |
+| `compose.yaml` (the proxy stack) | `box/compose.yaml` |
+| `firewall.sh`, `box-firewall.service` | `box/` |
+| `backup.sh`, `steamlens-backup.service`, `steamlens-backup.timer` | `projects/steamlens/` |
+| `BACKUP_PING_URL` (was a line in `secrets.enc.env`) | `projects/steamlens/backup.enc.env` → `/etc/platform/steamlens/backup.env` on the box |
+| the provisioning / hardening / firewall / TLS / backup runbook sections | `box/README.md`, `projects/steamlens/README.md` |
 
 ## Layout on the box
 
-```
-/srv/box-proxy/    ← this directory (compose.yaml + Caddyfile), box-owned
-/srv/<project>/    ← one directory per project: its compose.yaml, .env, data/
-```
-
-`/srv/<project>/data/` is the bind-mounted state — it outlives every image
+The host layout (`/srv/platform` for the checkout the proxy and firewall run
+from, `/etc/platform` for machine-local material such as the Origin CA pair
+and decrypted env files, `/srv/<project>` per tenant) is drawn in the
+platform repository's `box/README.md`. The one fact the application owns:
+`/srv/steamlens/data/` is the bind-mounted state. It outlives every image
 and container, and the nightly backup reads it from the host without
-entering Docker. Owned by uid 1000 (the login user; images run as the same
-uid by convention).
-
-## Bring-up
-
-```sh
-# The proxy, once per box (the origin firewall installs with it — see
-# "Origin firewall" above):
-cd /srv/box-proxy && docker compose up -d
-
-# A project (steamlens shown); images come from GHCR — the box never builds:
-cd /srv/steamlens && docker compose pull && docker compose up -d
-```
+entering Docker. Owned by uid 1000 (the login user; the image runs as the
+same uid by convention).
 
 ## Deploying a new version
 
@@ -219,85 +108,13 @@ The `steamlens` alias lives in the workstation's `~/.ssh/config`. If `sops`
 and `ssh` sit in different environments (e.g. `sops` in WSL, the ssh alias in
 Windows), either add the alias to the sops environment, or bridge with a temp
 file on a shared path (`sops -d … > /mnt/c/…/env.tmp`, `scp` it from the side
-that has the alias, delete it after).
+that has the alias, delete it after). A PowerShell pipe between native
+commands (`wsl sops -d … | ssh …`) adds CRLF: strip it on the far side
+(`tr -d ""` before the `cat >`) and verify with
+`tr -cd "" < /srv/steamlens/.env | wc -c` → `0`. A stray `` at the end
+of a value silently breaks its consumer (measured 2026-08-27: the box's
+`.env` carried three).
 
-Add the box as its own decryptor (optional, later): generate an age key on the
-box, add its public key as a second `age:` recipient in `.sops.yaml`, run
-`sops updatekeys deploy/box/secrets.enc.env`, and the box decrypts at deploy
-without the workstation in the loop.
-
-## Backups (nightly, to Google Drive)
-
-The app's whole durable state is one SQLite file — `/srv/steamlens/data/serve.db`
-(response archive, ledger, journals, reports). `backup.sh` snapshots it with
-`sqlite3 .backup`, integrity-checks the snapshot before shipping, gzips, uploads
-to Drive, and prunes to 7 dailies + 4 Sunday weeklies. A systemd timer
-(`steamlens-backup.timer`, 03:30 box-local, `Persistent=true`) drives it; on
-success
-the script pings a healthchecks.io check, so the alert channel is *silence* —
-script failure, dead timer, and dead box all raise the same email. Secrets are
-deliberately not backed up: `.env` regenerates from the SOPS file in the repo,
-so a compromised Drive account holds review data, never keys.
-
-### One-time setup
-
-```sh
-# 1. On the box: the two tools the script calls.
-sudo apt-get install -y sqlite3 rclone
-
-# 2. On the box, as the login user: the Drive remote. Name it `gdrive`
-#    (backup.sh addresses it by that name), pick storage type `drive`, and set
-#    scope `drive.file` — the token can then only touch files rclone itself
-#    created; a compromised box can burn the backups, never read the Drive.
-#    Skip client_id/secret (rclone's built-in is fine at this volume, and a
-#    self-made "testing"-mode OAuth app expires its token every 7 days).
-#    The box is headless: answer "n" to auto config, run the printed
-#    `rclone authorize "drive" ...` line on the workstation, paste the token.
-rclone config
-
-# 3. Create a check at healthchecks.io (period 1 day, grace ~2 h), then put
-#    its ping URL into the secrets file and push (see Secrets above):
-#    sops deploy/box/secrets.enc.env   → add BACKUP_PING_URL=https://hc-ping.com/<uuid>
-
-# 4. From the workstation: install script + units, enable the timer.
-scp deploy/box/backup.sh steamlens:/srv/steamlens/backup.sh
-scp deploy/box/steamlens-backup.{service,timer} steamlens:/tmp/
-ssh steamlens 'chmod +x /srv/steamlens/backup.sh \
-  && sudo mv /tmp/steamlens-backup.service /tmp/steamlens-backup.timer /etc/systemd/system/ \
-  && sudo systemctl daemon-reload && sudo systemctl enable --now steamlens-backup.timer'
-
-# 5. First run, by hand, watching the journal:
-ssh steamlens 'sudo systemctl start steamlens-backup.service \
-  && journalctl -u steamlens-backup.service -n 20 --no-pager'
-```
-
-Setup is not done until a restore has been verified — a backup never restored
-is a hope. Pull the fresh backup back and compare it against the live db:
-
-```sh
-ssh steamlens
-rclone copyto "gdrive:steamlens-backups/daily/serve-$(date +%F).db.gz" /tmp/restore.db.gz
-gunzip /tmp/restore.db.gz
-sqlite3 /tmp/restore.db "PRAGMA integrity_check;"          # → ok
-sqlite3 /tmp/restore.db "SELECT count(*) FROM classify_cache;"
-sqlite3 "file:/srv/steamlens/data/serve.db?mode=ro" \
-  "SELECT count(*) FROM classify_cache;"                   # → same count (± writes since 03:30)
-rm /tmp/restore.db
-```
-
-### Restoring for real (disaster runbook)
-
-```sh
-cd /srv/steamlens && docker compose down
-rclone lsl gdrive:steamlens-backups/daily                  # pick the newest good one
-rclone copyto gdrive:steamlens-backups/daily/serve-<date>.db.gz /tmp/restore.db.gz
-gunzip /tmp/restore.db.gz && sqlite3 /tmp/restore.db "PRAGMA integrity_check;"
-mv data/serve.db data/serve.db.broken                      # keep the evidence
-rm -f data/serve.db-wal data/serve.db-shm                  # stale WAL sidecars poison a restored db
-mv /tmp/restore.db data/serve.db
-# Port 80 is retired and 443 speaks TLS for the domain, so the local check
-# rides SNI via --resolve; -k because the Origin CA cert is trusted only by
-# Cloudflare's edge, not by curl.
-docker compose up -d && curl -sk --resolve steamlens.ardabasarici.dev:443:127.0.0.1 \
-  https://steamlens.ardabasarici.dev/healthz
-```
+Adding the box as its own decryptor (an age key on the box as a second
+recipient) is a platform-level decision, recorded with the recipient policy
+in the platform repository's `SECRETS.md`.
