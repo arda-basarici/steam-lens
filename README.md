@@ -159,6 +159,11 @@ look:
   config hash, version pins). Swapping the LLM provider is a config edit plus
   one adapter behind the same seam.
 
+> **Recovery, drilled (2026-08-30):** the box this app runs on was rebuilt from a
+> blank host on a throwaway, and the previous night's production backup restored
+> onto it — serving through the proxy with verified counts in about an hour.
+> [Drill runbook](https://github.com/arda-basarici/platform/blob/main/runbooks/box-rebuild.md).
+
 ## What it serves
 
 - **Aspect report** — strengths/weaknesses by aspect (combat, story,
