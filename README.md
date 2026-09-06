@@ -83,9 +83,12 @@ decision with its alternatives and why they lost.
 | milestone | what shipped | the headline |
 |---|---|---|
 | smoke tests (M0) | Steam's undocumented API surface verified from a datacenter host | the data shapes every later decision cites |
-| extraction + eval (M1) | a 135,260-review census across 49 games, labeled end-to-end for $3.80 | **F1 0.766 [0.713–0.811]** (95% CI) vs human gold |
+| extraction + eval (M1) | a 135,260-review census across 49 games, labeled end-to-end for $3.80 (135,259 labeled, 1 provider refusal) | **F1 0.766 [0.713–0.811]** (95% CI) vs human gold |
 | sampling study (M2) | the windowed draw certified against census ground truth | 95% intervals honest: coverage 0.958–0.959 certified, **0.971 held-out** |
 | deployment (M3) | the live app on a hardened VPS: approval-gated CD, spend breaker, LLMOps journals | a full report for **$0.007–0.017**, walls probed live |
+
+> [!NOTE]
+> **Pricing note (2026-09-06).** DeepSeek moved to peak/off-peak pricing at higher rates at 16:00 UTC on 2026-08-16. The ledger behind the ops dashboard still prices calls at the pre-change flat table it was reconciled against on 2026-08-09, so its figures, and the $0.007–0.017 band first published from them, are estimates that understate the bill by about 2× off-peak and about 4× in peak hours (reconciled against the provider's bill on 2026-09-06). The $3.80 census was settled on 2026-07-20 at the old prices and stands. The rate rule is being rebuilt to price each call by its applicable rate period; until then, the dashboard should be read as a pre-repricing cost estimate.
 
 The report-interrogation chat (M4) is designed and deliberately deferred: the
 docket and leanings are recorded in [DESIGN](DESIGN.md); the report product
