@@ -192,8 +192,8 @@ look:
 | Docker · GHCR · Caddy · Cloudflare | the deployed system: CI-minted images behind a box-owned proxy behind a hidden origin |
 | GitHub Actions | CI with the eval gate; approval-gated CD over forced-command SSH |
 
-Method, in one breath each: evaluation-first (human gold before any model
-output; the judge calibrated before use) · evals gating CI at exact digits ·
+Method, in one breath each: evaluation-first (the gold set adjudicated before any
+candidate model was scored; the judge calibrated before use) · evals gating CI at exact digits ·
 provenance on every artifact · registered experiments over hand-waving ·
 uncertainty published, not rounded away · spend as a first-class ledger ·
 security as enumerated surface (CSP, canaries, admission control), not
