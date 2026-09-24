@@ -12,8 +12,10 @@ from __future__ import annotations
 import json
 import random
 import time
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
+from threading import Event
 
 import pytest
 from fakes import CollectingSink
@@ -58,12 +60,15 @@ class FakeProvider:
         transient_failures: int = 0,
         usage: TokenUsage = _USAGE,
         send_delay_s: float = 0.0,
+        hold: Event | None = None,
     ) -> None:
         self.sent: list[dict[str, object]] = []
+        self.entered = 0
         self._finish = finish
         self._transient_remaining = transient_failures
         self._usage = usage
         self._send_delay_s = send_delay_s
+        self._hold = hold
 
     def entry(self) -> ProviderEntry:
         return ProviderEntry(build_payload=self._build, send=self._send, parse=self._parse)
@@ -74,6 +79,9 @@ class FakeProvider:
         return {"model": model, "prompt": prompt, "max_output_tokens": max_output_tokens, **params}
 
     def _send(self, *, model: str, payload: ProviderPayload) -> str:
+        self.entered += 1
+        if self._hold is not None:
+            self._hold.wait()  # a test's hand on the wire: the send parks here
         if self._transient_remaining > 0:
             self._transient_remaining -= 1
             raise ProviderTransientError("fake 429")
@@ -366,6 +374,54 @@ def test_reservation_settles_to_actual_cost() -> None:
     client.complete(_request("one one one one one"))
     client.complete(_request("two two two two two"))
     assert ledger.request_count_since("fake-model", _EPOCH) == 2
+
+
+# --- single-flight ------------------------------------------------------------
+
+
+def _spin_until(condition: Callable[[], bool], timeout_s: float = 2.0) -> None:
+    deadline = time.monotonic() + timeout_s
+    while not condition():
+        assert time.monotonic() < deadline, "condition never held"
+        time.sleep(0.001)
+
+
+def test_identical_requests_in_flight_are_bought_once() -> None:
+    """Two callers, one key, the first still on the wire when the second arrives:
+    one send, one ledger row, both callers hold the same body — the archive
+    collision that killed two production runs cannot form."""
+    hold = Event()
+    provider = FakeProvider(hold=hold)
+    client, ledger, _ = _client(provider, _config())
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        leader = pool.submit(client.complete, _request("same review"))
+        _spin_until(lambda: provider.entered == 1)
+        joiner = pool.submit(client.complete, _request("same review"))
+        time.sleep(0.02)  # the joiner reaches its wait; the leader is still parked
+        assert provider.entered == 1, "the joiner must not send"
+        hold.set()
+        assert leader.result().text == joiner.result().text
+    assert len(provider.sent) == 1
+    assert ledger.request_count_since("fake-model", _EPOCH) == 1
+
+
+def test_joiner_buys_for_itself_when_the_leader_bought_nothing() -> None:
+    """A leader whose purchase raises archives nothing, so the joiner it released
+    becomes the leader of its own purchase instead of failing on a miss."""
+    hold = Event()
+    provider = FakeProvider(hold=hold, transient_failures=6)  # the leader's whole retry budget
+    client, ledger, _ = _client(provider, _config())
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        leader = pool.submit(client.complete, _request("same review"))
+        _spin_until(lambda: provider.entered == 1)
+        joiner = pool.submit(client.complete, _request("same review"))
+        time.sleep(0.02)
+        hold.set()
+        with pytest.raises(LlmUnavailableError):
+            leader.result()
+        assert joiner.result().text == "reply to same review"
+    assert len(provider.sent) == 1
+    assert ledger.request_count_since("fake-model", _EPOCH) == 1
 
 
 # --- the hammers --------------------------------------------------------------

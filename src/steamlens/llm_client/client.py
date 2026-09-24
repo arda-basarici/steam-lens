@@ -25,7 +25,7 @@ import random
 import time
 from collections.abc import Callable, Mapping
 from datetime import UTC, datetime, timedelta
-from threading import Lock
+from threading import Event, Lock
 
 from steamlens.contracts import (
     FinishReason,
@@ -49,7 +49,7 @@ from steamlens.llm_client.errors import (
     LlmUnavailableError,
     ProviderTransientError,
 )
-from steamlens.llm_client.registry import ProviderEntry
+from steamlens.llm_client.registry import ProviderEntry, ProviderPayload
 
 # Six attempts at base 2s: ~30s expected / ~60s worst-case patience per request
 # under full jitter — matching the Gemini SDK's own retry ceiling (≤60s max
@@ -166,10 +166,13 @@ class LlmClient:
         self._lock = Lock()
         self._reserved_usd = 0.0
         self._inflight: dict[str, int] = {}
+        # Archive keys being bought right now, each with the event its
+        # leader sets on settlement — the single-flight registry.
+        self._purchasing: dict[str, Event] = {}
         self._next_slot_monotonic: dict[str, float] = {}
 
     def complete(self, request: LlmRequest) -> LlmResponse:
-        """One stage-keyed completion — cached, guarded, accounted.
+        """One stage-keyed completion — cached, guarded, accounted, bought once.
 
         Returns the normalized response on a clean finish. Raises
         ``AtCapacityError`` when our own budget or daily-quota reserve refuses
@@ -178,6 +181,15 @@ class LlmClient:
         when the provider answered without finishing cleanly — that spend is
         already journaled and cached, so a re-ask hits the cache instead of
         re-paying for the same truncation.
+
+        Single-flight by archive key: an identical request already being
+        bought is joined, not re-bought. Content-identical batches happen —
+        template spam in the census (2026-08-03), meme reviews in production
+        (Lethal Company, twice, 2026-09-24) — and two purchases of one key
+        used to race the archive's overwrite refusal and kill the run. The
+        joiner waits for the leader's settlement and reads the archived body,
+        so both callers hold the one body the ledger paid for; a leader that
+        bought nothing (it raised) leaves the joiner to buy for itself.
         """
         route = self._config.routes.get(request.stage)
         if route is None:
@@ -192,12 +204,40 @@ class LlmClient:
             params=route.params,
         )
         key = _archive_key(route.model, payload)
+        settlement = Event()
         with self._lock:
             archived = self._archive.get(key)
+            leader = None if archived is not None else self._purchasing.get(key)
+            if archived is None and leader is None:
+                self._purchasing[key] = settlement
         if archived is not None:
             self._emit_metric(request.stage, "cache_hit", 1.0, "count")
             return self._guard_finish(entry.parse(archived))
+        if leader is not None:
+            leader.wait()
+            self._emit_metric(request.stage, "inflight_join", 1.0, "count")
+            with self._lock:
+                archived = self._archive.get(key)
+            if archived is None:
+                return self.complete(request)
+            return self._guard_finish(entry.parse(archived))
+        try:
+            return self._purchase(request, route, spec, entry, payload, key)
+        finally:
+            with self._lock:
+                del self._purchasing[key]
+            settlement.set()
 
+    def _purchase(
+        self,
+        request: LlmRequest,
+        route: Route,
+        spec: ModelSpec,
+        entry: ProviderEntry,
+        payload: ProviderPayload,
+        key: str,
+    ) -> LlmResponse:
+        """The leader's path: reserve, send, settle the ledger and the archive."""
         estimate = _worst_case_cost(request.prompt, route, spec)
         pace_wait = self._reserve(request.stage, route.model, spec, estimate)
         try:
