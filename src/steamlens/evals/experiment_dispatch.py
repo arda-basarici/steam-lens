@@ -165,6 +165,11 @@ class ExperimentCell:
     collide with an earlier cell's bought labels — a re-run under the same
     triple would see them as settled and buy nothing (the selection is the
     resume mechanism, working as designed)."""
+    json_mode: bool = True
+    """Whether the request carries the provider's json mode — the one
+    request-parameter knob a cell may turn (the instrument block's
+    ``classify_params`` carries the why). Registered per cell so the manifest
+    states what each run sent; the production route never reads it."""
 
 
 CELLS: Final[Mapping[str, ExperimentCell]] = {
@@ -177,6 +182,11 @@ CELLS: Final[Mapping[str, ExperimentCell]] = {
         ExperimentCell("full-n10-gold-recomposed", PROMPT_VERSION, 10, "gold-recomposed"),
         ExperimentCell("full-n10-gold-recert-freshbuy", PROMPT_VERSION, 10,
                        "gold-recomposed", identity_tag="recert-freshbuy"),
+        ExperimentCell("full-n10-gold-recert-v41flash-json", PROMPT_VERSION, 10,
+                       "gold-recomposed", identity_tag="recert-v41flash-json"),
+        ExperimentCell("full-n10-gold-recert-v41flash-prompt", PROMPT_VERSION, 10,
+                       "gold-recomposed", identity_tag="recert-v41flash-prompt",
+                       json_mode=False),
     )
 }
 """The closed cell registry — the registration, in code.
@@ -200,9 +210,14 @@ cache replayed the July responses at $0 (cache_hit 1.0 on the run log; the
 replayed envelopes were deleted). A drift instrument must vary content; the
 composition acquittal (same-day composition comparisons all null) is what
 makes the fresh draw a fair price. Scored against gold, it certifies the
-annotator-of-the-day the fresh-buy labels were bought from. Free dials
-are deliberately absent — an unregistered condition should not be one typo
-away.
+annotator-of-the-day the fresh-buy labels were bought from. The two
+``recert-v41flash`` cells (registered 2026-09-24) are that instrument
+pointed at the model the provider swapped in under the requested id on
+2026-09-10: the same recomposed scope under a fresh fillers seed, once with
+json mode as certified and once prompt-only, each scored against gold so
+the format ruling and the swapped model's certification come from one buy.
+Free dials are deliberately absent — an unregistered condition should not
+be one typo away.
 """
 
 
@@ -597,6 +612,7 @@ def _config_hash(
         "wire_model": MODEL_ID,
         "prompt_version": cfg.cell.prompt_version,
         "batch_size": cfg.cell.batch_size,
+        "json_mode": cfg.cell.json_mode,
         "ontology_version": ontology_version,
         "ontology_content_hash": ontology_content_hash,
         "scope": dict(scope_descriptor),
@@ -637,7 +653,10 @@ def execute_experiment_run(
     scope_descriptor: dict[str, object] = {"scope": cell.scope}
 
     with run_context(cfg.runs_dir, run_id, cfg.db_path) as (sink, client_store, driver_store):
-        client = build_client(entry, cfg.budget_usd, cell.batch_size, client_store, sink)
+        client = build_client(
+            entry, cfg.budget_usd, cell.batch_size, client_store, sink,
+            json_mode=cell.json_mode,
+        )
         narrate(
             sink, _STAGE, StageKind.STARTED,
             f"run {run_id} · code {code_version()} · cell {cell.name} · "
@@ -758,6 +777,7 @@ def execute_experiment_run(
             "model_versions_seen": sorted(totals.model_versions_seen),
             "prompt_version": cell.prompt_version,
             "batch_size": cell.batch_size,
+            "json_mode": cell.json_mode,
             "ontology_version": stamp.version,
             "ontology_content_hash": stamp.content_hash,
             "scope": scope_descriptor,

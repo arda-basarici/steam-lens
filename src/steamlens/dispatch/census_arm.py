@@ -73,6 +73,25 @@ _CACHED_INPUT_USD_PER_1M: Final = 0.0028
 _OUTPUT_USD_PER_1M: Final = 0.28
 
 
+def classify_params(*, json_mode: bool) -> dict[str, object]:
+    """The classify route's request parameters — deterministic, thinking off,
+    and json mode by the caller's choice.
+
+    The instrument was certified with json mode on and an *array* contract in
+    the prompt: contradictory by the OpenAI-compatible convention (json mode
+    means an object root), tolerated by V4 Flash, which answered arrays
+    anyway. V4.1 Flash (served under the same id since 2026-09-10) resolves
+    it the provider's way on ~45% of calls — the array wrapped in an object,
+    or the directive echoed back as the whole answer — and every such row
+    fails the parser. The bake-off's 2026-09-24 cells measure json mode on
+    against prompt-only JSON on gold; the ruling lands here.
+    """
+    params: dict[str, object] = {"temperature": 0, "thinking": {"type": "disabled"}}
+    if json_mode:
+        params["response_format"] = {"type": "json_object"}
+    return params
+
+
 def build_client(
     entry: ProviderEntry,
     budget_usd: float,
@@ -82,6 +101,7 @@ def build_client(
     *,
     extra_routes: Mapping[LlmStage, Route] | None = None,
     run_id: str | None = None,
+    json_mode: bool = True,
 ) -> LlmClient:
     """The dispatch-config client over the *client's* store connection.
 
@@ -93,17 +113,16 @@ def build_client(
     check at construction, never mid-run. ``run_id`` is the ledger attribution
     the client stamps on every journaled call — the shells that mint a run
     pass theirs, so spend joins to jobs and reports without inference.
+    ``json_mode`` is the one request-parameter knob, and only the bake-off
+    turns it: production sends json mode as the instrument was certified
+    (``classify_params`` says why that is now a question).
     """
     routes: dict[LlmStage, Route] = {
         LlmStage.CLASSIFY: Route(
             provider=PROVIDER,
             model=MODEL_ID,
             max_output_tokens=min(_OUTPUT_CAP, _OUTPUT_BASE + _OUTPUT_PER_REVIEW * n),
-            params={
-                "temperature": 0,
-                "response_format": {"type": "json_object"},
-                "thinking": {"type": "disabled"},
-            },
+            params=classify_params(json_mode=json_mode),
         )
     }
     routes.update(extra_routes or {})

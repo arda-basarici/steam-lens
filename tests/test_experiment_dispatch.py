@@ -33,10 +33,11 @@ from steamlens.core.classify import (
     build_classify_prompt,
     build_classify_prompt_compact,
 )
-from steamlens.dispatch.census_arm import EXPECTED_MODEL_VERSION, MODEL_ID
+from steamlens.dispatch.census_arm import EXPECTED_MODEL_VERSION, MODEL_ID, classify_params
 from steamlens.evals.experiment_dispatch import (
     CELLS,
     ExperimentRunConfig,
+    cell_model_version,
     cell_prompt_builder,
     cell_versions,
     execute_experiment_run,
@@ -119,6 +120,25 @@ def _manifest(tmp_path: Path) -> dict[str, object]:
     )
 
 
+def test_classify_params_json_mode_is_the_only_knob() -> None:
+    """Prompt-only JSON drops the provider directive and nothing else; the
+    certified shape keeps it — the two cells differ in exactly this."""
+    with_mode = classify_params(json_mode=True)
+    without = classify_params(json_mode=False)
+    assert with_mode["response_format"] == {"type": "json_object"}
+    assert "response_format" not in without
+    assert {k: v for k, v in with_mode.items() if k != "response_format"} == without
+
+
+def test_v41flash_recert_cells_share_scope_and_differ_in_json_mode() -> None:
+    json_cell = CELLS["full-n10-gold-recert-v41flash-json"]
+    prompt_cell = CELLS["full-n10-gold-recert-v41flash-prompt"]
+    assert (json_cell.scope, prompt_cell.scope) == ("gold-recomposed", "gold-recomposed")
+    assert (json_cell.json_mode, prompt_cell.json_mode) == (True, False)
+    assert cell_model_version(json_cell) == f"{MODEL_ID}@recert-v41flash-json"
+    assert cell_model_version(prompt_cell) == f"{MODEL_ID}@recert-v41flash-prompt"
+
+
 def test_cell_registry_identities() -> None:
     """The ruled tag convention: batch condition in model_version, render per pin."""
     triples = {
@@ -162,6 +182,7 @@ def test_sample_cell_prompts_singly_under_tagged_triple(tmp_path: Path) -> None:
     assert manifest["cell"] == "full-n1-sample"
     assert manifest["annotator_model_version"] == f"{MODEL_ID}@n1"
     assert manifest["wire_model"] == MODEL_ID
+    assert manifest["json_mode"] is True
 
 
 def test_compact_cell_batches_at_ten_under_its_own_pin(tmp_path: Path) -> None:
