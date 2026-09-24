@@ -7,7 +7,7 @@ the fixed vision-phase snapshot (2026-07-07) and is not updated as the design mo
 How it's built → ARCHITECTURE; the pitch → README. Executed experiments appear here
 as conclusions with citations to their runs of record.
 
-*Living snapshot · last updated 2026-08-12 · the project closed complete at
+*Living snapshot · last updated 2026-09-24 · the project closed complete at
 deployment (M3), live at steamlens.ardabasarici.dev; the chat milestone (M4) is
 designed-and-deferred (the M3 closure ruling, under the redirect).*
 

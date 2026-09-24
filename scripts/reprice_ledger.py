@@ -29,7 +29,8 @@ with the split means the mechanism is wrong — apply refuses.
 
 Dry-run by default; ``--apply`` rewrites inside one transaction and re-reads
 the day totals from disk. Take a snapshot first (the runbook's
-``sqlite3 .backup``) — this is the ledger's one sanctioned revision.
+``sqlite3 .backup``) — the ledger's first sanctioned revision (the second,
+2026-09-24, is ``reprice_ledger_rate_periods.py``).
 """
 
 from __future__ import annotations

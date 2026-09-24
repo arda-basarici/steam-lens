@@ -55,7 +55,7 @@ from steamlens.core.compose import AspectBrief, ComposeFacts, build_compose_prom
 from steamlens.core.grounding import derive_whitelist, ground, normalize_quotes
 from steamlens.core.normalize import build_surface_index
 from steamlens.dispatch import code_version
-from steamlens.dispatch.census_arm import KEY_ENV, MODEL_ID, MODEL_SPEC, PROVIDER
+from steamlens.dispatch.census_arm import KEY_ENV, MODEL_ID, MODEL_SPEC, PROVIDER, classify_params
 from steamlens.evals.canaries import (
     CANARY_SET_VERSION,
     Canary,
@@ -239,11 +239,10 @@ def build_canary_client(entry: ProviderEntry) -> LlmClient:
                 provider=PROVIDER,
                 model=MODEL_ID,
                 max_output_tokens=_CLASSIFY_OUTPUT_CAP,
-                params={
-                    "temperature": 0,
-                    "response_format": {"type": "json_object"},
-                    "thinking": {"type": "disabled"},
-                },
+                # Production's request shape, from the one place that owns it —
+                # a canary probing prompt walls on a shape production no longer
+                # sends would report on the wrong instrument.
+                params=classify_params(json_mode=False),
             ),
             LlmStage.COMPOSE: compose_route(),
         },

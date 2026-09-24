@@ -213,7 +213,11 @@ def _about_notes(unjournaled: UnjournaledTotals) -> tuple[str, ...]:
             "the live-measured calls, retries included",
             "ledger rows from before 2026-08-09 were flat-priced at write "
             "and repriced 2026-08-10 from the archive's recorded cache "
-            "splits; the provider dashboard is billing truth",
+            "splits; since 2026-09-24 each call is priced by its rate period "
+            "(the provider's weekday peak hours at full rate, off-peak at "
+            "half) and the rows since 2026-09-16 were repriced that way, "
+            "while rows from 2026-08-16 to 2026-09-16 stay at the earlier "
+            "flat table; the provider dashboard is billing truth",
             "token-level splits (prompt, cached, output, thinking) stay in "
             "the ledger journal — this page renders the rates and unit "
             "costs they produce",
