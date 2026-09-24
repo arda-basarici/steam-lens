@@ -52,7 +52,7 @@ from steamlens.contracts import (
     SpanKind,
 )
 from steamlens.core.allowance import is_spiky_regime, peak_window_share, shipped_interval
-from steamlens.dispatch.census_arm import PUBLISHED_READINGS
+from steamlens.dispatch.census_arm import PRIOR_MODEL_READINGS, PUBLISHED_READINGS
 
 QUOTES_PER_ASPECT: Final = 3
 """Display cap on verbatim evidence per aspect row — enough to ground the
@@ -1030,7 +1030,7 @@ def _trust_entries(
             "frozen calibration, not properties of this run",
         ),
         *[
-            (f"· {READING_GLOSSES[name][0]}", READING_GLOSSES[name][1].format(value=value))
+            (f"· {READING_GLOSSES[name][0]}", _glossed_reading(name, value))
             for name, value in PUBLISHED_READINGS.items()
         ],
         (
@@ -1041,6 +1041,17 @@ def _trust_entries(
         ("Run", f"{report.run.run_id} · code {report.run.code_version}"),
     ]
     return tuple(entries)
+
+
+def _glossed_reading(name: str, value: str) -> str:
+    """One reading's panel text: the value inside its gloss, then the prior-model
+    caveat when the instrument block carries one for it — a reading measured
+    on the retired model is still shown, and says so."""
+    text = READING_GLOSSES[name][1].format(value=value)
+    measured_on = PRIOR_MODEL_READINGS.get(name)
+    if measured_on is None:
+        return text
+    return f"{text} — measured on the prior model ({measured_on}); re-measurement pending"
 
 
 # The published readings translated for the panel's reader: (plain label, value

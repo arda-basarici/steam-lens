@@ -12,7 +12,7 @@ the registered readings live in
 ``probes/d2d_reads.py``.
 
 Cell envelopes land in the label pool, but their ``model_version`` key
-carries the batch condition — ``deepseek-v4-flash@n1`` — while the wire
+carries the batch condition — ``deepseek-flash@n1`` — while the wire
 request uses the real model id (the manifest records both). That tag is the
 ruled cell-identity seam: the versions triple names the annotator whose
 labels these are, and the experiment's premise is that batch condition
@@ -165,25 +165,30 @@ class ExperimentCell:
     collide with an earlier cell's bought labels — a re-run under the same
     triple would see them as settled and buy nothing (the selection is the
     resume mechanism, working as designed)."""
-    json_mode: bool = True
+    json_mode: bool = field(kw_only=True)
     """Whether the request carries the provider's json mode — the one
     request-parameter knob a cell may turn (the instrument block's
-    ``classify_params`` carries the why). Registered per cell so the manifest
-    states what each run sent; the production route never reads it."""
+    ``classify_params`` carries the why). Stated on every cell, no default:
+    the cells registered before 2026-09-24 ran with json mode on and keep
+    saying so, and the manifest states what each run sent."""
 
 
 CELLS: Final[Mapping[str, ExperimentCell]] = {
     cell.name: cell
     for cell in (
-        ExperimentCell("full-n1-gold", PROMPT_VERSION, 1, "gold"),
-        ExperimentCell("full-n1-sample", PROMPT_VERSION, 1, "sample"),
-        ExperimentCell("compact-n10-sample", COMPACT_PROMPT_VERSION, 10, "sample"),
-        ExperimentCell("compact-n1-sample", COMPACT_PROMPT_VERSION, 1, "sample"),
-        ExperimentCell("full-n10-gold-recomposed", PROMPT_VERSION, 10, "gold-recomposed"),
+        ExperimentCell("full-n1-gold", PROMPT_VERSION, 1, "gold", json_mode=True),
+        ExperimentCell("full-n1-sample", PROMPT_VERSION, 1, "sample", json_mode=True),
+        ExperimentCell("compact-n10-sample", COMPACT_PROMPT_VERSION, 10, "sample",
+                       json_mode=True),
+        ExperimentCell("compact-n1-sample", COMPACT_PROMPT_VERSION, 1, "sample",
+                       json_mode=True),
+        ExperimentCell("full-n10-gold-recomposed", PROMPT_VERSION, 10, "gold-recomposed",
+                       json_mode=True),
         ExperimentCell("full-n10-gold-recert-freshbuy", PROMPT_VERSION, 10,
-                       "gold-recomposed", identity_tag="recert-freshbuy"),
+                       "gold-recomposed", identity_tag="recert-freshbuy", json_mode=True),
         ExperimentCell("full-n10-gold-recert-v41flash-json", PROMPT_VERSION, 10,
-                       "gold-recomposed", identity_tag="recert-v41flash-json"),
+                       "gold-recomposed", identity_tag="recert-v41flash-json",
+                       json_mode=True),
         ExperimentCell("full-n10-gold-recert-v41flash-prompt", PROMPT_VERSION, 10,
                        "gold-recomposed", identity_tag="recert-v41flash-prompt",
                        json_mode=False),

@@ -726,6 +726,24 @@ hash.
 > every M1 claim rides on. The −0.033 gap to the lab arm was chased to ground by
 > the registered experiments below: buy-time variance, not batch composition.
 
+> [!IMPORTANT]
+> **Re-certification after a provider swap (2026-09-24).** DeepSeek retired V4
+> Flash on 2026-09-10 and routed the requested id `deepseek-v4-flash` to V4.1
+> Flash (reported as `deepseek-flash`). The drift watch compared versions within
+> a run only, so the swap went unflagged for eight days and three reports
+> shipped on the swapped model. Two cells on the recomposed gold scope under a
+> fresh fillers seed (20260924) measured the request shape on the new model:
+> json mode as certified **F1 0.700 [0.624–0.766]** with 24.9% of gold reviews
+> lost to shape failures (the model answers json mode with an object root, or
+> echoes the directive back as the whole answer); prompt-only JSON **F1 0.801
+> [0.752–0.844]** with none (run `certify-20260924T222850Z-b7092393`, scorer
+> `census-vs-gold/2`). Ruled: production sends prompt-only JSON, the requested
+> id is pinned to `deepseek-flash` with the declared version guarding it across
+> runs, and the label-pool namespace moves with the id. The re-certified F1
+> overlaps the original's interval; the claim is "at least as certified", not
+> improvement. The misattribution audit and the judge agreement were measured on
+> the retired model and stand with that caveat until re-measured.
+
 **The fabricated-quote metric decomposes honestly** (settled 2026-07-23). The parse
 already enforces the verbatim check at write time (bad quotes are nulled before
 storage), so the stored pool holds zero fabricated quotes *by construction*, and the

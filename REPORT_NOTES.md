@@ -7,6 +7,148 @@ decisions it feeds.
 
 ---
 
+## 2026-09-24 — Two upstreams moved under a green health check: a 502 traced to Steam's key drift and to a provider swapping the model behind our id, and the instrument re-certified on gold the same evening
+
+*The first incident after the deployment milestone (M3) closed and the app had
+run unattended for a month. Feeds: the M3 report's operations section (what
+"the walls held" turned out not to cover); the evaluation section's
+re-certification narrative; candidate material for a standalone post on why an
+LLM pipeline needs a declared instrument, not a model name.*
+
+Arda opened with a 502 on submitting a new game. The public surface said
+nothing was wrong: health, the home page, the ops page and the search box all
+answered 200, and the ops page counted zero fresh analyses for the day, which
+was the first real clue. The failure fired before any job existed, and the only
+code that answers 502 on the submit path is the store-name lookup that runs
+before a job is queued. Twenty minutes then went into a false lead of our own
+making: commands run over ssh from Windows arrive at the box with their inner
+double quotes stripped, so a URL's `&` backgrounded the command and a stray
+quote left the remote shell waiting for its mate. It looked exactly like a
+network hang. The box was fine the whole time (entry in the general gotchas
+file).
+
+The first root cause was Steam's. Between 2026-09-19 and 2026-09-24 the
+appdetails endpoint began filing its answer under a related app's id, usually
+one of the game's DLCs, while the record inside still carried the requested
+`steam_appid`: Darkest Dungeon, app 262060, came back keyed 345800. The parser
+keys the response by the requested id and fails loud on a missing key, by
+design, and the submit door turns that into an instant 502. Reproduced locally
+with the app's own client: Darkest Dungeon raised, Lethal Company (no DLC)
+resolved. Arda pushed back on the DLC framing, since analyses had worked on any
+game a few days earlier, and the pushback sharpened the claim rather than
+killing it. The change was Steam's and recent; the DLC line is only
+approximate (Miles Morales answered under a foreign key with no DLC listed);
+the stable facts are the foreign key and the correct inner id. The fix rides
+on the inner id: a lone entry whose `steam_appid` matches is accepted, every
+other shape stays loud, so a record about another game can never be taken as
+ours. Deployed and verified with Fallout 4 the same evening.
+
+That deploy restored the door and exposed the second fault. Lethal Company
+submitted fine and then failed twice, both times on the response archive's
+overwrite refusal: a key already held a different body, and the archive refuses
+to destroy a provenance record. The fix log had this exact failure from the
+census run of 2026-08-03, parked because census texts are diverse: two batches
+composing byte-identical prompts hash to the same archive key, both fly under
+concurrency, both get answered differently, and the second write refuses.
+Lethal Company is the worst case for it, half a million reviews and a large
+share of them the same two or three words. The job's own narration was gone by
+the time we looked; it lives with the live job and dies when the job settles,
+so the post-mortem had to read the archive itself (parked: persist a failed
+job's narration).
+
+Reading the archive is what found the real story. The spend ledger's
+provider-reported version had flipped from `deepseek-v4-flash` to
+`deepseek-flash` on 2026-09-16 (ledger query on the box, grouped by day).
+DeepSeek's updates page dated it: on 2026-09-10 V4 Flash was retired and the
+legacy id was routed to V4.1 Flash "for compatibility", canonical id
+`deepseek-flash`, prices changed. The drift watch compared versions within a
+run only, so every run after the swap was internally consistent and nothing
+flagged it for eight days. Three reports shipped on the swapped model: FFXV on
+2026-09-16 with zero durable failures, then Symphony of War and Darkest
+Dungeon on 2026-09-19 with 40 and 26 reviews marked unclassifiable, where no
+earlier job had any (jobs table on the box). A census of the archived response
+bodies settled the mechanism: the old model returned 2,323 array roots and
+zero object roots across 2,388 classify calls; the swapped one returned 211
+array roots, 175 object roots and 8 bare echoes of the directive itself,
+`{"type": "json_object"}`, seven output tokens for a 9,475-token prompt
+(archive query on the box, 2026-09-24). Our request had been contradictory
+from the start: json mode, which by OpenAI-compatible convention means an
+object root, alongside an array contract in the prompt. V4 Flash had resolved
+the contradiction our way on every call. V4.1 Flash resolves it the provider's
+way on about 45% of calls, wrapping the array in an object or answering with
+the directive alone. Arda's framing question, whether DeepSeek had stopped
+returning structured output, got the precise answer: it returns valid JSON,
+which is all json mode ever promised, and the contradiction was ours. The
+chain into the collision followed: shape failures swell the isolate pass to
+about a hundred single-review requests, identical meme texts compose identical
+payloads in flight together, and the archive's refusal ends the job.
+
+Arda held the fixes until the diagnosis was complete, then approved a six-step
+plan with rollback built into each step: one commit per step, the approval-
+gated deploy, rollback by image sha, and no destructive change to the serving
+database. Step two surfaced a design edge worth recording. "Pin the id to
+`deepseek-flash`" sounds like a routing change, but in this codebase the
+requested id is the label pool's namespace key and part of the instrument
+identity that the trust panel's readings are bound to. Pinning it before
+measuring would have bumped the namespace under an unmeasured configuration,
+so the guard was split from the pin: the drift watch gained a declared
+expected version, set to `deepseek-flash`, and the first response naming any
+other model now aborts the run before a second call is bought. The pin waited
+for the numbers.
+
+The numbers came from the bake-off's own re-certification instrument, pointed
+at the new model. Arda ruled for a cell-level json-mode flag over flipping the
+production constant between two runs, so each manifest states what its run
+sent. Two cells ran on the recomposed gold scope, each of the 245 in-scope gold
+reviews embedded among nine fresh fillers under fillers seed 20260924, one with
+json mode as certified and one prompt-only. Json mode on V4.1 Flash: F1 0.700
+[0.624–0.766], parse-failure rate 0.249, 610 of 2,450 labels failed durable
+(certify run `certify-20260924T222647Z-0491950a`, dry run; manifest under
+`data/runs/d2d-full-n10-gold-recert-v41flash-json-*`). Prompt-only JSON: F1
+0.801 [0.752–0.844], parse-failure rate 0.000, zero failed (run
+`certify-20260924T222850Z-b7092393`, journaled; manifest under
+`data/runs/d2d-full-n10-gold-recert-v41flash-prompt-*`). Against the
+baselines, the 2026-07-28 certification at 0.766 [0.713–0.811]
+(`certify-20260728T184100Z-5f3f4652`) and the 2026-08-03 re-certification at
+0.776 [0.727–0.818], the honest reading is "at least as certified", not
+improvement: the intervals overlap widely. The ruling followed directly.
+Production sends prompt-only JSON; the requested id is pinned to
+`deepseek-flash`, with the declared version guarding it across runs; the
+label-pool namespace moves with the id, which also retires the durable
+failure marks bought from the echo responses without a deletion; the trust
+panel's F1 reading updates from the journaled run; and the two readings the
+evening could not refresh, misattribution at 11.6% from the 2026-08-05 audit
+and judge agreement at 0.791 from 2026-07-25, stay on the panel with an
+explicit caveat that they were measured on the prior model, rendered from a
+small table in the instrument block so a re-measurement removes the caveat in
+the same commit that updates the value.
+
+Two steps of the plan remain open as this is written: single-flight by archive
+key in the LLM client, so identical in-flight requests share one purchase, and
+repricing the ledger from each call's timestamp, since V4.1 Flash bills output
+at $0.60 off-peak and $1.20 peak per million tokens against the flat table's
+$0.28 (DeepSeek pricing page, 2026-09-24). Parked beyond the plan: an off-box
+instrument canary. The health endpoint deliberately probes neither Steam nor
+the provider, a ruling made for uptime honesty, and the consequence this month
+was a check that read green for a week while every fresh analysis was either
+refused at the door or degraded in the classifier.
+
+Three lessons for the report. An alias the provider can re-point is an
+unchosen decision, the same family as the framework-default lesson from the
+CSP pass: nobody chose "whatever DeepSeek serves under this name", so nothing
+watched it. The fail-loud parser earned its keep on the Steam side, refusing a
+foreign record before any misattributed report could ship, while the
+classifier's degradation shipped precisely because the rebatch and isolate
+passes absorbed the failures quietly; only the collision made it loud, and the
+collision was luck. And when a re-certification lands above the old number
+with overlapping intervals, the claim to write is that the instrument is at
+least as certified as before.
+
+Figure: the archive root-shape census as a two-bar comparison (array vs object
+vs echo, old model vs swapped model); the two-cell F1 with intervals drawn
+against the certification band, with the 2026-07-28 and 2026-08-03 points for
+scale.
+
 ## 2026-08-16 — The gate that fired on a period: a "MAJOR" panel finding replayed against the archive, inverted, and repaired without a new model call
 
 *The polish run after the deployment milestone (M3) closed — the tier-1 item of

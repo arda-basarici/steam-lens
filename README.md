@@ -102,6 +102,7 @@ user should see ship inside the product's trust panel, not just here.
 | claim | measured | the honest caveat |
 |---|---|---|
 | label quality vs human gold | **F1 0.766 [0.713–0.811]** | 250-review gold set (scored on the 245 in-scope), assist-model drafts, every label adjudicated by a single annotator before any candidate model was scored, the assist model excluded from the candidates; disclosed |
+| the deployed instrument, re-certified after a provider swap | **F1 0.801 [0.752–0.844]** on the same gold set (2026-09-24) | DeepSeek re-pointed the requested model id at V4.1 Flash on 2026-09-10 and the within-run drift watch saw nothing; on the swapped model the certified request shape lost 24.9% of gold reviews to parse failures (F1 0.700), prompt-only JSON lost none. Production runs the re-certified shape; the misattribution and judge readings below were measured on the prior model and are pending re-measurement |
 | the judge, calibrated before use | F1 0.816 vs gold: paired **Δ +0.050 [+0.019, +0.083]** over production | cross-family, to reduce self-preference risk |
 | the judge check off-gold | **F1 0.791 [0.772–0.810]** agreement on a 1,000-review census sample | no quality cliff outside the gold set's reach |
 | fabricated quotes | **0 in 163,842 stored evidence spans** | a construction invariant, not model behavior: ~2.9% of attempted quotes failed verification and were nulled at write time; the deployed composer passes the same verbatim gate |

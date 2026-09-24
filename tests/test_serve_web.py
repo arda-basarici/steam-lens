@@ -561,10 +561,14 @@ def test_trust_panel_discloses_the_ruled_facts() -> None:
     assert "3.5%" in entries["Marked share"]
     assert "over the 2% floor" in entries["Marked share"]
     assert "frozen calibration, not properties of this run" in entries["Instrument readings"]
-    assert entries["· aspect tagging vs. human labels"].startswith("0.766 [0.713–0.811]"), (
+    assert entries["· aspect tagging vs. human labels"].startswith("0.801 [0.752–0.844]"), (
         "the published reading verbatim, then its gloss"
     )
     assert "1.0 is best" in entries["· aspect tagging vs. human labels"]
+    assert "re-measurement pending" not in entries["· aspect tagging vs. human labels"]
+    assert entries["· quotes filed under the wrong aspect"].endswith(
+        "measured on the prior model (2026-08-05); re-measurement pending"
+    ), "a reading carried over from the retired model says so after its gloss"
     assert "deepseek-v4-flash" in entries["Versions"]
     labels = [label for label, _ in view.trust_entries]
     assert labels.index("Instrument readings") < labels.index(
@@ -582,6 +586,9 @@ def test_every_published_reading_carries_a_gloss() -> None:
     from steamlens.serve.web.view import READING_GLOSSES
 
     assert set(READING_GLOSSES) == set(PUBLISHED_READINGS)
+    from steamlens.dispatch.census_arm import PRIOR_MODEL_READINGS
+
+    assert set(PRIOR_MODEL_READINGS) <= set(PUBLISHED_READINGS)
 
 
 def test_trust_panel_dates_steam_flagging_when_no_window_is_marked() -> None:
@@ -693,7 +700,7 @@ def test_report_page_renders_every_section() -> None:
     assert "unusual review volume" not in html
     assert "review activity spike" not in html
     assert "How this report was made" in html
-    assert "0.766 [0.713–0.811]" in html
+    assert "0.801 [0.752–0.844]" in html
 
 
 def _narrative_section(narrative: ComposedNarrative) -> str:
