@@ -170,11 +170,19 @@ def parse_appdetails(payload: Mapping[str, object], app_id: int) -> AppDetails |
     entry whose ``name`` is missing or mistyped. ``header_image`` is softer
     on absence (absent or empty parses as ``None`` — the store may honestly
     have no art) but stays loud on a type surprise, like every field here.
+
+    One tolerance, earned live: since 2026-09 Steam files many answers under
+    a *related* app's id (a DLC's, typically) while the record inside still
+    carries the requested ``steam_appid`` — that lone foreign-keyed entry is
+    read as ours on the strength of the inner id, and nothing else is.
     """
     key = str(app_id)
-    if key in payload and payload[key] is None:
+    raw_entry = (
+        payload[key] if key in payload else _entry_filed_under_a_foreign_key(payload, app_id)
+    )
+    if raw_entry is None:
         return None  # null is success:false's natural neighbor — no data, calmly
-    entry = _object_field(payload.get(key), f"appdetails[{app_id}]")
+    entry = _object_field(raw_entry, f"appdetails[{app_id}]")
     if not entry.get("success") or "data" not in entry:
         return None
     data = _object_field(entry.get("data"), f"appdetails[{app_id}].data")
@@ -190,6 +198,34 @@ def parse_appdetails(payload: Mapping[str, object], app_id: int) -> AppDetails |
             f"{type(header_image).__name__}, expected a string"
         )
     return AppDetails(name=name, header_image=header_image or None)
+
+
+def _entry_filed_under_a_foreign_key(payload: Mapping[str, object], app_id: int) -> object:
+    """The one entry Steam filed under another id, when its record is ours.
+
+    Observed 2026-09-24, dated to the week before: appdetails answers under
+    a related app's id for most games with DLC (Darkest Dungeon under its
+    DLC 345800), and the requested key is simply absent. The inner
+    ``steam_appid`` is the anchor — a lone entry claiming our id is
+    accepted; a differing id, several entries, or an empty response stay
+    the loud missing-key failure, so a record about another game is never
+    taken as ours.
+    """
+    if len(payload) == 1:
+        ((_, raw_entry),) = payload.items()
+        if isinstance(raw_entry, Mapping):
+            entry = cast("Mapping[str, object]", raw_entry)
+            data = entry.get("data")
+            claimed = (
+                cast("Mapping[str, object]", data).get("steam_appid")
+                if isinstance(data, Mapping) else None
+            )
+            if claimed == app_id:
+                return entry
+    raise SteamResponseError(
+        f"appdetails[{app_id}] is missing — the response answers {sorted(payload)!r}, "
+        "and no lone entry carries our steam_appid"
+    )
 
 
 def parse_storesearch(payload: Mapping[str, object]) -> tuple[GameSearchHit, ...]:

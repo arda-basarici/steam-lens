@@ -209,6 +209,31 @@ def test_appdetails_success_without_name_fails_loud() -> None:
         parse_appdetails({"440": {"success": True, "data": {}}}, 440)
 
 
+def test_appdetails_reads_the_record_filed_under_a_foreign_key() -> None:
+    """Since 2026-09 Steam files many answers under a related app's id — Darkest
+    Dungeon under its DLC 345800 (captured 2026-09-24) — while the record inside
+    still carries the requested steam_appid. The inner id is the anchor."""
+    payload = {
+        "345800": {
+            "success": True,
+            "data": {"name": "Darkest Dungeon®", "steam_appid": 262060, "dlc": [345800]},
+        }
+    }
+    assert parse_appdetails(payload, 262060) == AppDetails(
+        name="Darkest Dungeon®", header_image=None
+    )
+
+
+def test_appdetails_foreign_key_holding_another_record_stays_loud() -> None:
+    """The tolerance is the inner id, not the entry count: a lone entry whose
+    record names a different app is still the missing-key failure."""
+    payload = {
+        "345800": {"success": True, "data": {"name": "The Crimson Court", "steam_appid": 345800}}
+    }
+    with pytest.raises(SteamResponseError, match=r"appdetails\[262060\] is missing"):
+        parse_appdetails(payload, 262060)
+
+
 # --- the resolve operation -----------------------------------------------------
 
 
