@@ -10,7 +10,7 @@ decisions in DESIGN's labeling-engine section (settled 2026-07-13).
 """
 
 from steamlens.llm_client.client import LlmClient
-from steamlens.llm_client.config import LlmClientConfig, ModelSpec, Route
+from steamlens.llm_client.config import LlmClientConfig, ModelSpec, RateSchedule, Route
 from steamlens.llm_client.errors import (
     AtCapacityError,
     GenerationIncompleteError,
@@ -38,6 +38,7 @@ __all__ = [
     "LlmClientConfig",
     "Route",
     "ModelSpec",
+    "RateSchedule",
     # registry
     "ProviderEntry",
     "ProviderPayload",

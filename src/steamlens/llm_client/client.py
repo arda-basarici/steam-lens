@@ -97,15 +97,20 @@ def _worst_case_cost(prompt: str, route: Route, spec: ModelSpec) -> float:
     ) / 1_000_000
 
 
-def _actual_cost(usage: TokenUsage, spec: ModelSpec) -> float:
-    """What the call really cost — thinking at the output rate, cache hits at theirs.
+def _actual_cost(usage: TokenUsage, spec: ModelSpec, at: datetime) -> float:
+    """What the call really cost — thinking at the output rate, cache hits at
+    theirs, the whole thing at the rate period ``at`` falls in.
 
     Cache-hit prompt tokens bill at the provider's discounted rate when the
     spec prices one (DeepSeek's discount is 50x, and ~90% of a classify
     prompt is the shared ontology prefix — pricing it flat overstated the
     ledger ~5x against the dashboard, the 2026-08-09 reconciliation). A spec
     without a cached price keeps the flat read, conservative by construction.
+    A spec with a rate schedule bills off-peak calls at its multiplier (the
+    provider's peak/off-peak split, priced per call since 2026-09-24 after a
+    month of flat under-recording); the reservation estimate stays at peak.
     """
+    period = 1.0 if spec.rate_schedule is None else spec.rate_schedule.multiplier_at(at)
     fresh_rate = spec.input_usd_per_1m
     cached_rate = (
         spec.cached_input_usd_per_1m
@@ -113,7 +118,7 @@ def _actual_cost(usage: TokenUsage, spec: ModelSpec) -> float:
         else fresh_rate
     )
     fresh = usage.prompt_tokens - usage.cached_prompt_tokens
-    return (
+    return period * (
         fresh * fresh_rate
         + usage.cached_prompt_tokens * cached_rate
         + (usage.output_tokens + usage.thinking_tokens) * spec.output_usd_per_1m
@@ -250,9 +255,10 @@ class LlmClient:
         except BaseException:
             self._release(route.model, estimate)
             raise
-        cost = _actual_cost(response.usage, spec)
+        settled_at = self._now()
+        cost = _actual_cost(response.usage, spec, settled_at)
         record = SpendRecord(
-            created_at=self._now(),
+            created_at=settled_at,
             stage=request.stage,
             model=route.model,
             model_version=response.model_version,

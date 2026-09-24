@@ -15,12 +15,43 @@ spec raises here; provider names are checked against the registry by the client
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 
 from steamlens.contracts import LlmStage
 from steamlens.llm_client.errors import LlmConfigError
 
 
 @dataclass(frozen=True, slots=True)
+class RateSchedule:
+    """A provider's time-of-day price split, stated as a discount off the peak table.
+
+    ``peak_windows_utc`` are half-open ``[start, end)`` hours that count as
+    peak on ``peak_weekdays`` (Monday is 0); every other moment bills at
+    ``off_peak_multiplier`` times the spec's prices, which are therefore the
+    *peak* table — the ceiling the reservation estimate holds. Provider
+    holiday exclusions (DeepSeek exempts Chinese public holidays from peak)
+    are deliberately not modeled: a maintained calendar is more machinery
+    than the handful of days a year it corrects, and the error runs toward
+    overstating cost on those days, the safe direction for a ledger that
+    understated for a month (2026-08-16 to 2026-09-24).
+    """
+
+    peak_windows_utc: tuple[tuple[int, int], ...]
+    peak_weekdays: frozenset[int]
+    off_peak_multiplier: float
+
+    def multiplier_at(self, at: datetime) -> float:
+        """The price multiplier in force at ``at`` — 1.0 in a peak window."""
+        if at.tzinfo is None:
+            raise ValueError("rate lookup needs an aware datetime — the ledger clock is UTC")
+        moment = at.astimezone(UTC)
+        in_window = any(start <= moment.hour < end for start, end in self.peak_windows_utc)
+        if moment.weekday() in self.peak_weekdays and in_window:
+            return 1.0
+        return self.off_peak_multiplier
+
+
+@dataclass(frozen=True)
 class ModelSpec:
     """One model's operating envelope: pacing, daily quota, prices.
 
@@ -32,7 +63,9 @@ class ModelSpec:
     prefix-cache-hit input rate — ``None`` means no discount is priced and
     every prompt token bills at the full input rate (conservative), which was
     the ledger's ~5x overstatement against the real bill until the 2026-08-09
-    reconciliation priced the split.
+    reconciliation priced the split. ``rate_schedule`` makes the prices the
+    peak table and discounts off-peak calls by the call's timestamp; ``None``
+    prices every call flat.
     """
 
     rpm: int
@@ -40,6 +73,7 @@ class ModelSpec:
     input_usd_per_1m: float
     output_usd_per_1m: float
     cached_input_usd_per_1m: float | None = None
+    rate_schedule: RateSchedule | None = None
 
     def __post_init__(self) -> None:
         # A misconfiguration is a startup failure, never a surprise mid-run:

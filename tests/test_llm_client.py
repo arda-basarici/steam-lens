@@ -14,7 +14,7 @@ import random
 import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
 from threading import Event
 
 import pytest
@@ -43,6 +43,7 @@ from steamlens.llm_client import (
     ProviderEntry,
     ProviderPayload,
     ProviderTransientError,
+    RateSchedule,
     Route,
 )
 
@@ -124,6 +125,7 @@ def _config(
     max_out: int = 1000,
     model: str = "fake-model",
     cached_price: float | None = None,
+    schedule: RateSchedule | None = None,
 ) -> LlmClientConfig:
     """One CLASSIFY route on a fake model priced 1/2 USD per 1M input/output tokens."""
     return LlmClientConfig(
@@ -133,7 +135,7 @@ def _config(
         models={
             model: ModelSpec(
                 rpm=rpm, rpd=rpd, input_usd_per_1m=1.0, output_usd_per_1m=2.0,
-                cached_input_usd_per_1m=cached_price,
+                cached_input_usd_per_1m=cached_price, rate_schedule=schedule,
             )
         },
         budget_usd=budget,
@@ -147,6 +149,7 @@ def _client(
     cache: InMemoryResponseArchive | None = None,
     record_sleeps: list[float] | None = None,
     run_id: str | None = None,
+    now: Callable[[], datetime] | None = None,
 ) -> tuple[LlmClient, InMemorySpendLedger, CollectingSink]:
     """A client on the fake registry, no-op sleep (or a recording one), seeded RNG."""
     ledger = InMemorySpendLedger()
@@ -166,6 +169,7 @@ def _client(
         run_id=run_id,
         sleep=_sleep,
         rng=random.Random(7),
+        **({"now": now} if now is not None else {}),
     )
     return client, ledger, sink
 
@@ -374,6 +378,54 @@ def test_reservation_settles_to_actual_cost() -> None:
     client.complete(_request("one one one one one"))
     client.complete(_request("two two two two two"))
     assert ledger.request_count_since("fake-model", _EPOCH) == 2
+
+
+# --- rate periods -------------------------------------------------------------
+
+_WEEKDAY_SPLIT = RateSchedule(
+    peak_windows_utc=((1, 4), (6, 10)), peak_weekdays=frozenset(range(5)), off_peak_multiplier=0.5
+)
+
+
+def _at(day: int, hour: int, minute: int = 0) -> datetime:
+    """A moment in September 2026 UTC — the 21st is a Monday, the 26th a Saturday."""
+    return datetime(2026, 9, day, hour, minute, tzinfo=UTC)
+
+
+def test_rate_schedule_peak_windows_are_half_open_on_weekdays_only() -> None:
+    peak = [_at(21, 1), _at(21, 3, 59), _at(21, 6), _at(21, 9, 59)]
+    off = [_at(21, 0, 59), _at(21, 4), _at(21, 5, 59), _at(21, 10), _at(26, 2), _at(27, 7)]
+    assert [_WEEKDAY_SPLIT.multiplier_at(m) for m in peak] == [1.0] * 4
+    assert [_WEEKDAY_SPLIT.multiplier_at(m) for m in off] == [0.5] * 6
+
+
+def test_rate_schedule_reads_the_moment_in_utc_and_refuses_naive_clocks() -> None:
+    """02:00 in UTC+3 is 23:00 UTC the day before — off-peak, whatever the wall clock says."""
+    local = datetime(2026, 9, 22, 2, 0, tzinfo=timezone(timedelta(hours=3)))
+    assert _WEEKDAY_SPLIT.multiplier_at(local) == 0.5
+    with pytest.raises(ValueError, match="aware datetime"):
+        _WEEKDAY_SPLIT.multiplier_at(datetime(2026, 9, 22, 2, 0))
+
+
+def test_ledger_row_is_priced_at_the_call_moments_rate_period() -> None:
+    """The spec's prices are the peak table; a call settled off-peak journals
+    half, and a flat spec (no schedule) ignores the clock. The row's timestamp
+    and its price come from the same reading of the clock."""
+    usage = TokenUsage(
+        prompt_tokens=100, output_tokens=50, thinking_tokens=0, cached_prompt_tokens=90
+    )
+    full = (10 * 1.0 + 90 * 0.1 + 50 * 2.0) / 1e6
+    split = _config(cached_price=0.1, schedule=_WEEKDAY_SPLIT)
+    for moment, expected in ((_at(21, 2), full), (_at(21, 12), full / 2)):
+        client, ledger, _ = _client(FakeProvider(usage=usage), split, now=lambda m=moment: m)
+        client.complete(_request())
+        assert ledger.records[0].cost == pytest.approx(expected)
+        assert ledger.records[0].created_at == moment
+    client, ledger, _ = _client(
+        FakeProvider(usage=usage), _config(cached_price=0.1), now=lambda: _at(21, 12)
+    )
+    client.complete(_request())
+    assert ledger.records[0].cost == pytest.approx(full)
 
 
 # --- single-flight ------------------------------------------------------------

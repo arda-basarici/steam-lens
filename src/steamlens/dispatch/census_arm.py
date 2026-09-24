@@ -16,7 +16,14 @@ from collections.abc import Mapping
 from typing import Final
 
 from steamlens.contracts import LlmStage, Sink
-from steamlens.llm_client import LlmClient, LlmClientConfig, ModelSpec, ProviderEntry, Route
+from steamlens.llm_client import (
+    LlmClient,
+    LlmClientConfig,
+    ModelSpec,
+    ProviderEntry,
+    RateSchedule,
+    Route,
+)
 from steamlens.store import Store
 
 MODEL_ID: Final = "deepseek-flash"
@@ -79,15 +86,39 @@ _OUTPUT_CAP: Final = 8_192
 # Politeness backstop only — DeepSeek's envelope is concurrency-based (no rpm);
 # high enough that the worker pool, not pacing, is the real throttle.
 _RPM: Final = 600
-# The provider's full price table, verified against api-docs.deepseek.com and
-# reconciled to the dashboard's billed total 2026-08-09 (the day priced flat
-# read ~5x over the bill). The cache-hit rate is DeepSeek's 50x prefix-cache
-# discount; ~90% of a classify prompt is the shared ontology prefix, so the
-# discount dominates real cost. Prices are config, not identity: a table
-# update changes accounting, never the instrument.
-_INPUT_USD_PER_1M: Final = 0.14
-_CACHED_INPUT_USD_PER_1M: Final = 0.0028
-_OUTPUT_USD_PER_1M: Final = 0.28
+# The provider's price table for the pinned model, read from
+# api-docs.deepseek.com/quick_start/pricing on 2026-09-24: V4.1 Flash's *peak*
+# rates, with off-peak at half (the schedule below). The first table (V4
+# Flash, 0.14 / 0.0028 / 0.28 flat) was reconciled to the billed dashboard
+# 2026-08-09; the provider moved to peak/off-peak at higher rates on
+# 2026-08-16 and repriced again with V4.1 on 2026-09-10, and the ledger stayed
+# on the flat table until 2026-09-24 (README's pricing note dates the gap).
+# The cache-hit rate is the 50x prefix-cache discount; ~90% of a classify
+# prompt is the shared ontology prefix, so it dominates real cost. Prices are
+# config, not identity: a table update changes accounting, never the instrument.
+_INPUT_USD_PER_1M: Final = 0.30
+_CACHED_INPUT_USD_PER_1M: Final = 0.006
+_OUTPUT_USD_PER_1M: Final = 1.20
+DEEPSEEK_RATE_SCHEDULE: Final = RateSchedule(
+    peak_windows_utc=((1, 4), (6, 10)),
+    peak_weekdays=frozenset(range(5)),
+    off_peak_multiplier=0.5,
+)
+"""DeepSeek's published split: peak 01:00–04:00 and 06:00–10:00 UTC, Monday
+through Friday, off-peak at 50% of peak. The published exclusion of Chinese
+public holidays from peak is not modeled (``RateSchedule`` states why)."""
+
+MODEL_SPEC: Final = ModelSpec(
+    rpm=_RPM,
+    rpd=None,
+    input_usd_per_1m=_INPUT_USD_PER_1M,
+    output_usd_per_1m=_OUTPUT_USD_PER_1M,
+    cached_input_usd_per_1m=_CACHED_INPUT_USD_PER_1M,
+    rate_schedule=DEEPSEEK_RATE_SCHEDULE,
+)
+"""The pinned model's envelope — the one spec every client over this
+instrument prices with (the canary run included, which used to carry its own
+copy of the table)."""
 
 
 def classify_params(*, json_mode: bool) -> dict[str, object]:
@@ -148,15 +179,7 @@ def build_client(
     routes.update(extra_routes or {})
     config = LlmClientConfig(
         routes=routes,
-        models={
-            MODEL_ID: ModelSpec(
-                rpm=_RPM,
-                rpd=None,
-                input_usd_per_1m=_INPUT_USD_PER_1M,
-                output_usd_per_1m=_OUTPUT_USD_PER_1M,
-                cached_input_usd_per_1m=_CACHED_INPUT_USD_PER_1M,
-            )
-        },
+        models={MODEL_ID: MODEL_SPEC},
         budget_usd=budget_usd,
     )
     return LlmClient(

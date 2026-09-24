@@ -55,7 +55,7 @@ from steamlens.core.compose import AspectBrief, ComposeFacts, build_compose_prom
 from steamlens.core.grounding import derive_whitelist, ground, normalize_quotes
 from steamlens.core.normalize import build_surface_index
 from steamlens.dispatch import code_version
-from steamlens.dispatch.census_arm import KEY_ENV, MODEL_ID, PROVIDER
+from steamlens.dispatch.census_arm import KEY_ENV, MODEL_ID, MODEL_SPEC, PROVIDER
 from steamlens.evals.canaries import (
     CANARY_SET_VERSION,
     Canary,
@@ -68,7 +68,6 @@ from steamlens.evals.canaries import (
 from steamlens.llm_client import (
     LlmClient,
     LlmClientConfig,
-    ModelSpec,
     ProviderEntry,
     Route,
     openai_compat_entry,
@@ -248,11 +247,7 @@ def build_canary_client(entry: ProviderEntry) -> LlmClient:
             ),
             LlmStage.COMPOSE: compose_route(),
         },
-        models={
-            MODEL_ID: ModelSpec(
-                rpm=600, rpd=None, input_usd_per_1m=0.14, output_usd_per_1m=0.28
-            )
-        },
+        models={MODEL_ID: MODEL_SPEC},
         budget_usd=_BUDGET_USD,
     )
     return LlmClient(
