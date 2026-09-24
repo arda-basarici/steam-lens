@@ -15,7 +15,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from steamlens.contracts import FinishReason, LlmResponse, Review, SinkEvent, TokenUsage
-from steamlens.dispatch.census_arm import MODEL_ID
+from steamlens.dispatch.census_arm import EXPECTED_MODEL_VERSION
 from steamlens.evals.judge_dispatch import JUDGE_MODEL_ID
 from steamlens.llm_client import ProviderEntry, ProviderPayload, ProviderPermanentError
 from steamlens.store import Store
@@ -114,7 +114,9 @@ class FakeProvider:
         if "REFUSE" in prompt:
             raise ProviderPermanentError("HTTP 400: Content Exists Risk")
         version = (
-            self._versions[call_index] if call_index < len(self._versions) else MODEL_ID
+            self._versions[call_index]
+            if call_index < len(self._versions)
+            else EXPECTED_MODEL_VERSION
         )
         if "<evidence>" in prompt:
             return json.dumps({"model_version": version, "prose": self.compose_prose})

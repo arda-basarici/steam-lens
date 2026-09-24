@@ -58,7 +58,12 @@ from steamlens.dispatch import (
     run_pass,
     write_manifest,
 )
-from steamlens.dispatch.census_arm import KEY_ENV, MODEL_ID, build_client
+from steamlens.dispatch.census_arm import (
+    EXPECTED_MODEL_VERSION,
+    KEY_ENV,
+    MODEL_ID,
+    build_client,
+)
 from steamlens.llm_client import (
     AtCapacityError,
     LlmUnavailableError,
@@ -323,7 +328,7 @@ def execute_run(cfg: RunConfig, entry: ProviderEntry, started: datetime | None =
     )
 
     totals = RunTotals()
-    drift = DriftWatch()
+    drift = DriftWatch(expected=EXPECTED_MODEL_VERSION)
     aborted: str | None = None
     selected = already_labeled = supply = 0
 

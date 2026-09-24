@@ -96,7 +96,12 @@ from steamlens.dispatch import (
     run_pass,
     write_manifest,
 )
-from steamlens.dispatch.census_arm import KEY_ENV, MODEL_ID, build_client
+from steamlens.dispatch.census_arm import (
+    EXPECTED_MODEL_VERSION,
+    KEY_ENV,
+    MODEL_ID,
+    build_client,
+)
 from steamlens.evals.gold import load_gold
 from steamlens.evals.judge_gold import assert_gold_text_matches_pool
 from steamlens.evals.judge_sample import load_sample, stored_reviews_matching_pins
@@ -626,7 +631,7 @@ def execute_experiment_run(
     build_prompt = cell_prompt_builder(cell)
 
     totals = ExperimentTotals()
-    drift = DriftWatch()
+    drift = DriftWatch(expected=EXPECTED_MODEL_VERSION)
     aborted: str | None = None
     selected = in_scope = already_settled = 0
     scope_descriptor: dict[str, object] = {"scope": cell.scope}

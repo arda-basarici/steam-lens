@@ -97,7 +97,7 @@ from steamlens.dispatch import (
     narrate,
     run_pass,
 )
-from steamlens.dispatch.census_arm import MODEL_ID, build_client
+from steamlens.dispatch.census_arm import EXPECTED_MODEL_VERSION, MODEL_ID, build_client
 from steamlens.llm_client import LlmClient, ProviderEntry
 from steamlens.ontology import load_ontology, load_ontology_version
 from steamlens.serve.config import ServeConfig
@@ -483,7 +483,7 @@ class AnalysisRunner:
 
         producer = threading.Thread(target=produce, name="steamlens-fetch", daemon=True)
         totals = RunTotals()
-        drift = DriftWatch()
+        drift = DriftWatch(expected=EXPECTED_MODEL_VERSION)
         languages: Counter[str] = Counter()
         accounts: list[WindowAccount] = []
         member_times: list[datetime] = []

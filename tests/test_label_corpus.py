@@ -25,7 +25,7 @@ from steamlens.contracts import (
 )
 from steamlens.core.classify import PROMPT_VERSION
 from steamlens.dispatch import RunTotals
-from steamlens.dispatch.census_arm import MODEL_ID
+from steamlens.dispatch.census_arm import EXPECTED_MODEL_VERSION, MODEL_ID
 from steamlens.ontology import load_ontology_version
 from steamlens.store import Store
 from steamlens.studies.label_corpus import RunConfig, build_manifest, execute_run
@@ -99,7 +99,7 @@ def test_happy_path_labels_everything(tmp_path: Path) -> None:
     assert manifest["aborted"] is None
     assert manifest["reviews"]["labeled"] == 12
     assert manifest["reviews"]["failed_durable"] == 0
-    assert manifest["model_versions_seen"] == [MODEL_ID]
+    assert manifest["model_versions_seen"] == [EXPECTED_MODEL_VERSION]
     assert (manifests[0].parent / "run.log").exists()
 
 
@@ -161,7 +161,7 @@ def test_failure_sweep_marks_durably_after_three_attempts(tmp_path: Path) -> Non
 def test_model_version_drift_aborts_loud(tmp_path: Path) -> None:
     """A mid-run change in the reported model version stops the run, exit 1."""
     _corpus(tmp_path, [f"review number {i}" for i in range(10)])
-    provider = FakeProvider(version_for=[MODEL_ID, "deepseek-v4-flash-0921"])
+    provider = FakeProvider(version_for=[EXPECTED_MODEL_VERSION, "deepseek-flash-1021"])
     cfg = _config(tmp_path, supply=10, n=5, max_workers=1)
     assert execute_run(cfg, provider.entry()) == 1
 
@@ -228,7 +228,7 @@ def test_abort_cancels_the_queued_batches(tmp_path: Path) -> None:
     motion — not the 30 queued behind them.
     """
     _corpus(tmp_path, [f"review number {i}" for i in range(30)])
-    provider = FakeProvider(version_for=[MODEL_ID, "deepseek-v4-flash-0921"])
+    provider = FakeProvider(version_for=[EXPECTED_MODEL_VERSION, "deepseek-flash-1021"])
     cfg = _config(tmp_path, supply=30, n=1, max_workers=1)
     assert execute_run(cfg, provider.entry()) == 1
     # A slack bound, not a measurement: the worker thread can run a few calls

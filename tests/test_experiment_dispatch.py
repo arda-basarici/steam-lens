@@ -33,7 +33,7 @@ from steamlens.core.classify import (
     build_classify_prompt,
     build_classify_prompt_compact,
 )
-from steamlens.dispatch.census_arm import MODEL_ID
+from steamlens.dispatch.census_arm import EXPECTED_MODEL_VERSION, MODEL_ID
 from steamlens.evals.experiment_dispatch import (
     CELLS,
     ExperimentRunConfig,
@@ -446,7 +446,7 @@ def test_abort_cancels_the_queued_cell_batches(tmp_path: Path) -> None:
     rows = [(f"{i:03d}", f"review number {i}") for i in range(30)]
     seed_reviews(tmp_path / "pool.sqlite3", rows)
     _sample_file(tmp_path, rows)
-    provider = FakeProvider(version_for=[MODEL_ID, "deepseek-v4-flash-0921"])
+    provider = FakeProvider(version_for=[EXPECTED_MODEL_VERSION, "deepseek-flash-1021"])
     assert execute_experiment_run(
         _config(tmp_path, "full-n1-sample", max_workers=1), provider.entry()
     ) == 1

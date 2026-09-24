@@ -23,6 +23,17 @@ MODEL_ID: Final = "deepseek-v4-flash"
 """The requested model id — the label key's ``model_version`` (keys are
 contracts; the provider-reported version is journaled per call instead)."""
 
+EXPECTED_MODEL_VERSION: Final = "deepseek-flash"
+"""The version string the provider must report for the requested id — the
+drift watch's cross-run anchor. The requested id is an alias the provider
+can re-point: on 2026-09-10 DeepSeek retired V4 Flash and routed
+``deepseek-v4-flash`` to V4.1 Flash, reported as ``deepseek-flash``, and
+the within-run watch saw nothing for eight days. Declaring the version
+here makes the next such swap fail on its first call. Part of the
+instrument identity with ``MODEL_ID`` and the readings: a re-certification
+updates all three together (the 2026-09-24 plan pins the id and re-measures
+in one step; this constant then names the pinned model's own report)."""
+
 PUBLISHED_READINGS: Final[dict[str, str]] = {
     "classifier F1 vs gold": "0.766 [0.713–0.811]",
     "quote misattribution rate": "11.6% [6.6–19.6]",
