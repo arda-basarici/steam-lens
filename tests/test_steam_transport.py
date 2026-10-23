@@ -23,7 +23,7 @@ from steamlens.steam_client import (
     SteamUnavailableError,
 )
 
-_URL = "https://store.steampowered.com/appreviews/440"
+_URL = "https://api.steampowered.com/IUserReviewsService/GetAppReviews/v1/"
 
 
 class Harness:

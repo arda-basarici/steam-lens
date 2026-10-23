@@ -15,7 +15,8 @@ view over it and holds nothing to close.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+import json
+from collections.abc import Callable, Mapping
 from datetime import UTC, datetime
 from typing import Final
 
@@ -45,22 +46,44 @@ from steamlens.steam_client.walk import WalkTally, walk_pages
 
 _APPDETAILS_URL: Final = "https://store.steampowered.com/api/appdetails"
 _STORESEARCH_URL: Final = "https://store.steampowered.com/api/storesearch/"
-_REVIEWS_URL: Final = "https://store.steampowered.com/appreviews/{app_id}"
+# The WebAPI method that replaced the store's appreviews endpoint (retired
+# 2026-10-22; the old URL answers a 302 to the store front). Keyless; the
+# query travels as one input_json parameter.
+_REVIEWS_URL: Final = "https://api.steampowered.com/IUserReviewsService/GetAppReviews/v1/"
 _HISTOGRAM_URL: Final = "https://store.steampowered.com/appreviewhistogram/{app_id}"
 
+# The method's enums are integers. The retired endpoint took the words, and
+# the WebAPI reads an unknown word as the enum's zero — Helpful sort,
+# Steam-only purchases — so a word carried over would run clean and sample
+# the wrong population (probed 2026-10-23).
+_FILTER_RECENT: Final = 1
+_REVIEW_TYPE_ALL: Final = 0
+_PURCHASE_TYPE_ALL: Final = 1
+
 # The bias-avoiding base every review fetch shares: the unfiltered trio keeps
-# Steam's default sampling out of the data, and filter_offtopic_activity=0
-# rides every fetch — a default fetch silently blanks flagged windows (the
-# proven data-integrity bug).
-_UNFILTERED_BASE: Final[dict[str, str | int]] = {
-    "json": 1,
-    "language": "all",
-    "purchase_type": "all",
-    "review_type": "all",
-    "filter_offtopic_activity": 0,
+# Steam's default sampling out of the data, and filter_offtopic_activity
+# false rides every fetch — the default silently blanks flagged windows (the
+# proven data-integrity bug, re-observed on the new method 2026-10-23).
+_UNFILTERED_BASE: Final[dict[str, object]] = {
+    "languages": ["all"],
+    "purchase_type": _PURCHASE_TYPE_ALL,
+    "review_type": _REVIEW_TYPE_ALL,
+    "filter_offtopic_activity": False,
 }
-# The one-request totals-only read: num_per_page=0 returns query_summary alone.
-_TOTALS_PARAMS: Final[dict[str, str | int]] = {**_UNFILTERED_BASE, "num_per_page": 0}
+# The totals read: the first page carries the population claim, and the
+# method has no page size below one (zero means the default twenty).
+_TOTALS_QUERY: Final[dict[str, object]] = {**_UNFILTERED_BASE, "num_per_page": 1}
+
+
+def review_request(app_id: int, query: Mapping[str, object]) -> dict[str, str | int]:
+    """The review method's one wire parameter: ``input_json`` carrying the query.
+
+    The documented form, and the only one that carries a list: on the query
+    string a bare ``languages=all`` reads as the empty list, which the method
+    defines as English (probed 2026-10-23 — 212k Portal 2 reviews against the
+    469k all-language total).
+    """
+    return {"input_json": json.dumps({"appid": app_id, **query}, separators=(",", ":"))}
 
 
 def _utc_now() -> datetime:
@@ -158,20 +181,23 @@ class SteamClient:
         return details.name if details else None
 
     def fetch_totals(self, app_id: int, *, language: str = "all") -> QuerySummary | None:
-        """Steam's population claim for ``app_id`` — one paced totals-only read.
+        """Steam's population claim for ``app_id`` — one paced one-review read.
 
-        ``num_per_page=0`` returns ``query_summary`` alone. ``language`` is
-        the one filter a caller may legitimately narrow: the serving size
-        rule branches on the *English* pool (the sampling study certified
-        English-only draws), and this read is the only pre-fetch way to know
-        it — wire-validated against row-by-row fresh-buy counts
-        (``probes/english_totals_probe.py``, 2026-08-07). The unfiltered trio
-        otherwise stands; ``None`` means Steam reported no summary.
+        The first page's ``query_summary`` carries the totals, and they
+        follow the query's filters, so ``language`` is the one filter a
+        caller may legitimately narrow: the serving size rule branches on
+        the *English* pool (the sampling study certified English-only
+        draws), and this read is the only pre-fetch way to know it —
+        wire-validated against row-by-row fresh-buy counts on the retired
+        endpoint (``probes/english_totals_probe.py``, 2026-08-07) and
+        re-read on the WebAPI method (English 212k against 469k all-language
+        for Portal 2, 2026-10-23). The unfiltered trio otherwise stands;
+        ``None`` means Steam reported no summary.
         """
         page = parse_review_page(
             self._transport.get_json(
-                _REVIEWS_URL.format(app_id=app_id),
-                {**_TOTALS_PARAMS, "language": language},
+                _REVIEWS_URL,
+                review_request(app_id, {**_TOTALS_QUERY, "languages": [language]}),
             ),
             app_id,
         )
@@ -210,12 +236,14 @@ class SteamClient:
         suspicion. The wire-level disclosures (empty-page exhaustion, the
         dirty verdict) still apply unchanged.
 
-        The primary path is the windowed-unfiltered walk: ``filter=recent``
-        composed with the undocumented date-window params — the composition
-        every probe this project ran validated, which the donor never used.
-        Because the params are undocumented, nothing is trusted: every
-        returned timestamp is checked against the window, and a clean walk
-        returns as ``WINDOWED`` with the violation count (zero) as its
+        The primary path is the windowed-unfiltered walk: the Recent sort
+        composed with the date-window params — the composition every probe
+        this project ran validated, which the donor never used. The params
+        were undocumented on the retired store endpoint and are documented
+        on the WebAPI method that replaced it (2026-10-22); the discipline
+        built for the undocumented years stands, since it costs nothing:
+        every returned timestamp is checked against the window, and a clean
+        walk returns as ``WINDOWED`` with the violation count (zero) as its
         semantic-validation verdict.
 
         A clean windowed walk that ended on empty-page exhaustion, or that
@@ -243,19 +271,18 @@ class SteamClient:
         machine's zone.
         """
         _check_window(window_start, window_end)
-        url = _REVIEWS_URL.format(app_id=app_id)
-        windowed_params: dict[str, str | int] = {
+        windowed_query: dict[str, object] = {
             **_UNFILTERED_BASE,
-            "filter": "recent",
+            "filter": _FILTER_RECENT,
             "num_per_page": self._config.num_per_page,
-            "start_date": int(window_start.timestamp()),
-            "end_date": int(window_end.timestamp()),
-            "date_range_type": "include",
+            "date_range_start": int(window_start.timestamp()),
+            "date_range_end": int(window_end.timestamp()),
+            "date_range_exclude": False,
         }
         retries_before = self._transport.retries_spent
 
         windowed = self._walk(
-            url, windowed_params, app_id, window_start, window_end,
+            windowed_query, app_id, window_start, window_end,
             strict=True, stop_after=quota,
         )
         if windowed.out_of_window == 0:
@@ -288,13 +315,13 @@ class SteamClient:
                 retries=self._transport.retries_spent - retries_before,
             )
 
-        plain_params: dict[str, str | int] = {
+        plain_query: dict[str, object] = {
             **_UNFILTERED_BASE,
-            "filter": "recent",
+            "filter": _FILTER_RECENT,
             "num_per_page": self._config.num_per_page,
         }
         fallback = self._walk(
-            url, plain_params, app_id, window_start, window_end,
+            plain_query, app_id, window_start, window_end,
             strict=False, stop_after=quota,
         )
         if fallback.stopped_on_empty_pages:
@@ -316,8 +343,7 @@ class SteamClient:
 
     def _walk(
         self,
-        url: str,
-        params: dict[str, str | int],
+        query: Mapping[str, object],
         app_id: int,
         window_start: datetime,
         window_end: datetime,
@@ -325,11 +351,14 @@ class SteamClient:
         strict: bool,
         stop_after: int | None = None,
     ) -> WalkTally:
-        """One engine run over ``params`` — the two paths differ only here."""
+        """One engine run over ``query`` — the two paths differ only here."""
 
         def fetch_page(cursor: str) -> ReviewPage:
             return parse_review_page(
-                self._transport.get_json(url, {**params, "cursor": cursor}), app_id
+                self._transport.get_json(
+                    _REVIEWS_URL, review_request(app_id, {**query, "cursor": cursor})
+                ),
+                app_id,
             )
 
         return walk_pages(
@@ -367,11 +396,19 @@ class SteamClient:
         An empty-page exhaustion stop or a shortfall against Steam's own
         window total means the collection may be truncated; both checks are
         windowed-only — the fallback's unwindowed summary describes the whole
-        game and supports neither. A quota'd walk skips the shortfall check:
-        collecting less than the window's total is the quota working, and the
-        plan-versus-delivered account belongs to the caller holding the plan.
+        game and supports neither. An exhaustion stop that holds everything
+        Steam's own total claims for the window is the stream's ordinary end
+        (the WebAPI method answers the page past the last with an empty page
+        echoing the cursor asked, observed 2026-10-23), so it is not
+        disclosed as a suspicion; one that stops short is. A quota'd walk
+        skips the shortfall check: collecting less than the window's total is
+        the quota working, and the plan-versus-delivered account belongs to
+        the caller holding the plan.
         """
-        if tally.stopped_on_empty_pages:
+        complete_by_steams_claim = (
+            tally.reported_total is not None and len(tally.reviews) >= tally.reported_total
+        )
+        if tally.stopped_on_empty_pages and not complete_by_steams_claim:
             self._warn(
                 f"windowed walk for app {app_id} ended on empty-page exhaustion — "
                 "the collection may be truncated, not proven complete"

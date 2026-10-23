@@ -10,7 +10,7 @@ short pages mid-stream routinely — so short pages simply continue, and empty
 pages retry the same cursor a bounded number of times before the walk
 concludes the stream is really dry. The stops that ARE trusted: timestamps
 exiting the window on the old side, a repeated cursor, a missing cursor, and
-Steam's own "no result" answer (``success == 2``). A strict walk additionally
+Steam's own "no result" answer (the empty response object). A strict walk additionally
 stops at the end of the first page carrying any out-of-window review — one
 violation already refutes the window params, and descending further would pay
 the very approach the feasibility gate exists to refuse. The empty-page
@@ -33,7 +33,6 @@ from datetime import datetime
 from typing import Final
 
 from steamlens.contracts import Review
-from steamlens.steam_client.errors import SteamResponseError
 from steamlens.steam_client.parse import ReviewPage
 
 # How many times an empty page re-asks the same cursor before the walk accepts
@@ -95,9 +94,7 @@ def walk_pages(
     volume. A deliberate quota stop is a trusted stop, not a truncation
     suspicion; the violation and past-the-window judgments run first on any
     page, so a dirty page still refutes the params even when it also fills
-    the quota. Raises ``SteamResponseError`` on a ``success`` value that is
-    neither 1 nor the documented no-result 2 — new wire knowledge, surfaced
-    rather than guessed at.
+    the quota.
     """
     cursor = _FIRST_CURSOR
     seen_cursors = {_FIRST_CURSOR}
@@ -113,12 +110,8 @@ def walk_pages(
         pages_fetched += 1
         if reported_total is None and page.summary is not None:
             reported_total = page.summary.total_reviews
-        if page.success == 2:
+        if page.no_result:
             break  # Steam's own clean "no result" — an answer, not a suspicion
-        if page.success != 1:
-            raise SteamResponseError(
-                f"review page: success is {page.success}, expected 1 or the no-result 2"
-            )
         if not page.reviews:
             if empty_retries_left > 0:
                 empty_retries_left -= 1

@@ -50,19 +50,21 @@ class QuerySummary:
 
 @dataclass(frozen=True, slots=True)
 class ReviewPage:
-    """One parsed page of the review endpoint — the walk's unit of progress.
+    """One parsed page of the review method — the walk's unit of progress.
 
-    ``success`` is Steam's own status field (2 is the documented "no result"
-    answer, kept verbatim for the walk to judge); ``cursor`` is the next-page
-    token (``None`` when Steam omitted it — a stop signal, not an error);
-    ``summary`` is present only on pages whose ``query_summary`` carried the
-    population totals — the first page of a walk; later pages send a
-    degenerate ``num_reviews``-only stub that parses as no summary. Internal
-    to the door: walks fold pages into a ``WindowFetchResult``, which is the
-    record that crosses the seam.
+    ``no_result`` is Steam's own "nothing for this id" answer: the method
+    returns an empty ``response`` object (HTTP 200, ``X-eresult: 42``) for
+    an id it has no reviews record for, kept as a flag for the walk to judge
+    — an empty *window* is not this, it answers zero totals and no reviews.
+    ``cursor`` is the next-page token (``None`` when Steam omitted it — a
+    stop signal, not an error); ``summary`` is present only on pages whose
+    ``query_summary`` carried the population totals — the first page of a
+    walk; later pages send a degenerate ``num_reviews``-only stub that
+    parses as no summary. Internal to the door: walks fold pages into a
+    ``WindowFetchResult``, which is the record that crosses the seam.
     """
 
-    success: int
+    no_result: bool
     cursor: str | None
     summary: QuerySummary | None
     reviews: tuple[Review, ...]
@@ -106,18 +108,22 @@ def review_from_raw(raw: Mapping[str, object], app_id: int) -> Review:
 
 
 def parse_review_page(payload: Mapping[str, object], app_id: int) -> ReviewPage:
-    """One review-endpoint response as a ``ReviewPage``.
+    """One GetAppReviews response as a ``ReviewPage``.
 
-    A missing ``reviews`` list parses as an empty page rather than failing —
-    Steam omits it on empty answers, and whether an empty page is a retry, a
-    stop, or a clean "no result" is the walk's judgment, not the parser's.
+    The body rides under a ``response`` key — its absence is shape damage.
+    The method has no ``success`` field (the HTTP status is the verdict, and
+    the transport already judges it); an empty ``response`` object is its
+    no-result answer. A missing ``reviews`` list parses as an empty page
+    rather than failing — Steam omits it on empty answers, and whether an
+    empty page is a retry, a stop, or a clean "no result" is the walk's
+    judgment, not the parser's.
     """
-    success = _int_field(payload, "success", "review page")
-    cursor = payload.get("cursor")
+    body = _object_field(payload.get("response"), "review page response")
+    cursor = body.get("cursor")
     if cursor is not None and not isinstance(cursor, str):
         raise SteamResponseError(f"review page: cursor is {cursor!r}, expected a string")
     summary = None
-    raw_summary = payload.get("query_summary")
+    raw_summary = body.get("query_summary")
     if raw_summary is not None:
         summary_map = _object_field(raw_summary, "review page query_summary")
         # Later pages carry a degenerate {"num_reviews": N} stub with no totals
@@ -130,13 +136,15 @@ def parse_review_page(payload: Mapping[str, object], app_id: int) -> ReviewPage:
                 total_negative=_int_field(summary_map, "total_negative", "query_summary"),
             )
     reviews: list[Review] = []
-    for position, item in enumerate(_list_field(payload, "reviews", optional=True)):
+    for position, item in enumerate(_list_field(body, "reviews", optional=True)):
         raw_review = _object_field(item, f"review page reviews[{position}]")
         try:
             reviews.append(review_from_raw(raw_review, app_id))
         except ValueError as exc:
             raise SteamResponseError(f"review page reviews[{position}]: {exc}") from exc
-    return ReviewPage(success=success, cursor=cursor, summary=summary, reviews=tuple(reviews))
+    return ReviewPage(
+        no_result=not body, cursor=cursor, summary=summary, reviews=tuple(reviews)
+    )
 
 
 @dataclass(frozen=True, slots=True)

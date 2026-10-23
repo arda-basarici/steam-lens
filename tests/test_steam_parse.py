@@ -1,11 +1,14 @@
 """Behavioral claims on the Steam-door parsers — pinned against the real captures.
 
 The fixtures are the probe captures in ``probes/captures/`` — actual Steam
-responses saved during the smoke-test and M1-entry probes — so every claim here
-is about the wire format as it really is, not as documented: both rollup units,
-a real ``past_events`` entry, and the blanked/restored page pair that proved
-the off-topic filtering bug. Hand-built payloads appear only for shapes no
-capture holds (the ``success == 2`` empty answer, malformed-field failures).
+responses saved during the smoke-test and M1-entry probes, the review pages
+re-read from the WebAPI method that replaced the store endpoint
+(``getappreviews_*``, 2026-10-23) — so every claim here is about the wire
+format as it really is, not as documented: both rollup units, a real
+``past_events`` entry, the blanked/restored page pair that proved the
+off-topic filtering bug, and the method's empty-object no-result answer.
+Hand-built payloads appear only for shapes no capture holds (malformed-field
+failures, the missing wrapper).
 """
 
 from __future__ import annotations
@@ -76,12 +79,13 @@ def test_flagged_game_carries_its_past_events() -> None:
 
 
 def test_blanked_and_restored_pair() -> None:
-    """The proven data-integrity bug, visible in the fixtures: the same window
-    yields zero reviews under a default fetch and a full page with
-    ``filter_offtopic_activity=0`` — and the blanked page even zeroes its totals."""
-    blanked = parse_review_page(_capture("offtopic_reviews_default"), 49520)
-    restored = parse_review_page(_capture("offtopic_reviews_include_offtopic"), 49520)
-    assert (blanked.success, restored.success) == (1, 1)
+    """The proven data-integrity bug, visible in the fixtures and alive on the
+    WebAPI method: the same marked-window day yields zero reviews under a
+    default fetch and a full page with ``filter_offtopic_activity`` false —
+    and the blanked page even zeroes its totals."""
+    blanked = parse_review_page(_capture("getappreviews_offtopic_default_49520"), 49520)
+    restored = parse_review_page(_capture("getappreviews_offtopic_restored_49520"), 49520)
+    assert (blanked.no_result, restored.no_result) == (False, False)
     assert blanked.reviews == ()
     assert blanked.summary == QuerySummary(0, 0, 0)
     assert len(restored.reviews) == 100
@@ -90,9 +94,9 @@ def test_blanked_and_restored_pair() -> None:
 def test_windowed_page_parses_reviews_and_summary() -> None:
     """A real windowed-unfiltered page: 100 reviews into the contract (aware
     timestamps, caller's app_id stamped) and the window-scoped totals captured."""
-    page = parse_review_page(_capture("defaultwalk_windowed_unfiltered_236850"), 236850)
-    assert page.success == 1
-    assert page.summary == QuerySummary(total_reviews=1892, total_positive=881, total_negative=1011)
+    page = parse_review_page(_capture("getappreviews_windowed_unfiltered_236850"), 236850)
+    assert page.no_result is False
+    assert page.summary == QuerySummary(total_reviews=1878, total_positive=859, total_negative=1019)
     assert page.cursor
     assert len(page.reviews) == 100
     first = page.reviews[0]
@@ -102,21 +106,28 @@ def test_windowed_page_parses_reviews_and_summary() -> None:
     assert first.text
 
 
+def test_empty_response_object_is_the_no_result_answer() -> None:
+    """An id the method has nothing for answers an empty ``response`` object
+    (HTTP 200): parsed clean as the no-result page — the walk judges what it
+    means. An empty *window* is not that answer: zero totals, no reviews, the
+    first cursor echoed back."""
+    nothing = parse_review_page(_capture("getappreviews_no_such_app"), 999_999_999)
+    assert nothing == ReviewPage(no_result=True, cursor=None, summary=None, reviews=())
+    empty_window = parse_review_page(_capture("getappreviews_empty_window_440"), 440)
+    assert empty_window.no_result is False
+    assert empty_window.summary == QuerySummary(0, 0, 0)
+    assert empty_window.reviews == ()
+    assert empty_window.cursor == "*"
+
+
 # --- shapes no capture holds ---------------------------------------------------
-
-
-def test_success_2_empty_answer_is_a_page_not_an_error() -> None:
-    """Steam's "no result" answer parses clean: the walk judges what it means."""
-    page = parse_review_page({"success": 2}, 440)
-    assert page == ReviewPage(success=2, cursor=None, summary=None, reviews=())
 
 
 def test_review_field_failures_name_the_position() -> None:
     """A bad review object fails loud with its page position, as the typed door
     error — not a bare ValueError from the shared record parser."""
     payload: dict[str, object] = {
-        "success": 1,
-        "reviews": [{"recommendationid": "", "language": "english"}],
+        "response": {"reviews": [{"recommendationid": "", "language": "english"}]},
     }
     with pytest.raises(SteamResponseError, match=r"reviews\[0\]"):
         parse_review_page(payload, 440)
@@ -126,20 +137,20 @@ def test_degenerate_later_page_summary_is_no_summary() -> None:
     """Later pages send query_summary as a num_reviews-only stub — observed on
     the live wire (2026-07-27), where the donor lore said the field is absent.
     That's no summary, not shape damage; a half-formed totals block still is."""
-    page = parse_review_page({"success": 1, "query_summary": {"num_reviews": 0}}, 440)
+    page = parse_review_page({"response": {"query_summary": {"num_reviews": 0}}}, 440)
     assert page.summary is None
     half_formed: dict[str, object] = {
-        "success": 1,
-        "query_summary": {"num_reviews": 0, "total_reviews": 5},
+        "response": {"query_summary": {"num_reviews": 0, "total_reviews": 5}},
     }
     with pytest.raises(SteamResponseError, match="total_positive"):
         parse_review_page(half_formed, 440)
 
 
-def test_bool_cannot_pass_as_integer() -> None:
-    """``True`` is an ``int`` to Python; the boundary refuses the masquerade."""
-    with pytest.raises(SteamResponseError, match="success is True"):
-        parse_review_page({"success": True}, 440)
+def test_missing_response_wrapper_fails_loud() -> None:
+    """A body without the method's ``response`` wrapper — the retired
+    endpoint's shape, say — is damage, not an empty page."""
+    with pytest.raises(SteamResponseError, match="review page response"):
+        parse_review_page({"success": 1, "reviews": []}, 440)
 
 
 def test_unrecognized_rollup_unit_fails_loud() -> None:

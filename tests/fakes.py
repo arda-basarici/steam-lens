@@ -13,6 +13,9 @@ import re
 import threading
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import cast
+
+import httpx
 
 from steamlens.contracts import FinishReason, LlmResponse, Review, SinkEvent, TokenUsage
 from steamlens.dispatch.census_arm import EXPECTED_MODEL_VERSION
@@ -22,6 +25,15 @@ from steamlens.store import Store
 
 REVIEWS_BLOCK = re.compile(r"<reviews>\n(.*)\n</reviews>", re.DOTALL)
 """The classify prompt's data channel — what a scripted provider answers from."""
+
+
+def sent_review_query(request: httpx.Request) -> dict[str, object]:
+    """The review query a wire request carried — its ``input_json`` decoded.
+
+    The review method takes its whole query as one JSON parameter, so wire
+    assertions read the query back through this instead of the URL params.
+    """
+    return cast("dict[str, object]", json.loads(request.url.params["input_json"]))
 
 
 class NullSink:

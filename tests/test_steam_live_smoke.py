@@ -32,6 +32,7 @@ from steamlens.steam_client import (
     SteamTransport,
     parse_review_page,
 )
+from steamlens.steam_client.client import review_request
 from steamlens.steam_client.walk import walk_pages
 
 _GATE = pytest.mark.skipif(
@@ -41,14 +42,16 @@ _GATE = pytest.mark.skipif(
 
 _TF2 = 440
 _BORDERLANDS_2 = 49520
-_REVIEWS_URL = "https://store.steampowered.com/appreviews/{app_id}"
+_REVIEWS_URL = "https://api.steampowered.com/IUserReviewsService/GetAppReviews/v1/"
 
-_UNFILTERED: dict[str, str | int] = {
-    "json": 1,
-    "filter": "recent",
-    "language": "all",
-    "purchase_type": "all",
-    "review_type": "all",
+# The raw-wire reads below hand-build the query (the two reads the client
+# never makes: the blanking default fetch, the forced fallback walk) — the
+# method's integer enums: Recent sort, all purchase types, all review types.
+_UNFILTERED: dict[str, object] = {
+    "filter": 1,
+    "languages": ["all"],
+    "purchase_type": 1,
+    "review_type": 0,
     "num_per_page": 100,
 }
 
@@ -113,23 +116,29 @@ def test_windowed_fetch_validates_semantically(client: SteamClient) -> None:
 @_GATE
 def test_blank_restore_on_borderlands(client: SteamClient, transport: SteamTransport) -> None:
     """The proven bug, live: a slice of the review-bomb window Steam flags on
-    Borderlands 2 yields more reviews with ``filter_offtopic_activity=0`` than
-    a default fetch — the window comes from the live ``past_events``."""
+    Borderlands 2 yields more reviews with ``filter_offtopic_activity`` false
+    than a default fetch — the window comes from the live ``past_events``."""
     snapshot = client.fetch_histogram(_BORDERLANDS_2)
     assert snapshot.past_events, "expected the 2019 review-bomb event on the live histogram"
     event = snapshot.past_events[0]
     slice_end = min(event.end, event.start + timedelta(days=1))
-    params: dict[str, str | int] = {
+    query: dict[str, object] = {
         **_UNFILTERED,
-        "start_date": int(event.start.timestamp()),
-        "end_date": int(slice_end.timestamp()),
-        "date_range_type": "include",
+        "date_range_start": int(event.start.timestamp()),
+        "date_range_end": int(slice_end.timestamp()),
+        "date_range_exclude": False,
         "cursor": "*",
     }
-    url = _REVIEWS_URL.format(app_id=_BORDERLANDS_2)
-    blanked = parse_review_page(transport.get_json(url, params), _BORDERLANDS_2)
+    blanked = parse_review_page(
+        transport.get_json(_REVIEWS_URL, review_request(_BORDERLANDS_2, query)),
+        _BORDERLANDS_2,
+    )
     restored = parse_review_page(
-        transport.get_json(url, {**params, "filter_offtopic_activity": 0}), _BORDERLANDS_2
+        transport.get_json(
+            _REVIEWS_URL,
+            review_request(_BORDERLANDS_2, {**query, "filter_offtopic_activity": False}),
+        ),
+        _BORDERLANDS_2,
     )
     print(f"blank/restore: default={len(blanked.reviews)} restored={len(restored.reviews)}")
     assert len(restored.reviews) > len(blanked.reviews)
@@ -142,11 +151,13 @@ def test_forced_fallback_walks_a_shallow_window(transport: SteamTransport) -> No
     directly — same engine, no date params on the wire."""
     window_end = datetime.now(UTC)
     window_start = window_end - timedelta(hours=12)
-    url = _REVIEWS_URL.format(app_id=_TF2)
-    params: dict[str, str | int] = {**_UNFILTERED, "filter_offtopic_activity": 0}
+    query: dict[str, object] = {**_UNFILTERED, "filter_offtopic_activity": False}
 
     def fetch_page(cursor: str) -> ReviewPage:
-        return parse_review_page(transport.get_json(url, {**params, "cursor": cursor}), _TF2)
+        return parse_review_page(
+            transport.get_json(_REVIEWS_URL, review_request(_TF2, {**query, "cursor": cursor})),
+            _TF2,
+        )
 
     tally = walk_pages(fetch_page, window_start, window_end, out_of_window_is_violation=False)
     print(f"fallback: {len(tally.reviews)} reviews over {tally.pages_fetched} pages")

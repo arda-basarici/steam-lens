@@ -15,7 +15,7 @@ from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 
 import httpx
-from fakes import CollectingSink
+from fakes import CollectingSink, sent_review_query
 
 from steamlens.contracts import (
     HistogramBucket,
@@ -92,13 +92,12 @@ def _review_page_body(
     reviews: list[dict[str, object]], cursor: str | None, total: int = 50
 ) -> str:
     body: dict[str, object] = {
-        "success": 1,
         "query_summary": {"total_reviews": total, "total_positive": total, "total_negative": 0},
         "reviews": reviews,
     }
     if cursor is not None:
         body["cursor"] = cursor
-    return json.dumps(body)
+    return json.dumps({"response": body})
 
 
 def _histogram_body(above_count: int) -> str:
@@ -169,12 +168,13 @@ def test_dirty_windowed_verdict_falls_back_and_walks_plain() -> None:
     assert result.pages_fetched == 3  # 1 windowed + 2 fallback; histogram is not a page
 
     windowed_req, histogram_req, plain_req, _ = h.requests
-    assert "start_date" in dict(windowed_req.url.params)
+    assert "date_range_start" in sent_review_query(windowed_req)
     assert histogram_req.url.path == "/appreviewhistogram/440"
-    assert plain_req.url.path == "/appreviews/440"
-    assert "start_date" not in dict(plain_req.url.params)
-    assert plain_req.url.params["filter"] == "recent"
-    assert plain_req.url.params["filter_offtopic_activity"] == "0"
+    assert plain_req.url.path == "/IUserReviewsService/GetAppReviews/v1/"
+    plain_query = sent_review_query(plain_req)
+    assert "date_range_start" not in plain_query
+    assert plain_query["filter"] == 1
+    assert plain_query["filter_offtopic_activity"] is False
 
     warns = [e for e in h.sink.events if isinstance(e, StageEvent)]
     assert any("falling back" in w.message for w in warns)

@@ -15,7 +15,7 @@ from collections.abc import Iterator
 
 import httpx
 import pytest
-from fakes import NullSink
+from fakes import NullSink, sent_review_query
 
 from steamlens.contracts import IdentityVerdict
 from steamlens.steam_client import (
@@ -62,13 +62,15 @@ def _details_body(app_id: int, name: str, header_image: str | None = None) -> st
 def _totals_body(total: int, positive: int, negative: int) -> str:
     return json.dumps(
         {
-            "success": 1,
-            "query_summary": {
-                "num_reviews": 0,
-                "total_reviews": total,
-                "total_positive": positive,
-                "total_negative": negative,
-            },
+            "response": {
+                "query_summary": {
+                    "num_reviews": 1,
+                    "total_reviews": total,
+                    "total_positive": positive,
+                    "total_negative": negative,
+                },
+                "reviews": [],
+            }
         }
     )
 
@@ -238,8 +240,9 @@ def test_appdetails_foreign_key_holding_another_record_stays_loud() -> None:
 
 
 def test_resolve_assembles_the_ref_from_both_reads() -> None:
-    """Two paced requests — appdetails, then the totals-only read — land in one
-    honest record: verdict OK, store name verbatim, Steam's totals captured."""
+    """Two paced requests — appdetails, then the one-review totals read — land
+    in one honest record: verdict OK, store name verbatim, Steam's totals
+    captured."""
     h = Harness(
         [
             httpx.Response(200, text=_details_body(440, "Team Fortress 2", _HASHED_HEADER)),
@@ -261,12 +264,14 @@ def test_resolve_assembles_the_ref_from_both_reads() -> None:
     assert details_req.url.path == "/api/appdetails"
     assert details_req.url.params["appids"] == "440"
     assert details_req.url.params["cc"] == "us"
-    assert totals_req.url.path == "/appreviews/440"
-    assert totals_req.url.params["num_per_page"] == "0"
-    assert totals_req.url.params["language"] == "all"
-    assert totals_req.url.params["purchase_type"] == "all"
-    assert totals_req.url.params["review_type"] == "all"
-    assert totals_req.url.params["filter_offtopic_activity"] == "0"
+    assert totals_req.url.path == "/IUserReviewsService/GetAppReviews/v1/"
+    totals_query = sent_review_query(totals_req)
+    assert totals_query["appid"] == 440
+    assert totals_query["num_per_page"] == 1
+    assert totals_query["languages"] == ["all"]
+    assert totals_query["purchase_type"] == 1
+    assert totals_query["review_type"] == 0
+    assert totals_query["filter_offtopic_activity"] is False
 
 
 def test_resolve_no_data_still_captures_totals() -> None:
@@ -299,12 +304,13 @@ def test_store_name_is_the_one_read_the_submit_door_makes() -> None:
 
 
 def test_resolve_without_summary_leaves_totals_none() -> None:
-    """A totals read that comes back without query_summary answers None, not 0 —
-    an absent claim is not a zero claim."""
+    """A totals read answered with the method's empty no-result object carries
+    no query_summary and answers None, not 0 — an absent claim is not a zero
+    claim."""
     h = Harness(
         [
             httpx.Response(200, text=_details_body(440, "Team Fortress 2")),
-            httpx.Response(200, text=json.dumps({"success": 2})),
+            httpx.Response(200, text=json.dumps({"response": {}})),
         ]
     )
     ref = h.client.resolve_game(440, "Team Fortress 2")

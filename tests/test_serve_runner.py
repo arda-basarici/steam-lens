@@ -18,11 +18,11 @@ import time
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
-from urllib.parse import parse_qs
+from typing import cast
 
 import httpx
 import pytest
-from fakes import CollectingSink, FakeProvider, prompt_batch
+from fakes import CollectingSink, FakeProvider, prompt_batch, sent_review_query
 
 from steamlens.contracts import ClassifierVersions, StageEvent
 from steamlens.core.classify import PROMPT_VERSION
@@ -58,25 +58,26 @@ def _wire_review(
 
 def _page_body(reviews: list[dict[str, object]], cursor: str | None, total: int) -> str:
     body: dict[str, object] = {
-        "success": 1,
         "query_summary": {"total_reviews": total, "total_positive": total, "total_negative": 0},
         "reviews": reviews,
     }
     if cursor is not None:
         body["cursor"] = cursor
-    return json.dumps(body)
+    return json.dumps({"response": body})
 
 
 def _totals_body(total: int) -> str:
     return json.dumps(
         {
-            "success": 1,
-            "query_summary": {
-                "num_reviews": 0,
-                "total_reviews": total,
-                "total_positive": total,
-                "total_negative": 0,
-            },
+            "response": {
+                "query_summary": {
+                    "num_reviews": 1,
+                    "total_reviews": total,
+                    "total_positive": total,
+                    "total_negative": 0,
+                },
+                "reviews": [],
+            }
         }
     )
 
@@ -115,7 +116,7 @@ def _histogram_body(
 class SteamWire:
     """The scripted Steam side: totals by language, pages by window start.
 
-    ``pages`` maps a window's ``start_date`` epoch to its page-body sequence
+    ``pages`` maps a window's ``date_range_start`` epoch to its page-body sequence
     (served in order; a request beyond the script fails the test loudly); the
     ``None`` key is the wildcard for windows whose exact start the runner
     derives (the margin-shifted whole-life window). ``page_hooks`` run before
@@ -146,7 +147,6 @@ class SteamWire:
     def _handle(self, request: httpx.Request) -> httpx.Response:
         with self._lock:
             self.requests.append(request)
-        params = parse_qs(request.url.query.decode())
         if request.url.path == "/api/appdetails":
             return httpx.Response(
                 200,
@@ -156,20 +156,23 @@ class SteamWire:
             )
         if request.url.path == f"/appreviewhistogram/{_APP}":
             return httpx.Response(200, text=self._histogram)
-        assert request.url.path == f"/appreviews/{_APP}", request.url.path
-        if params.get("num_per_page") == ["0"]:
-            return httpx.Response(200, text=_totals_body(self._totals[params["language"][0]]))
-        start = params.get("start_date")
-        key = int(start[0]) if start is not None else None
+        assert request.url.path == "/IUserReviewsService/GetAppReviews/v1/", request.url.path
+        query = sent_review_query(request)
+        assert query["appid"] == _APP, query
+        if query.get("num_per_page") == 1:
+            language = cast("list[str]", query["languages"])[0]
+            return httpx.Response(200, text=_totals_body(self._totals[language]))
+        start = query.get("date_range_start")
+        key = int(cast("int", start)) if start is not None else None
         if key is not None and key in self._hooks:
             self._hooks[key]()
         script = self._pages.get(key)
         if script is None:
             script = self._pages.get(None)
-        assert script is not None, f"no page script for start_date {key}"
+        assert script is not None, f"no page script for date_range_start {key}"
         with self._lock:
             body = next(script, None)
-        assert body is not None, f"page script for start_date {key} over-fetched"
+        assert body is not None, f"page script for date_range_start {key} over-fetched"
         return httpx.Response(200, text=body)
 
 
@@ -295,8 +298,9 @@ def test_sampled_branch_stops_each_window_at_quota(tmp_path: Path) -> None:
     june_page_requests = [
         request
         for request in wire.requests
-        if b"cursor" in request.url.query
-        and f"start_date={int(_JUNE.timestamp())}".encode() in request.url.query
+        if "input_json" in request.url.params
+        and sent_review_query(request).get("date_range_start") == int(_JUNE.timestamp())
+        and "cursor" in sent_review_query(request)
     ]
     assert len(june_page_requests) == 1  # quota 2 filled on page one — page two never paid
     assert any("sample n=4" in m for m in _stage_messages(sink, "serve.plan"))

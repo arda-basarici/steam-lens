@@ -17,7 +17,7 @@ from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
-from fakes import CollectingSink, NullSink
+from fakes import CollectingSink, NullSink, sent_review_query
 
 from steamlens.contracts import PathOutcome, Review, StageEvent, StageKind
 from steamlens.steam_client import (
@@ -25,7 +25,6 @@ from steamlens.steam_client import (
     ReviewPage,
     SteamClient,
     SteamClientConfig,
-    SteamResponseError,
     SteamTransport,
 )
 from steamlens.steam_client.walk import walk_pages
@@ -57,11 +56,11 @@ def _page(
     reviews: tuple[Review, ...],
     cursor: str | None,
     *,
-    success: int = 1,
+    no_result: bool = False,
     total: int | None = None,
 ) -> ReviewPage:
     summary = None if total is None else QuerySummary(total, total, 0)
-    return ReviewPage(success=success, cursor=cursor, summary=summary, reviews=reviews)
+    return ReviewPage(no_result=no_result, cursor=cursor, summary=summary, reviews=reviews)
 
 
 class Feed:
@@ -253,21 +252,27 @@ def test_fallback_judgment_skips_without_counting() -> None:
     assert tally.pages_fetched == 2
 
 
-def test_no_result_answer_is_clean_and_keeps_the_summary() -> None:
-    """success == 2 concludes immediately — no retry — with Steam's own totals
-    claim still captured from the first page."""
-    feed = Feed([_page((), None, success=2, total=0)])
+def test_no_result_answer_is_clean() -> None:
+    """The empty response object concludes immediately — no retry, nothing
+    collected, and no totals claim to capture (the method sends none)."""
+    feed = Feed([_page((), None, no_result=True)])
     tally = walk_pages(feed, _START, _END, out_of_window_is_violation=True)
     assert tally.reviews == ()
     assert tally.pages_fetched == 1
+    assert tally.reported_total is None
+    assert tally.stopped_on_empty_pages is False
+
+
+def test_empty_window_keeps_steams_zero_total() -> None:
+    """An empty window is not the no-result answer: zero totals, no reviews,
+    the first cursor echoed — so the walk spends its empty-page retries and
+    discloses the stop, with Steam's own zero still captured as the total."""
+    feed = Feed([_page((), "*", total=0)] * 3)
+    tally = walk_pages(feed, _START, _END, out_of_window_is_violation=True)
+    assert tally.reviews == ()
+    assert tally.pages_fetched == 3
     assert tally.reported_total == 0
-
-
-def test_unknown_success_value_fails_loud() -> None:
-    """A third success value is new wire knowledge — surfaced, never guessed at."""
-    feed = Feed([_page((), "A", success=3)])
-    with pytest.raises(SteamResponseError, match="success is 3"):
-        walk_pages(feed, _START, _END, out_of_window_is_violation=True)
+    assert tally.stopped_on_empty_pages is True
 
 
 # --- the windowed path on the wire ---------------------------------------------
@@ -276,10 +281,11 @@ def test_unknown_success_value_fails_loud() -> None:
 def _wire_page(reviews: list[dict[str, object]], cursor: str) -> str:
     return json.dumps(
         {
-            "success": 1,
-            "cursor": cursor,
-            "query_summary": {"total_reviews": 2, "total_positive": 2, "total_negative": 0},
-            "reviews": reviews,
+            "response": {
+                "cursor": cursor,
+                "query_summary": {"total_reviews": 2, "total_positive": 2, "total_negative": 0},
+                "reviews": reviews,
+            }
         }
     )
 
@@ -295,10 +301,12 @@ def _wire_review(review_id: str, created_at: datetime) -> dict[str, object]:
 
 
 def test_fetch_window_sends_the_ruled_params_and_stamps_provenance() -> None:
-    """The windowed-unfiltered param set reaches the wire on every page —
-    window epochs, date_range_type=include, the unfiltered trio, the off-topic
-    restore flag, the config page size — and the cursor Steam returned goes
-    back verbatim. The result carries the WINDOWED outcome and the verdicts."""
+    """The windowed-unfiltered query reaches the wire on every page, as the
+    method's one ``input_json`` parameter — window epochs with the exclude
+    flag off, the Recent sort, the unfiltered trio as the integer enums, the
+    off-topic restore flag, the config page size — and the cursor Steam
+    returned goes back verbatim. The result carries the WINDOWED outcome and
+    the verdicts."""
     requests: list[httpx.Request] = []
     pages = iter(
         [
@@ -323,18 +331,22 @@ def test_fetch_window_sends_the_ruled_params_and_stamps_provenance() -> None:
     result = client.fetch_window(440, _START, _END)
 
     first = requests[0]
-    assert first.url.path == "/appreviews/440"
-    assert first.url.params["filter"] == "recent"
-    assert first.url.params["language"] == "all"
-    assert first.url.params["purchase_type"] == "all"
-    assert first.url.params["review_type"] == "all"
-    assert first.url.params["filter_offtopic_activity"] == "0"
-    assert first.url.params["num_per_page"] == "100"
-    assert first.url.params["start_date"] == str(int(_START.timestamp()))
-    assert first.url.params["end_date"] == str(int(_END.timestamp()))
-    assert first.url.params["date_range_type"] == "include"
-    assert first.url.params["cursor"] == "*"
-    assert requests[1].url.params["cursor"] == "NEXT+/="
+    assert first.url.host == "api.steampowered.com"
+    assert first.url.path == "/IUserReviewsService/GetAppReviews/v1/"
+    assert set(first.url.params.keys()) == {"input_json"}
+    query = sent_review_query(first)
+    assert query["appid"] == 440
+    assert query["filter"] == 1
+    assert query["languages"] == ["all"]
+    assert query["purchase_type"] == 1
+    assert query["review_type"] == 0
+    assert query["filter_offtopic_activity"] is False
+    assert query["num_per_page"] == 100
+    assert query["date_range_start"] == int(_START.timestamp())
+    assert query["date_range_end"] == int(_END.timestamp())
+    assert query["date_range_exclude"] is False
+    assert query["cursor"] == "*"
+    assert sent_review_query(requests[1])["cursor"] == "NEXT+/="
 
     assert result.outcome is PathOutcome.WINDOWED
     assert result.app_id == 440
@@ -377,6 +389,37 @@ def test_windowed_truncation_is_warn_narrated() -> None:
     ]
     assert any("empty-page exhaustion" in message for message in warns)
     assert any("collected 1 of Steam's reported 2" in message for message in warns)
+
+
+def test_windowed_stream_end_is_not_a_truncation_warning() -> None:
+    """The ordinary end of a windowed stream on the WebAPI method — the page
+    past the last is empty and echoes the cursor asked — spends the walk's
+    empty-page retries, but a collection that holds everything Steam's own
+    window total claims is complete by that claim: no exhaustion WARN, no
+    shortfall WARN. The disclosure stays reserved for a real shortfall."""
+    pages = iter(
+        [_wire_page([_wire_review("a", _START + timedelta(days=1)),
+                     _wire_review("b", _START + timedelta(days=2))], "A")]
+        + [_wire_page([], "A")] * 3
+    )
+    sink = CollectingSink()
+    client = SteamClient(
+        SteamTransport(
+            SteamClientConfig(),
+            sink,
+            transport=httpx.MockTransport(
+                lambda request: httpx.Response(200, text=next(pages))
+            ),
+            sleep=lambda _: None,
+            monotonic=lambda: 100.0,
+        )
+    )
+    result = client.fetch_window(440, _START, _END)
+
+    assert result.outcome is PathOutcome.WINDOWED
+    assert len(result.reviews) == 2 == result.reported_total
+    assert result.pages_fetched == 4
+    assert not [e for e in sink.events if isinstance(e, StageEvent) and e.kind is StageKind.WARN]
 
 
 def test_fetch_window_refuses_naive_and_inverted_windows() -> None:

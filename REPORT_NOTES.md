@@ -7,6 +7,73 @@ decisions it feeds.
 
 ---
 
+## 2026-10-23 — The review endpoint retired under us: a 302 to the store front, a migration map probed row by row, and the fix verified against the live method before the deploy
+
+*The second upstream move in a month, and the first that was announced. Feeds:
+the M3 report's operations section (the off-box canary question, now asked
+twice); candidate material for a post on migrating a scraper-shaped reader to
+a documented API without changing what its numbers mean.*
+
+Arda opened with the symptom in one line: fresh analyses fail, Steam answers
+302. The ops page gave the shape before any code did: three failures that day,
+each two seconds long and costing nothing, the last success the afternoon
+before. A job that dies in two seconds at zero spend dies at its first review
+read. Reproduced from a laptop: the store's `appreviews` URL answered 302 to
+the store front for every variation tried — any id, a browser agent, store
+cookies, with or without the JSON flag — while appdetails, the histogram and
+storesearch still answered 200. One search found the cause: Valve had announced
+on 2026-10-02 that the store review endpoint "will be disabled and no longer
+available for use" on 2026-10-22, replaced by a keyless WebAPI method,
+`IUserReviewsService/GetAppReviews`. The announcement was three weeks old. Nothing
+in the project reads Steamworks announcements, and the health check, by its own
+ruling, probes no third party — the 2026-09-24 entry's open question, asked
+again by the same silence.
+
+The migration was a map, not a URL swap, and the map was probed before it was
+written. The method takes integer enums where the old endpoint took words, and
+it reads an unknown word as the enum's zero: `filter=recent` became the Helpful
+sort with a thirty-day window, `purchase_type=all` became Steam purchases only
+(174k of Portal 2's 212k English reviews). Both answer 200. A transliterated
+query would have run clean and sampled the wrong population, which is the
+failure this project treats as worse than a crash. The language filter became a
+list, and on the query string a bare `languages=all` reads as the empty list,
+which the method defines as English; the documented `input_json` form carries
+the list, so the door sends its whole query as one JSON parameter. The
+undocumented date-window parameters the sampler was built on are documented
+on the new method under new names, honored and pageable; the old names are
+silently ignored. The totals-only read lost its trick (a page size of zero now
+means the default twenty), so it reads one review. The `success` field is gone
+and the no-result answer is an empty `response` object at HTTP 200. The
+off-topic blanking bug, the first data-integrity finding of the project, is
+unchanged: the marked day on Borderlands 2 answers zero reviews by default and
+958 with the flag.
+
+The door moved in one commit group: the client's query builder and enums, the
+parser's wrapper and no-result flag (the walk judges the flag; the transport
+already judges the HTTP status, so the walk's "success must be 1 or 2" check
+had nothing left to check), five fixtures re-captured from the live method by a
+probe that documents its own provenance, thirty-odd scripted test bodies
+re-shaped, and the gated live smoke re-pointed. The suite and both lint gates
+passed; the live smoke passed its five checks against real Steam, and the
+re-run of the smoke found one more thing: the method's page past the last is an
+empty page echoing the cursor asked, which the walk's empty-page retry reads as
+exhaustion and discloses as possible truncation. For a window the walk holds in
+full by Steam's own count that disclosure is false, so it is now withheld
+exactly then and kept for every real shortfall. Whether the retired endpoint
+ended its streams the same way is unrecorded; no capture of a final page
+exists, and the job journal keeps error strings, not narration.
+
+Three things carried out of the day. The fallback path stays, as insurance now
+that its reason has lapsed, with its rationale reworded rather than removed.
+The echoed-cursor ending is a candidate trusted stop that would spare two
+requests per window; parked until seen across more runs, since the retry
+discipline exists for the mid-stream empty page the donor got burned by. And
+the operational gap is now a pattern: an announced, dated upstream change
+reached the product as a visitor's failed submission, with health green
+throughout.
+
+---
+
 ## 2026-09-24 — Two upstreams moved under a green health check: a 502 traced to Steam's key drift and to a provider swapping the model behind our id, and the instrument re-certified on gold the same evening
 
 *The first incident after the deployment milestone (M3) closed and the app had

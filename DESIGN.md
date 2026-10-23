@@ -240,6 +240,20 @@ for volatility) was rejected: the documented surface is itself buggy, and the bo
 fallback absorbs the volatility that refusal would only avoid by forfeiting the
 product's best capability.
 
+*Amendment 2026-10-23: Valve retired the store review endpoint on 2026-10-22
+(announced 2026-10-02) and replaced it with the keyless WebAPI method
+`IUserReviewsService/GetAppReviews`; the old URL answers a 302 to the store front,
+and every fresh analysis failed at its first review read until the door moved.
+The date-window parameters are documented on the new method (`date_range_start`,
+`date_range_end`), so the volatility the fallback was built against has, for now,
+resolved in the window's favor; the fallback and the per-response window check
+stay as cheap insurance. The method's enums are integers and an unknown word
+reads as the enum's zero (Helpful sort, Steam-only purchases), so the parameter
+map is probed, not transliterated; the off-topic blanking bug is unchanged on the
+new method (a marked-window day: 0 reviews by default, 958 restored). The
+histogram, appdetails and storesearch endpoints stay on the store domain,
+unannounced either way.*
+
 **Marked-window reviews: include + disclose** (settled 2026-07-09). Survey
 numbers include sampled reviews falling inside Valve-marked off-topic windows; the
 trust panel discloses the count per window and links the timeline event. Excluding
@@ -300,8 +314,9 @@ consumer: `GameRef` (identity-guard verdict absorbed into the record: a MISMATCH
 `GameRef` is an honest answer about what Steam returned), `HistogramSnapshot`
 (rollup unit never hardcoded, per the M0 probe), and `WindowFetchResult` (per-window
 provenance: path outcome, pages, retries, and a semantic-validation verdict; the
-window params are undocumented, so every response is checked against the requested
-window, never trusted).
+window params were undocumented when built, so every response is checked against
+the requested window, never trusted — a discipline kept after the 2026-10-22
+endpoint change documented them).
 
 **The cursor fallback is built, not stubbed.** It is the same machinery as the
 windowed walk under timestamp-gated loop control, plus a pure feasibility estimate
