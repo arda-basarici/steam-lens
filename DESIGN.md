@@ -2107,9 +2107,14 @@ scaling with attacker IPs. Dollars still guard the
 day, demoted to backstop: a third refusal condition on the ledger's settled
 spend for the day (default $2, one `cost_since` read) exists to stop a
 runaway *day* (jobs running hot toward their per-job cap), not bursts. The
-numbers agree by the ledger's real prices: live jobs settle $0.007–0.017, a
-maxed-out 50-job day ≈ $0.85–1.00, so the $2 backstop clears every
-legitimate day and fires only on pathology, while the hostile ceiling under
+numbers agreed by the ledger's real prices at sizing: live jobs settled
+$0.007–0.017, a maxed-out 50-job day ≈ $0.85–1.00, so the $2 backstop cleared
+every legitimate day and fired only on pathology. Re-read 2026-09-24 at the
+repriced ledger (V4.1 Flash, rate-period pricing): completed jobs settle
+$0.006–0.058 off-peak, median $0.032, double in peak hours, so a maxed-out
+day lands ≈ $1.60 off-peak and ≈ $3.20 at the peak median. Ruled: the $2
+dial stays — in peak hours the backstop doubles as a volume cap on
+legitimate demand, an accepted trade at this traffic; the hostile ceiling under
 all guards stays pool cap × per-job budget for a burst that admits before
 anything settles. All three numbers are env dials
 (`STEAMLENS_DAILY_JOB_LIMIT`, `STEAMLENS_PER_IP_DAILY_JOB_LIMIT`,
