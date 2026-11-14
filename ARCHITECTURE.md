@@ -5,9 +5,9 @@ Decisions and their rationale → [DESIGN.md](DESIGN.md) (cited by name); the pi
 [README.md](README.md).
 
 *Snapshot of the completed project · last updated 2026-08-12 · milestones M0–M3
-shipped; the app is live at steamlens.ardabasarici.dev. The report-interrogation
-chat (M4) is designed-and-deferred (DESIGN: the roadmap redirect) and gets its own
-architecture pass when it approaches.*
+shipped; the app is live at steamlens.ardabasarici.dev. The chat milestone (M4)
+is reopened as a recommender tab, designed and not built (DESIGN: the recommender
+chat), and gets its own architecture pass when it is built.*
 
 ---
 
@@ -436,5 +436,6 @@ never learns the box's address.
   `/openapi.json` shipped as an unexamined framework default and were declined
   deliberately once seen (no consumer exists), and the absence is pinned by test
   (DESIGN: the Content-Security-Policy pass).
-- **No investigation machinery.** The chat milestone (M4) is deferred whole; its
-  retrieval modules get their own architecture pass when it approaches.
+- **No investigation machinery.** The investigator is deferred whole. The
+  recommender chat (M4) is designed and not built; its retrieval modules get
+  their own architecture pass when they are.

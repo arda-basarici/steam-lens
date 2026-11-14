@@ -44,8 +44,8 @@ evaluation corpus on a self-managed VPS.*
 > Scope, stated plainly. Every displayed number comes from a fixed survey
 > sample; stories quote retrieved reviews and never mint numbers. Not vanilla
 > sentiment scoring; not fake-review accusations (unverifiable, cut by
-> design); not cross-game comparison (the per-report frame is the product's
-> identity); not a notebook with a URL.
+> design); not a ranking of games against each other (each report stands on
+> its own sample); not a notebook with a URL.
 
 ## The pipeline at a glance
 
@@ -90,9 +90,9 @@ decision with its alternatives and why they lost.
 > [!NOTE]
 > **Pricing note (2026-09-06, updated 2026-09-24).** DeepSeek moved to peak/off-peak pricing at higher rates at 16:00 UTC on 2026-08-16, and repriced again with the V4.1 Flash release on 2026-09-10. From 2026-09-24 the ledger prices each call by its rate period at the V4.1 table (peak weekday 01:00–04:00 and 06:00–10:00 UTC, off-peak at half; the provider's holiday exclusion is approximated as peak, the overstating direction). The V4.1 rows written between 2026-09-16 and 2026-09-24 were repriced exactly on 2026-09-24 from their stored token splits and timestamps (807 rows, $0.17 to $0.26, all off-peak). Rows written between 2026-08-16 and 2026-09-16 stay at the pre-change flat table they were recorded with, because the V4 Flash peak table from that window was never recorded, so the dashboard's all-time figures and the $0.007–0.017 band first published from them understate that one stretch by about 2× off-peak and about 4× in peak hours (reconciled against the provider's bill on 2026-09-06). The $3.80 census was settled on 2026-07-20 at the old prices and stands.
 
-The report-interrogation chat (M4) is designed and deliberately deferred: the
-docket and leanings are recorded in [DESIGN](DESIGN.md); the report product
-stands complete without it.
+The chat milestone (M4) is reopened as a recommender tab that suggests games
+from the library of measured reports: designed in [DESIGN](DESIGN.md), not
+built; the report product stands complete without it.
 
 ## Measured, not asserted
 
