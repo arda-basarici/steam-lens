@@ -417,8 +417,50 @@ _STEP_9: tuple[str, ...] = (
     """,
 )
 
+# Step 10 — a full-text index over the stored reviews (2026-11-14, the
+# recommender chat's keyword search). An FTS5 table holding its own copy of
+# each review's text: the reviews table is keyed by a text id and has no
+# integer row id for an index to point at, and one self-contained table was
+# preferred to an index plus an id-mapping table that must stay in step. It
+# costs about half as much again as the review text it indexes. The table is
+# derived data and disposable: dropping it and refilling it from `reviews`
+# loses nothing, which is also how a change of tokenizer would be made.
+#
+# Every stored review is indexed, whatever sample it belongs to; a search
+# narrows to the reviews a report counted at query time. The default
+# tokenizer is kept on purpose: no stemming, so "racing" does not match
+# "race", and spelling variants are the caller's to list.
+#
+# The trigger is what keeps the index exact. Reviews are insert-only
+# (INSERT OR IGNORE, never updated or deleted), so one AFTER INSERT trigger
+# covers every write path, and a duplicate the insert ignored fires nothing.
+# The fill statement indexes the reviews already stored when the step runs;
+# it rewrites no existing row. Nothing here needs a SQLite newer than 3.40,
+# the version the serving image carries.
+_STEP_10: tuple[str, ...] = (
+    """
+    CREATE VIRTUAL TABLE review_search USING fts5(
+        text,
+        review_id UNINDEXED,
+        app_id UNINDEXED
+    )
+    """,
+    """
+    INSERT INTO review_search (text, review_id, app_id)
+    SELECT text, review_id, app_id FROM reviews
+    """,
+    """
+    CREATE TRIGGER reviews_search_insert AFTER INSERT ON reviews
+    BEGIN
+        INSERT INTO review_search (text, review_id, app_id)
+        VALUES (new.text, new.review_id, new.app_id);
+    END
+    """,
+)
+
 MIGRATION_STEPS: tuple[tuple[str, ...], ...] = (
     _STEP_1, _STEP_2, _STEP_3, _STEP_4, _STEP_5, _STEP_6, _STEP_7, _STEP_8, _STEP_9,
+    _STEP_10,
 )
 
 SCHEMA_VERSION = len(MIGRATION_STEPS)

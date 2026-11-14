@@ -1578,3 +1578,168 @@ class TestStorefrontRecords:
         with Store(path) as store:
             store.storefront.put_metadata(_metadata())
             assert store.storefront.metadata(_PALWORLD) == _metadata()
+
+
+# --- keyword search: the reviews each game's newest report counted ---
+
+_HADES, _STARDEW = 1145360, 413150
+
+
+def _counted_sample(
+    store: Store,
+    run_id: str,
+    app_id: int,
+    texts: dict[str, str],
+    *,
+    created_at: datetime = _NOON,
+    unlabelled: tuple[str, ...] = (),
+) -> None:
+    """A published report for ``app_id`` whose sample holds the reviews in ``texts``.
+
+    Every member gets a label under the report's versions except the ids in
+    ``unlabelled``, which are members the report did not count. A review
+    already labelled by an earlier call keeps that label.
+    """
+    store.reviews.put_many(
+        replace(_review(review_id, app_id=app_id), text=text)
+        for review_id, text in texts.items()
+    )
+    _record_run(store, run_id)
+    store.sample_members.add_members(run_id, list(texts))
+    owed = store.reviews.members_unlabeled_under(run_id, _versions())
+    for review in owed:
+        if review.review_id not in unlabelled:
+            store.labels.put(replace(_classification(review.review_id), run=_provenance(run_id)))
+    store.reports.put(
+        _report(run_id, app_id=app_id, created_at=created_at),
+        [_aggregate(run_id, app_id=app_id)],
+    )
+
+
+class TestReviewSearch:
+    """Search reads one pool per game: what its newest report counted."""
+
+    def test_counts_cover_only_the_reviews_a_report_counted(self, store: Store) -> None:
+        """Three ways a matching review stays out of a game's count: it is a
+        member without a label, it is stored but in no sample, or it belongs
+        to another game."""
+        _counted_sample(
+            store, "serve-hades", _HADES,
+            {
+                "h1": "the best roguelike I have played",
+                "h2": "A ROGUELIKE with tight combat",
+                "h3": "lovely story and music",
+                "h4": "roguelike, but this member was never labelled",
+            },
+            unlabelled=("h4",),
+        )
+        store.reviews.put_many(
+            [replace(_review("h5", app_id=_HADES), text="roguelike, stored but never sampled")]
+        )
+        _counted_sample(store, "serve-stardew", _STARDEW, {"s1": "a relaxing farm"})
+
+        assert store.review_search.game_hit_counts(["roguelike"]) == {_HADES: 2}
+        assert store.review_search.game_hit_counts(["farm", "roguelike"]) == {
+            _HADES: 2, _STARDEW: 1,
+        }
+        assert store.review_search.game_hit_counts(["metroidvania"]) == {}
+
+    def test_a_newer_report_replaces_the_pool(self, store: Store) -> None:
+        """The pool is the newest report's sample: a review only the earlier
+        sample held is no longer searched."""
+        _counted_sample(
+            store, "serve-old", _HADES, {"h1": "a roguelike", "h2": "a roguelike too"},
+            created_at=_NOON - timedelta(days=30),
+        )
+        _counted_sample(store, "serve-new", _HADES, {"h2": "a roguelike too", "h3": "great art"})
+
+        assert store.review_search.game_hit_counts(["roguelike"]) == {_HADES: 1}
+        assert store.review_search.search_game(_HADES, ["roguelike"], limit=5) == ("h2",)
+
+    def test_storing_a_review_twice_indexes_it_once(self, store: Store) -> None:
+        _counted_sample(store, "serve-hades", _HADES, {"h1": "a roguelike"})
+        store.reviews.put_many([replace(_review("h1", app_id=_HADES), text="a roguelike")])
+        assert store.review_search.game_hit_counts(["roguelike"]) == {_HADES: 1}
+
+    def test_a_phrase_means_its_words_in_order_and_nothing_else(self, store: Store) -> None:
+        """No stemming, no prefix, no operators: the search language never
+        reaches the index, whatever the phrase contains."""
+        _counted_sample(
+            store, "serve-hades", _HADES,
+            {
+                "h1": "you can play a rogue or a mage",
+                "h2": "great co-op with friends",
+                "h3": "the coop mode is fine",
+                "h4": "a story about loss",
+                "h5": "racing through the levels",
+            },
+        )
+        search = store.review_search
+        assert search.search_game(_HADES, ["roguelike"], limit=9) == ()
+        assert search.search_game(_HADES, ["rogue*"], limit=9) == ("h1",), "the star is no prefix"
+        assert search.search_game(_HADES, ["co-op"], limit=9) == ("h2",)
+        assert set(search.search_game(_HADES, ["co op", "coop"], limit=9)) == {"h2", "h3"}
+        assert search.search_game(_HADES, ["race"], limit=9) == ()
+        assert search.search_game(_HADES, ["roguelike OR story"], limit=9) == ()
+        assert search.search_game(_HADES, ["text:roguelike", 'a "story"'], limit=9) == ("h4",)
+
+    def test_a_review_matching_two_phrases_counts_once(self, store: Store) -> None:
+        _counted_sample(
+            store, "serve-hades", _HADES, {"h1": "a roguelike, or roguelite, whatever"}
+        )
+        assert store.review_search.game_hit_counts(["roguelike", "roguelite"]) == {_HADES: 1}
+
+    def test_a_follow_up_search_stays_in_its_game_best_match_first(self, store: Store) -> None:
+        _counted_sample(
+            store, "serve-hades", _HADES,
+            {
+                "h1": "the boss fights are long and the story is long and the levels are long",
+                "h2": "boss boss boss, every boss is a spectacle",
+                "h3": "relaxing music",
+            },
+        )
+        _counted_sample(store, "serve-stardew", _STARDEW, {"s1": "no boss here, just a boss farm"})
+
+        assert store.review_search.search_game(_HADES, ["boss"], limit=9) == ("h2", "h1")
+        assert store.review_search.search_game(_HADES, ["boss"], limit=1) == ("h2",)
+        assert store.review_search.search_game(570, ["boss"], limit=9) == ()
+
+    def test_a_search_without_words_fails_loud(self, store: Store) -> None:
+        with pytest.raises(ValueError, match="at least one phrase"):
+            store.review_search.game_hit_counts([])
+        with pytest.raises(ValueError, match="no letter or digit"):
+            store.review_search.game_hit_counts(["roguelike", " -- "])
+        with pytest.raises(ValueError, match="limit is 0"):
+            store.review_search.search_game(_HADES, ["boss"], limit=0)
+
+    def test_a_file_at_the_previous_version_gets_its_stored_reviews_indexed(
+        self, tmp_path: Path
+    ) -> None:
+        """The serving database's path: reviews stored before the index
+        existed are searchable the moment the step has run, and reviews
+        stored afterwards arrive through the trigger."""
+        path = tmp_path / "steamlens.sqlite3"
+        conn = sqlite3.connect(path)
+        for step in MIGRATION_STEPS[:9]:
+            for statement in step:
+                conn.execute(statement)
+        conn.execute(
+            "INSERT INTO reviews (review_id, app_id, created_at, language, text, voted_up)"
+            " VALUES ('old', 440, '2026-07-14T12:00:00.000000+00:00', 'english',"
+            " 'gunplay from before the index', 1)"
+        )
+        conn.execute("PRAGMA user_version = 9")
+        conn.commit()
+        conn.close()
+        with Store(path) as store:
+            store.reviews.put_many([replace(_review("new"), text="gunplay from after it")])
+        conn = sqlite3.connect(path)
+        try:
+            indexed = conn.execute(
+                "SELECT review_id FROM review_search WHERE review_search MATCH ?"
+                " ORDER BY review_id",
+                ('"gunplay"',),
+            ).fetchall()
+        finally:
+            conn.close()
+        assert indexed == [("new",), ("old",)]
