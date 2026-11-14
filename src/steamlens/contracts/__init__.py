@@ -30,6 +30,7 @@ from steamlens.contracts.enums import (
     RollupUnit,
     SamplingPolicyKind,
     Sentiment,
+    SentimentGroup,
     SpanKind,
     StageKind,
 )
@@ -63,6 +64,7 @@ from steamlens.contracts.report import (
 )
 from steamlens.contracts.reviews import Review
 from steamlens.contracts.sampling import FetchPlan, PlannedWindow, SamplingPolicy
+from steamlens.contracts.sheet import SheetCell
 from steamlens.contracts.steam import (
     GameRef,
     GameSearchHit,
@@ -86,6 +88,7 @@ __all__ = [
     "Origin",
     "AspectSlot",
     "Sentiment",
+    "SentimentGroup",
     "StageKind",
     "LlmStage",
     "FinishReason",
@@ -119,6 +122,8 @@ __all__ = [
     "StorefrontTag",
     "StorefrontTagCapture",
     "UncapturedGame",
+    # the cross-game sheet
+    "SheetCell",
     # sampling
     "SamplingPolicy",
     "PlannedWindow",

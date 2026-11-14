@@ -59,6 +59,26 @@ class Sentiment(StrEnum):
     NEUTRAL = "neutral"
 
 
+class SentimentGroup(StrEnum):
+    """How one game reads on one aspect when games are compared.
+
+    The recommender chat never orders games by a sentiment share; it places
+    each game in one of these groups and treats the games inside a group as
+    equal. ``TOO_FEW_MENTIONS`` and ``UNCLEAR`` both mean the sample cannot
+    say: the first has too few reviews mentioning the aspect to read at all,
+    the second has enough to read and an interval too wide to place. ``SPLIT``
+    is a finding, not an absence of one: enough mentions that the balance of
+    opinion is real. The rule that assigns a group lives in ``core.sheet``.
+    """
+
+    STRONGLY_POSITIVE = "strongly-positive"
+    MOSTLY_POSITIVE = "mostly-positive"
+    CLEARLY_NEGATIVE = "clearly-negative"
+    SPLIT = "split"
+    UNCLEAR = "unclear"
+    TOO_FEW_MENTIONS = "too-few-mentions"
+
+
 class ReferenceKind(StrEnum):
     """What kind of measuring stick an eval run was scored against.
 
