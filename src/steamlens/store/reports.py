@@ -41,6 +41,7 @@ from steamlens.contracts import (
     Provenance,
     Report,
     ReportCard,
+    ReportHead,
     ReviewEvent,
     RollupUnit,
     SentimentCounts,
@@ -249,6 +250,41 @@ class ReportLog:
                 )
             )
         return tuple(cards)
+
+    def newest_heads(self) -> tuple[ReportHead, ...]:
+        """Every analyzed game's newest report as a head, ordered by app id.
+
+        The recommender chat's library read: re-runs collapse to the newest
+        report per game, the run id breaking a tie the way keyword search
+        breaks it, so both describe the same report. Only scalar columns are
+        read; the display payloads are never decoded here.
+        """
+        rows = self._conn.execute(
+            "SELECT run_id, app_id, game_name, created_at, model_version,"
+            " prompt_version, ontology_version, sample_size, take_all"
+            " FROM reports ORDER BY created_at DESC, run_id"
+        ).fetchall()
+        heads: dict[int, ReportHead] = {}
+        for run_id, app_id, game_name, created_at, model, prompt, ontology, size, take_all in rows:
+            heads.setdefault(
+                int(app_id),
+                ReportHead(
+                    run_id=str(run_id),
+                    app_id=int(app_id),
+                    game_name=str(game_name),
+                    created_at=parse_utc_isoformat(
+                        str(created_at), context=f"reports[{run_id}].created_at"
+                    ),
+                    versions=ClassifierVersions(
+                        model_version=str(model),
+                        prompt_version=str(prompt),
+                        ontology_version=str(ontology),
+                    ),
+                    sample_size=int(size),
+                    take_all=bool(take_all),
+                ),
+            )
+        return tuple(heads[app_id] for app_id in sorted(heads))
 
     def get_snapshot(self, run_id: str) -> tuple[AspectAggregate, ...]:
         """One run's frozen aggregate snapshot, rebuilt as full contracts.

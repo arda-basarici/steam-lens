@@ -1032,6 +1032,42 @@ class TestReportLog:
         assert latest is not None
         assert latest.run.run_id == "serve-2"
 
+    def test_newest_heads_name_one_report_per_game_without_its_payload(
+        self, store: Store, tmp_path: Path
+    ) -> None:
+        """The chat's library read: re-runs collapse to the newest report, in
+        app-id order, and a head survives a display payload that no longer
+        reconstructs, which the full read does not."""
+        self._publish(store)  # the app-440 report a re-run will supersede
+        _record_run(store, "serve-2")
+        store.reports.put(
+            _report("serve-2", created_at=_NOON + timedelta(hours=1), sample_size=30),
+            [_aggregate("serve-2", sample_size=30)],
+        )
+        _record_run(store, "serve-3")
+        store.reports.put(
+            _report("serve-3", app_id=70, created_at=_NOON - timedelta(days=1)),
+            [_aggregate("serve-3", app_id=70)],
+        )
+        store.close()
+        conn = sqlite3.connect(tmp_path / "steamlens.sqlite3")
+        conn.execute("UPDATE reports SET histogram_json = '{}' WHERE run_id = 'serve-2'")
+        conn.commit()
+        conn.close()
+
+        with Store(tmp_path / "steamlens.sqlite3") as reopened:
+            heads = reopened.reports.newest_heads()
+            assert [(head.app_id, head.run_id) for head in heads] == [
+                (70, "serve-3"), (440, "serve-2"),
+            ]
+            newest = heads[1]
+            assert (newest.sample_size, newest.take_all) == (30, False)
+            assert newest.created_at == _NOON + timedelta(hours=1)
+            assert newest.versions == _versions()
+            assert newest.game_name == "Team Fortress 2"
+            with pytest.raises(StoreDataError, match="serve-2"):
+                reopened.reports.latest_report(440)
+
     def test_duplicate_report_fails_loud(self, store: Store) -> None:
         self._publish(store)
         with pytest.raises(StoreError, match="serve-1"):
