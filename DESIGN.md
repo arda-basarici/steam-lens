@@ -2455,10 +2455,20 @@ arrive as strings and category ids as integers. Two category ids can share one
 description, so filters compare ids. A game in early access carries genre id
 70 and its early access launch date. The two games no longer sold answered in
 full, without a price. The mature-content pages answered without an age gate,
-which is a reading for that address and has not been taken from the serving
-host. The count attached to a tag does not track the size of the game (a game
+from that address and, the same day, from the serving host. The count attached
+to a tag does not track the size of the game (a game
 with 72 stored reviews showed counts above 400), so it orders tags within one
 page and is not compared across games.
+
+The backfill's first run on the serving host (2026-11-14, 115 games) added two
+facts. A page can carry fewer than twenty tags: Commandos: Behind Enemy Lines
+has 18. And the store page depends on the country the store assigns the
+caller. The host has a German address, and one game of the 115 is not sold in
+the German store: its page there is a "Site Error" reading "This item is
+currently unavailable in your region", with no tag block, while its US page is
+whole. The page read now sends `cc=us`, as the appdetails read always did.
+Before that, the capture recorded the page as nothing read, which is the
+behaviour the "no tag block" answer exists for.
 
 **Across games, measured numbers are read in groups.** Every number in the
 library was certified inside one report, and the samples differ (158 to 837

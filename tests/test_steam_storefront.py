@@ -272,7 +272,9 @@ def test_storefront_metadata_is_one_appdetails_read_stamped_with_the_clock() -> 
     assert dict(url.params) == {"appids": str(_HADES), "cc": "us", "l": "english"}
 
 
-def test_storefront_tags_reads_the_games_own_page_in_english() -> None:
+def test_storefront_tags_reads_the_games_own_us_page_in_english() -> None:
+    """The country is pinned: left to the caller's address, a game not sold
+    in that country answers an error page with no tags."""
     page = f"<html><script>{_tag_call(_DOOM_ETERNAL)} [] );</script></html>"
     h = Harness([httpx.Response(200, text=page)])
     capture = h.client.storefront_tags(_DOOM_ETERNAL)
@@ -280,7 +282,7 @@ def test_storefront_tags_reads_the_games_own_page_in_english() -> None:
     assert capture.captured_at == _AT
     url = h.requests[0].url
     assert (url.host, url.path) == ("store.steampowered.com", f"/app/{_DOOM_ETERNAL}/")
-    assert dict(url.params) == {"l": "english"}
+    assert dict(url.params) == {"cc": "us", "l": "english"}
 
 
 def test_a_gate_page_answers_none_and_a_redirect_fails_loud() -> None:

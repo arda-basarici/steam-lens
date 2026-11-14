@@ -210,12 +210,18 @@ class SteamClient:
         redirects raises ``SteamResponseError``, as the transport's text read
         defines. Probed on thirteen library games from one address
         (``probes/store_metadata_probe.py``, 2026-11-14): every page answered
-        with twenty tags and no gate, mature-content games included; no
-        reading from another address exists yet, so a caller should treat
-        this read as one that may fail.
+        with twenty tags and no gate, mature-content games included. A caller
+        should still treat this read as one that may fail.
+
+        ``cc=us`` pins the store the page is read from, as the appdetails
+        read does. Without it the store picks the country from the caller's
+        address, and a game not sold in that country answers a "Site Error"
+        page with no tag block: from a German address Commandos: Behind Enemy
+        Lines read "This item is currently unavailable in your region" while
+        its US page carried 18 tags (2026-11-14).
         """
         html = self._transport.get_text(
-            _STORE_PAGE_URL.format(app_id=app_id), {"l": "english"}
+            _STORE_PAGE_URL.format(app_id=app_id), {"cc": "us", "l": "english"}
         )
         return parse_storefront_tags(html, app_id, self._now())
 
