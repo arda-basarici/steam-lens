@@ -2413,8 +2413,9 @@ kind of game it is. Three sources cover the difference:
   is as an outside reference for how well review search identifies a kind of
   game. A tag's absence from the top twenty is not a negative label.
 
-**The store's facts are kept per game, beside the reports.** *Storage built
-2026-11-14; the capture in the report job is not.* The alternative was columns
+**The store's facts are kept per game, beside the reports.** *Storage and the
+capture in the report job built 2026-11-14; the library's existing games are
+not yet backfilled.* The alternative was columns
 on the report row, the way the header art is kept. It was declined because a
 report is a frozen sample and these facts are revised by the store: Palworld's
 release date reads Jul 9, 2026, the day it left early access, and 534 of its
@@ -2425,6 +2426,16 @@ each with its capture date. No history is kept; an earlier state of the
 library is a dated copy of the database, which is also what the coverage
 measurement reads. The tags have their own capture because they come from a
 different page and may fail while the metadata succeeds.
+
+The report job captures both after it publishes, with two more store reads.
+Both fail soft: Steam trouble on either is narrated as a warning and the job
+still completes, because the report is the product and a later capture can
+fill the gap. The metadata is read with its own appdetails request, separate
+from the name lookup the job depends on, so a surprise in one of the five new
+fields cannot fail a job that would have succeeded before. A game with no
+store record is not asked, and a job that publishes no report records nothing.
+A store page without a tag block (a gate in place of the page) is recorded as
+nothing read, never as a game without tags.
 
 What the wire looks like, from thirteen library games read on 2026-11-14
 (`probes/store_metadata_probe.py`, one address): all five fields were present

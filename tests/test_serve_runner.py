@@ -2,7 +2,8 @@
 
 Every test drives the real pipeline end to end over scripted seams: an
 ``httpx.MockTransport`` serves the Steam wire (appdetails, the two totals
-reads, the histogram, and per-window review pages, routed by params) and the
+reads, the histogram, per-window review pages routed by params, and the
+game's store page) and the
 ``FakeProvider`` answers classification — so the claims are about the
 runner's composition, not stand-ins for it. The dials come from a toy-scale
 ``ServeConfig`` (the config fields exist so tests exercise the real control
@@ -16,9 +17,9 @@ import json
 import threading
 import time
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 import httpx
 import pytest
@@ -40,6 +41,21 @@ _HEADER_ART = (
     "abf6e7b3b01ed20c35a8dc0a009a8f9fc3e57b93/header.jpg?t=1768303991"
 )
 _NOW = datetime(2026, 8, 1, tzinfo=UTC)
+_STORE_FACTS: dict[str, object] = {
+    "genres": [{"id": "1", "description": "Action"}],
+    "categories": [
+        {"id": 2, "description": "Single-player"},
+        {"id": 9, "description": "Co-op"},
+    ],
+    "platforms": {"windows": True, "mac": True, "linux": False},
+    "release_date": {"coming_soon": False, "date": "Oct 10, 2007"},
+    "short_description": "A test game.",
+}
+_STORE_PAGE = (
+    "<html><script>InitAppTagModal( 440, "
+    '[{"tagid":1774,"name":"Shooter","count":90},{"tagid":1663,"name":"FPS","count":70}],'
+    ' [], "x" );</script></html>'
+)
 _JUNE = datetime(2026, 6, 1, tzinfo=UTC)
 _JULY = datetime(2026, 7, 1, tzinfo=UTC)
 
@@ -121,7 +137,10 @@ class SteamWire:
     ``None`` key is the wildcard for windows whose exact start the runner
     derives (the margin-shifted whole-life window). ``page_hooks`` run before
     a window's page is served — the overlap test's gating seam. ``requests``
-    records every wire hit for cost/param assertions.
+    records every wire hit for cost/param assertions. ``store_facts`` is what
+    appdetails answers beyond the name and art, and ``store_page`` is the
+    game's store page; both default to a healthy store, and a test replaces
+    them to script store trouble.
     """
 
     def __init__(
@@ -133,8 +152,12 @@ class SteamWire:
         pages: dict[int | None, list[str]],
         page_hooks: dict[int, Callable[[], None]] | None = None,
         events: list[tuple[datetime, datetime]] | None = None,
+        store_facts: dict[str, object] | None = None,
+        store_page: httpx.Response | None = None,
     ) -> None:
         self.requests: list[httpx.Request] = []
+        self._store_facts = _STORE_FACTS if store_facts is None else store_facts
+        self._store_page = store_page or httpx.Response(200, text=_STORE_PAGE)
         self._totals = {"all": totals_all, "english": totals_english}
         self._histogram = _histogram_body(buckets, events)
         self._pages = {key: iter(script) for key, script in pages.items()}
@@ -151,9 +174,11 @@ class SteamWire:
             return httpx.Response(
                 200,
                 text=json.dumps({str(_APP): {"success": True, "data": {
-                    "name": "Test Game", "header_image": _HEADER_ART,
+                    "name": "Test Game", "header_image": _HEADER_ART, **self._store_facts,
                 }}}),
             )
+        if request.url.path == f"/app/{_APP}/":
+            return self._store_page
         if request.url.path == f"/appreviewhistogram/{_APP}":
             return httpx.Response(200, text=self._histogram)
         assert request.url.path == "/IUserReviewsService/GetAppReviews/v1/", request.url.path
@@ -596,6 +621,102 @@ def test_second_job_reuses_labels_and_pays_only_for_new_reviews(tmp_path: Path) 
         latest = store.reports.latest_report(_APP)
         assert latest is not None
         assert latest.sample_size == 7  # both jobs published; newest row serves
+
+
+def _one_window_wire(**store: object) -> SteamWire:
+    """A five-review take-all game, enough to publish; ``store`` scripts the store side."""
+    reviews = [_wire_review(f"r{i}", _JUNE, text=f"quotable gameplay yes {i}") for i in range(5)]
+    return SteamWire(
+        totals_all=5,
+        totals_english=5,
+        buckets=[(_JUNE, 5)],
+        pages={None: [_page_body(reviews, None, 5)]},
+        **cast("dict[str, Any]", store),
+    )
+
+
+def test_published_job_records_what_the_store_says_the_game_is(tmp_path: Path) -> None:
+    """After the publish the game's store facts and tag block are on record,
+    stamped with the door's clock, for the price of two more store reads."""
+    wire = _one_window_wire()
+    sink = CollectingSink()
+    db_path = tmp_path / "serve.sqlite3"
+    _runner(wire, FakeProvider(), ServeConfig(batch_n=5), db_path).run(_APP, "Test Game", sink)
+
+    with Store(db_path) as store:
+        assert store.reports.latest_report(_APP) is not None
+        metadata = store.storefront.metadata(_APP)
+        tags = store.storefront.tags(_APP)
+    assert metadata is not None and tags is not None
+    assert [(g.id, g.description) for g in metadata.genres] == [(1, "Action")]
+    assert [c.id for c in metadata.categories] == [2, 9]
+    assert (metadata.windows, metadata.mac, metadata.linux) == (True, True, False)
+    assert metadata.release_date == date(2007, 10, 10)
+    assert metadata.captured_at == _NOW
+    assert [(t.name, t.count) for t in tags.tags] == [("Shooter", 90), ("FPS", 70)]
+    paths = [request.url.path for request in wire.requests]
+    assert paths.count("/api/appdetails") == 2, "the resolve read and the capture's own"
+    assert paths.count(f"/app/{_APP}/") == 1
+    assert paths[-2:] == ["/api/appdetails", f"/app/{_APP}/"], "captured after the publish"
+    assert any(
+        "1 genres, 2 categories, 2 tags" in m
+        for m in _stage_messages(sink, "serve.storefront")
+    )
+
+
+def test_store_trouble_after_the_publish_never_costs_the_report(tmp_path: Path) -> None:
+    """An appdetails answer the parse refuses and a store page that redirects:
+    the job completes, the report serves, nothing false is recorded, and both
+    gaps are narrated."""
+    wire = _one_window_wire(
+        store_facts={},  # no platforms object: the metadata parse fails loud
+        store_page=httpx.Response(302, headers={"location": "https://store.steampowered.com/"}),
+    )
+    sink = CollectingSink()
+    db_path = tmp_path / "serve.sqlite3"
+    _runner(wire, FakeProvider(), ServeConfig(batch_n=5), db_path).run(_APP, "Test Game", sink)
+
+    with Store(db_path) as store:
+        assert store.reports.latest_report(_APP) is not None
+        assert store.storefront.metadata(_APP) is None
+        assert store.storefront.tags(_APP) is None
+    warnings = _stage_messages(sink, "serve.storefront")
+    assert any("store facts not captured" in m and "platforms" in m for m in warnings)
+    assert any("store tags not captured" in m and "HTTP 302" in m for m in warnings)
+
+
+def test_a_page_without_a_tag_block_leaves_the_tags_unrecorded(tmp_path: Path) -> None:
+    """A gate in place of the game's page read nothing, which must not be
+    stored as a game that has no tags; the metadata still lands."""
+    wire = _one_window_wire(store_page=httpx.Response(200, text="<html>agecheck</html>"))
+    sink = CollectingSink()
+    db_path = tmp_path / "serve.sqlite3"
+    _runner(wire, FakeProvider(), ServeConfig(batch_n=5), db_path).run(_APP, "Test Game", sink)
+
+    with Store(db_path) as store:
+        assert store.storefront.metadata(_APP) is not None
+        assert store.storefront.tags(_APP) is None
+    assert any("without a tag block" in m for m in _stage_messages(sink, "serve.storefront"))
+
+
+def test_a_job_that_publishes_nothing_asks_the_store_nothing_more(tmp_path: Path) -> None:
+    """Store facts are recorded for games that have a report; a job with no
+    report spends no store read on them."""
+    wire = SteamWire(
+        totals_all=1,
+        totals_english=0,
+        buckets=[(_JUNE, 1)],
+        pages={None: [_page_body([_wire_review("g1", _JUNE, language="german")], None, 1)]},
+    )
+    db_path = tmp_path / "serve.sqlite3"
+    _runner(wire, FakeProvider(), ServeConfig(batch_n=2), db_path).run(
+        _APP, "Test Game", CollectingSink()
+    )
+    paths = [request.url.path for request in wire.requests]
+    assert paths.count("/api/appdetails") == 1
+    assert f"/app/{_APP}/" not in paths
+    with Store(db_path) as store:
+        assert store.storefront.metadata(_APP) is None
 
 
 def test_serve_defaults_match_the_studies_ruled_pins() -> None:
