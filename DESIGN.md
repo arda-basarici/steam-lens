@@ -2406,12 +2406,37 @@ kind of game it is. Three sources cover the difference:
   4.5% and 6.8%, and no other game above two mentions. A term nominates a game
   only when it clusters, counted as a share of that game's stored reviews; a
   single mention can be a negation or a comparison.
-- *Community tags.* The store page carries the top twenty tags with vote
-  counts (read on two pages, 2026-11-14). They are finer than genres and
-  noisier: vote counts do not separate apt tags from inapt ones. Tags are
+- *Community tags.* The store page carries the top twenty tags, each with a
+  count. They are finer than genres and noisier: the counts do not separate
+  apt tags from inapt ones. Tags are
   recorded with their capture date and withheld from the chat. Their first job
   is as an outside reference for how well review search identifies a kind of
   game. A tag's absence from the top twenty is not a negative label.
+
+**The store's facts are kept per game, beside the reports.** *Storage built
+2026-11-14; the capture in the report job is not.* The alternative was columns
+on the report row, the way the header art is kept. It was declined because a
+report is a frozen sample and these facts are revised by the store: Palworld's
+release date reads Jul 9, 2026, the day it left early access, and 534 of its
+607 stored reviews are older than that. "Runs on Mac" should be as fresh as
+the last capture, whatever the report's age. Each game holds one capture of
+the metadata and one of the tag block, each replaced whole when read again,
+each with its capture date. No history is kept; an earlier state of the
+library is a dated copy of the database, which is also what the coverage
+measurement reads. The tags have their own capture because they come from a
+different page and may fail while the metadata succeeds.
+
+What the wire looks like, from thirteen library games read on 2026-11-14
+(`probes/store_metadata_probe.py`, one address): all five fields were present
+on every game and every store page carried exactly twenty tags. Genre ids
+arrive as strings and category ids as integers. Two category ids can share one
+description, so filters compare ids. A game in early access carries genre id
+70 and its early access launch date. The two games no longer sold answered in
+full, without a price. The mature-content pages answered without an age gate,
+which is a reading for that address and has not been taken from the serving
+host. The count attached to a tag does not track the size of the game (a game
+with 72 stored reviews showed counts above 400), so it orders tags within one
+page and is not compared across games.
 
 **Across games, measured numbers are read in groups.** Every number in the
 library was certified inside one report, and the samples differ (158 to 837
@@ -2423,14 +2448,71 @@ War has the most story talk in the library (37.7%) with 48% of it positive, so
 the two readings are kept apart. The second reading is trusted only above a
 mention floor set from the data, stricter than the report page's display floor
 of five: by positive share alone the library's best combat belongs to a game
-with seven mentions. Games fall into groups (clearly positive, clearly
-negative, split, unclear, too few mentions), where "split" means enough
-mentions that the balance is real and "unclear" means the interval is too wide
-to say. Games inside a group are not ordered by the number. That is a policy,
-since a five-point gap between two games on fifty mentions each is noise. The
-interval is the one the sampling study shipped; it covers sampling noise and
-not label error, and the sheet describes the stored sample of the report that
-represents each game, with that report's date and labeler version attached.
+with seven mentions. Games fall into groups (strongly positive, mostly
+positive, clearly negative, split, unclear, too few mentions), where "split"
+means enough mentions that the balance is real and "unclear" means the
+interval is too wide to say. Games inside a group are not ordered by the
+number. That is a policy, since a five-point gap between two games on fifty
+mentions each is noise.
+
+**The sheet.** *Specified 2026-11-14; figures from the copy of the serving
+database taken that day (107 games, 4,524 game-and-aspect cells), regenerated
+by `probes/sheet_groups_read.py`. The floor, the lines and the width are
+working values held as constants, to be re-read on the development cases and
+never tuned on the reported ones.* The sheet has one row per game that passes
+the hard filters and one cell per pinned aspect. Candidate aspects stay off
+it: they are the uncalibrated stratum, and one concept fragments across many
+strings.
+
+- *The report.* A game is represented by its newest report, the one the
+  library links to. The row carries that report's date, sample size, labeler
+  version and whether it was a complete count. Every reading describes that
+  stored sample and says nothing about reviews written since.
+- *The mention share* is the reviews that mention the aspect over the report's
+  sample size, the number the report page shows, with the interval the
+  sampling study shipped (a complete count has none).
+- *The sentiment share* is the positive mentions over all reviews that mention
+  the aspect. Mixed and neutral mentions stay in the denominator, since a
+  mixed mention is not praise. They are a median 5.5% of the mentions in cells
+  above the floor and reach 45.7%, and 171 of those 892 cells would change
+  group without them. The cost is that "clearly negative" is hard to reach: a
+  game with 82 negative, 50 positive and 29 mixed combat mentions reads as
+  split.
+- *The sentiment interval* is a plain Wilson interval on the mentions. The
+  sampling study calibrated the mention share and treated the sentiment mix as
+  descriptive, so the shipped interval does not apply here, and this one is
+  not certified for the windowed draw. It prices sampling noise only. Label
+  error on polarity is small by the holdout's reading (0.988 agreement on
+  sentiment where the aspect matched). Complete counts get the same interval:
+  across games the question is how settled the opinion is on that many
+  mentions.
+- *The floor* is 30 mentions; below it the cell reads "too few mentions". At
+  30 the widest interval is ±17 points and 15 aspects are readable in twenty
+  or more games. A floor of 50 leaves 6 such aspects, and a floor of 20 admits
+  intervals of ±20 points. 3,632 of the 4,524 cells sit below the floor.
+- *The groups above the floor.* Strongly positive: the sentiment interval
+  starts above 70%. Mostly positive: it starts above 50%. Clearly negative:
+  the negative share's interval starts above 50%. Split: none of these, with
+  a half-width of at most 15 points. Unclear: none of these and wider. There
+  are two positive tiers because one did not select. Combat is readable in 46
+  games and a single positive group held 36 of them; the tiers hold 12 and 24.
+- *Status for a quality requirement.* Either positive tier is "matches".
+  Clearly negative and split are both "fails", and the cell keeps its group so
+  the wording can tell "mostly criticised" from "opinions are divided".
+  Unclear and too few mentions are "cannot tell".
+- *Complaint aspects can only exclude.* Reviewers rarely write that a game has
+  no bugs. On `bugs` no game is positive, 21 are clearly negative and 83 have
+  too few mentions, so a request for a game that is not buggy returns "fails"
+  or "cannot tell" and never "matches". The same holds for `performance` (2
+  positive, 11 clearly negative, 85 too few).
+- *No order inside a group.* The sheet lists a group's games in an order
+  unrelated to the share.
+
+Two limits on comparing across games. The library was labelled by two models
+(51 reports on the earlier one, 56 on the current), and whether they detect an
+aspect at the same rate has not been measured. And the keyword share that
+review search computes is a nomination signal inside the pipeline; it is not a
+survey number and is never shown.
 
 **A fixed order of steps, with the model's freedom in the judging.**
 
