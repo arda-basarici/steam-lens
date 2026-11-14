@@ -100,11 +100,12 @@ def sentiment_group(counts: SentimentCounts, mentions: int) -> SentimentGroup:
 def term_clusters(hits: int, sample_size: int) -> bool:
     """Whether a search term clusters in a game: ``hits`` of ``sample_size`` reviews match.
 
-    A cluster nominates the game for the want the term stands for. The
-    absence of one says nothing: reviewers of the game that defines a kind
-    rarely use the word for it, and a store feature is rarely stated in a
-    review at all. So a term can put a game forward and can never rule one
-    out.
+    Only a cluster is evidence. For something the player wants, a cluster
+    puts the game forward; for something the player wants to avoid, a
+    cluster counts against it. The absence of a cluster says nothing in
+    either case: reviewers of the game that defines a kind rarely use the
+    word for it, a store feature is rarely stated in a review at all, and a
+    word like "grind" turns up at a low share in most games.
 
     >>> term_clusters(77, 602), term_clusters(8, 549), term_clusters(2, 72)
     (True, False, False)

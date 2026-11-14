@@ -2358,10 +2358,21 @@ afternoon on a hosted free tier, not this box.
 unless a different date is given. They illustrate the design and are not
 published readings.*
 
-**One tab, and a suggestion can be questioned.** A player describes what they
-want, the chat may ask one clarifying question, and it suggests games from the
-library of measured reports. The player can then ask about a suggested game in
-the same conversation, and those answers come from that game's stored reviews.
+**One tab: recommending games, and discussing one.** A player describes what
+they want and the chat suggests games from the library of measured reports.
+It asks before it suggests when it has to. A request that carries something
+gets at most one clarifying question. A request that carries nothing at all
+("what should I play") may get two or three, in one message, so the chat has a
+few things to work with; after that it answers regardless, with a small varied
+set of well-received games said plainly to be a starting set and not a fit.
+Asking until something turns up was declined, since it makes the tab a
+questionnaire.
+
+The player can also discuss one game, which is a different kind of turn from
+asking for one. Any library game can be discussed, not only one the chat
+suggested. Those answers draw mainly on that game's stored reviews and its
+report, and also on the store data held for it. Nothing comes from the model's
+own memory of a game, so the tab gives no walkthroughs, tips or opinions.
 There is no separate chat on the report page. A report is what makes a game
 recommendable, and everything stored under it is readable: the frozen
 aggregates, the labelled mentions with their evidence quotes, the review text,
@@ -2371,24 +2382,114 @@ and the game's store metadata.
 games fit the request and why. It does not predict enjoyment, say a game is
 worth its price, or tell anyone to buy; "should I buy it?" is answered with
 what reviewers say about the aspects the player cares about, or with a question
-about which aspects matter. "Something like X" is read as a request for X's
-measured profile when X is in the library; when it is not, the chat asks what
-the player liked about it. A game outside the library gets a named answer, "not
-measured yet", with a link to the ordinary report flow.
+about which aspects matter.
 
-**Requirements are defining or quality, and none may disappear.** A defining
-requirement says what the thing is: a racing game, co-op, runs on Mac, or
-anything the player states as a must. A quality requirement says how good or
-how much: not grindy, a strong story. For each requirement and each candidate
-game the chat holds one of three statuses: matches, fails, or cannot tell. A
-game that fails a defining requirement is never suggested, however well it fits
-the rest. A game that falls short on a quality requirement may be offered with
-the shortfall stated, and when nothing fits everything the closest game is
-offered as a near miss with each status named. "Cannot tell" counts for neither
-side: few mentions of grind is not evidence of little grind. A requirement that
-maps to no stored field is kept in the player's own words and reported as
-"cannot tell"; the failure this guards against is a request that loses its one
-unverifiable condition and still returns a confident, well-quoted answer.
+**A named game is read by what the player said about it.** *Ruled 2026-11-15,
+with the paragraphs that follow through the structured request, from twelve
+example conversations written before the request structure was seen. Their
+figures are from the copy of the serving database taken on the evening of
+2026-11-14 (115 games, 60,514 counted reviews).* "Something like X", with X in
+the library: the parts the player says they liked become wants like any other,
+so "like X because of this and that" and "I want this and that" run through
+one mechanism. When the player did not say which parts, the chat may ask. The
+first design read "like X" as a request for X's measured profile; a profile
+says what reviewers think of a game, not which part this player cared about.
+"Already played X" removes X from the suggestions and does not say whether the
+player liked it, so the chat may ask that too, and steers toward or away from
+similar games by the answer.
+
+A game outside the library gets a named answer, "not measured yet", with the
+link to the ordinary report flow so the player can have it analysed, and a
+question about what they like in it. The model may use what it knows of an
+unmeasured game to ask that question well, and for nothing else. Suggesting
+from that knowledge was declined: the model's memory of a game is not
+evidence, and for a game newer than the model it is invention.
+
+A comparison with a named game ("less frantic than X") is the model's
+judgment, made in words from review evidence on both games. The check requires
+a comparative statement to point at evidence from both. Ranking the two on how
+often a word appears was declined as noise: "frantic", "hectic" and "chaotic"
+appear in 86 of the library's reviews across 49 games. That the judgment did
+not come from the model's memory cannot be checked by code, so comparative
+answers are read by hand.
+
+**Wants carry how firmly they were meant, and none may disappear.** The first
+design marked a requirement as defining or quality. The examples showed that
+what may give in a near miss is decided by how the player said it, so each
+want carries a firmness: a must, a want, or a nice-to-have. The wording sets
+it ("really", "it needs", against "I'd prefer", "would be a bonus"). Where the
+wording is neutral, a want about what kind of game it is (a racing game,
+co-op, runs on Mac) is a must, and a want about how good a part is (a strong
+story) is a want. The number of wants matters as well: three wants are each
+meant, ten describe a wish, and a game that meets most of ten is a good
+answer. Two things never give, whatever the count: a want the player stressed,
+and the kind of game. A game that is not a racing game is never offered for a
+racing request.
+
+For each want and each candidate game the chat holds one of three statuses:
+matches, fails, or cannot tell. A game that fails a must is never suggested,
+however well it fits the rest. A game that misses a softer want may be offered
+as a near miss with every mismatch named. How far to reach is the model's
+judgment, weighed against how many wants were stated, and it should not reach
+far: a game that misses most of what was asked is "nothing fits". A fixed
+limit of one miss was declined, and so was offering the closest game however
+far off. When nothing fits, the chat says so, never substitutes, never claims
+no such game exists, says the library is a hand-picked set, and links the
+report flow; it may ask about a neighbouring kind of game only if the player
+has not ruled substitutes out.
+
+"Cannot tell" counts for neither side: few mentions of grind is not evidence
+of little grind. A game that is "cannot tell" on a must may still be offered,
+because most real requests carry one condition that cannot be checked. It is
+never called a fit, and a bare "unverified" is not enough: the reply says what
+was looked at, what was found, and what that does not show. Which sentence is
+used is decided by a count and not by the model. Read on the library's 60,514
+counted reviews, "timer" and its variants appear in 133 reviews across 59
+games and "red dress" in none. So when reviewers do write about the thing
+(the phrase appears in about ten or more of the library's games), the reply
+says it comes up in reviews of games here, that none of this game's reviews
+mention it, and that this does not mean the game lacks it. When reviewers do
+not write about it, the reply says reviews do not go into that kind of detail
+and gives no count, since reporting an empty search would present it as a
+check. When no data of any kind exists (how a game runs on one laptop), the
+reply says so and uses whatever partial evidence the reports hold, such as
+leaving out games whose performance is clearly criticised.
+
+A want about how much ("short", "hard", "lots of content") never maps to an
+aspect. An aspect's sentiment says how well a part is received, and a game's
+length being praised does not make it short. Such a want becomes a search term
+when there are words to look for and is otherwise kept as it was said. A want
+that maps to no stored field at all is kept in the player's own words and
+reported as "cannot tell"; the failure this guards against is a request that
+loses its one unverifiable condition and still returns a confident answer.
+Indifference ("don't mind if it's long") is not a want.
+
+**The structured request.** The understand step fills one fixed structure from
+the whole conversation on every turn, so a want the player withdrew is absent
+from the next one and no state is carried but the conversation. It holds the
+intent (a recommendation, a discussion of one game, a question about what the
+numbers mean, or out of scope); the games the player named, each with the
+library game it resolves to if any, its role (like this, not this, or the
+subject of a question), how the player felt about it (liked, disliked or
+unknown) and the parts they liked; the wants; whether substitutes were ruled
+out; and whether the player asked to see quotes or numbers. A want keeps the
+player's own words, its firmness, whether it is wanted or avoided, and exactly
+one target: a store fact from the stored vocabulary, one of the pinned
+aspects, a search term given as the spelling variants of one idea, or nothing.
+It can also be marked as only partly checkable, and as a comparison with a
+named game. Code resolves a named game against the library; the model never
+does. A discussion turn carries a subject in place of wants, with the same
+kinds of target and no firmness, since nothing is being matched.
+
+| Target | Wanted or avoided | Matches | Fails | Cannot tell |
+|---|---|---|---|---|
+| store fact | wanted | the fact is present | the fact is absent | no stored facts for the game |
+| store fact | avoided | the fact is absent | the fact is present | no stored facts for the game |
+| aspect | wanted | strongly or mostly positive | clearly negative, split | unclear, too few mentions |
+| aspect, partly checkable | wanted | never | clearly negative | everything else |
+| search term | wanted | the term clusters | never | no cluster |
+| search term | avoided | never | the term clusters | no cluster |
+| nothing | either | never | never | always |
 
 **What kind of game it is comes from the store and from the reviews.** An
 aspect profile says how reviewers feel about parts of a game, which is not what
@@ -2528,7 +2629,7 @@ strings.
   a half-width of at most 15 points. Unclear: none of these and wider. There
   are two positive tiers because one did not select. Combat is readable in 46
   games and a single positive group held 36 of them; the tiers hold 12 and 24.
-- *Status for a quality requirement.* Either positive tier is "matches".
+- *Status for a want on an aspect.* Either positive tier is "matches".
   Clearly negative and split are both "fails", and the cell keeps its group so
   the wording can tell "mostly criticised" from "opinions are divided".
   Unclear and too few mentions are "cannot tell".
@@ -2548,9 +2649,8 @@ survey number and is never shown.
 
 **A fixed order of steps, with the model's freedom in the judging.**
 
-1. *Understand.* A model turns the conversation into a structured request:
-   the intent, a named game if any, and each requirement with its kind. This
-   step is also the scope gate.
+1. *Understand.* A model turns the conversation into the structured request.
+   This step is also the scope gate.
 2. *Build the sheet.* Code applies the hard filters and computes the readings,
    groups and statuses for every remaining game. At library size the sheet
    covers all of them, so review search nominates only for wants the aspect
@@ -2558,20 +2658,43 @@ survey number and is never shown.
 3. *Judge.* A model reads the sheet and picks: which games fit, which near miss
    is worth offering, when the request is too vague and a question is the
    answer, when nothing fits. It cites evidence by identifier.
-4. *Check.* Code supplies each quote, number and link from the identifiers the
-   model chose, so a quote or figure cannot be misstated. It rejects an answer
-   that names a game outside the library, drops a requirement, or suggests a
-   game failing a defining requirement.
+4. *Check.* Code verifies that the evidence the model chose exists and belongs
+   to the game it is used for, and supplies each link. When quotes or numbers
+   are shown, code supplies them from those identifiers, so a quote or figure
+   cannot be misstated. It rejects an answer that names a game outside the
+   library, drops a want, suggests a game failing a must, makes a comparison
+   without evidence on both games, or carries a quote the spoiler rule
+   forbids.
 
 The check establishes source integrity and constraint compliance. Whether the
 cited evidence supports the sentence built on it is a judgment, and it is
 measured in the evaluation instead of being claimed as a guarantee.
 
-**The voice follows the report.** Plain words by default, scoped to the people
-who mentioned the thing: "players who talk about the story mostly praise it".
-Numbers appear when the player asks or when two games need telling apart. Each
-suggested game links to its report, where the full evidence already sits. The
-survey mint remains the only source of any number the chat shows.
+**The chat talks, and the evidence works underneath.** In the chat the player
+reads natural talk, in plain words scoped to the people who mentioned the
+thing: "players who talk about the story mostly praise it". It carries no
+review quotes and no numbers. The mechanism still uses both: every statement
+about a game is tied to specific reviews and counts the model picked, code
+verifies them, and they are kept for the evaluation. Quotes and numbers are
+shown when the player asks. Each suggested game links to its report, where the
+full evidence already sits, and the survey mint remains the only source of any
+number the chat shows. The first design had code insert quotes into every
+answer; that made the tab read like a report. The cost of the change is
+accepted and named: with no quote on screen, the model's paraphrase is all the
+player reads, so reading answers against the reviews behind them is the main
+guard on what the chat claims.
+
+**No spoilers, on every answer.** The chat does not reveal plot, whether or
+not the player asks for that, and a player who asks to be spoiled changes
+nothing. It holds in three parts. For the story aspects (story, characters,
+writing, lore, emotional impact) the chat shows no review quote, even on
+request; it describes in plain words and links the report. A review that
+contains the word "spoiler" is never quoted anywhere; 514 of the library's
+reviews across 87 games contain it. And the model is instructed never to state
+plot events in its own sentences. The first two are checked by code. The third
+cannot be, since a spoiler can come from the model as well as from a quote, so
+it is read by hand. The report pages already show quotes picked with no regard
+for spoilers; whether any reveal plot has not been checked.
 
 **Scope and the gate.** In scope: recommendations from the library, questions
 about a library game, and questions about what the tab's numbers mean.
@@ -2637,11 +2760,14 @@ of the 10 tagged games, "metroidvania" 3 of 4, "racing" 3 of 5 and "city
 builder" 4 of 10, each with no untagged game nominated. Three limits came with
 it, and they shape what a term may be used for:
 
-- *A term nominates and never excludes.* A cluster is "matches"; anything less
-  is "cannot tell", never "fails". The game that defines a kind is rarely
-  called by it: the two Dark Souls games read 1.6% and 1.5% on "souls-like"
-  while Lies of P reads 31.2%. This mirrors the complaint aspects, which can
-  only exclude.
+- *Only presence is evidence.* For a wanted term a cluster is "matches" and
+  anything less is "cannot tell", never "fails". The game that defines a kind
+  is rarely called by it: the two Dark Souls games read 1.6% and 1.5% on
+  "souls-like" while Lies of P reads 31.2%. For an avoided term ("not
+  grindy") a cluster is "fails" and anything less is again "cannot tell":
+  "grind" clusters at 18.1% of Graveyard Keeper's sample and appears in 98 of
+  115 games, so a low share is the common case and says nothing. This mirrors
+  the complaint aspects, which can only exclude.
 - *Store features are rarely said in reviews.* "Co-op" finds 7 of 38 tagged
   games, which is why play modes are read from the store's categories. "Open
   world" finds 16 of 50 and has no category, so for traits only a tag carries,
@@ -2665,7 +2791,7 @@ that fits and lacks the tag in its top twenty.
 | Whole conversations read by a person | whether the exchange answered the request usefully |
 
 Test messages are built from the request outward: the structured request is
-written first, with its defining and quality marks, and a model writes how a
+written first, with each want's firmness and target, and a model writes how a
 player would say it, so the right reading is known by construction. Paraphrases
 of one request stay together, and the cases are split before any tuning:
 development cases choose prompts, models and thresholds, and separate cases
@@ -2676,7 +2802,14 @@ retrieval is judged on results pooled across the competing methods, without
 knowing which method returned each one. Answer support is read by hand on a
 small set first; an automated grader is calibrated only when repeated runs
 justify one, and the labelling judge's calibration does not transfer to that
-task. None of this measures whether a player would enjoy a game.
+task. Four kinds of answer rest on the model's judgment where no code check
+reaches, and are read by hand for that reason: near misses (was the game
+worth offering), answers to long lists of wants, comparisons with a named game
+(did the claim come from the reviews of both), and anything about a story
+(did it reveal plot). The test set includes wants about how much, loose
+descriptions of a liked part, and stressed and soft wordings, since those are
+where the understand step is most likely to misread. None of this measures
+whether a player would enjoy a game.
 
 **Three stages.** The first is one complete path through the real tab, kept
 unlisted: a request, the hard filters, keyword search, a few suggestions and
@@ -2718,9 +2851,13 @@ only.
 | Mixed and neutral in the sentiment share | counted against it | `core/sheet.py`, the sheet's definition | a rule change; every group moves (171 of 892 cells) | clearly negative games reading as split in the answers |
 | Split and unclear | half-width within 15 points | `core/sheet.py` | one constant | "unclear" staying near empty, which makes it a second floor |
 | Sentiment interval | plain Wilson on the mentions, uncalibrated | `core/sheet.py` | a calibration study on sentiment shares | groups disagreeing with a census reading |
-| Split counts as "fails" for a quality requirement | yes | the sheet's definition | one mapping | near misses the assessor judges unfair |
+| Split counts as "fails" for a want on an aspect | yes | the sheet's definition | one mapping | near misses the assessor judges unfair |
 | Term cluster line | 2% share and three matches | `core/sheet.py` | two constants | wrong nominations, or kinds of game going unfound |
-| A term nominates and never excludes | yes | the sheet's definition | a rule change | answers that offer games plainly outside a stated kind |
+| Only a cluster is evidence, for a wanted and for an avoided term | yes | the sheet's definition | a rule change | answers that offer games plainly outside a stated kind |
+| "Reviewers do write about it" | the phrase appears in about ten of the library's games | not built | one constant | the reply reporting an empty search as a finding, or refusing to report a real one |
+| Default firmness | the kind of game is a must, a quality is a want | not built (the understand step) | a prompt rule; re-run the understand measurement | near misses on the kind of game, or good games withheld |
+| Questions before answering | one, or up to three for a request with nothing in it | not built (the judge step) | a prompt rule | players leaving before a suggestion, or suggestions with nothing behind them |
+| Quotes and numbers in the chat | only when the player asks | not built (the answer step) | an interface addition | hand reading that finds claims the player could not have checked |
 | Search matching | literal phrases, no stemming, variants listed | `store/review_search.py`, the schema's tokenizer | drop and refill the index | wants missed for spelling |
 | Index kept by a trigger | yes | schema step 10 | drop the trigger, add a refresh | any job failure traced to the index write |
 | Store facts captured after the publish, failing soft | yes | `serve/storefront_capture.py` | one call site | library games left without facts |
