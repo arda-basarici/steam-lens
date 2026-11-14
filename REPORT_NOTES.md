@@ -7,6 +7,129 @@ decisions it feeds.
 
 ---
 
+## 2026-11-15 — The sheet that almost became a filter: a genre check nobody ran, tags that withhold a failure without vouching for a match, and a must that code no longer enforces alone
+
+*From the recommender chat (M4), the day the sheet was built: the table of how
+every library game reads against what a player asked for. Feeds: the M4
+report's design section (why code reads evidence and the model picks) and its
+limits section (what the store's own labels cannot be trusted to say);
+candidate material for a post on where to put the line between code and a
+model in a pipeline that has to be checkable.*
+
+The session opened on what looked like plumbing. The request structure had
+been ruled the night before, and its status table said a wanted store fact
+that is absent "fails". Before writing that as code the store vocabulary was
+read from a copy of the serving database (115 games, the evening copy of
+2026-11-14, `data/serve-box-2026-11-14b.db`): 12 genres and 57 category ids.
+The table held for play modes, since every one of the 115 games carries a
+single-player or a multi-player category. It did not hold for features. Only
+24 games declare "Adjustable Difficulty", and the 91 that do not include
+Hades, both Civilization games, Wasteland 3 and Divinity: Original Sin 2.
+Declaration also rises with release year, 1 of 17 games from 2005 to 2014
+against roughly a quarter of the later ones, on small counts. So store facts
+were split in two: facts every game declares, where absence is the store's
+answer, and facts declared by choice, where only presence is evidence. Arda
+ruled it in one word. (These counts, and the genre and tag counts below, came
+from one-off reads of that copy during the session. They are recorded in
+DESIGN and no committed script regenerates them.)
+
+The mistake was in the same ruling. Genres had been put on the "every game
+declares" side with the play modes, and only the play modes had been checked.
+Arda caught it a few exchanges later, while the code conventions were still
+being read and nothing was built: he had seen misleading tags and genres
+before, games can be fluid, could that cause certain misses? It could, and
+the library showed it. The same-named community tag served as the outside
+reference. Four games carry the RPG tag without the RPG genre, seven the
+Strategy tag, nine the Simulation tag, two Racing, and twenty-four Adventure.
+Some of those are real misses. The store does not list Dark Souls III as an
+RPG, where RPG is the fourth tag on its page, and it does not list Cities:
+Skylines II, Oxygen Not Included or Commandos as strategy. A must on "an RPG"
+would have dropped Dark Souls III with nobody to notice. The tags are no
+cleaner: Mad Max is tagged Racing and RPG, Ori and the Blind Forest is tagged
+RPG in twentieth place, both Civilization games are tagged Simulation. And
+the genre errs the other way too, since the store lists Rust and Dying Light
+2 as RPGs. Which tags are apt was Claude's reading of those games, offered to
+Arda as such.
+
+The obvious repair was to let review search fill the gap, and it was measured
+before it was proposed. It does not work for broad genre words. "rpg" and six
+variants reach 7 of Dark Souls III's 549 counted reviews, 1.3%, under the 2%
+cluster line, and none of the four RPG cases clustered. Strategy words
+rescued 2 of 7 and simulation words 3 of 9. They also nominate wrongly: the
+strategy words together reach 2.9% in Mass Effect 2 (6 of 209 reviews), and
+the racing words cluster in Solasta II at 2.8%, most likely through the
+careless variant "races" (the cause was not checked). Claude first reported
+the Mass Effect 2 case in chat as "tactical" doing it alone, from a reading
+it had not checked; three of the six matches are "tactical", and the
+corrected sentence is the one in DESIGN.
+The finding that shaped the ruling was that softening how a missing genre is
+read does not help by itself. Nothing the chat is given says Dark Souls III
+is an RPG, and the judge may not use its own memory of a game. Only the tags
+hold it. So a tag now withholds a genre failure: listed by the store is a
+match, tagged and not listed is "cannot tell" with its own sentence ("the
+store does not list it as an RPG, though players tag it as one"), and neither
+is a failure. A tag never makes a match. This brought forward part of a
+decision deferred to the retrieval experiment, on the trigger the design had
+already named for it: kinds of game the reviews do not name. [PRELIMINARY:
+four to nine games per genre, and the tag list per genre is a first curation.
+Early access takes no tag at all, because the tag outlives the status: ten
+games carry it and four are in early access.]
+
+Arda's reply to that ruling changed more than the genre rule. He chose the
+tag rescue, added that a "cannot tell" can encourage reading the reviews, and
+then said what the whole proposal had drifted into: this is not algorithmic
+filtering, there should be room for the agent's judgment, and if code does
+most of it, "in that case we can just make filter". The plan on the table at
+that point had code remove every game that failed a must before the model saw
+anything, which was exactly that. The first retreat was partial: code would
+remove only on certain store facts. Arda then went further with an idea of
+his own. Instead of removing, code could take the agent's pick back to the
+agent, ask it to check again, ask for a reasoning. Might that settle many
+forks at once? He asked directly whether Claude agreed or would push back.
+
+Both. The idea replaced a growing pile of rules about what code may remove
+with one mechanism, and the repository already had its shape in the compose
+stage, where a code gate checks the numbers and a failure gets one corrective
+retry. The pushback was on "a reasoning". A model asked to justify a pick can
+always produce a justification, and a model asked whether it is sure often
+drops a correct pick, so neither can be the check. The answer to an objection
+has to be something code can verify: reviews of that game, on that want,
+cited by identifier. One round, and a pick with nothing to cite cannot be
+made, which is how a farming game stays out of a racing request without a
+filter. The cost was named in the same message and accepted with the rest:
+"a must is never relaxed" becomes "a must is never relaxed silently". Code
+checks that the conflict was named and that the cited reviews exist and
+belong to the game. Whether they support the offer is read by hand, so these
+offers join the kinds of answer a person assesses. [PRELIMINARY: the shape is
+ruled and the objection round is not built. Its wording, what counts as
+reviews on a want for each kind of target, and what follows a second failure
+belong to the judge and check steps.]
+
+The sheet was then built to that line and read on the real library
+(`probes/sheet_request_read.py` on a scratch copy of the same database, 115
+games, read in 0.05 s). It holds every game and groups them by standing on
+the musts. For "single player, a good story, characters I care about", 112
+games meet the one must. For "scary, and it needs online co-op", two games
+meet both (Dying Light 2 and Lethal Company), 32 are open and 81 conflict.
+For "an RPG", 46 meet it, 65 conflict, and the four open ones are exactly the
+tagged games: Dark Souls III, Mad Max, Ori and the Blind Forest, Rise of the
+Tomb Raider. The request that taught something was "a puzzle game, nothing
+with a timer". "Puzzle" clusters in 16 games and "timer" clusters in none, so
+no game conflicts and no game meets both musts: all 115 are open. Under the
+first plan that request would have looked fine, with nothing removed and
+nothing learned. On the sheet it shows that a standing on the musts does not
+narrow a request made of search terms, and that the 16 games where "puzzle"
+clusters have to lead when the sheet is put in front of the judge. How to do
+that is still open and belongs to the judge step. The sheet shipped the
+same night in five commits (`b2d8586` to `dae2fc8`) with no route using it
+yet.
+
+Figure: for the "an RPG" request, three bars of the library by standing (46
+listed by the store, 4 tagged by players and not listed, 65 neither), with
+the four middle games named. A second candidate: the same three groups for
+the five example requests side by side, where the puzzle-and-timer request
+is one solid bar of 115 open games.
+
 ## 2026-10-23 — The review endpoint retired under us: a 302 to the store front, a migration map probed row by row, and the fix verified against the live method before the deploy
 
 *The second upstream move in a month, and the first that was announced. Feeds:
