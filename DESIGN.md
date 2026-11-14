@@ -7,9 +7,10 @@ the fixed vision-phase snapshot (2026-07-07) and is not updated as the design mo
 How it's built → ARCHITECTURE; the pitch → README. Executed experiments appear here
 as conclusions with citations to their runs of record.
 
-*Living snapshot · last updated 2026-09-24 · the project closed complete at
+*Living snapshot · last updated 2026-11-14 · the project closed complete at
 deployment (M3), live at steamlens.ardabasarici.dev; the chat milestone (M4) is
-designed-and-deferred (the M3 closure ruling, under the redirect).*
+reopened as a recommender tab, designed and not yet built (the recommender chat
+section).*
 
 ---
 
@@ -27,9 +28,10 @@ One line per section, what's decided there:
 - **The codebook** — the hybrid vocabulary: a pinned core, candidates preserved in reviewer wording.
 - **The eval harness** — the scoring core, certification, and the exact-digit evals-in-CI gate.
 - **The judge** — the second annotator: cross-family by rule, calibrated on gold before use.
-- **The redirect & the product frame** — the investigator deferred, the grounded chat as the story channel, and the M3 closure ruling.
+- **The redirect & the product frame** — the investigator deferred, the grounded chat as the story channel, the M3 closure ruling, and the chat reopened as a recommender tab.
 - **The sampling study (M2)** — the certified draw: the windowed policy, the measured tolerances, the shipped interval rule.
 - **Deployment (M3)** — the serving skeleton · persistence · model prose · episode markers · the frontend · the box · the spend breaker · observability.
+- **The recommender chat (M4)** — designed, not built: fit to stated requirements, numbers read across games in groups, a fixed pipeline with the model judging, keyword retrieval first and the vector comparison as a committed stage.
 - **Standing rules · Scope & non-goals · Open questions** — what always holds, what's deliberately out, what's parked with a trigger.
 
 ---
@@ -39,9 +41,10 @@ One line per section, what's decided there:
 An app where entering a game returns what players actually like and dislike (aspect-
 level strengths/weaknesses with verbatim evidence and the review timeline),
 computed live at request time on real Steam data, with a rigorous, honest
-evaluation of whether the LLM doing the reading is actually right. The grounded chat
-that interrogates the report's evidence remains the designed next channel, deferred
-past the project's closure (the M3 closure ruling, under the redirect). **Success
+evaluation of whether the LLM doing the reading is actually right. The designed next
+channel is a chat tab that recommends from the library of measured reports and answers
+follow-up questions from a game's stored reviews (the recommender chat section; designed
+2026-11-14, not built). **Success
 criterion:** a stranger uses the deployed app unassisted and every claim they see is
 attributable: to specific reviews (quotes), to a measured sampling tolerance, or to a
 published error rate; and each shipped milestone ships a standalone postable
@@ -55,8 +58,10 @@ displayed claim carries its quote, its tolerance, or its published error rate.*
 **The human anchor.** All automatic checks fail precisely at interpretation of meaning:
 grounding passes a sarcastic quote read upside-down; consistency passes a consistently
 wrong system; an unvalidated LLM judge is a model grading its own blind spots. So the
-eval anchors on ~250 reviews blind-labeled by the builder *before* seeing model output,
-with a later self-relabel subset measuring labeling consistency. Judge-only evaluation
+eval anchors on ~250 reviews drafted by an assist model, with every label adjudicated
+by a single annotator *before* any candidate model was scored and the assist model
+excluded from the candidates, and a later self-relabel subset measuring labeling
+consistency. Judge-only evaluation
 was rejected as the industry's named anti-pattern (verified against current provider
 guidance and practitioner canon, 2026-07-07); the single-annotator limitation is stated
 in every artifact rather than hidden.
@@ -691,7 +696,7 @@ measures **−0.018 F1 real vs full** (the judge-referenced same-day read, 2026-
 It remains a versioned artifact; reopening requires new evidence, not new hope.
 
 **The codebook-overfit disclosure** (ruled 2026-07-21). Gold was
-blind-labeled before any model output (the safe direction), but the v2
+adjudicated before any candidate model was scored (the safe direction), but the v2
 distillation was tuned *on* gold's 250 reviews, so every v2-on-gold number is
 **development-grade**: the instrument was refined against the set it is scored on.
 The mitigation landed as the sampling study's 150-review holdout under **frozen**
@@ -1029,6 +1034,27 @@ scheduled. The deferral is revisited explicitly after the polish run and the
 public link, weighed against opening a new project; if taken up, the design
 session works the docket above with the recorded leanings as its starting
 positions.
+
+**The chat reopened as a recommender tab (ruled 2026-11-14).** The deferral
+was revisited and the chat taken up in a different shape from the one ruled
+above. Three parts of the product frame are reversed. The chat is its own tab
+and the conversation starts there, where the frame had it inside the report
+page and never chat-first. It works across the library, where cross-game
+comparison was out entirely. It recommends, where advice was refused. The
+reason: a library of measured reports now exists, each with its labelled
+reviews stored beneath it, and a question that library can answer with
+evidence is "which of these games fits what I am looking for"; a chat confined
+to one report had no user asking for it. The risk that kept cross-game
+comparison out was real, since every number was certified inside one report,
+and it is handled by reading numbers across games in groups above a mention
+floor and never as a ranking. What stays from the frame: every number the chat
+shows comes from the survey mint, no answer is shown without evidence, and the
+honest-refusal ladder continues with "nothing in the library fits" and "that
+game is not measured yet" as named answers. The advice line moves without
+disappearing: the chat says which games fit a stated request and gives no
+verdict on buying or enjoyment. Interrogating one report's evidence survives
+as the follow-up turn inside the tab. The design is the recommender chat
+section, below deployment.
 
 ---
 
@@ -2325,6 +2351,196 @@ afternoon on a hosted free tier, not this box.
 
 ---
 
+## The recommender chat (M4)
+
+*Designed 2026-11-14, not built. Figures in this section were read from the
+2026-09-24 copy of the serving database (53 reports, 27,163 stored reviews)
+unless a different date is given. They illustrate the design and are not
+published readings.*
+
+**One tab, and a suggestion can be questioned.** A player describes what they
+want, the chat may ask one clarifying question, and it suggests games from the
+library of measured reports. The player can then ask about a suggested game in
+the same conversation, and those answers come from that game's stored reviews.
+There is no separate chat on the report page. A report is what makes a game
+recommendable, and everything stored under it is readable: the frozen
+aggregates, the labelled mentions with their evidence quotes, the review text,
+and the game's store metadata.
+
+**The promise is fit to what the player stated.** The chat says which library
+games fit the request and why. It does not predict enjoyment, say a game is
+worth its price, or tell anyone to buy; "should I buy it?" is answered with
+what reviewers say about the aspects the player cares about, or with a question
+about which aspects matter. "Something like X" is read as a request for X's
+measured profile when X is in the library; when it is not, the chat asks what
+the player liked about it. A game outside the library gets a named answer, "not
+measured yet", with a link to the ordinary report flow.
+
+**Requirements are defining or quality, and none may disappear.** A defining
+requirement says what the thing is: a racing game, co-op, runs on Mac, or
+anything the player states as a must. A quality requirement says how good or
+how much: not grindy, a strong story. For each requirement and each candidate
+game the chat holds one of three statuses: matches, fails, or cannot tell. A
+game that fails a defining requirement is never suggested, however well it fits
+the rest. A game that falls short on a quality requirement may be offered with
+the shortfall stated, and when nothing fits everything the closest game is
+offered as a near miss with each status named. "Cannot tell" counts for neither
+side: few mentions of grind is not evidence of little grind. A requirement that
+maps to no stored field is kept in the player's own words and reported as
+"cannot tell"; the failure this guards against is a request that loses its one
+unverifiable condition and still returns a confident, well-quoted answer.
+
+**What kind of game it is comes from the store and from the reviews.** An
+aspect profile says how reviewers feel about parts of a game, which is not what
+kind of game it is. Three sources cover the difference:
+
+- *Store metadata.* The appdetails answer the job already reads carries genres,
+  categories (single-player, co-op, controller support), platforms, release date
+  and a short description; until now the job kept only the name and header art.
+  These are stored per game and serve the hard filters. Price is left out: it
+  changes, varies by region, and adds nothing to review evidence.
+- *The reviews themselves.* The genres are coarse (Hades reads "Action, Indie,
+  RPG"). Reviewers supply the finer words. No report narrative of the 53
+  contained "rogue", while a keyword search of the stored reviews found it in
+  15.8% of Dead Cells' reviews and 14.6% of Hades', three more games between
+  4.5% and 6.8%, and no other game above two mentions. A term nominates a game
+  only when it clusters, counted as a share of that game's stored reviews; a
+  single mention can be a negation or a comparison.
+- *Community tags.* The store page carries the top twenty tags with vote
+  counts (read on two pages, 2026-11-14). They are finer than genres and
+  noisier: vote counts do not separate apt tags from inapt ones. Tags are
+  recorded with their capture date and withheld from the chat. Their first job
+  is as an outside reference for how well review search identifies a kind of
+  game. A tag's absence from the top twenty is not a negative label.
+
+**Across games, measured numbers are read in groups.** Every number in the
+library was certified inside one report, and the samples differ (158 to 837
+reviews, median 507). Each aspect gets two readings per game: the share of
+stored reviews that mention it, and how positive those mentions are. The first
+reading says how much the game is about the thing. Story is mentioned in 30.7%
+of Clair Obscur's reviews and one review in 700 for Civilization V; Symphony of
+War has the most story talk in the library (37.7%) with 48% of it positive, so
+the two readings are kept apart. The second reading is trusted only above a
+mention floor set from the data, stricter than the report page's display floor
+of five: by positive share alone the library's best combat belongs to a game
+with seven mentions. Games fall into groups (clearly positive, clearly
+negative, split, unclear, too few mentions), where "split" means enough
+mentions that the balance is real and "unclear" means the interval is too wide
+to say. Games inside a group are not ordered by the number. That is a policy,
+since a five-point gap between two games on fifty mentions each is noise. The
+interval is the one the sampling study shipped; it covers sampling noise and
+not label error, and the sheet describes the stored sample of the report that
+represents each game, with that report's date and labeler version attached.
+
+**A fixed order of steps, with the model's freedom in the judging.**
+
+1. *Understand.* A model turns the conversation into a structured request:
+   the intent, a named game if any, and each requirement with its kind. This
+   step is also the scope gate.
+2. *Build the sheet.* Code applies the hard filters and computes the readings,
+   groups and statuses for every remaining game. At library size the sheet
+   covers all of them, so review search nominates only for wants the aspect
+   vocabulary cannot express.
+3. *Judge.* A model reads the sheet and picks: which games fit, which near miss
+   is worth offering, when the request is too vague and a question is the
+   answer, when nothing fits. It cites evidence by identifier.
+4. *Check.* Code supplies each quote, number and link from the identifiers the
+   model chose, so a quote or figure cannot be misstated. It rejects an answer
+   that names a game outside the library, drops a requirement, or suggests a
+   game failing a defining requirement.
+
+The check establishes source integrity and constraint compliance. Whether the
+cited evidence supports the sentence built on it is a judgment, and it is
+measured in the evaluation instead of being claimed as a guarantee.
+
+**The voice follows the report.** Plain words by default, scoped to the people
+who mentioned the thing: "players who talk about the story mostly praise it".
+Numbers appear when the player asks or when two games need telling apart. Each
+suggested game links to its report, where the full evidence already sits. The
+survey mint remains the only source of any number the chat shows.
+
+**Scope and the gate.** In scope: recommendations from the library, questions
+about a library game, and questions about what the tab's numbers mean.
+Everything else gets a fixed refusal written in advance. The gate is a model
+and can be talked around, and review text reaches the prompt without passing
+it, so the protection is layered: the understand step returns a fixed
+structure; the model holds no tool that changes anything and no secret; an
+answer without evidence is not shown; turns, message length, requests per
+address and daily spend are capped under the existing spend breaker; review
+text enters the prompt as quoted material. The gate is measured in both
+directions, attempts stopped and real requests wrongly refused.
+
+**Retrieval starts with the stored samples and keyword search.** The pool is
+each report's own sample, already on the box and already labelled, so what the
+chat can discuss is what the report was built from. A follow-up question is
+restricted to its game; the aspect labels are tried as a filter and as a
+ranking boost, and the measurement decides, since a mistaken label used as a
+filter hides a relevant review. The first version ranks with SQLite's built-in
+full-text search behind one search interface. Vector retrieval is a committed
+second stage: a small open embedding model run locally with its version pinned
+(a retired or silently changed provider model would orphan every stored
+vector), chosen by a test of two or three candidates on these reviews, with the
+vectors in a vector-search extension inside the existing SQLite file. Keyword,
+vector and combined retrieval are all reported, including the case where
+vectors add little. This supersedes two leanings recorded under the redirect:
+the background pool of extra unlabelled reviews is deferred until misses can be
+split into "not in the stored sample" and "not found by the search", and
+brute-force comparison beside SQLite gives way to the extension. The third
+leaning stands: no framework, since the chat is a fixed pipeline.
+
+**Each evaluation reference has one job.**
+
+| Measurement | What it establishes |
+|---|---|
+| Recovering requests the test messages were generated from | parsing on that generation process |
+| Requests written without sight of the request structure | whether wants outside the structure are kept or lost |
+| Picks against the sheet | compliance with the evidence and the selection rules |
+| Review search against community tags | agreement with an incomplete outside reference |
+| Answers read against the retrieved reviews | support within the retrieved evidence |
+| Whole conversations read by a person | whether the exchange answered the request usefully |
+
+Test messages are built from the request outward: the structured request is
+written first, with its defining and quality marks, and a model writes how a
+player would say it, so the right reading is known by construction. Paraphrases
+of one request stay together, and the cases are split before any tuning:
+development cases choose prompts, models and thresholds, and separate cases
+carry the reported results. The set includes multi-turn conversations in which
+a requirement is added or withdrawn, requests too vague to act on, requests
+nothing fits, off-topic messages and injection attempts. Relevance for
+retrieval is judged on results pooled across the competing methods, without
+knowing which method returned each one. Answer support is read by hand on a
+small set first; an automated grader is calibrated only when repeated runs
+justify one, and the labelling judge's calibration does not transfer to that
+task. None of this measures whether a player would enjoy a game.
+
+**Three stages.** The first is one complete path through the real tab, kept
+unlisted: a request, the hard filters, keyword search, a few suggestions and
+their follow-ups. The second makes it releasable: clarifying questions,
+requirement changes across turns, the measurements above, coverage, storage,
+the notice, and the security pass. The third is the retrieval experiment.
+Nothing public describes the tab as vector retrieval before the third stage
+reports.
+
+**Conversations are stored for checking only.** Text is kept without the
+sender's address, for a fixed retention period, with a one-line notice on the
+tab. Players get no history feature. Stored conversations never enter the
+repository; a real message that becomes a test case is rewritten first.
+
+**The library grows by hand.** Games are added by the operator and by visitor
+requests, with no claim to cover Steam, and the tab says so. Coverage is
+measured as the share of test requests the library answers with at least one
+fitting game and with at least three, against a dated library snapshot, since
+the right answer to a request changes as games are added.
+
+**Deferred, each with its trigger.** Tags given to the chat, and the extra
+review pool: decided when the retrieval experiment reports. A comparison
+against a full vector database with an approximate index: measured or skipped
+after the same report; at this corpus size nothing needs one. The chat starting
+a report job for an unmeasured game: after the tab has run under real traffic,
+since it is public spend.
+
+---
+
 ## Standing rules
 
 **The post ships with the milestone.** Every milestone's public artifact ships when
@@ -2346,12 +2562,14 @@ as code. The test for any addition stays: does *this product* need it?
   positive-share timeline (episode detection stored, not rendered), the
   trust panel, Docker/FastAPI/SQLite/CI deployment,
   the evaluation methodology as a public artifact, the ops story as a public
-  artifact. The report-interrogation RAG chat is designed-and-deferred (the M3
-  closure ruling, under the redirect): in the design, not in the shipped scope.
+  artifact. The recommender chat is designed and not built (the recommender chat
+  section): in the design, not in the shipped scope.
 - Deliberately out: fake-review verdicts (tombstoned under Data access) ·
   multilingual evaluation claims (post-launch experiment, unverified if shipped) ·
   Kubernetes/Terraform/cloud MLOps (zero marginal signal for a portfolio app) ·
-  cross-game chat comparison (the product frame's identity, not a v1 limitation) ·
+  ranking games against each other by a measured number (the recommender chat reads
+  numbers across games in groups; cross-game comparison itself was out until the
+  2026-11-14 reversal) · verdicts on buying or enjoyment ·
   the agentic investigator (deferred 2026-07-27, the redirect above) · any displayed
   number sourced from outside the survey mint (the old investigation-track wall, now
   also covering the chat pool).
@@ -2360,8 +2578,9 @@ as code. The test for any addition stays: does *this product* need it?
 
 ## Open questions / deferred
 
-- **LLM tier for the chat's stages** — decided at the chat milestone's (M4)
-  design session, per the tier rule. The survey-labeling stage is decided (the
+- **LLM tier for the chat's stages** — the understand and judge steps each get
+  their model by measurement on the development cases, per the tier rule (the
+  recommender chat section). The survey-labeling stage is decided (the
   labeler ruling); the composition stage is decided (the deployment design:
   v4-flash, cross-family from the judge). The judge stays exempt: always a
   stronger model than the one it grades. *(Resolved at M3: cache persistence —
