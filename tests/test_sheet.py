@@ -1,4 +1,4 @@
-"""Behavioral claims on the sheet's group rule — real cells from the library, and the edges.
+"""Behavioral claims on the sheet's rules — real cells from the library, and the edges.
 
 The named cases are combat readings from the serving database copy of
 2026-11-14, the ones DESIGN's sheet section argues from: the two positive
@@ -6,20 +6,60 @@ tiers have to separate Hades from Dying Light 2, and the game with the worst
 combat in the library has to land in "split" because mixed mentions sit in
 the denominator. The edge cases pin the floor and the two ways a cell can
 fail to say anything.
+
+The second half reads a request. Its claims: each kind of want is read from
+its own source, "cannot tell" always says what was looked at, and the sheet
+leaves no game off on evidence.
 """
 
 from __future__ import annotations
+
+from datetime import UTC, date, datetime
 
 import pytest
 
 from steamlens.contracts import (
     AspectAggregate,
     AspectSlot,
+    AspectTarget,
     ClassifierVersions,
+    Feeling,
+    Firmness,
+    LibraryGame,
+    MustStanding,
+    NamedGame,
+    NamedGameRole,
+    PlayerRequest,
+    ReleaseYearsTarget,
+    RequestIntent,
     SentimentCounts,
     SentimentGroup,
+    SheetCell,
+    Stance,
+    StoreFactTarget,
+    StorefrontLabel,
+    StorefrontMetadata,
+    StorefrontTagCapture,
+    TermTarget,
+    Want,
+    WantFinding,
+    WantReading,
+    WantStatus,
+    WantTally,
+    WantTarget,
 )
-from steamlens.core.sheet import MENTION_FLOOR, sentiment_group, sheet_cells, term_clusters
+from steamlens.core.sheet import (
+    MENTION_FLOOR,
+    WRITTEN_ABOUT_GAMES,
+    aspect_reading,
+    must_standing,
+    read_sheet,
+    sentiment_group,
+    sheet_cells,
+    term_clusters,
+    term_reading,
+    want_reading,
+)
 
 
 def _counts(positive: int, negative: int, mixed: int = 0, neutral: int = 0) -> SentimentCounts:
@@ -141,3 +181,237 @@ def test_term_counts_that_cannot_be_a_share_fail_loud() -> None:
         term_clusters(5, 4)
     with pytest.raises(ValueError, match="at least one review"):
         term_clusters(0, 0)
+
+
+# --- reading a request -------------------------------------------------------
+
+_READ = datetime(2026, 11, 14, tzinfo=UTC)
+_HADES, _STARDEW, _PORTAL = 1145360, 413150, 620
+
+
+def _cell(aspect: str, positive: int, negative: int, mixed: int = 0) -> SheetCell:
+    counts = _counts(positive, negative, mixed)
+    mentions = positive + negative + mixed
+    return SheetCell(aspect, mentions, 600, counts, sentiment_group(counts, mentions))
+
+
+def _game(
+    app_id: int,
+    *cells: SheetCell,
+    categories: tuple[int, ...] = (2,),
+    sample_size: int = 600,
+) -> LibraryGame:
+    return LibraryGame(
+        app_id=app_id, name=f"game {app_id}", run_id=f"serve-{app_id}", reported_at=_READ,
+        sample_size=sample_size, complete_count=False, labeler="m", cells=cells,
+        storefront=StorefrontMetadata(
+            app_id=app_id, genres=(StorefrontLabel(1, "Action"),),
+            categories=tuple(StorefrontLabel(category, "") for category in categories),
+            windows=True, mac=False, linux=False, release_date_text="Sep 17, 2020",
+            release_date=date(2020, 9, 17), coming_soon=False, short_description="",
+            captured_at=_READ,
+        ),
+        tags=StorefrontTagCapture(app_id=app_id, tags=(), captured_at=_READ),
+    )
+
+
+def _want(
+    target: WantTarget | None,
+    firmness: Firmness = Firmness.WANT,
+    stance: Stance = Stance.WANTS,
+    *,
+    partial: bool = False,
+) -> Want:
+    return Want(words="as the player said it", firmness=firmness, stance=stance, target=target,
+                partial=partial)
+
+
+@pytest.mark.parametrize(
+    ("counts", "group", "status"),
+    [
+        ((41, 4, 0), SentimentGroup.STRONGLY_POSITIVE, WantStatus.MATCHES),
+        ((49, 25, 4), SentimentGroup.MOSTLY_POSITIVE, WantStatus.MATCHES),
+        ((2, 40, 3), SentimentGroup.CLEARLY_NEGATIVE, WantStatus.FAILS),
+        ((50, 50, 0), SentimentGroup.SPLIT, WantStatus.FAILS),
+        ((15, 15, 0), SentimentGroup.UNCLEAR, WantStatus.CANNOT_TELL),
+        ((7, 0, 0), SentimentGroup.TOO_FEW_MENTIONS, WantStatus.CANNOT_TELL),
+    ],
+)
+def test_an_aspect_want_reads_its_status_off_the_group_and_keeps_the_group(
+    counts: tuple[int, int, int], group: SentimentGroup, status: WantStatus
+) -> None:
+    """Split fails like clearly negative, and the group stays on the reading
+    so "opinions are divided" is not worded as "mostly criticised"."""
+    reading = aspect_reading("combat", [_cell("combat", *counts)], partial=False)
+    assert (reading.status, reading.group) == (status, group)
+    assert reading.finding is WantFinding.ASPECT_GROUP
+
+
+def test_an_aspect_no_review_mentions_reads_as_too_few_mentions() -> None:
+    """A report stores no row for an aspect nobody mentioned, so the missing
+    cell is zero mentions and not a missing reading."""
+    reading = aspect_reading("story", [_cell("combat", 41, 4)], partial=False)
+    assert (reading.status, reading.group) == (
+        WantStatus.CANNOT_TELL, SentimentGroup.TOO_FEW_MENTIONS,
+    )
+
+
+def test_a_partly_checkable_want_can_fail_and_can_never_match() -> None:
+    """ "Runs at 60 fps on my laptop" against ``performance``: praise for how
+    a game runs says nothing about one laptop, so only clear criticism counts
+    and split opinion is not held against the game."""
+    def partial(positive: int, negative: int) -> WantStatus:
+        cells = [_cell("performance", positive, negative)]
+        return aspect_reading("performance", cells, partial=True).status
+
+    assert partial(41, 4) is WantStatus.CANNOT_TELL
+    assert partial(50, 50) is WantStatus.CANNOT_TELL
+    assert partial(2, 40) is WantStatus.FAILS
+
+
+def test_only_a_cluster_is_evidence_for_a_wanted_and_for_an_avoided_term() -> None:
+    """Graveyard Keeper's "grind" (81 of 447 reviews, in a library where 98
+    of 115 games have a match) fails "not grindy" and would match a player
+    who wanted it. A low share decides neither."""
+    assert term_reading(Stance.AVOIDS, 81, 447, 98).status is WantStatus.FAILS
+    assert term_reading(Stance.WANTS, 81, 447, 98).status is WantStatus.MATCHES
+    for stance in (Stance.WANTS, Stance.AVOIDS):
+        assert term_reading(stance, 8, 549, 98).status is WantStatus.CANNOT_TELL
+
+
+def test_a_cannot_tell_on_a_term_says_which_of_three_things_was_found() -> None:
+    """ "Timer" appears in 59 library games and "red dress" in none. A game
+    with no match is told the first comes up elsewhere and that reviews do
+    not go into the second. A game with a few matches has reviews to read:
+    seven of Dark Souls III's 549 mention "rpg", in a library where 79 games
+    have a match."""
+    below = term_reading(Stance.WANTS, 7, 549, 79)
+    assert (below.finding, below.hits) == (WantFinding.TERM_BELOW_CLUSTER, 7)
+    assert term_reading(Stance.AVOIDS, 0, 549, 59).finding is WantFinding.WRITTEN_ABOUT_ELSEWHERE
+    assert term_reading(Stance.WANTS, 0, 549, 0).finding is WantFinding.NOT_WRITTEN_ABOUT
+    assert term_reading(Stance.WANTS, 0, 549, WRITTEN_ABOUT_GAMES - 1).finding is (
+        WantFinding.NOT_WRITTEN_ABOUT
+    )
+    assert term_reading(Stance.WANTS, 0, 549, WRITTEN_ABOUT_GAMES).finding is (
+        WantFinding.WRITTEN_ABOUT_ELSEWHERE
+    )
+
+
+def test_a_want_with_no_target_is_kept_and_reads_cannot_tell() -> None:
+    reading = want_reading(_want(None, Firmness.MUST), _game(_HADES), {})
+    assert (reading.status, reading.finding) == (WantStatus.CANNOT_TELL, WantFinding.NO_DATA)
+
+
+def test_each_kind_of_target_is_read_from_its_own_source() -> None:
+    timer = TermTarget(phrases=("timer", "timed"))
+    game = _game(_HADES, _cell("story", 60, 5), categories=(2, 38))
+    hits = {timer: {_HADES: 30, _STARDEW: 1}}
+    assert want_reading(_want(StoreFactTarget("online-co-op")), game, hits).finding is (
+        WantFinding.LISTED
+    )
+    assert want_reading(_want(ReleaseYearsTarget(2020, None)), game, hits).finding is (
+        WantFinding.RELEASED_IN_RANGE
+    )
+    assert want_reading(_want(AspectTarget("story")), game, hits).group is (
+        SentimentGroup.STRONGLY_POSITIVE
+    )
+    avoided = want_reading(_want(timer, stance=Stance.AVOIDS), game, hits)
+    assert (avoided.status, avoided.hits) == (WantStatus.FAILS, 30)
+
+
+def test_wants_that_have_no_meaning_fail_loud() -> None:
+    """An aspect says how well a part is received, so it has no avoided form;
+    only an aspect can be partly checkable; a term needs its counts."""
+    game = _game(_HADES)
+    with pytest.raises(ValueError, match="has no avoided form"):
+        want_reading(_want(AspectTarget("bugs"), stance=Stance.AVOIDS), game, {})
+    with pytest.raises(ValueError, match="only a want on an aspect"):
+        want_reading(_want(StoreFactTarget("mac"), partial=True), game, {})
+    with pytest.raises(ValueError, match="no hit counts were supplied"):
+        want_reading(_want(TermTarget(phrases=("curling",))), game, {})
+
+
+def test_standing_reads_the_musts_only() -> None:
+    """A failed nice-to-have is the judge's to weigh as a near miss. Only a
+    must can put a game in conflict or leave it open."""
+    must, soft = _want(None, Firmness.MUST), _want(None, Firmness.NICE_TO_HAVE)
+    matches = WantReading(WantStatus.MATCHES, WantFinding.LISTED)
+    fails = WantReading(WantStatus.FAILS, WantFinding.NOT_LISTED)
+    open_ = WantReading(WantStatus.CANNOT_TELL, WantFinding.NO_DATA)
+    assert must_standing([must, soft], [matches, fails]) is MustStanding.MEETS
+    assert must_standing([must, must], [matches, open_]) is MustStanding.OPEN
+    assert must_standing([must, must], [open_, fails]) is MustStanding.CONFLICTS
+    assert must_standing([soft], [fails]) is MustStanding.MEETS
+    assert must_standing([], []) is MustStanding.MEETS
+
+
+def _puzzle_request(*named: NamedGame) -> tuple[PlayerRequest, dict[TermTarget, dict[int, int]]]:
+    """A puzzle game, nothing with a timer, and it needs online co-op: three
+    musts on two kinds of target. The hit counts are made up for the claims
+    below and are not library readings."""
+    puzzle = TermTarget(phrases=("puzzle", "puzzles"))
+    timer = TermTarget(phrases=("timer", "timed", "time limit"))
+    request = PlayerRequest(
+        intent=RequestIntent.RECOMMEND,
+        named_games=named,
+        wants=(
+            _want(puzzle, Firmness.MUST),
+            _want(timer, Firmness.MUST, Stance.AVOIDS),
+            _want(StoreFactTarget("online-co-op"), Firmness.MUST),
+        ),
+    )
+    hits = {puzzle: {_PORTAL: 120, _HADES: 2}, timer: {_HADES: 40}}
+    return request, hits
+
+
+def test_the_sheet_keeps_every_game_and_groups_by_standing() -> None:
+    """Hades conflicts twice over (no online co-op, "timer" clusters) and
+    Stardew Valley once, and both stay on the sheet for the judge: the
+    cluster may be reviewers saying there is no timer. Portal 2 meets the
+    two musts that can be decided and is open on the third."""
+    request, hits = _puzzle_request()
+    library = [_game(_HADES), _game(_STARDEW), _game(_PORTAL, categories=(2, 38))]
+    sheet = read_sheet(request, library, hits)
+
+    assert [(row.game.app_id, row.standing) for row in sheet.rows] == [
+        (_PORTAL, MustStanding.OPEN),
+        (_STARDEW, MustStanding.CONFLICTS),
+        (_HADES, MustStanding.CONFLICTS),
+    ]
+    portal = sheet.rows[0]
+    assert [reading.status for reading in portal.readings] == [
+        WantStatus.MATCHES, WantStatus.CANNOT_TELL, WantStatus.MATCHES,
+    ]
+    assert portal.readings[1].finding is WantFinding.NOT_WRITTEN_ABOUT
+    assert sheet.tallies == (
+        WantTally(matches=1, fails=0, cannot_tell=2),
+        WantTally(matches=0, fails=1, cannot_tell=2),
+        WantTally(matches=1, fails=2, cannot_tell=0),
+    )
+    assert sheet.already_played == ()
+
+
+def test_a_game_the_player_already_played_is_the_only_one_left_off() -> None:
+    """ "Already played" is the player's instruction, not evidence, so it is
+    not weighed. A liked game and an unmeasured one remove nothing."""
+    request, hits = _puzzle_request(
+        NamedGame("portal 2", _PORTAL, NamedGameRole.NOT_THIS, Feeling.UNKNOWN),
+        NamedGame("hades", _HADES, NamedGameRole.LIKE_THIS, Feeling.LIKED),
+        NamedGame("balatro", None, NamedGameRole.NOT_THIS, Feeling.UNKNOWN),
+    )
+    library = [_game(_HADES), _game(_STARDEW), _game(_PORTAL, categories=(2, 38))]
+    sheet = read_sheet(request, library, hits)
+    assert sorted(row.game.app_id for row in sheet.rows) == [_STARDEW, _HADES]
+    assert sheet.already_played == (_PORTAL,)
+    assert sheet.tallies[0] == WantTally(matches=0, fails=0, cannot_tell=2)
+
+
+def test_a_request_with_no_wants_lists_the_whole_library_as_meeting_them() -> None:
+    """ "What should I play": nothing to read against, so nothing is ruled
+    out and the chat asks."""
+    sheet = read_sheet(
+        PlayerRequest(intent=RequestIntent.RECOMMEND), [_game(_STARDEW), _game(_HADES)], {}
+    )
+    assert [row.game.app_id for row in sheet.rows] == [_STARDEW, _HADES]
+    assert all(row.standing is MustStanding.MEETS and row.readings == () for row in sheet.rows)
+    assert sheet.tallies == ()
