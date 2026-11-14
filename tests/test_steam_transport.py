@@ -157,3 +157,28 @@ def test_200_with_non_object_json_is_permanent() -> None:
     with pytest.raises(SteamResponseError, match="non-object JSON"):
         h.transport.get_json(_URL, {})
     assert len(h.requests) == 1
+
+
+# --- the text read: the same loop, a different body ------------------------------
+
+_PAGE_URL = "https://store.steampowered.com/app/440/"
+
+
+def test_text_read_returns_the_body_and_inherits_pacing_and_backoff() -> None:
+    """The page read runs the one attempt loop: a 503 backs off and retries,
+    and the retry pays the pacing floor like any other attempt."""
+    h = Harness([httpx.Response(503, text="busy"), _ok("<html>page</html>")])
+    assert h.transport.get_text(_PAGE_URL, {"l": "english"}) == "<html>page</html>"
+    assert h.sleeps == [2.0, 1.5]
+    assert h.transport.retries_spent == 1
+    assert h.requests[0].url.params["l"] == "english"
+
+
+def test_text_read_treats_a_redirect_as_a_permanent_answer() -> None:
+    """A page that sends the reader elsewhere did not answer for what was
+    asked: one request, no retry, and the redirect is not followed."""
+    h = Harness([httpx.Response(302, headers={"location": "https://store.steampowered.com/"})])
+    with pytest.raises(SteamResponseError, match="HTTP 302"):
+        h.transport.get_text(_PAGE_URL, {})
+    assert len(h.requests) == 1
+    assert h.sleeps == []

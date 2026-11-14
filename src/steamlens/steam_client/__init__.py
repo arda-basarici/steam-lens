@@ -23,6 +23,8 @@ from steamlens.steam_client.parse import (
     parse_appdetails,
     parse_histogram,
     parse_review_page,
+    parse_storefront_metadata,
+    parse_storefront_tags,
     parse_storesearch,
     review_from_raw,
 )
@@ -43,6 +45,8 @@ __all__ = [
     "parse_histogram",
     "parse_appdetails",
     "parse_storesearch",
+    "parse_storefront_metadata",
+    "parse_storefront_tags",
     "review_from_raw",
     "AppDetails",
     "ReviewPage",

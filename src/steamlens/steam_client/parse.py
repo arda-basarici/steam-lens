@@ -17,9 +17,11 @@ keeping a drifting copy.
 
 from __future__ import annotations
 
+import json
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import cast
 
 from steamlens.contracts import (
@@ -29,6 +31,10 @@ from steamlens.contracts import (
     Review,
     ReviewEvent,
     RollupUnit,
+    StorefrontLabel,
+    StorefrontMetadata,
+    StorefrontTag,
+    StorefrontTagCapture,
 )
 from steamlens.steam_client.errors import SteamResponseError
 
@@ -184,16 +190,9 @@ def parse_appdetails(payload: Mapping[str, object], app_id: int) -> AppDetails |
     carries the requested ``steam_appid`` — that lone foreign-keyed entry is
     read as ours on the strength of the inner id, and nothing else is.
     """
-    key = str(app_id)
-    raw_entry = (
-        payload[key] if key in payload else _entry_filed_under_a_foreign_key(payload, app_id)
-    )
-    if raw_entry is None:
-        return None  # null is success:false's natural neighbor — no data, calmly
-    entry = _object_field(raw_entry, f"appdetails[{app_id}]")
-    if not entry.get("success") or "data" not in entry:
+    data = _appdetails_data(payload, app_id)
+    if data is None:
         return None
-    data = _object_field(entry.get("data"), f"appdetails[{app_id}].data")
     name = data.get("name")
     if not isinstance(name, str) or not name:
         raise SteamResponseError(
@@ -206,6 +205,182 @@ def parse_appdetails(payload: Mapping[str, object], app_id: int) -> AppDetails |
             f"{type(header_image).__name__}, expected a string"
         )
     return AppDetails(name=name, header_image=header_image or None)
+
+
+def _appdetails_data(payload: Mapping[str, object], app_id: int) -> Mapping[str, object] | None:
+    """The ``data`` object of ``app_id``'s appdetails entry, or ``None`` for no data.
+
+    The entry lookup both appdetails parsers share, so the no-data answers and
+    the foreign-key tolerance are decided once: a falsy ``success``, a missing
+    ``data`` or a JSON-null entry is ``None``; an entry that is absent
+    altogether fails loud unless a lone entry carries our id.
+    """
+    key = str(app_id)
+    raw_entry = (
+        payload[key] if key in payload else _entry_filed_under_a_foreign_key(payload, app_id)
+    )
+    if raw_entry is None:
+        return None  # null is success:false's natural neighbor — no data, calmly
+    entry = _object_field(raw_entry, f"appdetails[{app_id}]")
+    if not entry.get("success") or "data" not in entry:
+        return None
+    return _object_field(entry.get("data"), f"appdetails[{app_id}].data")
+
+
+_RELEASE_DATE_FORMATS = ("%b %d, %Y", "%d %b, %Y")
+"""The store's display forms for a full date: ``Sep 17, 2020`` at the door's
+parameters (probed 2026-11-14), and the day-first form other country codes
+answer with. Anything else ("Coming soon", a bare year, a quarter) is kept as
+text and yields no date."""
+
+
+def parse_storefront_metadata(
+    payload: Mapping[str, object], app_id: int, captured_at: datetime
+) -> StorefrontMetadata | None:
+    """The filterable store facts in one appdetails response, or ``None`` for no data.
+
+    Reads the same response ``parse_appdetails`` does, with the same no-data
+    answers and the same foreign-key tolerance. ``captured_at`` is the
+    caller's clock stamp, so the parser stays pure.
+
+    Absence and type surprises are treated differently. A game may honestly
+    have no genres, no categories, no release date and no description, so
+    those parse as empty. A field that is present with the wrong type fails
+    loud, and so does a missing ``platforms`` object: a platform flag has no
+    honest default, and guessing one would make a hard filter lie. Genre ids
+    arrive as strings and category ids as integers (probed 2026-11-14); both
+    forms are accepted for both, since the store has changed such details
+    before.
+    """
+    data = _appdetails_data(payload, app_id)
+    if data is None:
+        return None
+    context = f"appdetails[{app_id}]"
+    platforms = _object_field(data.get("platforms"), f"{context}.platforms")
+    release_text, release_date, coming_soon = _release_date(data.get("release_date"), context)
+    description = data.get("short_description")
+    if description is not None and not isinstance(description, str):
+        raise SteamResponseError(
+            f"{context}: short_description is {type(description).__name__}, expected a string"
+        )
+    return StorefrontMetadata(
+        app_id=app_id,
+        genres=_labels(data, "genres", context),
+        categories=_labels(data, "categories", context),
+        windows=_bool_field(platforms, "windows", f"{context}.platforms"),
+        mac=_bool_field(platforms, "mac", f"{context}.platforms"),
+        linux=_bool_field(platforms, "linux", f"{context}.platforms"),
+        release_date_text=release_text,
+        release_date=release_date,
+        coming_soon=coming_soon,
+        short_description=description or "",
+        captured_at=captured_at,
+    )
+
+
+def _labels(data: Mapping[str, object], key: str, context: str) -> tuple[StorefrontLabel, ...]:
+    """The genre or category rows under ``key``, in the store's order."""
+    labels: list[StorefrontLabel] = []
+    for position, item in enumerate(_list_field(data, key, optional=True)):
+        row_context = f"{context}.{key}[{position}]"
+        row = _object_field(item, row_context)
+        description = row.get("description")
+        if not isinstance(description, str) or not description:
+            raise SteamResponseError(
+                f"{row_context}: description is {description!r}, expected a non-empty string"
+            )
+        labels.append(
+            StorefrontLabel(id=_label_id(row.get("id"), row_context), description=description)
+        )
+    return tuple(labels)
+
+
+def _label_id(value: object, context: str) -> int:
+    """A genre or category id as an integer, from an integer or a digit string."""
+    if isinstance(value, int) and not isinstance(value, bool):
+        return value
+    if isinstance(value, str) and value.isascii() and value.isdigit():
+        return int(value)
+    raise SteamResponseError(f"{context}: id is {value!r}, expected an integer or a digit string")
+
+
+def _release_date(raw: object, context: str) -> tuple[str | None, date | None, bool]:
+    """The store's release text, that text as a date when it is one, and ``coming_soon``."""
+    if raw is None:
+        return None, None, False
+    release = _object_field(raw, f"{context}.release_date")
+    text = release.get("date")
+    if text is not None and not isinstance(text, str):
+        raise SteamResponseError(
+            f"{context}.release_date: date is {type(text).__name__}, expected a string"
+        )
+    coming_soon = release.get("coming_soon", False)
+    if not isinstance(coming_soon, bool):
+        raise SteamResponseError(
+            f"{context}.release_date: coming_soon is {coming_soon!r}, expected a boolean"
+        )
+    if not text:
+        return None, None, coming_soon
+    for form in _RELEASE_DATE_FORMATS:
+        try:
+            return text, datetime.strptime(text, form).date(), coming_soon
+        except ValueError:
+            continue
+    return text, None, coming_soon
+
+
+_TAG_CALL = re.compile(r"InitAppTagModal\(\s*(\d+)\s*,\s*(?=\[)")
+"""The store page's script call that carries the community tags: the app id,
+then a JSON array of tag rows (probed 2026-11-14 on thirteen pages)."""
+
+
+def parse_storefront_tags(
+    html: str, app_id: int, captured_at: datetime
+) -> StorefrontTagCapture | None:
+    """The community tag block of one store page, or ``None`` when the page has none.
+
+    The tags sit in the page's script as the second argument of an
+    ``InitAppTagModal`` call, a JSON array of ``{tagid, name, count}`` rows in
+    descending count. A page without the call is not the game's page (an age
+    gate, a regional notice) and answers ``None``: nothing was read, which
+    differs from a page whose array is empty. A call naming another app, an
+    array that does not decode, or a malformed row fails loud. The
+    ``browseable`` field is ignored; one probed row lacked it.
+    """
+    match = _TAG_CALL.search(html)
+    if match is None:
+        return None
+    called_for = int(match.group(1))
+    if called_for != app_id:
+        raise SteamResponseError(
+            f"store page tags: the page's tag call is for app {called_for}, expected {app_id}"
+        )
+    try:
+        raw_tags, _ = json.JSONDecoder().raw_decode(html, match.end())
+    except json.JSONDecodeError as exc:
+        raise SteamResponseError(
+            f"store page tags[{app_id}]: the tag array does not decode: {exc}"
+        ) from exc
+    if not isinstance(raw_tags, list):
+        raise SteamResponseError(
+            f"store page tags[{app_id}]: the tag argument is "
+            f"{type(raw_tags).__name__}, expected a list"
+        )
+    tags: list[StorefrontTag] = []
+    for position, item in enumerate(cast("list[object]", raw_tags)):
+        context = f"store page tags[{app_id}][{position}]"
+        row = _object_field(item, context)
+        name = row.get("name")
+        if not isinstance(name, str) or not name:
+            raise SteamResponseError(f"{context}: name is {name!r}, expected a non-empty string")
+        tags.append(
+            StorefrontTag(
+                tag_id=_int_field(row, "tagid", context),
+                name=name,
+                count=_int_field(row, "count", context),
+            )
+        )
+    return StorefrontTagCapture(app_id=app_id, tags=tuple(tags), captured_at=captured_at)
 
 
 def _entry_filed_under_a_foreign_key(payload: Mapping[str, object], app_id: int) -> object:
@@ -342,6 +517,14 @@ def _int_field(raw: Mapping[str, object], key: str, context: str) -> int:
     value = raw.get(key)
     if isinstance(value, bool) or not isinstance(value, int):
         raise SteamResponseError(f"{context}: {key} is {value!r}, expected an integer")
+    return value
+
+
+def _bool_field(raw: Mapping[str, object], key: str, context: str) -> bool:
+    """The boolean at ``key`` — a missing flag is as loud as a mistyped one."""
+    value = raw.get(key)
+    if not isinstance(value, bool):
+        raise SteamResponseError(f"{context}: {key} is {value!r}, expected a boolean")
     return value
 
 

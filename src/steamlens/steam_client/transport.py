@@ -1,6 +1,8 @@
 """The retry/backoff GET chokepoint — every request to Steam passes through here.
 
-One method, ``get_json``, carries the whole transport policy, so every caller,
+One attempt loop carries the whole transport policy, and the two reads
+(``get_json`` for the API answers, ``get_text`` for the one store page) both
+run through it, so every caller,
 every endpoint, and every retry attempt inherits it by construction: the flat
 pacing floor sits at the top of the attempt loop (the donor client's proven
 politeness discipline — an unenforced budget is how a polite client becomes
@@ -108,6 +110,26 @@ class SteamTransport:
         ``SteamResponseError`` — immediately, no retry — on any other
         non-200 status or a 200 whose body isn't a JSON object.
         """
+        return _parse_object(self._get(url, params), url)
+
+    def get_text(self, url: str, params: Mapping[str, str | int]) -> str:
+        """One paced, retried GET, returning a 200's body as text.
+
+        For the one page-shaped read the door makes (a store page, whose tag
+        block sits in its markup). Same policy and the same failures as
+        ``get_json``. A redirect is a non-200 here, since redirects are never
+        followed: a store page that sends the reader elsewhere has not
+        answered for the game it was asked about.
+        """
+        response = self._get(url, params)
+        if response.status_code != 200:
+            raise SteamResponseError(
+                f"HTTP {response.status_code} from {url}: {response.text[:200]}"
+            )
+        return response.text
+
+    def _get(self, url: str, params: Mapping[str, str | int]) -> httpx.Response:
+        """The attempt loop both reads share: the first response that is not retryable."""
         last_failure = ""
         for attempt in range(1, _MAX_ATTEMPTS + 1):
             self._pace()
@@ -117,7 +139,7 @@ class SteamTransport:
                 last_failure = f"network failure: {exc!r}"
             else:
                 if response.status_code not in _RETRYABLE_STATUSES:
-                    return _parse_object(response, url)
+                    return response
                 last_failure = f"HTTP {response.status_code}: {response.text[:200]}"
             if attempt == _MAX_ATTEMPTS:
                 raise SteamUnavailableError(

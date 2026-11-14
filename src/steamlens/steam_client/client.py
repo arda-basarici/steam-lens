@@ -1,8 +1,9 @@
-"""The Steam door's operations — the four answers, composed over one chokepoint.
+"""The Steam door's operations, composed over one chokepoint.
 
 ``SteamClient`` is the surface callers hold: search the storefront by name,
 resolve a game (appdetails + the identity guard + the one-request totals
-read), snapshot its review histogram, and fetch a date window of reviews.
+read), snapshot its review histogram, fetch a date window of reviews, and
+read a game's store facts and the tag block of its store page.
 Every operation speaks through an
 injected ``SteamTransport``, so pacing, retries, and the typed failure
 taxonomy are inherited by construction — no operation can be impolite or
@@ -27,6 +28,8 @@ from steamlens.contracts import (
     PathOutcome,
     StageEvent,
     StageKind,
+    StorefrontMetadata,
+    StorefrontTagCapture,
     WindowFetchResult,
 )
 from steamlens.steam_client.config import SteamClientConfig
@@ -39,6 +42,8 @@ from steamlens.steam_client.parse import (
     parse_appdetails,
     parse_histogram,
     parse_review_page,
+    parse_storefront_metadata,
+    parse_storefront_tags,
     parse_storesearch,
 )
 from steamlens.steam_client.transport import SteamTransport
@@ -46,6 +51,7 @@ from steamlens.steam_client.walk import WalkTally, walk_pages
 
 _APPDETAILS_URL: Final = "https://store.steampowered.com/api/appdetails"
 _STORESEARCH_URL: Final = "https://store.steampowered.com/api/storesearch/"
+_STORE_PAGE_URL: Final = "https://store.steampowered.com/app/{app_id}/"
 # The WebAPI method that replaced the store's appreviews endpoint (retired
 # 2026-10-22; the old URL answers a 302 to the store front). Keyless; the
 # query travels as one input_json parameter.
@@ -179,6 +185,39 @@ class SteamClient:
         """
         details = self.app_details(app_id)
         return details.name if details else None
+
+    def storefront_metadata(self, app_id: int) -> StorefrontMetadata | None:
+        """The store's filterable facts for ``app_id`` — one paced appdetails read.
+
+        Genres, categories, platforms, release date and the short description,
+        stamped with the read's time. ``None`` when the store has no record
+        for the id, exactly as ``app_details`` answers it. A separate read
+        from ``app_details`` on purpose: this parse checks five more fields,
+        and a surprise in one of them must not be able to fail the name
+        lookup a job depends on.
+        """
+        details = self._transport.get_json(
+            _APPDETAILS_URL, {"appids": app_id, "cc": "us", "l": "english"}
+        )
+        return parse_storefront_metadata(details, app_id, self._now())
+
+    def storefront_tags(self, app_id: int) -> StorefrontTagCapture | None:
+        """The community tag block of ``app_id``'s store page — one paced page read.
+
+        The only page-shaped read the door makes: the tags are not in any API
+        answer. ``None`` when the page came back without a tag block (an age
+        gate or a regional notice in place of the game's page). A page that
+        redirects raises ``SteamResponseError``, as the transport's text read
+        defines. Probed on thirteen library games from one address
+        (``probes/store_metadata_probe.py``, 2026-11-14): every page answered
+        with twenty tags and no gate, mature-content games included; no
+        reading from another address exists yet, so a caller should treat
+        this read as one that may fail.
+        """
+        html = self._transport.get_text(
+            _STORE_PAGE_URL.format(app_id=app_id), {"l": "english"}
+        )
+        return parse_storefront_tags(html, app_id, self._now())
 
     def fetch_totals(self, app_id: int, *, language: str = "all") -> QuerySummary | None:
         """Steam's population claim for ``app_id`` — one paced one-review read.
