@@ -79,6 +79,162 @@ class SentimentGroup(StrEnum):
     TOO_FEW_MENTIONS = "too-few-mentions"
 
 
+class RequestIntent(StrEnum):
+    """What a chat turn asks for — the recommender chat's scope gate, in one field.
+
+    ``RECOMMEND`` asks for games and carries wants. ``ABOUT_GAME`` discusses
+    one library game and carries a subject in place of wants, since nothing
+    is being matched. ``ABOUT_NUMBERS`` asks what the tab's own figures mean.
+    ``OUT_OF_SCOPE`` is everything else and is answered with a fixed refusal.
+
+    >>> RequestIntent.ABOUT_GAME == "about-game"
+    True
+    """
+
+    RECOMMEND = "recommend"
+    ABOUT_GAME = "about-game"
+    ABOUT_NUMBERS = "about-numbers"
+    OUT_OF_SCOPE = "out-of-scope"
+
+
+class Firmness(StrEnum):
+    """How firmly the player meant a want, read from their wording.
+
+    "It needs" and "really" make a ``MUST``; "I'd prefer" and "would be a
+    bonus" make a ``NICE_TO_HAVE``. Where the wording is neutral, a want
+    about what kind of game it is defaults to ``MUST`` and a want about how
+    good a part is defaults to ``WANT``. A must is never relaxed silently;
+    the softer two may give in a near miss with the mismatch named.
+    """
+
+    MUST = "must"
+    WANT = "want"
+    NICE_TO_HAVE = "nice-to-have"
+
+
+class Stance(StrEnum):
+    """Whether the player wants a thing or wants to avoid it.
+
+    "Online co-op" against "nothing with a timer". Indifference ("don't mind
+    if it's long") is neither and produces no want at all.
+    """
+
+    WANTS = "wants"
+    AVOIDS = "avoids"
+
+
+class NamedGameRole(StrEnum):
+    """Why the player named a game.
+
+    ``LIKE_THIS`` is "something like Hades", ``NOT_THIS`` is "already played
+    Stardew Valley" (the game is left out of the suggestions), and
+    ``ASK_ABOUT`` makes the game the subject of a discussion turn.
+    """
+
+    LIKE_THIS = "like-this"
+    NOT_THIS = "not-this"
+    ASK_ABOUT = "ask-about"
+
+
+class Feeling(StrEnum):
+    """How the player felt about a game they named, from their words only.
+
+    ``UNKNOWN`` is a value the chat acts on: "already played X" does not say
+    whether the player liked it, so the chat may ask.
+    """
+
+    LIKED = "liked"
+    DISLIKED = "disliked"
+    UNKNOWN = "unknown"
+
+
+class StoreFactSource(StrEnum):
+    """Which part of a game's stored store metadata a store fact is read from.
+
+    A genre or a category is matched by its store id; each platform is one
+    flag of the store's ``platforms`` object.
+    """
+
+    GENRE = "genre"
+    CATEGORY = "category"
+    WINDOWS = "windows"
+    MAC = "mac"
+    LINUX = "linux"
+
+
+class WantStatus(StrEnum):
+    """Where one game stands on one want.
+
+    ``CANNOT_TELL`` counts for neither side: few mentions of grind is not
+    evidence of little grind. It is also the status that sends the chat's
+    judge to the game's reviews, since something may be there to read.
+
+    >>> WantStatus.CANNOT_TELL == "cannot-tell"
+    True
+    """
+
+    MATCHES = "matches"
+    FAILS = "fails"
+    CANNOT_TELL = "cannot-tell"
+
+
+class WantFinding(StrEnum):
+    """What was looked at for a want on one game, and what it showed.
+
+    A status alone cannot be worded honestly: "cannot tell" because the store
+    does not list a genre that players tag is a different sentence from
+    "cannot tell" because no review mentions the thing. The finding is that
+    difference, set by code so the wording is never the model's guess.
+
+    Store facts: ``LISTED`` and ``NOT_LISTED`` are the store's answer on a
+    fact every game declares; ``NOT_DECLARED`` is the absence of a fact games
+    declare by choice, which says nothing; ``TAGGED_NOT_LISTED`` is a genre
+    the store does not list and players tag; ``TAGS_NOT_READ`` is such a
+    genre on a game whose tag block was never captured; ``NO_STORE_FACTS`` is
+    a game with no stored metadata. Release dates: ``RELEASED_IN_RANGE``,
+    ``RELEASED_OUTSIDE_RANGE``, ``NO_RELEASE_DATE``.
+
+    Aspects: ``ASPECT_GROUP``, with the group carried beside it.
+
+    Search terms: ``TERM_CLUSTERS``; ``TERM_BELOW_CLUSTER`` when some of the
+    game's reviews match and too few to count; and for a game with no match,
+    ``WRITTEN_ABOUT_ELSEWHERE`` when reviews of enough other library games
+    use the phrase and ``NOT_WRITTEN_ABOUT`` when they do not.
+
+    ``NO_DATA`` is a want that maps to no stored field at all.
+    """
+
+    LISTED = "listed"
+    NOT_LISTED = "not-listed"
+    NOT_DECLARED = "not-declared"
+    TAGGED_NOT_LISTED = "tagged-not-listed"
+    TAGS_NOT_READ = "tags-not-read"
+    NO_STORE_FACTS = "no-store-facts"
+    RELEASED_IN_RANGE = "released-in-range"
+    RELEASED_OUTSIDE_RANGE = "released-outside-range"
+    NO_RELEASE_DATE = "no-release-date"
+    ASPECT_GROUP = "aspect-group"
+    TERM_CLUSTERS = "term-clusters"
+    TERM_BELOW_CLUSTER = "term-below-cluster"
+    WRITTEN_ABOUT_ELSEWHERE = "written-about-elsewhere"
+    NOT_WRITTEN_ABOUT = "not-written-about"
+    NO_DATA = "no-data"
+
+
+class MustStanding(StrEnum):
+    """Where one game stands on the player's musts, taken together.
+
+    The sheet groups its rows by this and removes none of them. A game that
+    ``CONFLICTS`` with a must can still be offered when its reviews speak to
+    that want, flagged and never as a fit; that call is the judge's, and the
+    check asks for the reviews. ``MEETS`` includes a request with no must.
+    """
+
+    MEETS = "meets"
+    OPEN = "open"
+    CONFLICTS = "conflicts"
+
+
 class ReferenceKind(StrEnum):
     """What kind of measuring stick an eval run was scored against.
 

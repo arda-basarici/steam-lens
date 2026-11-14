@@ -1,4 +1,4 @@
-"""The sheet records — one game's reading on one aspect, as the recommender chat compares games.
+"""The sheet records — how the library reads against one request.
 
 A report's aggregate is certified inside that report. Read across games it
 needs a second layer: the samples differ in size, a sentiment share on seven
@@ -10,14 +10,22 @@ The cell carries no number the report does not already hold. Its two shares
 are read off the same counts, and they answer different questions, so they
 stay apart: how much the game's reviews talk about the aspect, and how
 positive that talk is.
+
+The rest is the sheet itself. A ``LibraryGame`` is everything stored about
+one game that a request can be read against. A ``WantReading`` is one want
+read on one game. A ``SheetRow`` is a game with a reading per want, and a
+``Sheet`` is every library game as a row. The sheet is a reading handed to
+the chat's judge, not a selection: no game is left off it on evidence.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 
 from steamlens.contracts.aggregate import SentimentCounts
-from steamlens.contracts.enums import SentimentGroup
+from steamlens.contracts.enums import MustStanding, SentimentGroup, WantFinding, WantStatus
+from steamlens.contracts.storefront import StorefrontMetadata, StorefrontTagCapture
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,3 +62,88 @@ class SheetCell:
     def positive_share(self) -> float:
         """The share of those mentions that are positive. Mixed and neutral count against it."""
         return self.counts.positive / self.mentions
+
+
+@dataclass(frozen=True, slots=True)
+class LibraryGame:
+    """One library game as a request is read against it.
+
+    The game is represented by its newest report: ``run_id`` names it,
+    ``reported_at`` dates it, ``sample_size`` is the number of reviews it
+    counted, ``complete_count`` says whether that was every review the game
+    had, and ``labeler`` is the model version that labelled them. Every
+    reading describes that stored sample and says nothing about reviews
+    written since.
+
+    ``cells`` hold one entry per pinned aspect at least one sampled review
+    mentions; an aspect missing from them was mentioned by none.
+    ``storefront`` and ``tags`` are the latest captures of the store's facts
+    and the community tag block, each ``None`` when never captured, which is
+    different from a game without genres or without tags.
+    """
+
+    app_id: int
+    name: str
+    run_id: str
+    reported_at: datetime
+    sample_size: int
+    complete_count: bool
+    labeler: str
+    cells: tuple[SheetCell, ...]
+    storefront: StorefrontMetadata | None
+    tags: StorefrontTagCapture | None
+
+
+@dataclass(frozen=True, slots=True)
+class WantReading:
+    """One want read on one game: the status, and what was looked at.
+
+    ``group`` is set for a want on an aspect, so the wording can tell "mostly
+    criticised" from "opinions are divided" under the same status. ``hits``
+    is set for a want on a search term: how many of the game's counted
+    reviews match, which is also how many the judge could read.
+    """
+
+    status: WantStatus
+    finding: WantFinding
+    group: SentimentGroup | None = None
+    hits: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class SheetRow:
+    """One library game read against a request.
+
+    ``readings`` are in the order of the request's wants, one each.
+    ``standing`` sums up the readings on the wants that are musts.
+    """
+
+    game: LibraryGame
+    readings: tuple[WantReading, ...]
+    standing: MustStanding
+
+
+@dataclass(frozen=True, slots=True)
+class WantTally:
+    """How the sheet's games divide on one want."""
+
+    matches: int
+    fails: int
+    cannot_tell: int
+
+
+@dataclass(frozen=True, slots=True)
+class Sheet:
+    """The library read against one request.
+
+    ``rows`` hold every library game except the ones the player said they
+    had already played, whose app ids are in ``already_played``. They are
+    grouped by standing (meets the musts, open on a must, conflicts with
+    one) and ordered by app id inside a group, an order that carries no
+    reading. ``tallies`` are in the order of the request's wants and count
+    over the rows.
+    """
+
+    rows: tuple[SheetRow, ...]
+    tallies: tuple[WantTally, ...]
+    already_played: tuple[int, ...]

@@ -138,3 +138,23 @@ class ReportCard:
     sample_size: int
     take_all: bool
     top_aspects: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ReportHead:
+    """One game's newest report, reduced to what identifies and sizes it.
+
+    The recommender chat reads the whole library on every turn and needs,
+    per game, which report stands for it and how large its sample was. It
+    needs none of the display payload, so this read carries none: a report
+    whose histogram no longer reconstructs still has a head. ``versions``
+    are the label versions the report's numbers were folded from.
+    """
+
+    run_id: str
+    app_id: int
+    game_name: str
+    created_at: datetime
+    versions: ClassifierVersions
+    sample_size: int
+    take_all: bool

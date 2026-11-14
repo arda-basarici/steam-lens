@@ -20,19 +20,28 @@ from steamlens.contracts.classification import AspectMention, ReviewClassificati
 from steamlens.contracts.compose import ComposedNarrative, EvidenceQuote, GroundedSpan
 from steamlens.contracts.enums import (
     AspectSlot,
+    Feeling,
     FinishReason,
+    Firmness,
     IdentityVerdict,
     LlmStage,
+    MustStanding,
+    NamedGameRole,
     NarrativeOutcome,
     Origin,
     PathOutcome,
     ReferenceKind,
+    RequestIntent,
     RollupUnit,
     SamplingPolicyKind,
     Sentiment,
     SentimentGroup,
     SpanKind,
     StageKind,
+    Stance,
+    StoreFactSource,
+    WantFinding,
+    WantStatus,
 )
 from steamlens.contracts.evaluation import EvalMetric, EvalRun
 from steamlens.contracts.llm import (
@@ -60,11 +69,31 @@ from steamlens.contracts.report import (
     MarkedWindowCount,
     Report,
     ReportCard,
+    ReportHead,
     WindowAccount,
+)
+from steamlens.contracts.request import (
+    AspectTarget,
+    NamedGame,
+    PlayerRequest,
+    ReleaseYearsTarget,
+    StoreFactDef,
+    StoreFactTarget,
+    Subject,
+    TermTarget,
+    Want,
+    WantTarget,
 )
 from steamlens.contracts.reviews import Review
 from steamlens.contracts.sampling import FetchPlan, PlannedWindow, SamplingPolicy
-from steamlens.contracts.sheet import SheetCell
+from steamlens.contracts.sheet import (
+    LibraryGame,
+    Sheet,
+    SheetCell,
+    SheetRow,
+    WantReading,
+    WantTally,
+)
 from steamlens.contracts.steam import (
     GameRef,
     GameSearchHit,
@@ -99,6 +128,15 @@ __all__ = [
     "SamplingPolicyKind",
     "SpanKind",
     "NarrativeOutcome",
+    "RequestIntent",
+    "Firmness",
+    "Stance",
+    "NamedGameRole",
+    "Feeling",
+    "StoreFactSource",
+    "WantStatus",
+    "WantFinding",
+    "MustStanding",
     # provenance
     "Provenance",
     "ClassifierVersions",
@@ -122,8 +160,24 @@ __all__ = [
     "StorefrontTag",
     "StorefrontTagCapture",
     "UncapturedGame",
+    # the chat's structured request
+    "PlayerRequest",
+    "NamedGame",
+    "Want",
+    "Subject",
+    "WantTarget",
+    "StoreFactTarget",
+    "ReleaseYearsTarget",
+    "AspectTarget",
+    "TermTarget",
+    "StoreFactDef",
     # the cross-game sheet
     "SheetCell",
+    "LibraryGame",
+    "WantReading",
+    "SheetRow",
+    "WantTally",
+    "Sheet",
     # sampling
     "SamplingPolicy",
     "PlannedWindow",
@@ -141,6 +195,7 @@ __all__ = [
     # report
     "Report",
     "ReportCard",
+    "ReportHead",
     "WindowAccount",
     "LanguageCount",
     "EpisodeMarker",
