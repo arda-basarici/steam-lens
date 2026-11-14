@@ -19,7 +19,7 @@ from steamlens.contracts import (
     SentimentCounts,
     SentimentGroup,
 )
-from steamlens.core.sheet import MENTION_FLOOR, sentiment_group, sheet_cells
+from steamlens.core.sheet import MENTION_FLOOR, sentiment_group, sheet_cells, term_clusters
 
 
 def _counts(positive: int, negative: int, mixed: int = 0, neutral: int = 0) -> SentimentCounts:
@@ -123,3 +123,21 @@ def test_cells_cover_pinned_aspects_only_in_an_order_that_says_nothing() -> None
     assert (combat.mentions, combat.sample_size) == (45, 602)
     assert combat.positive_share == pytest.approx(41 / 45)
     assert combat.mention_share == pytest.approx(45 / 602)
+
+
+def test_a_term_clusters_on_share_and_on_count_together() -> None:
+    """Real readings for "roguelike" and "souls-like": Hades clusters, Dark
+    Souls III does not (the game that defines a kind is rarely called by it),
+    and two reviews in a 72-review sample are a share above the floor that
+    is still not a cluster."""
+    assert term_clusters(77, 602)
+    assert not term_clusters(8, 549)
+    assert 2 / 72 > 0.02 and not term_clusters(2, 72)
+    assert term_clusters(3, 150) and not term_clusters(3, 151)
+
+
+def test_term_counts_that_cannot_be_a_share_fail_loud() -> None:
+    with pytest.raises(ValueError, match="incoherent"):
+        term_clusters(5, 4)
+    with pytest.raises(ValueError, match="at least one review"):
+        term_clusters(0, 0)

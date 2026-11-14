@@ -3,7 +3,8 @@
 Pure functions from a report's stored aggregates to ``SheetCell`` records. The
 rule is DESIGN's "The sheet": a mention floor below which a game has no
 reading on an aspect, then groups set by where the sentiment share's interval
-starts.
+starts. Beside it sits the one rule for wants the aspects cannot express:
+when a search term counts as clustering in a game's reviews.
 
 The sentiment share is the positive mentions over every review that mentions
 the aspect, with mixed and neutral mentions in the denominator, since a mixed
@@ -48,6 +49,17 @@ SPLIT_HALF_WIDTH: Final = 0.15
 """No clear majority and an interval at most this wide either way: opinion is
 split. Wider than this and the sample cannot say."""
 
+TERM_SHARE_FLOOR: Final = 0.02
+"""A search term clusters in a game when at least this share of the game's
+counted reviews match it. Read against the store's tags on 2026-11-14, 2%
+nominated no untagged game for "roguelike", "metroidvania", "racing" or "city
+builder". It is too low for a word that names a part of many games
+("puzzle"), which no single share separates."""
+
+TERM_MIN_HITS: Final = 3
+"""And at least this many matching reviews, so one or two reviews in a small
+sample do not make a cluster."""
+
 
 def sentiment_group(counts: SentimentCounts, mentions: int) -> SentimentGroup:
     """The group for one game on one aspect, from its stored counts.
@@ -83,6 +95,25 @@ def sentiment_group(counts: SentimentCounts, mentions: int) -> SentimentGroup:
     if (praise.high - praise.low) / 2 <= SPLIT_HALF_WIDTH:
         return SentimentGroup.SPLIT
     return SentimentGroup.UNCLEAR
+
+
+def term_clusters(hits: int, sample_size: int) -> bool:
+    """Whether a search term clusters in a game: ``hits`` of ``sample_size`` reviews match.
+
+    A cluster nominates the game for the want the term stands for. The
+    absence of one says nothing: reviewers of the game that defines a kind
+    rarely use the word for it, and a store feature is rarely stated in a
+    review at all. So a term can put a game forward and can never rule one
+    out.
+
+    >>> term_clusters(77, 602), term_clusters(8, 549), term_clusters(2, 72)
+    (True, False, False)
+    """
+    if sample_size < 1:
+        raise ValueError(f"sample_size is {sample_size} — a share needs at least one review")
+    if not 0 <= hits <= sample_size:
+        raise ValueError(f"{hits} matching reviews out of {sample_size} is incoherent")
+    return hits >= TERM_MIN_HITS and hits / sample_size >= TERM_SHARE_FLOOR
 
 
 def sheet_cells(aggregates: Iterable[AspectAggregate]) -> tuple[SheetCell, ...]:
