@@ -7,7 +7,7 @@ the fixed vision-phase snapshot (2026-07-07) and is not updated as the design mo
 How it's built → ARCHITECTURE; the pitch → README. Executed experiments appear here
 as conclusions with citations to their runs of record.
 
-*Living snapshot · last updated 2026-11-14 · the project closed complete at
+*Living snapshot · last updated 2026-11-15 · the project closed complete at
 deployment (M3), live at steamlens.ardabasarici.dev; the chat milestone (M4) is
 reopened as a recommender tab, designed and not yet built (the recommender chat
 section).*
@@ -2426,9 +2426,9 @@ answer. Two things never give, whatever the count: a want the player stressed,
 and the kind of game. A game that is not a racing game is never offered for a
 racing request.
 
-For each want and each candidate game the chat holds one of three statuses:
-matches, fails, or cannot tell. A game that fails a must is never suggested,
-however well it fits the rest. A game that misses a softer want may be offered
+For each want and each library game the chat holds one of three statuses:
+matches, fails, or cannot tell. A game that fails a must is never suggested
+as a fit, however well it fits the rest. A game that misses a softer want may be offered
 as a near miss with every mismatch named. How far to reach is the model's
 judgment, weighed against how many wants were stated, and it should not reach
 far: a game that misses most of what was asked is "nothing fits". A fixed
@@ -2437,6 +2437,29 @@ far off. When nothing fits, the chat says so, never substitutes, never claims
 no such game exists, says the library is a hand-picked set, and links the
 report flow; it may ask about a neighbouring kind of game only if the player
 has not ruled substitutes out.
+
+**Code reads the evidence and removes no game on it.** *Ruled 2026-11-15.*
+The first design had code drop every game that failed a must before the model
+saw the sheet. That makes the tab a filter with a model writing its
+sentences, and the readings it would filter on are not certain enough to act
+alone: the store does not list Dark Souls III as an RPG, and a cluster of
+"timer" can be reviewers writing that a game has none. So the sheet holds
+every library game with its reading on every want, grouped by whether the
+game meets the musts, is "cannot tell" on one, or conflicts with one, and the
+judge picks with the conflicts in front of it. When the judge offers a game
+that conflicts with a must, the check objects once and states the reading.
+The pick stands only if the reply cites reviews of that game that speak to
+the want, and the game is then offered with the conflict named, never as a
+fit. A justification in the model's own words does not count, because a model
+asked to justify a pick always can. A pick with no review to cite cannot be
+made, which is how a farming game stays out of a racing request. Two rules
+have no exception: only library games are offered, and a game the player said
+they had already played is left off the sheet. The cost is that "a must is
+never relaxed" becomes "a must is never relaxed silently". Code checks that
+the conflict was named and that the cited reviews exist and belong to the
+game. Whether they support the offer is read by hand. The wording of an
+objection and what follows a second failure are settled with the judge and
+check steps.
 
 "Cannot tell" counts for neither side: few mentions of grind is not evidence
 of little grind. A game that is "cannot tell" on a must may still be offered,
@@ -2448,7 +2471,9 @@ counted reviews, "timer" and its variants appear in 133 reviews across 59
 games and "red dress" in none. So when reviewers do write about the thing
 (the phrase appears in about ten or more of the library's games), the reply
 says it comes up in reviews of games here, that none of this game's reviews
-mention it, and that this does not mean the game lacks it. When reviewers do
+mention it, and that this does not mean the game lacks it. When a few of the
+game's own reviews mention it, too few to count as a cluster, the judge has
+those reviews to read. When reviewers do
 not write about it, the reply says reviews do not go into that kind of detail
 and gives no count, since reporting an empty search would present it as a
 check. When no data of any kind exists (how a game runs on one laptop), the
@@ -2474,8 +2499,9 @@ subject of a question), how the player felt about it (liked, disliked or
 unknown) and the parts they liked; the wants; whether substitutes were ruled
 out; and whether the player asked to see quotes or numbers. A want keeps the
 player's own words, its firmness, whether it is wanted or avoided, and exactly
-one target: a store fact from the stored vocabulary, one of the pinned
-aspects, a search term given as the spelling variants of one idea, or nothing.
+one target: a store fact from a curated vocabulary, a range of release years,
+one of the pinned aspects, a search term given as the spelling variants of
+one idea, or nothing.
 It can also be marked as only partly checkable, and as a comparison with a
 named game. Code resolves a named game against the library; the model never
 does. A discussion turn carries a subject in place of wants, with the same
@@ -2483,13 +2509,62 @@ kinds of target and no firmness, since nothing is being matched.
 
 | Target | Wanted or avoided | Matches | Fails | Cannot tell |
 |---|---|---|---|---|
-| store fact | wanted | the fact is present | the fact is absent | no stored facts for the game |
-| store fact | avoided | the fact is absent | the fact is present | no stored facts for the game |
+| store fact every game declares | wanted | the store lists it | the store does not list it | no stored facts for the game |
+| store fact every game declares | avoided | the store does not list it | the store lists it | no stored facts for the game |
+| store fact declared by choice | wanted | the store lists it | never | the store does not list it |
+| store fact declared by choice | avoided | never | the store lists it | the store does not list it |
+| genre | wanted | the store lists it | neither the store nor a player tag has it | players tag it and the store does not list it |
+| genre | avoided | neither the store nor a player tag has it | the store lists it | players tag it and the store does not list it |
+| release years | wanted | released inside the range | released outside it | no stored release date |
 | aspect | wanted | strongly or mostly positive | clearly negative, split | unclear, too few mentions |
 | aspect, partly checkable | wanted | never | clearly negative | everything else |
 | search term | wanted | the term clusters | never | no cluster |
 | search term | avoided | never | the term clusters | no cluster |
 | nothing | either | never | never | always |
+
+An aspect has no avoided form. It says how well a part is received, so "not
+buggy" is a wish that `bugs` read well. An avoided release range reads the
+other way round from a wanted one.
+
+**A store fact is read by what its absence means.** *Ruled 2026-11-15;
+figures from the copy of the serving database taken on the evening of
+2026-11-14 (115 games).* The first status table read every missing store fact
+as a failure. That holds for some facts and not for others, and the library
+shows three kinds.
+
+- *Facts every game declares:* play modes, platforms and early access. All
+  115 games carry a single-player or a multi-player category, so a game
+  without "Online Co-op" has none.
+- *Facts declared by choice:* adjustable difficulty, saving anywhere,
+  controller support and the like. 24 games declare adjustable difficulty,
+  and the 91 that do not include Hades and both Civilization games. Only the
+  presence of such a fact is evidence, the same rule as for a search term.
+- *Genres.* Every game has them, and they are coarse enough to miss. The
+  store does not list Dark Souls III as an RPG, where RPG is the fourth tag
+  on its page, or Cities: Skylines II and Oxygen Not Included as strategy
+  games. Four games carry the RPG tag without the genre, seven the Strategy
+  tag and nine the Simulation tag. Review search does not fill the gap: genre
+  words reach 1.3% of Dark Souls III's reviews and cluster in none of the
+  four RPG cases, and they nominate wrongly besides ("strategy", "tactical"
+  and their variants together cluster in Mass Effect 2 at 2.9%).
+
+So a genre the store does not list is a failure only when no player tag
+names it either. A game that players tag and the store does not list is
+"cannot tell", worded as exactly that, and its reviews are there for the
+judge to read. A tag never makes a match, because the tags mislead too: Mad
+Max is tagged Racing, and Ori and the Blind Forest is tagged RPG in twentieth
+place. The other way round has no fix here: the store lists Rust as an RPG,
+and it reads as a match.
+
+A release date is matched as a range of years with either end open. The year
+is the store's, which moves to the full release when a game leaves early
+access, so Palworld reads as a 2026 game. "Retro" and "old-school" name a
+style and go to a search term.
+
+Of the 57 category ids the library holds, the vocabulary offers the play
+modes and thirteen features. The rest say nothing about the game a player
+would ask for: trading cards, family sharing, cloud saves, sound formats,
+controller brands.
 
 **What kind of game it is comes from the store and from the reviews.** An
 aspect profile says how reviewers feel about parts of a game, which is not what
@@ -2498,7 +2573,8 @@ kind of game it is. Three sources cover the difference:
 - *Store metadata.* The appdetails answer the job already reads carries genres,
   categories (single-player, co-op, controller support), platforms, release date
   and a short description; until now the job kept only the name and header art.
-  These are stored per game and serve the hard filters. Price is left out: it
+  These are stored per game and are what a want about a store fact is read
+  against. Price is left out: it
   changes, varies by region, and adds nothing to review evidence.
 - *The reviews themselves.* The genres are coarse (Hades reads "Action, Indie,
   RPG"). Reviewers supply the finer words. No report narrative of the 53
@@ -2510,13 +2586,15 @@ kind of game it is. Three sources cover the difference:
 - *Community tags.* The store page carries the top twenty tags, each with a
   count. They are finer than genres and noisier: the counts do not separate
   apt tags from inapt ones. Tags are
-  recorded with their capture date and withheld from the chat. Their first job
-  is as an outside reference for how well review search identifies a kind of
-  game. A tag's absence from the top twenty is not a negative label.
+  recorded with their capture date and are never shown to the player or given
+  to the judge. Their first job is as an outside reference for how well
+  review search identifies a kind of game. Their one use inside the pipeline
+  is to withhold a genre failure, as described above. A tag's absence from
+  the top twenty is not a negative label.
 
 **The store's facts are kept per game, beside the reports.** *Storage and the
-capture in the report job built 2026-11-14; the library's existing games are
-not yet backfilled.* The alternative was columns
+capture in the report job built 2026-11-14; every library game held both
+captures by 2026-11-15.* The alternative was columns
 on the report row, the way the header art is kept. It was declined because a
 report is a frozen sample and these facts are revised by the store: Palworld's
 release date reads Jul 9, 2026, the day it left early access, and 534 of its
@@ -2607,8 +2685,8 @@ mentions each is noise.
 database taken that day (107 games, 4,524 game-and-aspect cells), regenerated
 by `probes/sheet_groups_read.py`. The floor, the lines and the width are
 working values held as constants, to be re-read on the development cases and
-never tuned on the reported ones.* The sheet has one row per game that passes
-the hard filters and one cell per pinned aspect. Candidate aspects stay off
+never tuned on the reported ones.* The sheet has one row per library game and
+one cell per pinned aspect. Candidate aspects stay off
 it: they are the uncalibrated stratum, and one concept fragments across many
 strings.
 
@@ -2666,8 +2744,8 @@ survey number and is never shown.
 
 1. *Understand.* A model turns the conversation into the structured request.
    This step is also the scope gate.
-2. *Build the sheet.* Code applies the hard filters and computes the readings,
-   groups and statuses for every remaining game. At library size the sheet
+2. *Build the sheet.* Code computes the readings, groups and statuses for
+   every library game and removes none on evidence. At library size the sheet
    covers all of them, so review search nominates only for wants the aspect
    vocabulary cannot express.
 3. *Judge.* A model reads the sheet and picks: which games fit, which near miss
@@ -2677,9 +2755,9 @@ survey number and is never shown.
    to the game it is used for, and supplies each link. When quotes or numbers
    are shown, code supplies them from those identifiers, so a quote or figure
    cannot be misstated. It rejects an answer that names a game outside the
-   library, drops a want, suggests a game failing a must, makes a comparison
-   without evidence on both games, or carries a quote the spoiler rule
-   forbids.
+   library, drops a want, offers a game that conflicts with a must without
+   reviews cited on that want, makes a comparison without evidence on both
+   games, or carries a quote the spoiler rule forbids.
 
 The check establishes source integrity and constraint compliance. Whether the
 cited evidence supports the sentence built on it is a judgment, and it is
@@ -2817,9 +2895,10 @@ retrieval is judged on results pooled across the competing methods, without
 knowing which method returned each one. Answer support is read by hand on a
 small set first; an automated grader is calibrated only when repeated runs
 justify one, and the labelling judge's calibration does not transfer to that
-task. Four kinds of answer rest on the model's judgment where no code check
+task. Five kinds of answer rest on the model's judgment where no code check
 reaches, and are read by hand for that reason: near misses (was the game
-worth offering), answers to long lists of wants, comparisons with a named game
+worth offering), offers made against a conflict with a must (did the cited
+reviews support it), answers to long lists of wants, comparisons with a named game
 (did the claim come from the reviews of both), and anything about a story
 (did it reveal plot). The test set includes wants about how much, loose
 descriptions of a liked part, and stressed and soft wordings, since those are
@@ -2827,7 +2906,7 @@ where the understand step is most likely to misread. None of this measures
 whether a player would enjoy a game.
 
 **Three stages.** The first is one complete path through the real tab, kept
-unlisted: a request, the hard filters, keyword search, a few suggestions and
+unlisted: a request, the sheet, keyword search, a few suggestions and
 their follow-ups. The second makes it releasable: clarifying questions,
 requirement changes across turns, the measurements above, coverage, storage,
 the notice, and the security pass. The third is the retrieval experiment.
@@ -2869,14 +2948,17 @@ only.
 | Split counts as "fails" for a want on an aspect | yes | the sheet's definition | one mapping | near misses the assessor judges unfair |
 | Term cluster line | 2% share and three matches | `core/sheet.py` | two constants | wrong nominations, or kinds of game going unfound |
 | Only a cluster is evidence, for a wanted and for an avoided term | yes | the sheet's definition | a rule change | answers that offer games plainly outside a stated kind |
-| "Reviewers do write about it" | the phrase appears in about ten of the library's games | not built | one constant | the reply reporting an empty search as a finding, or refusing to report a real one |
+| "Reviewers do write about it" | the phrase appears in ten of the library's games | `core/sheet.py` | one constant | the reply reporting an empty search as a finding, or refusing to report a real one |
+| Which store facts every game declares | play modes, platforms, early access and genres; thirteen features are declared by choice | `core/store_facts.py` | one flag per fact | a feature most games turn out to declare, or a play mode some do not |
+| A player tag withholds a genre failure | the genre's own tag and the tags naming a kind of it | `core/store_facts.py` | the tag list per genre | mistagged games crowding the "cannot tell" group, or tagged games still read as failures |
+| No game removed on evidence | the sheet holds every library game; a conflict with a must is answered with cited reviews | `core/sheet.py`; the objection is not built (the check) | a filter over the statuses | offers against a conflict that the hand reading finds unsupported, or a sheet too long for the judge to read |
 | Default firmness | the kind of game is a must, a quality is a want | not built (the understand step) | a prompt rule; re-run the understand measurement | near misses on the kind of game, or good games withheld |
 | Questions before answering | one, or up to three for a request with nothing in it | not built (the judge step) | a prompt rule | players leaving before a suggestion, or suggestions with nothing behind them |
 | Quotes and numbers in the chat | only when the player asks | not built (the answer step) | an interface addition | hand reading that finds claims the player could not have checked |
 | Search matching | literal phrases, no stemming, variants listed | `store/review_search.py`, the schema's tokenizer | drop and refill the index | wants missed for spelling |
 | Index kept by a trigger | yes | schema step 10 | drop the trigger, add a refresh | any job failure traced to the index write |
 | Store facts captured after the publish, failing soft | yes | `serve/storefront_capture.py` | one call site | library games left without facts |
-| Tags withheld from the chat | yes | no code reads them for the chat | a design decision at the retrieval report | kinds of game the reviews do not name |
+| Tags kept from the judge and the player | yes; code reads them only to withhold a genre failure | `core/store_facts.py` | a design decision at the retrieval report | kinds of game the reviews do not name |
 | Retrieval method | keyword only | the two search reads | the vector stage | the retrieval experiment's result |
 
 Not on this list, because they are not switches: the library's size, the
