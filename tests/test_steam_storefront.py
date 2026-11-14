@@ -272,9 +272,9 @@ def test_storefront_metadata_is_one_appdetails_read_stamped_with_the_clock() -> 
     assert dict(url.params) == {"appids": str(_HADES), "cc": "us", "l": "english"}
 
 
-def test_storefront_tags_reads_the_games_own_us_page_in_english() -> None:
-    """The country is pinned: left to the caller's address, a game not sold
-    in that country answers an error page with no tags."""
+def test_storefront_tags_reads_the_default_page_first_and_stops_there() -> None:
+    """No country is sent: the US store puts mature-content games behind an
+    age check, and the store's default page for the caller does not."""
     page = f"<html><script>{_tag_call(_DOOM_ETERNAL)} [] );</script></html>"
     h = Harness([httpx.Response(200, text=page)])
     capture = h.client.storefront_tags(_DOOM_ETERNAL)
@@ -282,14 +282,47 @@ def test_storefront_tags_reads_the_games_own_us_page_in_english() -> None:
     assert capture.captured_at == _AT
     url = h.requests[0].url
     assert (url.host, url.path) == ("store.steampowered.com", f"/app/{_DOOM_ETERNAL}/")
-    assert dict(url.params) == {"cc": "us", "l": "english"}
+    assert dict(url.params) == {"l": "english"}
+    assert len(h.requests) == 1
+
+
+def test_a_page_without_tags_falls_back_to_the_us_page_once() -> None:
+    """A game not sold in the caller's country answers an error page with no
+    tag block; its US page is then asked for, and that answer stands."""
+    site_error = httpx.Response(200, text="<html><title>Site Error</title></html>")
+    us_page = httpx.Response(200, text=f"<script>{_tag_call(_HADES)} [] );</script>")
+    h = Harness([site_error, us_page])
+    capture = h.client.storefront_tags(_HADES)
+    assert capture is not None and len(capture.tags) == 20
+    assert [dict(request.url.params) for request in h.requests] == [
+        {"l": "english"},
+        {"cc": "us", "l": "english"},
+    ]
+
+
+def test_the_us_age_check_is_not_worked_around() -> None:
+    """Unavailable here and behind the age check there: the redirect is not
+    followed, no cookie is sent, and the read fails loud for the capture to
+    absorb."""
+    site_error = httpx.Response(200, text="<html><title>Site Error</title></html>")
+    age_check = httpx.Response(
+        302, headers={"location": "https://store.steampowered.com/agecheck/app/782330/"}
+    )
+    h = Harness([site_error, age_check])
+    with pytest.raises(SteamResponseError, match="HTTP 302"):
+        h.client.storefront_tags(_DOOM_ETERNAL)
+    assert len(h.requests) == 2
+    assert all("cookie" not in request.headers for request in h.requests)
 
 
 def test_a_gate_page_answers_none_and_a_redirect_fails_loud() -> None:
-    """A 200 that is not the game's page read nothing; a redirect did not
-    answer for the game at all, and following it would read another page."""
-    gated = Harness([httpx.Response(200, text="<html>agecheck</html>")])
+    """A 200 that is not the game's page read nothing, from either country; a
+    redirect did not answer for the game at all, and following it would read
+    another page."""
+    no_tags = httpx.Response(200, text="<html>no tag block here</html>")
+    gated = Harness([no_tags, no_tags])
     assert gated.client.storefront_tags(_DOOM_ETERNAL) is None
+    assert len(gated.requests) == 2
 
     moved = Harness([httpx.Response(302, headers={"location": "https://store.steampowered.com/"})])
     with pytest.raises(SteamResponseError, match="HTTP 302"):

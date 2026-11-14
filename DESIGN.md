@@ -2567,9 +2567,24 @@ has 18. And the store page depends on the country the store assigns the
 caller. The host has a German address, and one game of the 115 is not sold in
 the German store: its page there is a "Site Error" reading "This item is
 currently unavailable in your region", with no tag block, while its US page is
-whole. The page read now sends `cc=us`, as the appdetails read always did.
-Before that, the capture recorded the page as nothing read, which is the
-behaviour the "no tag block" answer exists for.
+whole. The capture recorded that page as nothing read, which is the behaviour
+the "no tag block" answer exists for.
+
+The first fix sent `cc=us` on every page read, as the appdetails read does,
+and it was wrong. The country also decides the age check: the US store
+redirects a mature-content game to one, while the store's default page for the
+host's address, and for a second address, is the game's own page with its
+tags. While that fix was live, eight newly analysed games kept their store
+facts and lost their tags. Two mature-content games were then read directly
+(DOOM Eternal, and PAYDAY 2 from the eight): with `cc=us` both redirect to
+`/agecheck/`, and without it both answer whole. The fix had been verified on
+the one game it was written for and not on a mature-content game. The page read now asks for the default page first and
+for the US page only when the first carries no tag block. The age check is
+never worked around: no age cookie is sent and the redirect is not followed,
+so a game that is both unavailable in the host's country and behind the US age
+check keeps no tag capture. The soft failure and the backfill did what they
+were built for: no report was lost, and the eight games are refilled by one
+backfill run.
 
 **Across games, measured numbers are read in groups.** Every number in the
 library was certified inside one report, and the samples differ (158 to 837

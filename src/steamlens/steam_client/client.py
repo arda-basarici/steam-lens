@@ -202,28 +202,45 @@ class SteamClient:
         return parse_storefront_metadata(details, app_id, self._now())
 
     def storefront_tags(self, app_id: int) -> StorefrontTagCapture | None:
-        """The community tag block of ``app_id``'s store page — one paced page read.
+        """The community tag block of ``app_id``'s store page — one paced page read, or two.
 
         The only page-shaped read the door makes: the tags are not in any API
-        answer. ``None`` when the page came back without a tag block (an age
-        gate or a regional notice in place of the game's page). A page that
-        redirects raises ``SteamResponseError``, as the transport's text read
-        defines. Probed on thirteen library games from one address
-        (``probes/store_metadata_probe.py``, 2026-11-14): every page answered
-        with twenty tags and no gate, mature-content games included. A caller
-        should still treat this read as one that may fail.
+        answer. The page is asked for first with no country, so the store
+        serves the one it assigns the caller's address, and only if that page
+        carries no tag block is the US page asked for. ``None`` when neither
+        carries one. A page that redirects raises ``SteamResponseError``, as
+        the transport's text read defines; a caller should treat this read as
+        one that may fail.
 
-        ``cc=us`` pins the store the page is read from, as the appdetails
-        read does. Without it the store picks the country from the caller's
-        address, and a game not sold in that country answers a "Site Error"
-        page with no tag block: from a German address Commandos: Behind Enemy
-        Lines read "This item is currently unavailable in your region" while
-        its US page carried 18 tags (2026-11-14).
+        The country decides two things, and they pull in opposite directions
+        (all read 2026-11-14 and 2026-11-15):
+
+        - *Availability.* A game not sold in the caller's country answers a
+          "Site Error" page with no tag block. From a German address
+          Commandos: Behind Enemy Lines read "This item is currently
+          unavailable in your region" while its US page carried 18 tags.
+          That is what the US fallback is for.
+        - *The age check.* The US store redirects a mature-content game to an
+          age check (DOOM Eternal and PAYDAY 2 both answered a 302 to
+          ``/agecheck/`` with ``cc=us``), while the default page for the same
+          games, from two addresses, was the game's own page with its tags.
+          Sending ``cc=us`` on every read was tried for one day and lost the
+          tags of every mature-content game published in it.
+
+        So the default page comes first. The age check is never worked
+        around: no age cookie is sent and the redirect is not followed. A
+        game that is both unavailable in the caller's country and behind the
+        US age check keeps no tag capture.
         """
-        html = self._transport.get_text(
-            _STORE_PAGE_URL.format(app_id=app_id), {"cc": "us", "l": "english"}
+        url = _STORE_PAGE_URL.format(app_id=app_id)
+        capture = parse_storefront_tags(
+            self._transport.get_text(url, {"l": "english"}), app_id, self._now()
         )
-        return parse_storefront_tags(html, app_id, self._now())
+        if capture is not None:
+            return capture
+        return parse_storefront_tags(
+            self._transport.get_text(url, {"cc": "us", "l": "english"}), app_id, self._now()
+        )
 
     def fetch_totals(self, app_id: int, *, language: str = "all") -> QuerySummary | None:
         """Steam's population claim for ``app_id`` — one paced one-review read.
