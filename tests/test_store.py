@@ -14,7 +14,7 @@ import json
 import sqlite3
 from collections.abc import Iterator
 from dataclasses import replace
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -54,6 +54,10 @@ from steamlens.contracts import (
     SpanKind,
     SpendLedger,
     SpendRecord,
+    StorefrontLabel,
+    StorefrontMetadata,
+    StorefrontTag,
+    StorefrontTagCapture,
     TokenUsage,
     UnjournaledTotals,
     WindowAccount,
@@ -1415,3 +1419,162 @@ class TestJobLog:
         store.jobs.start("serve-1", 440, "TF2", at=_NOON)
         job = store.ops.recent_jobs(1)[0]
         assert job.finished_at is None and job.outcome is None
+
+
+# --- the storefront records: each game's store facts, latest capture only ---
+
+_PALWORLD = 1623730
+
+
+def _metadata(
+    *,
+    app_id: int = _PALWORLD,
+    genres: tuple[StorefrontLabel, ...] = (
+        StorefrontLabel(1, "Action"),
+        StorefrontLabel(23, "Indie"),
+        StorefrontLabel(70, "Early Access"),
+    ),
+    categories: tuple[StorefrontLabel, ...] = (
+        StorefrontLabel(2, "Single-player"),
+        StorefrontLabel(57, "DualSense Controller Support"),
+        StorefrontLabel(58, "DualSense Controller Support"),
+        StorefrontLabel(9, "Co-op"),
+    ),
+    release_date_text: str | None = "Jan 19, 2024",
+    release_date: date | None = date(2024, 1, 19),
+    captured_at: datetime = _NOON,
+) -> StorefrontMetadata:
+    return StorefrontMetadata(
+        app_id=app_id,
+        genres=genres,
+        categories=categories,
+        windows=True,
+        mac=False,
+        linux=False,
+        release_date_text=release_date_text,
+        release_date=release_date,
+        coming_soon=False,
+        short_description="Fight, farm, build and work alongside mysterious creatures.",
+        captured_at=captured_at,
+    )
+
+
+def _tags(
+    *names: str, app_id: int = _PALWORLD, captured_at: datetime = _NOON
+) -> StorefrontTagCapture:
+    return StorefrontTagCapture(
+        app_id=app_id,
+        tags=tuple(
+            StorefrontTag(tag_id=1000 + rank, name=name, count=2000 - rank)
+            for rank, name in enumerate(names)
+        ),
+        captured_at=captured_at,
+    )
+
+
+class TestStorefrontRecords:
+    """Store facts per game: whole-capture replacement, order kept, reads validated."""
+
+    def test_metadata_round_trips_whole_and_survives_reopen(self, tmp_path: Path) -> None:
+        """Every field comes back as written, in the store's own order — including
+        two category ids that share one description, which a key on the
+        description would have collapsed."""
+        path = tmp_path / "steamlens.sqlite3"
+        with Store(path) as store:
+            store.storefront.put_metadata(_metadata())
+        with Store(path) as store:
+            assert store.storefront.metadata(_PALWORLD) == _metadata()
+
+    def test_a_game_never_captured_reads_as_none(self, store: Store) -> None:
+        assert store.storefront.metadata(_PALWORLD) is None
+        assert store.storefront.tags(_PALWORLD) is None
+
+    def test_a_second_capture_replaces_the_first_whole(self, store: Store) -> None:
+        """The game leaves early access: the genre row goes, the date moves. No
+        row of the earlier capture may survive beside the new one."""
+        store.storefront.put_metadata(_metadata())
+        released = _metadata(
+            genres=(StorefrontLabel(1, "Action"),),
+            categories=(StorefrontLabel(2, "Single-player"),),
+            release_date_text="Jul 9, 2026",
+            release_date=date(2026, 7, 9),
+            captured_at=_NOON + timedelta(days=30),
+        )
+        store.storefront.put_metadata(released)
+        stored = store.storefront.metadata(_PALWORLD)
+        assert stored == released
+        assert stored is not None and not stored.in_early_access
+
+    def test_a_rejected_capture_leaves_the_earlier_one_intact(self, store: Store) -> None:
+        """Replacement is one transaction: a naive capture time is refused after
+        the old rows were deleted, and the rollback must bring them back."""
+        store.storefront.put_metadata(_metadata())
+        with pytest.raises(ValueError, match="naive"):
+            store.storefront.put_metadata(_metadata(captured_at=datetime(2026, 11, 14)))
+        assert store.storefront.metadata(_PALWORLD) == _metadata()
+
+    def test_a_listing_that_repeats_an_id_is_stored_as_listed(self, store: Store) -> None:
+        """The capture is the store's own listing; refusing it for a repeated id
+        would lose the whole game's facts over the store's quirk."""
+        doubled = _metadata(genres=(StorefrontLabel(1, "Action"), StorefrontLabel(1, "Action")))
+        store.storefront.put_metadata(doubled)
+        assert store.storefront.metadata(_PALWORLD) == doubled
+
+    def test_an_absent_release_date_stays_absent(self, store: Store) -> None:
+        """An unreleased game's text is kept verbatim with no date invented for it."""
+        unreleased = _metadata(release_date_text="Coming soon", release_date=None)
+        store.storefront.put_metadata(unreleased)
+        assert store.storefront.metadata(_PALWORLD) == unreleased
+
+    def test_games_do_not_share_rows(self, store: Store) -> None:
+        store.storefront.put_metadata(_metadata())
+        other = _metadata(app_id=413150, genres=(StorefrontLabel(28, "Simulation"),))
+        store.storefront.put_metadata(other)
+        assert store.storefront.metadata(_PALWORLD) == _metadata()
+        assert store.storefront.metadata(413150) == other
+
+    def test_tags_keep_page_order_and_replace_whole(self, store: Store) -> None:
+        store.storefront.put_tags(_tags("Open World", "Survival", "Creature Collector"))
+        assert store.storefront.tags(_PALWORLD) == _tags(
+            "Open World", "Survival", "Creature Collector"
+        )
+        later = _tags("Survival", captured_at=_NOON + timedelta(days=7))
+        store.storefront.put_tags(later)
+        assert store.storefront.tags(_PALWORLD) == later
+
+    def test_tags_stand_without_metadata(self, store: Store) -> None:
+        """The two records fail independently, so neither may require the other."""
+        store.storefront.put_tags(_tags("Open World"))
+        assert store.storefront.metadata(_PALWORLD) is None
+        assert store.storefront.tags(_PALWORLD) == _tags("Open World")
+
+    def test_an_empty_tag_block_differs_from_no_capture(self, store: Store) -> None:
+        store.storefront.put_tags(_tags())
+        stored = store.storefront.tags(_PALWORLD)
+        assert stored is not None and stored.tags == ()
+
+    def test_a_corrupt_stored_date_fails_naming_the_row(self, tmp_path: Path) -> None:
+        path = tmp_path / "steamlens.sqlite3"
+        with Store(path) as store:
+            store.storefront.put_metadata(_metadata())
+        conn = sqlite3.connect(path)
+        conn.execute("UPDATE storefront_metadata SET release_date = 'Jan 19, 2024'")
+        conn.commit()
+        conn.close()
+        with Store(path) as store, pytest.raises(StoreDataError, match=str(_PALWORLD)):
+            store.storefront.metadata(_PALWORLD)
+
+    def test_a_file_at_the_previous_version_gains_the_tables(self, tmp_path: Path) -> None:
+        """The serving database's path: a file with published data at the version
+        before this step opens, takes the step, and holds a capture."""
+        path = tmp_path / "steamlens.sqlite3"
+        conn = sqlite3.connect(path)
+        for step in MIGRATION_STEPS[:8]:
+            for statement in step:
+                conn.execute(statement)
+        conn.execute("PRAGMA user_version = 8")
+        conn.commit()
+        conn.close()
+        with Store(path) as store:
+            store.storefront.put_metadata(_metadata())
+            assert store.storefront.metadata(_PALWORLD) == _metadata()

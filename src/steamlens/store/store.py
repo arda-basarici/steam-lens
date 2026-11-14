@@ -10,7 +10,8 @@ serving runs' stored sample manifests, ``reports`` the published analyses
 with their aggregate snapshots, ``admissions`` the submit gate's daily
 admission journal, ``jobs`` the job journal (the one settle-by-update
 tenant), ``refusals`` the gate's refusal journal, ``report_views`` the
-report-page view journal, ``ops`` the ops page's
+report-page view journal, ``storefront`` each game's store facts and tag
+block (latest capture only), ``ops`` the ops page's
 read-only aggregates over the journals the others write. One owner, dumb
 tenants:
 pragmas and migrations run once per open instead of once per surface, and
@@ -47,6 +48,7 @@ from steamlens.store.reports import ReportLog
 from steamlens.store.reviews import ReviewStore
 from steamlens.store.samples import SampleManifest
 from steamlens.store.schema import apply_migrations
+from steamlens.store.storefront import StorefrontRecords
 
 
 class Store:
@@ -101,6 +103,7 @@ class Store:
         self.jobs = JobLog(self._conn)
         self.refusals = RefusalLog(self._conn)
         self.report_views = ReportViewLog(self._conn)
+        self.storefront = StorefrontRecords(self._conn)
         self.ops = OpsReads(self._conn)
 
     def close(self) -> None:

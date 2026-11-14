@@ -71,6 +71,13 @@ from steamlens.contracts.steam import (
     ReviewEvent,
     WindowFetchResult,
 )
+from steamlens.contracts.storefront import (
+    EARLY_ACCESS_GENRE_ID,
+    StorefrontLabel,
+    StorefrontMetadata,
+    StorefrontTag,
+    StorefrontTagCapture,
+)
 from steamlens.contracts.telemetry import MetricEvent, Sink, SinkEvent, StageEvent
 
 __all__ = [
@@ -104,6 +111,12 @@ __all__ = [
     "HistogramSnapshot",
     "ReviewEvent",
     "WindowFetchResult",
+    # storefront facts
+    "EARLY_ACCESS_GENRE_ID",
+    "StorefrontLabel",
+    "StorefrontMetadata",
+    "StorefrontTag",
+    "StorefrontTagCapture",
     # sampling
     "SamplingPolicy",
     "PlannedWindow",

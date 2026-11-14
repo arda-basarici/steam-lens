@@ -351,8 +351,74 @@ _STEP_8: tuple[str, ...] = (
     "ALTER TABLE reports ADD COLUMN header_image TEXT",
 )
 
+# Step 9 — what the store says each game is (2026-11-14, the recommender
+# chat's hard filters). Kept per game and not on the report row: these facts
+# describe the game on the day they were read and the store revises them (a
+# release date moves when a game leaves early access), while a report is a
+# frozen sample. One capture per game, replaced whole on refresh; a dated
+# copy of the file is the record of an earlier state.
+#
+# Child rows key on (app_id, position): the store's own order is kept, and a
+# listing is never rejected for repeating an id. Genre and category ids are
+# the filter keys, since two category ids can share one description.
+#
+# The tags sit under their own capture row because they come from a
+# different page and can fail without the metadata failing; a capture row
+# with no tag rows is a page that carried none, which a missing capture row
+# is not. No foreign key ties either parent to `reports`: app_id is not
+# unique there, and a game's facts may be read before its first report lands.
+_STEP_9: tuple[str, ...] = (
+    """
+    CREATE TABLE storefront_metadata (
+        app_id            INTEGER PRIMARY KEY,
+        windows           INTEGER NOT NULL CHECK (windows IN (0, 1)),
+        mac               INTEGER NOT NULL CHECK (mac IN (0, 1)),
+        linux             INTEGER NOT NULL CHECK (linux IN (0, 1)),
+        release_date_text TEXT,
+        release_date      TEXT,
+        coming_soon       INTEGER NOT NULL CHECK (coming_soon IN (0, 1)),
+        short_description TEXT    NOT NULL,
+        captured_at       TEXT    NOT NULL
+    )
+    """,
+    """
+    CREATE TABLE storefront_genres (
+        app_id      INTEGER NOT NULL REFERENCES storefront_metadata (app_id),
+        position    INTEGER NOT NULL,
+        genre_id    INTEGER NOT NULL,
+        description TEXT    NOT NULL,
+        PRIMARY KEY (app_id, position)
+    ) WITHOUT ROWID
+    """,
+    """
+    CREATE TABLE storefront_categories (
+        app_id      INTEGER NOT NULL REFERENCES storefront_metadata (app_id),
+        position    INTEGER NOT NULL,
+        category_id INTEGER NOT NULL,
+        description TEXT    NOT NULL,
+        PRIMARY KEY (app_id, position)
+    ) WITHOUT ROWID
+    """,
+    """
+    CREATE TABLE storefront_tag_captures (
+        app_id      INTEGER PRIMARY KEY,
+        captured_at TEXT    NOT NULL
+    )
+    """,
+    """
+    CREATE TABLE storefront_tags (
+        app_id   INTEGER NOT NULL REFERENCES storefront_tag_captures (app_id),
+        position INTEGER NOT NULL,
+        tag_id   INTEGER NOT NULL,
+        name     TEXT    NOT NULL,
+        count    INTEGER NOT NULL,
+        PRIMARY KEY (app_id, position)
+    ) WITHOUT ROWID
+    """,
+)
+
 MIGRATION_STEPS: tuple[tuple[str, ...], ...] = (
-    _STEP_1, _STEP_2, _STEP_3, _STEP_4, _STEP_5, _STEP_6, _STEP_7, _STEP_8,
+    _STEP_1, _STEP_2, _STEP_3, _STEP_4, _STEP_5, _STEP_6, _STEP_7, _STEP_8, _STEP_9,
 )
 
 SCHEMA_VERSION = len(MIGRATION_STEPS)
