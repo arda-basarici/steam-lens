@@ -105,7 +105,8 @@ from steamlens.llm_client import LlmClient, ProviderEntry
 from steamlens.ontology import load_ontology, load_ontology_version
 from steamlens.serve.config import ServeConfig
 from steamlens.serve.narrative import COMPOSE_STAGE, compose_narrative, compose_route
-from steamlens.steam_client import SteamClient, SteamClientError
+from steamlens.serve.storefront_capture import capture_storefront
+from steamlens.steam_client import SteamClient
 from steamlens.store import Store
 
 # Whole-life window framing for the take-all branch: the start margin only
@@ -125,11 +126,6 @@ _REFUSED_BATCH_LIMIT: Final = 5
 # arrives at seconds scale, so a 100 ms tick is invisible to a viewer and cheap
 # to the CPU.
 _POLL_S: Final = 0.1
-
-# The stage the post-publish store-facts capture narrates under. The live
-# page's checklist does not list it, so its lines reach the run log only: the
-# capture is bookkeeping for the recommender chat, not a step of the report.
-_STOREFRONT_STAGE: Final = "serve.storefront"
 
 
 @dataclass(frozen=True, slots=True)
@@ -348,55 +344,11 @@ class AnalysisRunner:
                 f"reads it instantly",
             )
             if ref.verdict is not IdentityVerdict.NO_DATA:
-                self._capture_storefront(app_id, driver_store, sink)
+                # A game with no store record is not asked: both reads would
+                # fail by construction. Everything else is recorded after the
+                # publish, and the capture's own failures are soft.
+                capture_storefront(self._steam, driver_store, app_id, sink)
             return summary
-
-    def _capture_storefront(self, app_id: int, store: Store, sink: Sink) -> None:
-        """Record what the store says the game is, once its report is published.
-
-        Two paced reads, the store's metadata and the tag block of its page,
-        each kept as the game's latest capture. They run after the publish
-        and can only add to it: Steam trouble on either read is narrated as a
-        warning and the job still completes, since the report is the product
-        and a later capture can fill the gap. Only the door's own failures
-        are absorbed. A game with no store record is not asked at all (the
-        caller skips it): both reads would fail by construction.
-        """
-        captured: list[str] = []
-        try:
-            metadata = self._steam.storefront_metadata(app_id)
-        except SteamClientError as exc:
-            narrate(
-                sink, _STOREFRONT_STAGE, StageKind.WARN,
-                f"store facts not captured, the report is unaffected: {exc}",
-            )
-        else:
-            if metadata is not None:
-                store.storefront.put_metadata(metadata)
-                captured.append(
-                    f"{len(metadata.genres)} genres, {len(metadata.categories)} categories"
-                )
-        try:
-            tags = self._steam.storefront_tags(app_id)
-        except SteamClientError as exc:
-            narrate(
-                sink, _STOREFRONT_STAGE, StageKind.WARN,
-                f"store tags not captured, the report is unaffected: {exc}",
-            )
-        else:
-            if tags is None:
-                narrate(
-                    sink, _STOREFRONT_STAGE, StageKind.WARN,
-                    "store tags not captured: the store page came back without a tag block",
-                )
-            else:
-                store.storefront.put_tags(tags)
-                captured.append(f"{len(tags.tags)} tags")
-        if captured:
-            narrate(
-                sink, _STOREFRONT_STAGE, StageKind.DONE,
-                f"store facts recorded for app {app_id}: {', '.join(captured)}",
-            )
 
     def _config_hash(self) -> str:
         """The decision-relevant serving dial, fingerprinted for provenance."""

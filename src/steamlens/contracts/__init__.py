@@ -77,6 +77,7 @@ from steamlens.contracts.storefront import (
     StorefrontMetadata,
     StorefrontTag,
     StorefrontTagCapture,
+    UncapturedGame,
 )
 from steamlens.contracts.telemetry import MetricEvent, Sink, SinkEvent, StageEvent
 
@@ -117,6 +118,7 @@ __all__ = [
     "StorefrontMetadata",
     "StorefrontTag",
     "StorefrontTagCapture",
+    "UncapturedGame",
     # sampling
     "SamplingPolicy",
     "PlannedWindow",

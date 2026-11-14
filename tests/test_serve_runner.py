@@ -658,10 +658,9 @@ def test_published_job_records_what_the_store_says_the_game_is(tmp_path: Path) -
     assert paths.count("/api/appdetails") == 2, "the resolve read and the capture's own"
     assert paths.count(f"/app/{_APP}/") == 1
     assert paths[-2:] == ["/api/appdetails", f"/app/{_APP}/"], "captured after the publish"
-    assert any(
-        "1 genres, 2 categories, 2 tags" in m
-        for m in _stage_messages(sink, "serve.storefront")
-    )
+    narrated = _stage_messages(sink, "serve.storefront")
+    assert any("1 genres, 2 categories" in m for m in narrated)
+    assert any("2 tags" in m for m in narrated)
 
 
 def test_store_trouble_after_the_publish_never_costs_the_report(tmp_path: Path) -> None:

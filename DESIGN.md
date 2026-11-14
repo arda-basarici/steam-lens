@@ -2437,6 +2437,17 @@ store record is not asked, and a job that publishes no report records nothing.
 A store page without a tag block (a gate in place of the page) is recorded as
 nothing read, never as a game without tags.
 
+Games published before the capture existed are filled by a backfill that runs
+the same capture routine through the same Steam door, as a module inside the
+image (`python -m steamlens.serve.backfill_storefront`). A standalone script
+on the box's system Python, the form the header-art repair took, was declined
+here: it would have carried a second copy of the five-field parse and the tag
+extraction. The backfill reads the library from the published reports when it
+runs, asks each game only for the record it lacks, and can be run again after
+any interruption. It is a second process beside the app with its own request
+pacing, so it yields: it does not start while an analysis job is live and
+stops at the next game if one begins.
+
 What the wire looks like, from thirteen library games read on 2026-11-14
 (`probes/store_metadata_probe.py`, one address): all five fields were present
 on every game and every store page carried exactly twenty tags. Genre ids

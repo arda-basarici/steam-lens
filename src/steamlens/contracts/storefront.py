@@ -121,3 +121,18 @@ class StorefrontTagCapture:
     app_id: int
     tags: tuple[StorefrontTag, ...]
     captured_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class UncapturedGame:
+    """A library game that still lacks one or both storefront captures.
+
+    ``name`` is the game's name on its newest report, for the operator's
+    reading. The two flags say which read is owed, so a game whose metadata
+    landed and whose tags did not is asked for its page only.
+    """
+
+    app_id: int
+    name: str
+    needs_metadata: bool
+    needs_tags: bool

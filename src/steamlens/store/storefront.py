@@ -26,6 +26,7 @@ from steamlens.contracts import (
     StorefrontMetadata,
     StorefrontTag,
     StorefrontTagCapture,
+    UncapturedGame,
 )
 from steamlens.store.convert import parse_utc_isoformat, utc_isoformat
 from steamlens.store.errors import StoreDataError
@@ -166,6 +167,34 @@ class StorefrontRecords:
             captured_at=parse_utc_isoformat(
                 str(row[0]), context=f"storefront_tag_captures[{app_id}]"
             ),
+        )
+
+    def uncaptured_library_games(self) -> tuple[UncapturedGame, ...]:
+        """Every game with a published report that lacks a metadata or a tag capture.
+
+        The library is read from the reports at call time, so a game published
+        a minute ago is included and no list of games is kept anywhere else.
+        Ordered by app id; the name is the one on the game's newest report.
+        """
+        rows = self._conn.execute(
+            "SELECT r.app_id,"
+            " (SELECT game_name FROM reports n WHERE n.app_id = r.app_id"
+            "  ORDER BY n.created_at DESC, n.run_id LIMIT 1),"
+            " m.app_id IS NULL, t.app_id IS NULL"
+            " FROM (SELECT DISTINCT app_id FROM reports) r"
+            " LEFT JOIN storefront_metadata m ON m.app_id = r.app_id"
+            " LEFT JOIN storefront_tag_captures t ON t.app_id = r.app_id"
+            " WHERE m.app_id IS NULL OR t.app_id IS NULL"
+            " ORDER BY r.app_id"
+        ).fetchall()
+        return tuple(
+            UncapturedGame(
+                app_id=int(app_id),
+                name=str(name),
+                needs_metadata=bool(needs_metadata),
+                needs_tags=bool(needs_tags),
+            )
+            for app_id, name, needs_metadata, needs_tags in rows
         )
 
     def _labels(self, table: str, id_column: str, app_id: int) -> tuple[StorefrontLabel, ...]:
