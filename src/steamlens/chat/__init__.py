@@ -9,11 +9,12 @@ code, and neither imports the other to reach it.
 Each step's rules are pure and live in ``core``; what a step does here is the
 reading and the calling. Built so far: the understand step's call and its
 ladder (``chat.understand``), the library read behind the sheet
-(``chat.sheet``) and the review excerpts a reply is written from
-(``chat.evidence``).
+(``chat.sheet``), the pick step's call and its ladder (``chat.pick``) and the
+review excerpts a reply is written from (``chat.evidence``).
 """
 
 from steamlens.chat.evidence import EXCERPTS_PER_READ, aspect_excerpts, term_excerpts
+from steamlens.chat.pick import PICK_STAGE, pick, pick_route
 from steamlens.chat.sheet import load_library, sheet_for, term_hit_counts
 from steamlens.chat.understand import UNDERSTAND_STAGE, understand, understand_route
 
@@ -26,6 +27,10 @@ __all__ = [
     "load_library",
     "sheet_for",
     "term_hit_counts",
+    # the pick step
+    "PICK_STAGE",
+    "pick",
+    "pick_route",
     # the review excerpts
     "EXCERPTS_PER_READ",
     "aspect_excerpts",
