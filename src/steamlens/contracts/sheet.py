@@ -122,8 +122,9 @@ class WantReading:
     A want relative to a named game always reads "cannot tell" and carries
     neither of those. ``on_game`` is what its target shows on this game and
     ``on_named_game`` what it shows on the named one, which is absent when
-    the library has not measured that game. The comparison is made in words
-    by the step that reads reviews of both.
+    the library has not measured that game or the name did not resolve to
+    one. The comparison is made in words by the step that reads reviews of
+    both.
 
     >>> reading = WantReading(
     ...     WantStatus.CANNOT_TELL, WantFinding.RELATIVE_TO_NAMED_GAME,
@@ -148,11 +149,15 @@ class SheetRow:
 
     ``readings`` are in the order of the request's wants, one each.
     ``standing`` sums up the readings on the wants that are musts.
+    ``like_this`` marks a game the player named as the kind of thing they
+    want ("something like Hades"). It stays on the sheet, since a comparison
+    reads it, and it is never offered back to the player.
     """
 
     game: LibraryGame
     readings: tuple[WantReading, ...]
     standing: MustStanding
+    like_this: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -168,8 +173,11 @@ class WantTally:
 class Sheet:
     """The library read against one request.
 
-    ``rows`` hold every library game except the ones the player said they
-    had already played, whose app ids are in ``already_played``. They are
+    ``rows`` hold every library game except two kinds, both left off on the
+    player's say and never on evidence: the ones the player said they had
+    already played, whose app ids are in ``already_played``, and, when the
+    player asked for other games, the ones the chat already offered, in
+    ``earlier_offers`` in the order they were first offered. The rows are
     grouped by standing (meets the musts, open on a must, conflicts with
     one) and ordered by app id inside a group, an order that carries no
     reading. ``tallies`` are in the order of the request's wants and count
@@ -179,3 +187,4 @@ class Sheet:
     rows: tuple[SheetRow, ...]
     tallies: tuple[WantTally, ...]
     already_played: tuple[int, ...]
+    earlier_offers: tuple[int, ...] = ()

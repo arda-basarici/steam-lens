@@ -11,8 +11,13 @@ one want with what was looked at, and ``read_sheet`` does that for every want
 on every library game. The sheet is a reading, not a selection. It removes no
 game on evidence, because a store genre can be wrong and a cluster of "timer"
 can be reviewers writing that there is none; the chat's judge weighs those
-with the reviews in front of it. The one thing left off is a game the player
-said they had already played, which is an instruction and not evidence.
+with the reviews in front of it. Two things are left off, both on the
+player's say and neither on evidence: a game the player said they had
+already played, and, when the player asked for other games, the games the
+chat already offered. A want relative to a named game ("less frantic than
+Hades") gets no verdict at all: it reads "cannot tell" on every game and
+carries what its target shows on the game and on the named one, for the
+step that reads reviews of both.
 
 The sentiment share is the positive mentions over every review that mentions
 the aspect, with mixed and neutral mentions in the denominator, since a mixed
@@ -31,16 +36,20 @@ development cases, never tuned on reported ones.
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import dataclass
 from typing import Final
 
 from steamlens.contracts import (
     AspectAggregate,
     AspectSlot,
     AspectTarget,
+    ChatMessage,
     Firmness,
     LibraryGame,
     MustStanding,
+    NamedGame,
     NamedGameRole,
+    NameMatch,
     PlayerRequest,
     ReleaseYearsTarget,
     SentimentCounts,
@@ -48,6 +57,7 @@ from steamlens.contracts import (
     Sheet,
     SheetCell,
     SheetRow,
+    SideFinding,
     Stance,
     StoreFactTarget,
     TermTarget,
@@ -57,6 +67,7 @@ from steamlens.contracts import (
     WantStatus,
     WantTally,
 )
+from steamlens.core.game_names import referenced_game
 from steamlens.core.intervals import wilson_interval
 from steamlens.core.store_facts import release_years_reading, store_fact, store_fact_reading
 
@@ -252,10 +263,100 @@ def term_reading(
     return WantReading(WantStatus.CANNOT_TELL, finding, hits=hits)
 
 
+@dataclass(frozen=True, slots=True)
+class NamedSide:
+    """The named game's half of a want that is relative to it.
+
+    ``finding`` is the one the want's reading carries on every game: the
+    comparison can be made, or the named game is not in the library, or its
+    name did not resolve. ``side`` is what the want's target shows on the
+    named game, present only in the first case. It is the same for every
+    row of a sheet, so it is read once.
+    """
+
+    finding: WantFinding
+    side: SideFinding | None = None
+
+
+def named_side(
+    want: Want,
+    named_games: Sequence[NamedGame],
+    library: Mapping[int, LibraryGame],
+    term_hits: Mapping[TermTarget, Mapping[int, int]],
+) -> NamedSide:
+    """The named game's half of ``want``, which is relative to one of ``named_games``.
+
+    ``library`` maps app ids to every library game, the already-played ones
+    included: a game the player has played is left off the sheet and can
+    still be compared with.
+
+    Raises ``ValueError`` when the want is not relative, or points at a game
+    the request does not list. The understand step's validation clears such
+    a pointer, so one arriving here is a caller's bug.
+    """
+    if want.compared_to is None:
+        raise ValueError(f"want {want.words!r} is not relative to a named game")
+    named = referenced_game(want.compared_to, named_games)
+    if named is None:
+        raise ValueError(
+            f"want {want.words!r} is compared to {want.compared_to!r}, which names none of "
+            "the request's named games"
+        )
+    if named.app_id is None:
+        missing = named.match is NameMatch.NOT_IN_LIBRARY
+        return NamedSide(
+            WantFinding.NAMED_GAME_NOT_IN_LIBRARY if missing
+            else WantFinding.NAMED_GAME_UNRESOLVED
+        )
+    game = library.get(named.app_id)
+    if game is None:
+        raise ValueError(
+            f"named game {named.words!r} resolved to app {named.app_id}, which is not in "
+            "the library it was resolved against"
+        )
+    return NamedSide(
+        WantFinding.RELATIVE_TO_NAMED_GAME, _side(target_reading(want, game, term_hits))
+    )
+
+
 def want_reading(
-    want: Want, game: LibraryGame, term_hits: Mapping[TermTarget, Mapping[int, int]]
+    want: Want,
+    game: LibraryGame,
+    term_hits: Mapping[TermTarget, Mapping[int, int]],
+    named: NamedSide | None = None,
 ) -> WantReading:
     """One game's status on one want, with what was looked at.
+
+    A want that stands alone is read against its target
+    (``target_reading``). A want relative to a named game gets no verdict:
+    it reads "cannot tell" on every game, whatever its target shows, because
+    "less frantic than Hades" read as "not frantic" would fail every game
+    where the word clusters. Its reading carries what the target shows on
+    this game and, from ``named``, on the named one, without the match
+    counts, which are never set side by side.
+
+    Raises ``ValueError`` for a relative want given no ``named``, and
+    whatever ``target_reading`` raises.
+    """
+    if want.compared_to is None:
+        return target_reading(want, game, term_hits)
+    if named is None:
+        raise ValueError(
+            f"want {want.words!r} is relative to {want.compared_to!r} — its reading needs "
+            "the named game's side"
+        )
+    return WantReading(
+        WantStatus.CANNOT_TELL,
+        named.finding,
+        on_game=_side(target_reading(want, game, term_hits)),
+        on_named_game=named.side,
+    )
+
+
+def target_reading(
+    want: Want, game: LibraryGame, term_hits: Mapping[TermTarget, Mapping[int, int]]
+) -> WantReading:
+    """One game read against a want's target alone, with what was looked at.
 
     ``term_hits`` holds, for each search term in the request, how many of
     each game's counted reviews match it; a game absent from a term's map
@@ -318,32 +419,88 @@ def read_sheet(
     request: PlayerRequest,
     library: Iterable[LibraryGame],
     term_hits: Mapping[TermTarget, Mapping[int, int]],
+    offered: Sequence[int] = (),
 ) -> Sheet:
     """The library read against ``request``: every game, a reading per want.
 
-    Games the player named as already played are left off and listed. Every
-    other library game gets a row, whatever its readings; the rows are
-    grouped by standing on the musts and ordered by app id inside a group,
-    so position carries no reading. The tallies count each want's statuses
-    over the rows.
+    Two kinds of game are left off and listed, both on the player's say.
+    Games the player named as already played, always. And, when the request
+    records that the player asked for other games, the games in ``offered``:
+    the app ids the chat has offered so far in the conversation
+    (``offered_games``). Without that request they stay, so a player who
+    adds a want can be offered a game they were shown before.
+
+    Every other library game gets a row, whatever its readings. A game the
+    player named as "like this" stays and is marked. The rows are grouped by
+    standing on the musts and ordered by app id inside a group, so position
+    carries no reading. The tallies count each want's statuses over the
+    rows.
     """
+    games = {game.app_id: game for game in library}
     played = {
         named.app_id
         for named in request.named_games
         if named.role is NamedGameRole.NOT_THIS and named.app_id is not None
     }
+    earlier = tuple(
+        app_id for app_id in dict.fromkeys(offered)
+        if request.other_games and app_id in games and app_id not in played
+    )
+    liked = {
+        named.app_id
+        for named in request.named_games
+        if named.role is NamedGameRole.LIKE_THIS and named.app_id is not None
+    }
+    named_sides = tuple(
+        named_side(want, request.named_games, games, term_hits)
+        if want.compared_to is not None else None
+        for want in request.wants
+    )
     rows: list[SheetRow] = []
-    for game in library:
-        if game.app_id in played:
+    for game in games.values():
+        if game.app_id in played or game.app_id in earlier:
             continue
-        readings = tuple(want_reading(want, game, term_hits) for want in request.wants)
-        rows.append(SheetRow(game, readings, must_standing(request.wants, readings)))
+        readings = tuple(
+            want_reading(want, game, term_hits, named)
+            for want, named in zip(request.wants, named_sides, strict=True)
+        )
+        rows.append(
+            SheetRow(
+                game, readings, must_standing(request.wants, readings),
+                like_this=game.app_id in liked,
+            )
+        )
     rows.sort(key=lambda row: (_STANDING_ORDER.index(row.standing), row.game.app_id))
     tallies = tuple(
         _tally([row.readings[index].status for row in rows])
         for index in range(len(request.wants))
     )
-    return Sheet(rows=tuple(rows), tallies=tallies, already_played=tuple(sorted(played)))
+    return Sheet(
+        rows=tuple(rows), tallies=tallies, already_played=tuple(sorted(played)),
+        earlier_offers=earlier,
+    )
+
+
+def offered_games(conversation: Iterable[ChatMessage]) -> tuple[int, ...]:
+    """The app ids the chat has offered so far, each once, in the order first offered.
+
+    >>> from steamlens.contracts import ChatRole
+    >>> offered_games([
+    ...     ChatMessage(ChatRole.PLAYER, "a farming game"),
+    ...     ChatMessage(ChatRole.CHAT, "Two fit.", offered=(413150, 599140)),
+    ...     ChatMessage(ChatRole.PLAYER, "anything else?"),
+    ...     ChatMessage(ChatRole.CHAT, "One more, beside the first.", offered=(1, 413150)),
+    ... ])
+    (413150, 599140, 1)
+    """
+    return tuple(dict.fromkeys(
+        app_id for message in conversation for app_id in message.offered
+    ))
+
+
+def _side(reading: WantReading) -> SideFinding:
+    """A target's reading as one side of a comparison: the finding and group, no count."""
+    return SideFinding(reading.finding, reading.group)
 
 
 def _tally(statuses: Sequence[WantStatus]) -> WantTally:

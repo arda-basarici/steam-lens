@@ -14,6 +14,8 @@ feel.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from steamlens.contracts import LibraryGame, PlayerRequest, Sheet, TermTarget
 from steamlens.core.sheet import read_sheet, sheet_cells
 from steamlens.store import Store
@@ -53,6 +55,11 @@ def term_hit_counts(store: Store, request: PlayerRequest) -> dict[TermTarget, di
     return {term: store.review_search.game_hit_counts(term.phrases) for term in terms}
 
 
-def sheet_for(store: Store, request: PlayerRequest) -> Sheet:
-    """The stored library read against ``request``."""
-    return read_sheet(request, load_library(store), term_hit_counts(store, request))
+def sheet_for(store: Store, request: PlayerRequest, offered: Sequence[int] = ()) -> Sheet:
+    """The stored library read against ``request``.
+
+    ``offered`` are the app ids the chat has offered so far in the
+    conversation (``core.sheet.offered_games``); they are left off only when
+    the request records that the player asked for other games.
+    """
+    return read_sheet(request, load_library(store), term_hit_counts(store, request), offered)

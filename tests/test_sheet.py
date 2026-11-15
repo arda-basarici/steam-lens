@@ -36,6 +36,7 @@ from steamlens.contracts import (
     SentimentCounts,
     SentimentGroup,
     SheetCell,
+    SideFinding,
     Stance,
     StoreFactTarget,
     StorefrontLabel,
@@ -418,3 +419,133 @@ def test_a_request_with_no_wants_lists_the_whole_library_as_meeting_them() -> No
     assert [row.game.app_id for row in sheet.rows] == [_STARDEW, _HADES]
     assert all(row.standing is MustStanding.MEETS and row.readings == () for row in sheet.rows)
     assert sheet.tallies == ()
+
+
+# --- a want relative to a named game ---------------------------------------------
+
+_FRANTIC = TermTarget(phrases=("frantic", "hectic"))
+
+
+def _less_frantic_than(named: NamedGame) -> PlayerRequest:
+    """ "Something less frantic than <a game>", as a must."""
+    return PlayerRequest(
+        intent=RequestIntent.RECOMMEND,
+        named_games=(named,),
+        wants=(
+            Want(
+                words="less frantic", firmness=Firmness.MUST, stance=Stance.AVOIDS,
+                target=_FRANTIC, compared_to=named.words,
+            ),
+        ),
+    )
+
+
+def test_a_want_relative_to_a_named_game_gets_no_verdict_from_code() -> None:
+    """ "Frantic" clusters in Portal 2's reviews here. Read alone, the avoided
+    term would fail it; relative to Hades it fails nothing, since the player
+    asked for less than Hades and not for none. Every game is open on the
+    must, the named game included, and each side carries its finding with no
+    match count to set beside the other."""
+    hades = NamedGame("hades", _HADES, NameMatch.EXACT, NamedGameRole.LIKE_THIS, Feeling.LIKED)
+    hits = {_FRANTIC: {_PORTAL: 60, _HADES: 3}}
+    sheet = read_sheet(
+        _less_frantic_than(hades), [_game(_HADES), _game(_STARDEW), _game(_PORTAL)], hits
+    )
+
+    assert {row.standing for row in sheet.rows} == {MustStanding.OPEN}
+    readings = {row.game.app_id: row.readings[0] for row in sheet.rows}
+    assert {reading.finding for reading in readings.values()} == {
+        WantFinding.RELATIVE_TO_NAMED_GAME
+    }
+    assert all(reading.hits is None for reading in readings.values())
+    assert readings[_PORTAL].on_game == SideFinding(WantFinding.TERM_CLUSTERS)
+    assert readings[_STARDEW].on_game == SideFinding(WantFinding.NOT_WRITTEN_ABOUT)
+    assert {reading.on_named_game for reading in readings.values()} == {
+        SideFinding(WantFinding.TERM_BELOW_CLUSTER)
+    }
+
+
+def test_a_comparison_with_no_game_to_read_says_which_way_it_is_missing() -> None:
+    """A game the library has not measured and a name that did not resolve
+    are worded differently, so each has its finding. The game's own side is
+    still read, and nothing stands on the other."""
+    unmeasured = NamedGame(
+        "balatro", None, NameMatch.NOT_IN_LIBRARY, NamedGameRole.LIKE_THIS, Feeling.LIKED
+    )
+    ambiguous = NamedGame(
+        "dark souls", None, NameMatch.SEVERAL, NamedGameRole.LIKE_THIS, Feeling.LIKED,
+        candidates=(10, 11),
+    )
+    hits = {_FRANTIC: {_PORTAL: 60}}
+    for named, finding in (
+        (unmeasured, WantFinding.NAMED_GAME_NOT_IN_LIBRARY),
+        (ambiguous, WantFinding.NAMED_GAME_UNRESOLVED),
+    ):
+        sheet = read_sheet(_less_frantic_than(named), [_game(_PORTAL)], hits)
+        reading = sheet.rows[0].readings[0]
+        assert (reading.status, reading.finding) == (WantStatus.CANNOT_TELL, finding)
+        assert reading.on_game == SideFinding(WantFinding.TERM_CLUSTERS)
+        assert reading.on_named_game is None
+
+
+def test_a_played_game_can_still_be_compared_with() -> None:
+    """ "Already played Hades, something less frantic": Hades is left off
+    the sheet and its reviews are still the other side of the comparison."""
+    hades = NamedGame("hades", _HADES, NameMatch.EXACT, NamedGameRole.NOT_THIS, Feeling.LIKED)
+    sheet = read_sheet(
+        _less_frantic_than(hades), [_game(_HADES), _game(_PORTAL)], {_FRANTIC: {_HADES: 40}}
+    )
+    assert [row.game.app_id for row in sheet.rows] == [_PORTAL]
+    assert sheet.rows[0].readings[0].on_named_game == SideFinding(WantFinding.TERM_CLUSTERS)
+
+
+def test_a_relative_want_without_its_named_game_fails_loud() -> None:
+    """Validation clears a pointer the request cannot place, so one arriving
+    here is a caller's bug, and so is reading a relative want on its own."""
+    hades = NamedGame("hades", _HADES, NameMatch.EXACT, NamedGameRole.LIKE_THIS, Feeling.LIKED)
+    request = _less_frantic_than(hades)
+    with pytest.raises(ValueError, match="needs the named game's side"):
+        want_reading(request.wants[0], _game(_PORTAL), {_FRANTIC: {}})
+    orphan = PlayerRequest(intent=RequestIntent.RECOMMEND, wants=request.wants)
+    with pytest.raises(ValueError, match="names none of the request's named games"):
+        read_sheet(orphan, [_game(_PORTAL)], {_FRANTIC: {}})
+
+
+# --- left off on the player's say, and the like-this mark --------------------------
+
+
+def test_earlier_offers_are_left_off_only_when_the_player_asked_for_other_games() -> None:
+    """ "Anything else?" leaves off what the chat already offered, in the
+    order it offered them. A player who adds a want instead may be shown a
+    game again. An offered game the player has since played is listed once,
+    as played."""
+    library = [_game(_HADES), _game(_STARDEW), _game(_PORTAL)]
+    offered = (_PORTAL, _HADES, _PORTAL)
+    played = NamedGame(
+        "hades", _HADES, NameMatch.EXACT, NamedGameRole.NOT_THIS, Feeling.UNKNOWN
+    )
+
+    kept = read_sheet(PlayerRequest(intent=RequestIntent.RECOMMEND), library, {}, offered)
+    assert len(kept.rows) == 3 and kept.earlier_offers == ()
+
+    asked = PlayerRequest(intent=RequestIntent.RECOMMEND, other_games=True)
+    left_off = read_sheet(asked, library, {}, offered)
+    assert [row.game.app_id for row in left_off.rows] == [_STARDEW]
+    assert left_off.earlier_offers == (_PORTAL, _HADES)
+
+    both = PlayerRequest(
+        intent=RequestIntent.RECOMMEND, named_games=(played,), other_games=True
+    )
+    sheet = read_sheet(both, library, {}, offered)
+    assert (sheet.already_played, sheet.earlier_offers) == ((_HADES,), (_PORTAL,))
+
+
+def test_a_game_named_as_like_this_stays_on_the_sheet_and_is_marked() -> None:
+    """It is read like any other game, since a comparison needs it. The mark
+    is what keeps it from being offered back."""
+    hades = NamedGame("hades", _HADES, NameMatch.EXACT, NamedGameRole.LIKE_THIS, Feeling.LIKED)
+    request = PlayerRequest(intent=RequestIntent.RECOMMEND, named_games=(hades,))
+    sheet = read_sheet(request, [_game(_HADES), _game(_STARDEW)], {})
+    assert {row.game.app_id: row.like_this for row in sheet.rows} == {
+        _HADES: True, _STARDEW: False,
+    }

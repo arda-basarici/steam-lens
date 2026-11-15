@@ -277,9 +277,11 @@ class WantFinding(StrEnum):
 
     Wants relative to a named game ("less frantic than Hades") get no
     verdict from code, whatever their target: ``RELATIVE_TO_NAMED_GAME``,
-    with what the target shows on each of the two games carried beside it,
-    and ``NAMED_GAME_NOT_IN_LIBRARY`` when the library has not measured the
-    named game, so there is nothing to compare with.
+    with what the target shows on each of the two games carried beside it;
+    ``NAMED_GAME_NOT_IN_LIBRARY`` when the library has not measured the
+    named game, so there is nothing to compare with; and
+    ``NAMED_GAME_UNRESOLVED`` when the name fits several library titles or
+    could not be tied to a game, so which game to compare with is not known.
 
     ``NO_DATA`` is a want that maps to no stored field at all.
     """
@@ -300,6 +302,7 @@ class WantFinding(StrEnum):
     NOT_WRITTEN_ABOUT = "not-written-about"
     RELATIVE_TO_NAMED_GAME = "relative-to-named-game"
     NAMED_GAME_NOT_IN_LIBRARY = "named-game-not-in-library"
+    NAMED_GAME_UNRESOLVED = "named-game-unresolved"
     NO_DATA = "no-data"
 
 
