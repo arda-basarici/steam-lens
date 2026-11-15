@@ -63,6 +63,12 @@ class StoreFactDef:
     timed input" would ask for games that need timed button presses, and the
     wish that gets read that way ("no timers") is about something else, so
     an avoided want on such a fact is a faulty target.
+
+    ``search_words`` are the phrases that find reviews about the fact's
+    subject, written once here so the same words run every time and each
+    list can be read against the store's own listing. A match says a review
+    is about the subject and not which way it points ("no co-op, sadly"),
+    so matches are read and never counted.
     """
 
     key: str
@@ -73,6 +79,7 @@ class StoreFactDef:
     player_tags: tuple[str, ...] = ()
     note: str = ""
     avoidable: bool = True
+    search_words: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

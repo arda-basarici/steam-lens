@@ -27,6 +27,18 @@ family sharing, cloud saves, sound formats, the controller brands. Early
 access carries no tag, because the "Early Access" tag outlives the status
 (10 tagged games, 4 in early access). Changing what the chat can match
 against is an edit to ``STORE_FACTS`` and nothing else.
+
+Each fact also carries the search words that find reviews about its subject.
+The store's answer can be wrong or silent, so a game offered against it, or
+asked about, is read in its reviews, and the words that fetch them are
+written here once instead of by a model on each call: the same words run
+every time and each list was read against the store's listing
+(``probes/store_fact_words_probe.py``). The lists are short and literal,
+since the index has no stemming. A word that also means something else was
+left out when the reviews it found were about the other thing: "races" finds
+a role-playing game's playable races, "simulator" a joke title, "versus" a
+game's name. A match says a review is about the subject and not which way it
+points, so matches are read and never counted.
 """
 
 from __future__ import annotations
@@ -48,90 +60,135 @@ from steamlens.contracts import (
 )
 
 
-def _genre(key: str, label: str, genre_id: int, *player_tags: str) -> StoreFactDef:
+def _genre(
+    key: str, label: str, genre_id: int, *player_tags: str, words: tuple[str, ...]
+) -> StoreFactDef:
     return StoreFactDef(
         key=key, label=label, source=StoreFactSource.GENRE, complete=True,
-        ids=(genre_id,), player_tags=player_tags,
+        ids=(genre_id,), player_tags=player_tags, search_words=words,
     )
 
 
 def _category(
-    key: str, label: str, category_id: int, *, complete: bool, note: str = "",
-    avoidable: bool = True,
+    key: str, label: str, category_id: int, *, complete: bool, words: tuple[str, ...],
+    note: str = "", avoidable: bool = True,
 ) -> StoreFactDef:
     return StoreFactDef(
         key=key, label=label, source=StoreFactSource.CATEGORY, complete=complete,
-        ids=(category_id,), note=note, avoidable=avoidable,
+        ids=(category_id,), note=note, avoidable=avoidable, search_words=words,
     )
 
 
-def _platform(key: str, label: str, source: StoreFactSource) -> StoreFactDef:
-    return StoreFactDef(key=key, label=label, source=source, complete=True)
+def _platform(
+    key: str, label: str, source: StoreFactSource, *, words: tuple[str, ...]
+) -> StoreFactDef:
+    return StoreFactDef(key=key, label=label, source=source, complete=True, search_words=words)
 
+
+# Search words several facts share, since reviewers do not tell them apart.
+_LOCAL_PLAY: Final = ("split screen", "splitscreen", "couch co-op", "couch coop")
+_CONTROLLER: Final = ("controller", "gamepad")
+_MMO: Final = ("mmo", "mmorpg", "massively multiplayer")
+_LAN: Final = ("lan", "local network")
 
 STORE_FACTS: Final[tuple[StoreFactDef, ...]] = (
     # Genres, each with the community tags that name the genre or a kind of it.
     _genre("action", "Action", 1,
            "Action", "Action-Adventure", "Action RPG", "Action Roguelike", "Action RTS",
-           "Character Action Game"),
+           "Character Action Game",
+           words=("action game", "action games", "action packed", "fast paced action")),
     _genre("adventure", "Adventure", 25,
-           "Adventure", "Action-Adventure", "Choose Your Own Adventure"),
+           "Adventure", "Action-Adventure", "Choose Your Own Adventure",
+           words=("adventure game", "adventure games", "action adventure", "point and click")),
     _genre("rpg", "RPG", 3,
            "RPG", "Action RPG", "CRPG", "JRPG", "MMORPG", "Party-Based RPG", "Strategy RPG",
-           "Tactical RPG"),
+           "Tactical RPG",
+           words=("rpg", "rpgs", "role playing", "roleplaying", "jrpg", "crpg")),
     _genre("strategy", "Strategy", 2,
            "Strategy", "4X", "Grand Strategy", "RTS", "Action RTS", "Real Time Tactics",
-           "Strategy RPG", "Turn-Based Strategy", "Turn-Based Tactics"),
+           "Strategy RPG", "Turn-Based Strategy", "Turn-Based Tactics",
+           words=("strategy game", "strategy games", "rts", "4x", "grand strategy",
+                  "turn based strategy")),
     _genre("simulation", "Simulation", 28,
            "Simulation", "Automobile Sim", "Colony Sim", "Farming Sim", "Life Sim",
-           "Space Sim"),
-    _genre("casual", "Casual", 4, "Casual"),
-    _genre("sports", "Sports", 18, "Sports"),
-    _genre("racing", "Racing", 9, "Racing", "Combat Racing"),
-    _genre("indie", "Indie", 23, "Indie"),
+           "Space Sim",
+           words=("simulation", "sim", "sim game", "sim games")),
+    _genre("casual", "Casual", 4, "Casual", words=("casual",)),
+    _genre("sports", "Sports", 18, "Sports", words=("sports", "sport")),
+    _genre("racing", "Racing", 9, "Racing", "Combat Racing",
+           words=("racing", "racer")),
+    _genre("indie", "Indie", 23, "Indie", words=("indie",)),
     _genre("massively-multiplayer", "Massively Multiplayer", 29,
-           "Massively Multiplayer", "MMORPG"),
-    _genre("free-to-play", "Free To Play", 37, "Free to Play"),
-    _genre("early-access", "Early Access", EARLY_ACCESS_GENRE_ID),
+           "Massively Multiplayer", "MMORPG", words=_MMO),
+    _genre("free-to-play", "Free To Play", 37, "Free to Play",
+           words=("free to play", "f2p", "free game")),
+    _genre("early-access", "Early Access", EARLY_ACCESS_GENRE_ID, words=("early access",)),
     # Play modes: every game declares them.
-    _category("single-player", "Single-player", 2, complete=True),
-    _category("multi-player", "Multi-player", 1, complete=True),
-    _category("co-op", "Co-op", 9, complete=True),
-    _category("online-co-op", "Online Co-op", 38, complete=True),
-    _category("lan-co-op", "LAN Co-op", 48, complete=True),
-    _category("split-screen", "Shared/Split Screen", 24, complete=True),
-    _category("split-screen-co-op", "Shared/Split Screen Co-op", 39, complete=True),
-    _category("split-screen-pvp", "Shared/Split Screen PvP", 37, complete=True),
-    _category("pvp", "PvP", 49, complete=True),
-    _category("online-pvp", "Online PvP", 36, complete=True),
-    _category("lan-pvp", "LAN PvP", 47, complete=True),
-    _category("mmo", "MMO", 20, complete=True),
+    _category("single-player", "Single-player", 2, complete=True,
+              words=("single player", "singleplayer", "solo", "offline")),
+    _category("multi-player", "Multi-player", 1, complete=True,
+              words=("multiplayer", "multi player", "with friends", "online play")),
+    _category("co-op", "Co-op", 9, complete=True,
+              words=("co-op", "coop", "cooperative", "with a friend", "with friends")),
+    _category("online-co-op", "Online Co-op", 38, complete=True,
+              words=("online co-op", "online coop", "co-op", "coop", "online multiplayer")),
+    _category("lan-co-op", "LAN Co-op", 48, complete=True, words=_LAN),
+    _category("split-screen", "Shared/Split Screen", 24, complete=True,
+              words=(*_LOCAL_PLAY, "local multiplayer", "same screen")),
+    _category("split-screen-co-op", "Shared/Split Screen Co-op", 39, complete=True,
+              words=(*_LOCAL_PLAY, "local co-op", "local coop")),
+    _category("split-screen-pvp", "Shared/Split Screen PvP", 37, complete=True,
+              words=(*_LOCAL_PLAY, "local multiplayer")),
+    _category("pvp", "PvP", 49, complete=True,
+              words=("pvp", "player versus player", "competitive")),
+    _category("online-pvp", "Online PvP", 36, complete=True,
+              words=("online pvp", "pvp", "ranked", "matchmaking")),
+    _category("lan-pvp", "LAN PvP", 47, complete=True, words=_LAN),
+    _category("mmo", "MMO", 20, complete=True, words=_MMO),
     # Platforms.
-    _platform("windows", "Runs on Windows", StoreFactSource.WINDOWS),
-    _platform("mac", "Runs on Mac", StoreFactSource.MAC),
-    _platform("linux", "Runs on Linux", StoreFactSource.LINUX),
+    _platform("windows", "Runs on Windows", StoreFactSource.WINDOWS, words=("windows",)),
+    _platform("mac", "Runs on Mac", StoreFactSource.MAC,
+              words=("mac", "macos", "macbook")),
+    _platform("linux", "Runs on Linux", StoreFactSource.LINUX,
+              words=("linux", "proton", "steam deck")),
     # Features a game declares by choice: only presence is evidence.
-    _category("full-controller-support", "Full controller support", 28, complete=False),
-    _category("partial-controller-support", "Partial controller support", 18, complete=False),
-    _category("adjustable-difficulty", "Adjustable difficulty", 78, complete=False),
-    _category("save-anytime", "Save anytime", 79, complete=False),
+    _category("full-controller-support", "Full controller support", 28, complete=False,
+              words=_CONTROLLER),
+    _category("partial-controller-support", "Partial controller support", 18, complete=False,
+              words=_CONTROLLER),
+    _category("adjustable-difficulty", "Adjustable difficulty", 78, complete=False,
+              words=("difficulty settings", "difficulty setting", "difficulty options",
+                     "difficulty levels", "easy mode", "hard mode")),
+    _category("save-anytime", "Save anytime", 79, complete=False,
+              words=("save anywhere", "save anytime", "quicksave", "quick save", "manual save",
+                     "save points", "checkpoints", "autosave")),
     # Read as "no timer" by the understand step's model on its first runs,
     # and then avoided, which turned the player's wish round. The note
     # stopped it and a later, unrelated edit to the prompt brought it back,
     # so the avoided form is also refused in code.
     _category("playable-without-timed-input", "Playable without timed input", 74,
               complete=False, avoidable=False,
+              words=("quick time events", "quick time event", "qte", "qtes", "button mashing"),
               note="an accessibility option: no timed button presses are needed; it says"
                    " nothing about time limits or timers in the game"),
     # The store sends this one as a raw key, so the label is written here.
-    _category("playable-at-your-own-pace", "Playable at your own pace", 80, complete=False),
-    _category("steam-workshop", "Steam Workshop", 30, complete=False),
-    _category("level-editor", "Includes level editor", 17, complete=False),
-    _category("in-app-purchases", "In-app purchases", 35, complete=False),
-    _category("cross-platform-multiplayer", "Cross-platform multiplayer", 27, complete=False),
-    _category("remote-play-together", "Remote Play Together", 44, complete=False),
-    _category("vr-supported", "VR supported", 53, complete=False),
-    _category("subtitle-options", "Subtitle options", 65, complete=False),
+    _category("playable-at-your-own-pace", "Playable at your own pace", 80, complete=False,
+              words=("own pace", "no rush", "time pressure", "time limit", "timer")),
+    _category("steam-workshop", "Steam Workshop", 30, complete=False,
+              words=("workshop", "mods", "mod support", "modding")),
+    _category("level-editor", "Includes level editor", 17, complete=False,
+              words=("level editor", "map editor", "custom levels", "custom maps")),
+    _category("in-app-purchases", "In-app purchases", 35, complete=False,
+              words=("microtransactions", "microtransaction", "in app purchases", "pay to win",
+                     "p2w", "cash shop", "battle pass")),
+    _category("cross-platform-multiplayer", "Cross-platform multiplayer", 27, complete=False,
+              words=("crossplay", "cross play", "cross platform")),
+    _category("remote-play-together", "Remote Play Together", 44, complete=False,
+              words=("remote play",)),
+    _category("vr-supported", "VR supported", 53, complete=False,
+              words=("vr", "virtual reality")),
+    _category("subtitle-options", "Subtitle options", 65, complete=False,
+              words=("subtitles", "subtitle", "captions")),
 )
 """Every store fact a want may name, in the order the vocabulary is shown."""
 

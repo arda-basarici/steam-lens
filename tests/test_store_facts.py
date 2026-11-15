@@ -9,6 +9,7 @@ keeps Dark Souls III on the sheet for a player who asked for an RPG.
 
 from __future__ import annotations
 
+import re
 from datetime import UTC, date, datetime
 
 import pytest
@@ -30,6 +31,7 @@ from steamlens.core.store_facts import (
     store_fact,
     store_fact_reading,
 )
+from steamlens.store.review_search import match_expression
 
 _READ = datetime(2026, 11, 14, tzinfo=UTC)
 _ACTION = StorefrontLabel(1, "Action")
@@ -233,6 +235,20 @@ def test_avoiding_a_fact_that_is_never_avoided_fails_loud() -> None:
 def test_an_unknown_key_fails_loud_and_names_the_vocabulary() -> None:
     with pytest.raises(ValueError, match="no store fact is named 'roguelike'"):
         store_fact("roguelike")
+
+
+def test_every_fact_has_search_words_the_index_takes() -> None:
+    """A fact with no words leaves nothing to read when its reviews are asked
+    for. The index compares lower-case words in order, so a phrase is written
+    that way, and a list never says the same words twice ("co-op" and "co op"
+    are one phrase to it)."""
+    for fact in STORE_FACTS:
+        assert fact.search_words, fact.key
+        assert match_expression(fact.search_words), fact.key
+        as_matched = [tuple(re.findall(r"\w+", phrase)) for phrase in fact.search_words]
+        assert len(as_matched) == len(set(as_matched)), fact.key
+        for phrase in fact.search_words:
+            assert phrase == " ".join(phrase.lower().split()), (fact.key, phrase)
 
 
 def test_the_vocabulary_is_coherent() -> None:
