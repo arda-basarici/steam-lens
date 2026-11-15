@@ -7,6 +7,103 @@ decisions it feeds.
 
 ---
 
+## 2026-11-15 — "No timers please" flipped back after a prompt edit that touched no target rule, the example swap that fixed it moved another reading, and the fix that held was a check in code
+
+*From the recommender chat (M4), the first build steps of the judge: three
+changes to the deployed understand step, re-run on the cases that had passed
+before they were committed. Feeds: the M4 report's evaluation section (what a
+re-run on passing cases caught, and how far a wording edit can move the step's
+readings) and its design section (where a prompt rule ends and a code check
+begins); candidate material for a post on treating a prompt edit as a change
+to a shared read.*
+
+The judge step's design asked three things of the understand step, which had
+been built, read on the real model and deployed earlier the same day. A want
+that points at a named game ("less frantic than Hades") has to name a game the
+request lists. A reply that offered games shows them to the model as a
+numbered list of library titles, so "the second one" is counted in a list
+code wrote and not in the reply's prose. And the request gets one new flag for
+a player who asks for other games. None of the three touches the rules for
+choosing a want's target. The prompt grew from 23,967 to 25,837 characters
+(the header line of each run of `probes/understand_examples_read.py`). The
+project had earned a lesson earlier the same day, when a fix to the store page
+read lost the tags of eight games: a fix to a shared read is re-run on the
+cases that passed before it. So before anything was committed, the committed
+prompt and the revised one were each run over the same conversations on a
+fresh scratch copy of the serving database (the 115-game evening copy of
+2026-11-14).
+
+The two runs shared 27 turns. Nineteen filled requests were identical. Five
+differed only in a term's list of phrases or in which stretch of the player's
+message was copied as the want's words. Two changed a target in a way the
+reference readings accept either way. One was wrong: "no timers please", a
+search term under the committed prompt, came back as avoiding the store fact
+"Playable without timed input". That is the misreading the step's first read
+had found and fixed. 26 of the 115 games declare the fact (DESIGN, the first
+read of the step), so the games most likely to suit that player would have
+stood in conflict with a must. The first read had answered it with a note on
+the fact in the vocabulary and a change to how the prompt orders the kinds of
+target, and by its third run the timer was a search term everywhere it
+appeared. The three new cases read as intended, including "the first one"
+after a reply that mentions an already-played game before the two it offers.
+
+Claude's first suspicion was the one new worked example, whose two wants were
+both store facts. It ran the six most fragile turns under three variants of
+the revised prompt. Removing the example left the fault, so the example was
+not the cause. Rewriting the example's wants as an aspect and a search term
+brought the term back. The other five turns read the same under all three.
+What that supports is narrower than a cause: the phrase sits on an edge that a
+wording change elsewhere in the prompt can tip, which fits the first read's
+note that the timer changed reading between turns with nothing new said.
+Claude reported the swap as one passing case and not as evidence the reading
+was stable, recommended a check in code together with the swap, and Arda
+agreed to both.
+
+The full run of the swapped prompt then showed what the six-turn ablation
+could not. "No timers please" was a term again, and "i want a game where my
+choices change the story" had moved from a want to a must, against the
+reference and against the prompt's own default for an aspect. One edit had
+fixed one reading and moved another. (The example in that full run was worded
+differently from the one in the ablation, "a roguelike with great music"
+against "a relaxing roguelike", so the two are not the same prompt.) Claude
+dropped the swap, kept the example as first written, and put the reversal in
+front of Arda with the three runs side by side before proposing the commit.
+
+What held was the check. A store fact now records whether it can be avoided,
+and that is false for this one fact of forty. An avoided want on it is a
+faulty target, handled like an avoided aspect: the corrective retry names the
+fault, and if it survives the retry the want keeps the player's words, loses
+its target and reads "cannot tell", so no game is counted against the player
+on a misreading. A general ban on avoided store facts had been declined at
+the first read, because "no in-app purchases" is a real want, and it stays
+declined; the check is one fact wide. On the kept prompt the model again
+answered with the avoided fact, validation named it, and the retry read the
+want as a search term. That was the first time the retry ladder ran outside
+the tests: in the first read's three runs every answer had been valid on the
+first call. The kept run ended with one turn retried and 32 read cleanly, and
+against the committed prompt 19 of the 27 shared turns were identical with no
+firmness or stance changed in the rest. It went in as two commits with the
+check first (`1a118d4`, then the revision in `985dcde`), so the revised
+prompt was never on main without its guard.
+
+[PRELIMINARY: every variant is one pass at temperature 0 over development
+cases, so one flipped turn in 27 is an observation and not a rate. Whether
+the swap caused the move from want to must, or the same sensitivity simply
+showed up in another place, was not tested. How often a wording edit moves a
+reading, how often the default firmness is followed and how often the retry
+fires belong to the understand step's measurement on the test set, which is
+not built.] All the runs together cost about $0.02 (the probe's own cost
+lines: $0.0056, $0.0040 and $0.0051 for the three full runs, the rest the
+ablation and one retried call). The three run outputs are kept with the
+session's working papers outside the repository. The probe regenerates them
+for a few cents, with the caveat that a hosted model at temperature 0 is not
+guaranteed to give the same answer on another day.
+
+Figure: a three-row table of the prompt variants (committed; revised with the
+example swapped; revised with the original example and the code check)
+against the two readings that moved ("no timers please": term, term, term on
+the retry; "my choices change the story": want, must, want).
+
 ## 2026-11-15 — The sheet that almost became a filter: a genre check nobody ran, tags that withhold a failure without vouching for a match, and a must that code no longer enforces alone
 
 *From the recommender chat (M4), the day the sheet was built: the table of how
