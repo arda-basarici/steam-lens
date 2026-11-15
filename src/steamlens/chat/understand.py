@@ -98,7 +98,7 @@ def understand(
     text when ``core.understand.fixed_reply`` gives one and goes on to the
     sheet otherwise.
     """
-    prompt = build_understand_prompt(conversation, ontology, year=year)
+    prompt = build_understand_prompt(conversation, ontology, library, year=year)
     first = _attempt(client, prompt, conversation, ontology, library, sink)
     if isinstance(first, Understanding):
         return first

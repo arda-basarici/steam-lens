@@ -16,6 +16,9 @@ library lacks, asked on 4 that several titles hold, missed 8 nicknames
 ("bg3", "civ 5"), and resolved 4 series names to the one entry the library
 has ("doom" to DOOM Eternal). The last kind is why a partial match is
 reported as partial.
+
+``referenced_game`` is the other lookup: from a want that points at a named
+game ("less frantic than Hades") to that game's entry in the same request.
 """
 
 from __future__ import annotations
@@ -26,7 +29,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Final
 
-from steamlens.contracts import NameMatch
+from steamlens.contracts import NamedGame, NameMatch
 
 # Removed before the Unicode folding, which would spell a trademark sign out
 # as the letters "TM" and glue them to the word before it.
@@ -117,6 +120,38 @@ def resolve_name(spellings: Sequence[str], library: Mapping[int, str]) -> NameRe
         if held:
             return NameResolution(NameMatch.SEVERAL, candidates=tuple(held))
     return NameResolution(NameMatch.NOT_IN_LIBRARY)
+
+
+def referenced_game(reference: str, named_games: Sequence[NamedGame]) -> NamedGame | None:
+    """The named game a want's ``compared_to`` or ``liked_in`` points at, or ``None``.
+
+    A reference repeats the player's words for the game. It is compared as
+    plain title words with each named game's words and then with each
+    fuller title, so "Hades" finds the game the player typed as "hades" and
+    "Baldur's Gate 3" finds the one typed as "bg3". The first entry that
+    matches is returned. ``None`` means the reference names no game of the
+    request, which the understand step's validation treats as a fault.
+
+    >>> from steamlens.contracts import Feeling, NamedGameRole
+    >>> bg3 = NamedGame(
+    ...     "bg3", 1086940, NameMatch.EXACT, NamedGameRole.LIKE_THIS, Feeling.LIKED,
+    ...     title="Baldur's Gate 3",
+    ... )
+    >>> referenced_game("BG3", [bg3]) is bg3, referenced_game("baldurs gate 3", [bg3]) is bg3
+    (True, True)
+    >>> referenced_game("hades", [bg3]) is None
+    True
+    """
+    words = title_words(reference)
+    if not words:
+        return None
+    for game in named_games:
+        if title_words(game.words) == words:
+            return game
+    for game in named_games:
+        if game.title is not None and title_words(game.title) == words:
+            return game
+    return None
 
 
 def _holds_run(title: tuple[str, ...], words: tuple[str, ...]) -> bool:
