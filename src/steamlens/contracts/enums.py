@@ -222,6 +222,31 @@ class UnderstandOutcome(StrEnum):
     UNAVAILABLE = "unavailable"
 
 
+class PickOutcome(StrEnum):
+    """How the pick step ended for one recommendation turn.
+
+    ``DECIDED`` is a valid decision on the first call and ``RETRIED`` one on
+    the corrective retry. ``SALVAGED`` is a decision that still had a fault
+    after the retry, kept with what was faulty removed: a candidate the
+    sheet does not hold or may not offer, a want that is not one of the
+    request's. The faults are recorded.
+    The last two carry no decision and are answered with a fixed text:
+    ``UNREADABLE`` when the output's structure could not be read, nothing
+    was left of the decision once its faults were removed, or the
+    generation was cut off; ``UNAVAILABLE`` when the spend cap refused the
+    call or provider trouble outlasted the client's retries.
+
+    >>> PickOutcome.SALVAGED == "salvaged"
+    True
+    """
+
+    DECIDED = "decided"
+    RETRIED = "retried"
+    SALVAGED = "salvaged"
+    UNREADABLE = "unreadable"
+    UNAVAILABLE = "unavailable"
+
+
 class StoreFactSource(StrEnum):
     """Which part of a game's stored store metadata a store fact is read from.
 

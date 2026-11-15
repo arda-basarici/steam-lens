@@ -13,7 +13,8 @@ one that was salvaged, and both from a turn that ends in a fixed reply.
 ``PickDecision`` is what the pick call returns for a recommendation turn:
 candidates to read reviews on, a question, or the finding that nothing fits.
 It is a decision and holds no wording, so it can be scored against the sheet
-it was made from; the reply is written afterwards by another call.
+it was made from; the reply is written afterwards by another call. ``Pick``
+is the pick step's result, the decision with the rung that produced it.
 
 ``Excerpt`` is the unit of review evidence that reply is written from: a
 stretch of one review, with the review it came from.
@@ -23,7 +24,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from steamlens.contracts.enums import ChatMessageKind, ChatRole, Sentiment, UnderstandOutcome
+from steamlens.contracts.enums import (
+    ChatMessageKind,
+    ChatRole,
+    PickOutcome,
+    Sentiment,
+    UnderstandOutcome,
+)
 from steamlens.contracts.request import PlayerRequest
 
 
@@ -93,9 +100,11 @@ class PickCandidate:
     """One game the pick call put forward, and the wants to read its reviews on.
 
     ``wants`` are positions in the request's wants, the order a sheet row's
-    readings follow. They are the wants the pick call was in doubt about and
-    asked to see reviews for, and may be empty: a game that meets everything
-    on store facts alone needs none read.
+    readings follow. They are the wants the pick call listed as mattering
+    most to its decision, most important first, and may be empty. The list
+    sets an order and nothing more: code reads the musts before it and the
+    remaining wants after it, so a want left off is still read while there
+    is room.
     """
 
     app_id: int
@@ -140,3 +149,22 @@ class NothingFitsDecision:
 type PickDecision = CandidatesDecision | AskDecision | NothingFitsDecision
 """What the pick call decided for one recommendation turn: exactly one of the
 three outcomes."""
+
+
+@dataclass(frozen=True, slots=True)
+class Pick:
+    """One recommendation turn's pick, with the rung of the ladder that produced it.
+
+    ``decision`` is present for ``DECIDED``, ``RETRIED`` and ``SALVAGED`` and
+    absent for ``UNREADABLE`` and ``UNAVAILABLE``. ``faults`` are the faults
+    still standing when the step ended, in words: for a salvaged decision
+    what was removed from it, for an unreadable one what was wrong with the
+    answer.
+
+    >>> Pick(PickOutcome.UNAVAILABLE, None).faults
+    ()
+    """
+
+    outcome: PickOutcome
+    decision: PickDecision | None
+    faults: tuple[str, ...] = ()
