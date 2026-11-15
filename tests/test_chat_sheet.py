@@ -16,6 +16,7 @@ import sqlite3
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
+from steamlens.chat.sheet import load_library, sheet_for, term_hit_counts
 from steamlens.contracts import (
     AspectTarget,
     Firmness,
@@ -35,7 +36,6 @@ from steamlens.contracts import (
     WantStatus,
     WantTarget,
 )
-from steamlens.serve.chat_sheet import load_library, sheet_for, term_hit_counts
 from steamlens.store import Store, utc_isoformat
 
 _NOW = datetime(2026, 11, 15, 12, 0, tzinfo=UTC)

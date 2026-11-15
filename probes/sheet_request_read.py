@@ -34,8 +34,8 @@ from steamlens.contracts import (
     Want,
     WantFinding,
 )
+from steamlens.chat.sheet import load_library, term_hit_counts
 from steamlens.core.sheet import read_sheet
-from steamlens.serve.chat_sheet import load_library, term_hit_counts
 from steamlens.store import Store
 
 MUST, WANT, NICE = Firmness.MUST, Firmness.WANT, Firmness.NICE_TO_HAVE
