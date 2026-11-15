@@ -65,11 +65,9 @@ from steamlens.serve.web.csp import STEAM_CDN_FAMILY
 from steamlens.serve.web.ops_view import build_ops_view
 from steamlens.serve.web.view import (
     HEADER_ART_ORIGIN,
-    QUOTE_DISPLAY_CHAR_CAP,
     build_report_view,
     narrative_segments,
     provenance_line,
-    sentence_display_text,
 )
 
 _SERVE_DIR = Path(__file__).resolve().parent.parent / "src" / "steamlens" / "serve"
@@ -405,29 +403,6 @@ def test_displayed_quotes_expand_to_their_containing_sentence() -> None:
     ]
     assert quotes[0].date_label == "Aug 01, 2026"
     assert quotes[1].date_label == ""
-
-
-def test_sentence_expansion_breaks_on_newlines_and_keeps_terminal_marks() -> None:
-    """Steam reviews often separate thoughts with bare newlines — a line is a
-    sentence for display, and terminal punctuation stays with its sentence."""
-    text = "story is great\nthe grind killed it for me\n10/10 anyway"
-    assert (
-        sentence_display_text("grind killed", text) == "the grind killed it for me"
-    )
-
-
-def test_sentence_expansion_caps_punctuation_poor_walls() -> None:
-    """A review with no terminal punctuation must not expand a two-word span
-    into the whole text: past the cap the display trims to a word-boundary
-    window around the span, ellipses marking the trims openly."""
-    wall = " ".join(f"word{i}" for i in range(120)) + " the span here " + " ".join(
-        f"tail{i}" for i in range(120)
-    )
-    shown = sentence_display_text("span here", wall)
-    assert len(shown) <= QUOTE_DISPLAY_CHAR_CAP + len("…  …")
-    assert "span here" in shown
-    assert shown.startswith("… ")
-    assert shown.endswith(" …")
 
 
 def test_timeline_maps_buckets_and_layers_to_one_scale() -> None:

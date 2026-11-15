@@ -52,6 +52,7 @@ from steamlens.contracts import (
     SpanKind,
 )
 from steamlens.core.allowance import is_spiky_regime, peak_window_share, shipped_interval
+from steamlens.core.excerpt import sentence_display_text
 from steamlens.dispatch.census_arm import PRIOR_MODEL_READINGS, PUBLISHED_READINGS
 
 QUOTES_PER_ASPECT: Final = 3
@@ -78,13 +79,6 @@ A percentage over a handful of reviews is binomial noise (two of three
 reviews reads as 67% positive), but dropping the bar would misread as a
 gap in Steam's series — so the bar stays, muted, its tooltip carrying the
 count that explains the fade."""
-
-QUOTE_DISPLAY_CHAR_CAP: Final = 300
-"""Ceiling on an expanded quote's display length. Sentence segmentation over
-punctuation-poor reviews is heuristic — a review with no terminal punctuation
-would expand a two-word span into the whole text — so past the cap the
-display trims to a word-boundary window around the span, ellipses marking
-the trims openly."""
 
 MARKED_SHARE_FLOOR: Final = 0.02
 """The ruled marked-share disclosure floor (the mixing study, DESIGN's
@@ -728,56 +722,6 @@ def _quotes_by_aspect(
             )
         capped[aspect] = tuple(views)
     return capped
-
-
-_SENTENCE_BREAKS: Final = frozenset(".!?…\n")
-
-
-def sentence_display_text(span: str, review_text: str | None) -> str:
-    """``span`` grown to its containing sentence in ``review_text``, capped.
-
-    The evidence-display ruling made concrete: stored spans are minimal
-    verbatim substrings and read thin quoted bare, so the display walks out
-    to sentence boundaries (terminal punctuation or a line break — Steam
-    reviews often separate thoughts with newlines) and keeps the closing
-    mark. Purely read-side: a missing text, or a span the text no longer
-    contains, falls back to the stored span unchanged. Past the display cap
-    the sentence trims to a word-boundary window around the span, ellipses
-    marking the trims.
-    """
-    if review_text is None:
-        return span
-    at = review_text.find(span)
-    if at == -1:
-        return span
-    start = at
-    while start > 0 and review_text[start - 1] not in _SENTENCE_BREAKS:
-        start -= 1
-    end = at + len(span)
-    while end < len(review_text) and review_text[end] not in _SENTENCE_BREAKS:
-        end += 1
-    if end < len(review_text) and review_text[end] != "\n":
-        end += 1
-    sentence = review_text[start:end].strip()
-    return _window_around(sentence, span) if len(sentence) > QUOTE_DISPLAY_CHAR_CAP else sentence
-
-
-def _window_around(sentence: str, span: str) -> str:
-    """The over-cap trim: equal word-boundary margins around ``span``, ellipsized."""
-    margin = (QUOTE_DISPLAY_CHAR_CAP - len(span)) // 2
-    if margin <= 0:
-        return span
-    at = sentence.find(span)
-    lead, tail = sentence[:at], sentence[at + len(span) :]
-    if len(lead) > margin:
-        kept = lead[-margin:]
-        cut = kept.find(" ")
-        lead = "… " + (kept[cut + 1 :] if cut != -1 else kept)
-    if len(tail) > margin:
-        kept = tail[:margin]
-        cut = kept.rfind(" ")
-        tail = (kept[:cut] if cut != -1 else kept) + " …"
-    return lead + span + tail
 
 
 def _candidate_section(
