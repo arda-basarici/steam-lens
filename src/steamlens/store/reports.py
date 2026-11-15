@@ -286,6 +286,25 @@ class ReportLog:
             )
         return tuple(heads[app_id] for app_id in sorted(heads))
 
+    def versions(self, run_id: str) -> ClassifierVersions | None:
+        """The classifier versions ``run_id``'s report was counted under, or None.
+
+        The key to the labels behind a report: its sample's members hold
+        labels under several versions over time, and only these three name
+        the ones its numbers came from. Scalar columns only, so a caller
+        that wants the labels does not pay for the report's display payloads.
+        """
+        row = self._conn.execute(
+            "SELECT model_version, prompt_version, ontology_version FROM reports"
+            " WHERE run_id = ?",
+            (run_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return ClassifierVersions(
+            model_version=str(row[0]), prompt_version=str(row[1]), ontology_version=str(row[2])
+        )
+
     def get_snapshot(self, run_id: str) -> tuple[AspectAggregate, ...]:
         """One run's frozen aggregate snapshot, rebuilt as full contracts.
 

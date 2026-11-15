@@ -20,6 +20,7 @@ from steamlens.contracts.chat import (
     AskDecision,
     CandidatesDecision,
     ChatMessage,
+    Excerpt,
     NothingFitsDecision,
     PickCandidate,
     PickDecision,
@@ -197,6 +198,7 @@ __all__ = [
     "AskDecision",
     "NothingFitsDecision",
     "PickDecision",
+    "Excerpt",
     # the cross-game sheet
     "SheetCell",
     "LibraryGame",

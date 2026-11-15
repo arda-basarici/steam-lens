@@ -1068,6 +1068,13 @@ class TestReportLog:
             with pytest.raises(StoreDataError, match="serve-2"):
                 reopened.reports.latest_report(440)
 
+    def test_a_reports_versions_are_read_without_the_report(self, store: Store) -> None:
+        """The key to a report's labels, for a caller that wants the labels
+        and not the page. A run with no report has none."""
+        self._publish(store)
+        assert store.reports.versions("serve-1") == _versions()
+        assert store.reports.versions("never-published") is None
+
     def test_duplicate_report_fails_loud(self, store: Store) -> None:
         self._publish(store)
         with pytest.raises(StoreError, match="serve-1"):

@@ -14,13 +14,16 @@ one that was salvaged, and both from a turn that ends in a fixed reply.
 candidates to read reviews on, a question, or the finding that nothing fits.
 It is a decision and holds no wording, so it can be scored against the sheet
 it was made from; the reply is written afterwards by another call.
+
+``Excerpt`` is the unit of review evidence that reply is written from: a
+stretch of one review, with the review it came from.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from steamlens.contracts.enums import ChatMessageKind, ChatRole, UnderstandOutcome
+from steamlens.contracts.enums import ChatMessageKind, ChatRole, Sentiment, UnderstandOutcome
 from steamlens.contracts.request import PlayerRequest
 
 
@@ -64,6 +67,25 @@ class Understanding:
     outcome: UnderstandOutcome
     request: PlayerRequest | None
     faults: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class Excerpt:
+    """A stretch of one review, cut for a model to read.
+
+    ``text`` is the sentence around what made the review worth reading: the
+    stored evidence span for a review labelled with an aspect, the matched
+    words for one found by search. ``review_id`` and ``app_id`` say where it
+    came from, so a statement built on it can be checked against the review
+    and the game it is used for. ``sentiment`` is the label's, present only
+    for a review read by its label; a search match does not say which way it
+    points.
+    """
+
+    app_id: int
+    review_id: str
+    text: str
+    sentiment: Sentiment | None = None
 
 
 @dataclass(frozen=True, slots=True)
