@@ -20,7 +20,12 @@ import httpx
 from steamlens.contracts import FinishReason, LlmResponse, Review, SinkEvent, TokenUsage
 from steamlens.dispatch.census_arm import EXPECTED_MODEL_VERSION
 from steamlens.evals.judge_dispatch import JUDGE_MODEL_ID
-from steamlens.llm_client import ProviderEntry, ProviderPayload, ProviderPermanentError
+from steamlens.llm_client import (
+    ProviderEntry,
+    ProviderPayload,
+    ProviderPermanentError,
+    ProviderTransientError,
+)
 from steamlens.store import Store
 
 REVIEWS_BLOCK = re.compile(r"<reviews>\n(.*)\n</reviews>", re.DOTALL)
@@ -238,4 +243,55 @@ class FakeGemini:
             model_version=str(body["model_version"]),
             finish_reason=FinishReason.STOP,
             usage=TokenUsage(prompt_tokens=100, output_tokens=20, thinking_tokens=0),
+        )
+
+
+class AnswerScript:
+    """A scripted provider: answers each call with the next text in order.
+
+    ``finishes`` overrides the finish reason per call, and a call whose
+    index is in ``down`` fails the way provider trouble does.
+    """
+
+    def __init__(
+        self,
+        texts: list[str],
+        *,
+        finishes: dict[int, FinishReason] | None = None,
+        down: frozenset[int] = frozenset(),
+    ) -> None:
+        self.prompts: list[str] = []
+        self._texts = texts
+        self._finishes = finishes or {}
+        self._down = down
+        self._lock = threading.Lock()
+        self._attempts = 0
+
+    def entry(self) -> ProviderEntry:
+        return ProviderEntry(build_payload=self._build, send=self._send, parse=self._parse)
+
+    def _build(
+        self, *, model: str, prompt: str, max_output_tokens: int, params: dict[str, object]
+    ) -> ProviderPayload:
+        return {"model": model, "prompt": prompt}
+
+    def _send(self, *, model: str, payload: ProviderPayload) -> str:
+        with self._lock:
+            prompt = str(payload["prompt"])
+            if prompt not in self.prompts:
+                self.prompts.append(prompt)
+            index = self.prompts.index(prompt)
+        if index in self._down:
+            raise ProviderTransientError("scripted 503")
+        finish = self._finishes.get(index, FinishReason.STOP)
+        return json.dumps({"text": self._texts[index], "finish": finish})
+
+    @staticmethod
+    def _parse(raw: str) -> LlmResponse:
+        body = json.loads(raw)
+        return LlmResponse(
+            text=str(body["text"]),
+            model_version="deepseek-flash",
+            finish_reason=FinishReason(str(body["finish"])),
+            usage=TokenUsage(prompt_tokens=100, output_tokens=50, thinking_tokens=0),
         )
