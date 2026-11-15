@@ -358,6 +358,8 @@ def test_a_fault_in_the_structure_yields_no_request(text: str, reason: str) -> N
         ({"target": {"kind": "store", "key": "couch-co-op"}}, "not a key in the store-fact list"),
         ({"target": {"kind": "aspect", "aspect": "grind"}}, "not a label in the aspect list"),
         ({"target": {"kind": "aspect", "aspect": "bugs"}, "stance": "avoids"}, "never avoided"),
+        ({"target": {"kind": "store", "key": "playable-without-timed-input"},
+          "stance": "avoids"}, "nothing about time limits or timers"),
         ({"target": {"kind": "store", "key": "windows"}, "partial": True}, "only an aspect"),
         ({"target": {"kind": "none"}, "partial": True}, "only an aspect"),
         ({"target": {"kind": "years", "first": 2020, "last": 2015}}, "before it starts"),
@@ -388,6 +390,24 @@ def test_a_faulty_target_is_removed_and_the_want_keeps_its_words(
     assert len(parsed.faults) == 1
     assert parsed.faults[0].startswith('the want "the faulty one" ')
     assert reason in parsed.faults[0]
+
+
+def test_avoiding_a_store_fact_is_a_fault_only_for_a_fact_that_is_never_avoided() -> None:
+    """ "No in-app purchases" is a real want and stays. The timed-input fact
+    wanted is a real want too; only its avoided form is the misreading of
+    "no timers"."""
+    request = _request(
+        wants=[
+            _want("no in-app purchases", {"kind": "store", "key": "in-app-purchases"},
+                  stance="avoids"),
+            _want("no timed button presses",
+                  {"kind": "store", "key": "playable-without-timed-input"}),
+        ]
+    )
+    assert [want.target for want in request.wants] == [
+        StoreFactTarget("in-app-purchases"),
+        StoreFactTarget("playable-without-timed-input"),
+    ]
 
 
 def test_a_faulty_subject_target_is_removed_the_same_way() -> None:

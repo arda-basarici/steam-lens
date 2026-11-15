@@ -219,6 +219,17 @@ def test_a_range_that_names_no_years_fails_loud() -> None:
         release_years_reading(ReleaseYearsTarget(2020, 2010), Stance.WANTS, _game())
 
 
+def test_avoiding_a_fact_that_is_never_avoided_fails_loud() -> None:
+    """The avoided form of the timed-input fact is "no timers" misread, and
+    would count every game that declares the fact against the player. The
+    understand step's validation removes it; the reading refuses it."""
+    with pytest.raises(ValueError, match="'playable-without-timed-input'"):
+        _read("playable-without-timed-input", Stance.AVOIDS, _game())
+    assert _read("playable-without-timed-input", Stance.WANTS, _game()) == (
+        WantStatus.CANNOT_TELL, WantFinding.NOT_DECLARED,
+    )
+
+
 def test_an_unknown_key_fails_loud_and_names_the_vocabulary() -> None:
     with pytest.raises(ValueError, match="no store fact is named 'roguelike'"):
         store_fact("roguelike")

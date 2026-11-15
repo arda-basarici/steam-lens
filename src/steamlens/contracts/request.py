@@ -57,6 +57,12 @@ class StoreFactDef:
     ``note`` says what the fact is where the store's label alone invites a
     wrong reading. It is shown to the understand step beside the label and
     is empty for most facts.
+
+    ``avoidable`` is false for a fact no player asks to be without. Most
+    facts can be avoided ("no in-app purchases"). Avoiding "Playable without
+    timed input" would ask for games that need timed button presses, and the
+    wish that gets read that way ("no timers") is about something else, so
+    an avoided want on such a fact is a faulty target.
     """
 
     key: str
@@ -66,6 +72,7 @@ class StoreFactDef:
     ids: tuple[int, ...] = ()
     player_tags: tuple[str, ...] = ()
     note: str = ""
+    avoidable: bool = True
 
 
 @dataclass(frozen=True, slots=True)

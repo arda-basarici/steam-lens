@@ -21,7 +21,8 @@ Validation has three grains, and the difference decides what the shell
 does next. A fault in the structure (no JSON object, no intent, a value
 outside a closed set) leaves nothing to read. A fault in one want's target
 (a store fact outside the vocabulary, an aspect outside the pinned list, an
-avoided aspect, a release range the wrong way round) is repaired by removing
+avoided aspect, an avoided store fact that is never avoided, a release
+range the wrong way round) is repaired by removing
 the target: the want keeps the player's words and reads "cannot tell", so no
 want disappears. Words that are not an unbroken stretch of a player message
 are a fault that changes nothing in the request: code can verify that a want
@@ -67,7 +68,7 @@ from steamlens.contracts import (
     WantTarget,
 )
 from steamlens.core.game_names import resolve_name
-from steamlens.core.store_facts import STORE_FACTS
+from steamlens.core.store_facts import STORE_FACTS, store_fact
 
 UNDERSTAND_PROMPT_VERSION: Final = "understand-v1"
 
@@ -815,6 +816,14 @@ def _want(
             raise _TargetFault(
                 'is marked "partial" without an aspect target; only an aspect target can be'
             )
+        if isinstance(target, StoreFactTarget) and stance is Stance.AVOIDS:
+            fact = store_fact(target.key)
+            if not fact.avoidable:
+                raise _TargetFault(
+                    f'avoids the store fact "{fact.key}", which is never avoided'
+                    + (f" ({fact.note})" if fact.note else "")
+                    + '; what the player wants to avoid is a term, or "none"'
+                )
     except _TargetFault as fault:
         faults.append(f'the want "{words}" {fault}')
         target, partial = None, False

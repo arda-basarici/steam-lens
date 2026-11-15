@@ -56,11 +56,12 @@ def _genre(key: str, label: str, genre_id: int, *player_tags: str) -> StoreFactD
 
 
 def _category(
-    key: str, label: str, category_id: int, *, complete: bool, note: str = ""
+    key: str, label: str, category_id: int, *, complete: bool, note: str = "",
+    avoidable: bool = True,
 ) -> StoreFactDef:
     return StoreFactDef(
         key=key, label=label, source=StoreFactSource.CATEGORY, complete=complete,
-        ids=(category_id,), note=note,
+        ids=(category_id,), note=note, avoidable=avoidable,
     )
 
 
@@ -115,9 +116,11 @@ STORE_FACTS: Final[tuple[StoreFactDef, ...]] = (
     _category("adjustable-difficulty", "Adjustable difficulty", 78, complete=False),
     _category("save-anytime", "Save anytime", 79, complete=False),
     # Read as "no timer" by the understand step's model on its first runs,
-    # and then avoided, which turned the player's wish round.
+    # and then avoided, which turned the player's wish round. The note
+    # stopped it and a later, unrelated edit to the prompt brought it back,
+    # so the avoided form is also refused in code.
     _category("playable-without-timed-input", "Playable without timed input", 74,
-              complete=False,
+              complete=False, avoidable=False,
               note="an accessibility option: no timed button presses are needed; it says"
                    " nothing about time limits or timers in the game"),
     # The store sends this one as a raw key, so the label is written here.
@@ -179,6 +182,10 @@ def store_fact_reading(
     declared by choice, or players tag what the store does not list, or the
     game's tags or store facts were never captured.
 
+    Raises ``ValueError`` for an avoided want on a fact that is never
+    avoided. The understand step's validation removes such a target, so one
+    arriving here is a caller's bug.
+
     >>> from datetime import UTC, date, datetime
     >>> from steamlens.contracts import StorefrontLabel
     >>> hades = StorefrontMetadata(
@@ -194,6 +201,11 @@ def store_fact_reading(
     >>> store_fact_reading(store_fact("adjustable-difficulty"), Stance.WANTS, hades, None).finding
     <WantFinding.NOT_DECLARED: 'not-declared'>
     """
+    if stance is Stance.AVOIDS and not fact.avoidable:
+        raise ValueError(
+            f"a want avoids the store fact {fact.key!r} — that fact is never avoided, and the "
+            "wish that reads this way is about something else"
+        )
     if metadata is None:
         return WantReading(WantStatus.CANNOT_TELL, WantFinding.NO_STORE_FACTS)
     if is_listed(fact, metadata):
