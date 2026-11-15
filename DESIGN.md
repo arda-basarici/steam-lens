@@ -2504,8 +2504,19 @@ one of the pinned aspects, a search term given as the spelling variants of
 one idea, or nothing.
 It can also be marked as only partly checkable, and as a comparison with a
 named game. Code resolves a named game against the library; the model never
-does. A discussion turn carries a subject in place of wants, with the same
-kinds of target and no firmness, since nothing is being matched.
+does.
+
+The intent says what the latest message asks for, and the wants are whatever
+still stands in the conversation under any intent. A question about one game
+carries its questions as subjects, one each, with the same kinds of target
+and no firmness, since nothing is being matched; a question about the
+numbers carries its words as a subject with no target. *Revised 2026-11-15.*
+The first ruling had a discussion turn carry a subject in place of wants.
+That lost nothing between turns, since the conversation is re-read every
+time, but it left "would the second one suit me?" with nothing to be
+answered against, and one subject could not hold "does it have online co-op,
+and do people complain about crashes?". A question is never turned into a
+want: "does it have a good story?" asks, and "it needs a good story" wants.
 
 | Target | Wanted or avoided | Matches | Fails | Cannot tell |
 |---|---|---|---|---|
@@ -2763,6 +2774,192 @@ The check establishes source integrity and constraint compliance. Whether the
 cited evidence supports the sentence built on it is a judgment, and it is
 measured in the evaluation instead of being claimed as a guarantee.
 
+**The steps live in their own package, below the shells that run them.**
+*Ruled 2026-11-15.* The tab's route is one caller of the chat's steps. The
+end-to-end run of the example conversations and the stage measurements are
+the others, and they run without HTTP. With the steps inside the serving
+package, the evaluation harness would import each step's module from another
+entry shell's interior, and the import law would pass it, since both sit at
+the top rank and only the harness and the study drivers are closed to
+imports. That is the shape the full-base review removed when it moved the
+shared run machinery into `dispatch`. So the steps are a package, `chat`, at
+the rank of `dispatch`. It may import the doors, the core and the run
+machinery beside it, and it never imports the serving shell, which keeps the
+route, the caps and the HTTP. Each step's rules stay pure in `core`, as the
+compose stage's do. The reserved `pipeline` package was the other candidate
+at that rank; its name stays with the analysis pipeline it was reserved for.
+
+**The understand step as built.** *Built 2026-11-15 and not yet measured;
+the name-matching figures are from the copy of the serving database taken on
+the evening of 2026-11-14 (115 titles).* The step is one model call that
+returns one JSON object shaped like the structured request, with a tagged
+target on each want. It rides the labeler's model at temperature 0 until the
+development cases choose one, and the route is the one place that says so.
+
+The model is asked for JSON in the prompt and the provider's JSON mode stays
+off. The classify stage lost 24.9% of its gold reviews under JSON mode on
+this model, because its prompt asks for an array and JSON mode means an
+object. That cause would not apply to an object, but JSON mode with an
+object has not been measured here, so it is a cell for the development
+cases and not the starting point.
+
+An answer can be faulty in two ways, and they are handled differently. A
+fault in the structure (no JSON object, no intent, a value outside a closed
+set, a want without the player's words) leaves nothing to read. A fault in
+one want's target (a store fact outside the vocabulary, an aspect outside
+the pinned list, an avoided aspect, a partly checkable mark on anything but
+an aspect, a release range the wrong way round, a term with no phrases)
+leaves the rest of the request sound. Any fault gets one corrective retry
+that names the faults, which is a new question at temperature 0. If a
+target is still faulty after the retry, that want keeps the player's words
+and loses its target, so it reads "cannot tell" on every game and no want
+disappears; when the retry itself fails, the first answer is salvaged the
+same way. A structure that cannot be read after the retry ends the turn
+with a fixed reply.
+
+There is a third fault that code can detect and cannot repair. The words of
+every want, subject and named game have to be one unbroken stretch of a
+player message, compared on letters and digits, so that a want with words
+the player never wrote does not pass as theirs. The first prompt asked for
+the player's words "with any detail needed to read them", and the model
+answered by joining two sentences into one the player had not written. A
+miss goes to the same corrective retry; a want that still fails is kept as
+it came, with the fault recorded. A detail that follows a want (the laptop's
+graphics chip) stays with it by the excerpt running on through it. Rejecting the whole answer on any fault was declined,
+since one bad key would lose a turn that was otherwise read correctly.
+Salvaging without a retry was declined too: the retry is the only way an
+avoided aspect ("not buggy" written as avoiding `bugs`) is repaired to what
+the player meant, and code flipping it would be code interpreting. A
+generation that is cut off is not retried, and neither is provider trouble
+the client already retried; the spend cap and provider trouble end the turn
+with their own fixed reply.
+
+Everything outside the scope gets one fixed refusal. A reason field with a
+text per reason (off-topic, help with playing a game, an attempt on the
+instructions) was declined for the first stage: it is one more thing the
+model can get wrong, and it would change only the wording. The gate
+measurement reads whether one text misleads the people it refuses.
+
+The prompt shows the aspect vocabulary as each label with its one-line
+definition, about 1,300 tokens against the 5,700 of the compact codebook
+the labeler reads. Names alone were declined: `game_length`,
+`content_amount` and `difficulty` read like amounts, and `multiplayer` and
+`platform_access` sit beside store facts of nearly the same name. The cost
+of the short form is that the labeler drew the line between neighbouring
+labels (`bugs` against `stability`) with rules the understand model does
+not see, so a wish can land on the neighbour; the target of each recovered
+want is what the understand measurement scores. Adding the aliases was
+declined because they work against the amount rule: the aliases of
+`game_length` include "too short". The definitions were written for
+labelling a review, so the prompt states what an aspect target means for a
+wish. The codebook itself is unchanged and stays available to every later
+step.
+
+A named game is resolved in two parts. The model writes the game's full
+title beside the player's words, which is where a nickname is expanded
+("bg3"), a typo corrected and "the second one" read off the chat's earlier
+reply. Code then matches the title, and after it the player's own words,
+against the library's titles, and the model never sees the library. The
+match is literal: case, accents, trademark signs, apostrophes and
+punctuation are folded and Roman numerals read as numbers; a whole title
+matches first, then a name that sits as a run of words inside one longer
+title. On 39 spellings a player might type, written for the trial and not
+sampled from players, code alone found the right game for 20, rightly
+found none for 3 the library lacks, asked on 4 names that several titles
+hold, missed 8 nicknames, and resolved 4 series names to the one entry the
+library has ("doom" to DOOM Eternal). The
+misses are why the model writes the title, and the series names are why
+the request records how each name matched: exactly, as part of a longer
+title, as several titles with the candidates and no game chosen, or not at
+all. A partial match resolves, and the reply names the title it took. When
+the model cannot tell which game is meant ("that one" after several were
+mentioned) it writes no title, and a name with no title that matches
+nothing is recorded as unclear, which the chat asks about, and never as a
+game the library has not measured. A
+hand-kept table of nicknames was declined, since it needs an entry per
+game and per nickname as the library grows. Letting the model expand a
+name uses its memory of game titles, which the design otherwise keeps out;
+whether the library holds the game stays code's decision. The step will
+expand a wrong title for a game newer than the model, and the player's own
+words are the fallback for a new game typed in full.
+
+Three rules in the prompt keep the structure from saying something easier
+than the player did. Firmness is read from the whole clause: stress counts
+when it sits on the want itself ("i really don't want much reading") and
+not elsewhere in the sentence ("i really liked Hades"), need or exclusion
+outranks soft wording, and a word of degree ("a bit") says how much and not
+how firmly. A want that no single target and stance can say without
+changing its meaning, such as an either-or or a bound in numbers, is kept
+whole with no target. And a term's phrases name the thing itself, one to
+six close wordings with no related kind of game and no stronger or weaker
+form, because the sheet reads a cluster as the thing being present; words
+that fetch evidence in both directions would make a cluster mean nothing.
+
+One reading is left to the judge step. A want that is relative to a named
+game ("less frantic than Hades") is written as an avoided term with the
+game it is compared with, and the sheet reads that term on its own: a game
+whose reviews call it frantic fails the want even when it is calmer than
+Hades. The comparison is the judge's, from reviews of both games, and what
+the sheet should say for such a want is settled there.
+
+The conversation reaches the prompt as one delimited block of both sides'
+messages, introduced as data and never instructions, with "<" escaped so a
+typed message cannot close the block. The chat's own messages are context
+for a reference such as "the second one" and never a source of wants. The
+prompt's worked examples are not the example conversations the step is
+assessed on.
+
+**The first read of the step.** *2026-11-15, on the labeler's model and the
+copy of the serving database taken on the evening of 2026-11-14: three runs
+of `probes/understand_examples_read.py` over the twelve example
+conversations (16 player turns), the last two with contrast pairs added (24
+and 27 turns). Each run is one pass read by hand against reference
+readings, so what follows is observation and not a rate, and the twelve
+are development cases from here on.* Every answer was valid on the first
+call in all three runs, so the retry ladder has run only in tests. A call
+took 0.7 to 1.8 seconds. The prompt is about 6,300 tokens, and the provider
+served about 6,100 of them from its prefix cache on every call after a
+run's first: the first call cost about $0.0011 and the others $0.0001 to
+$0.0002, which makes these warm-cache figures.
+
+The first run returned three readings that would have sent the sheet the
+wrong way, each a valid structure. "A puzzle game" became the store genre
+Casual. "Nothing with a timer" became avoiding the store fact "Playable
+without timed input", which 26 of the 115 games declare, so the games most
+likely to suit the player would have conflicted with a must. And "to play
+alone" stayed a must after "actually my friend wants to join". The rules
+that came of it: a target has to say what the player asked, with no
+broader, neighbouring or commonly associated one in its place; a genre key
+is for a player who names that genre; the stance is read against what the
+target means and not against a negative word in the sentence; a replaced
+want is removed and not kept at a lower firmness. Two things besides rules
+were at fault. The prompt told the model to take the first kind of target
+that fits, with the store first, which pushed it toward a store fact; that
+order now only decides between two kinds that fit equally. And the label of
+the timed-input fact reads like "no timer", so the vocabulary carries a
+note on that fact saying what it is. Banning the avoided form of a store
+fact was declined, since "no in-app purchases" is a real want.
+
+By the third run the puzzle and the timer were read as search terms in
+every place they appear, a paraphrase of each included, and the contrast
+cases held: "something casual" still reads as the genre, and "i also want
+to be able to play it alone" keeps the co-op want and adds the other. Three
+things were still open. "To play alone" survives "actually my friend wants
+to join" as a want, where two other replacements worded differently are
+read correctly. The laptop's graphics chip, which sits in the sentence
+after the want, is not carried in its words. And a reading can change
+between turns with nothing new said: in the first two runs the timer was a
+store fact on one turn and a search term on the next. That last one follows
+from re-reading the whole conversation every turn, and how often it happens
+is a measurement the stage owes.
+
+The reference readings were corrected by the same pass. "Having another go
+after dying" was expected as a roguelike search term, and the model's first
+answer, the aspect `replayability`, follows that aspect's definition
+("returning after completion/failure"); both are accepted. "Realistic" as
+the aspect `realism` is accepted. "A really good story" is a want, since
+"really" there is a degree and not stress.
+
 **The chat talks, and the evidence works underneath.** In the chat the player
 reads natural talk, in plain words scoped to the people who mentioned the
 thing: "players who talk about the story mostly praise it". It carries no
@@ -2952,7 +3149,14 @@ only.
 | Which store facts every game declares | play modes, platforms, early access and genres; thirteen features are declared by choice | `core/store_facts.py` | one flag per fact | a feature most games turn out to declare, or a play mode some do not |
 | A player tag withholds a genre failure | the genre's own tag and the tags naming a kind of it | `core/store_facts.py` | the tag list per genre | mistagged games crowding the "cannot tell" group, or tagged games still read as failures |
 | No game removed on evidence | the sheet holds every library game; a conflict with a must is answered with cited reviews | `core/sheet.py`; the objection is not built (the check) | a filter over the statuses | offers against a conflict that the hand reading finds unsupported, or a sheet too long for the judge to read |
-| Default firmness | the kind of game is a must, a quality is a want | not built (the understand step) | a prompt rule; re-run the understand measurement | near misses on the kind of game, or good games withheld |
+| Default firmness | by target: a store fact and a term that says what the game is are a must; an aspect, an amount, a release range and a want with no target are a want | the prompt in `core/understand.py` | a prompt rule; re-run the understand measurement | near misses on the kind of game, good games withheld, or a want that names the kind of game reading as soft because its evidence is an aspect ("a game where my choices change the story") |
+| A want's words | one unbroken stretch of a player message, checked by code on letters and digits | `core/understand.py` | the check, or the contract to "a faithful description" | retries spent on harmless rewordings, or details lost because they sit apart from the want |
+| Aspect vocabulary shown to the understand model | each label with its one-line definition | `core/understand.py` | one render function; the compact codebook is the named alternative | wants landing on a neighbouring aspect |
+| "Recent" as a release range | from three years before the current year | the prompt in `core/understand.py` | a prompt rule | players calling the range too wide or too narrow |
+| Understand model and output mode | the labeler's model, temperature 0, JSON asked for in the prompt | `chat/understand.py` | one route; JSON mode is one parameter | the understand measurement, or a high rate of retried answers |
+| A faulty answer | one corrective retry, then the faulty target removed and the want kept | `chat/understand.py`, `core/understand.py` | the ladder's rungs | turns lost to unreadable answers, or musts read as "cannot tell" after a salvage |
+| Out-of-scope reply | one fixed text for every reason | `core/understand.py` | a reason field and a text per reason | refused players misled about what the tab does |
+| Named-game matching | the model writes the title; code matches literally, whole title then a run of words | `core/game_names.py` | the matching rule | library games answered as "not measured", or a wrong game taken without the reply naming it |
 | Questions before answering | one, or up to three for a request with nothing in it | not built (the judge step) | a prompt rule | players leaving before a suggestion, or suggestions with nothing behind them |
 | Quotes and numbers in the chat | only when the player asks | not built (the answer step) | an interface addition | hand reading that finds claims the player could not have checked |
 | Search matching | literal phrases, no stemming, variants listed | `store/review_search.py`, the schema's tokenizer | drop and refill the index | wants missed for spelling |

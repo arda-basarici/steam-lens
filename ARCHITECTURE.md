@@ -129,7 +129,7 @@ the top compose everything; nothing composes them.
 flowchart TD
     R4["`rank 4 — entry shells: serve · studies · evals
     (import-forbidden to all other code)`"]
-    R3["rank 3 — dispatch: generic run machinery"]
+    R3["rank 3 — dispatch: generic run machinery · chat: the recommender chat's steps"]
     R2["rank 2 — the doors: steam_client · llm_client · store · corpus · ontology"]
     R1["rank 1 — core: pure transforms"]
     R0["rank 0 — contracts: the plain-data spine, imports nothing"]
@@ -275,6 +275,11 @@ renders the reference; regen script committed, output never hand-edited).
 | `llm_client/` | the model door: stage routing + budget/pacing · the client (reserve, retries, cache/ledger composition) · Gemini and OpenAI-compat adapters · cache-split cost pricing · typed failures · in-memory bindings for rigs |
 | `store/` | SQLite (WAL): schema + gated migrations · review/label/archive/ledger/eval-run surfaces · the serving tenants (sample manifest, reports, admissions, refusals, job journal) · each game's store facts and tag block, latest capture only · keyword search over the reviews each game's newest report counted (an FTS5 index kept by trigger) · the ops read model, IP-free by shape |
 | `dispatch/` | generic run machinery, study-blind: tee'd narration sink · run/config/code stamps · the run-shell context · the chunk/pass batch engine · `census_arm`, the production annotator as a citable instrument with its extra-routes door |
+| `core/store_facts` | the curated store-fact vocabulary a chat want may name, and how each fact reads on a game: complete facts, facts declared by choice, genres with the player tags that withhold a failure |
+| `core/sheet` | the sheet's rules: a report's aggregates into per-aspect groups above a mention floor, the cluster rule for a search term, one game's status on one want, the library read against a request with no game removed on evidence |
+| `core/game_names` | matching a named game against the library's titles: titles folded to plain words, a whole title first, then a run of words inside one longer title, the match kind reported |
+| `core/understand` | the understand step's prompt (stable part first, the conversation as a data block) and the validation of a model's answer into a request: structure faults, target faults repaired by removing the target, the fixed replies |
+| `chat/` | the recommender chat's steps, composed by the serving route and by evaluation runs; so far the understand step's call with its retry ladder, and the library read behind the sheet (every game's newest report, store facts and tags, and one keyword search per term in a request) |
 | `serve/` | the serving shell: the job + one-at-a-time queue · the runner (the analysis pipeline over certified seams) · the submit gate · SSE encoding and replay-then-follow · the compose-call shell with its failure ladder · config dials · the composition root (`serve.main`, env-wired) |
 | `serve/web` | the renderer, the one module a frontend rewrite touches: Jinja templates, static assets, view models for report and ops pages, the CSP stamp |
 | `studies/` | offline entry shells: census labeling + aggregate minting · the sampling study's simulation and measurement drivers · the detect calibration pass · the allowance-constant mint arithmetic |
