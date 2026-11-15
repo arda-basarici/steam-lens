@@ -29,6 +29,7 @@ from steamlens.contracts import (
     MustStanding,
     NamedGame,
     NamedGameRole,
+    NameMatch,
     PlayerRequest,
     ReleaseYearsTarget,
     RequestIntent,
@@ -395,9 +396,11 @@ def test_a_game_the_player_already_played_is_the_only_one_left_off() -> None:
     """ "Already played" is the player's instruction, not evidence, so it is
     not weighed. A liked game and an unmeasured one remove nothing."""
     request, hits = _puzzle_request(
-        NamedGame("portal 2", _PORTAL, NamedGameRole.NOT_THIS, Feeling.UNKNOWN),
-        NamedGame("hades", _HADES, NamedGameRole.LIKE_THIS, Feeling.LIKED),
-        NamedGame("balatro", None, NamedGameRole.NOT_THIS, Feeling.UNKNOWN),
+        NamedGame("portal 2", _PORTAL, NameMatch.EXACT, NamedGameRole.NOT_THIS, Feeling.UNKNOWN),
+        NamedGame("hades", _HADES, NameMatch.EXACT, NamedGameRole.LIKE_THIS, Feeling.LIKED),
+        NamedGame(
+            "balatro", None, NameMatch.NOT_IN_LIBRARY, NamedGameRole.NOT_THIS, Feeling.UNKNOWN
+        ),
     )
     library = [_game(_HADES), _game(_STARDEW), _game(_PORTAL, categories=(2, 38))]
     sheet = read_sheet(request, library, hits)

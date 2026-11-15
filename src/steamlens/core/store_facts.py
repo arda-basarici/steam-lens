@@ -55,10 +55,12 @@ def _genre(key: str, label: str, genre_id: int, *player_tags: str) -> StoreFactD
     )
 
 
-def _category(key: str, label: str, category_id: int, *, complete: bool) -> StoreFactDef:
+def _category(
+    key: str, label: str, category_id: int, *, complete: bool, note: str = ""
+) -> StoreFactDef:
     return StoreFactDef(
         key=key, label=label, source=StoreFactSource.CATEGORY, complete=complete,
-        ids=(category_id,),
+        ids=(category_id,), note=note,
     )
 
 
@@ -112,8 +114,12 @@ STORE_FACTS: Final[tuple[StoreFactDef, ...]] = (
     _category("partial-controller-support", "Partial controller support", 18, complete=False),
     _category("adjustable-difficulty", "Adjustable difficulty", 78, complete=False),
     _category("save-anytime", "Save anytime", 79, complete=False),
+    # Read as "no timer" by the understand step's model on its first runs,
+    # and then avoided, which turned the player's wish round.
     _category("playable-without-timed-input", "Playable without timed input", 74,
-              complete=False),
+              complete=False,
+              note="an accessibility option: no timed button presses are needed; it says"
+                   " nothing about time limits or timers in the game"),
     # The store sends this one as a raw key, so the label is written here.
     _category("playable-at-your-own-pace", "Playable at your own pace", 80, complete=False),
     _category("steam-workshop", "Steam Workshop", 30, complete=False),

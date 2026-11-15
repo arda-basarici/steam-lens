@@ -28,6 +28,7 @@ from steamlens.contracts.enums import (
     Feeling,
     Firmness,
     NamedGameRole,
+    NameMatch,
     RequestIntent,
     Stance,
     StoreFactSource,
@@ -52,6 +53,10 @@ class StoreFactDef:
     ``player_tags`` are community tag names that mean the same kind of game.
     A game the store does not list under the fact and players tag with one
     of them is neither a match nor a failure. Only genres carry them.
+
+    ``note`` says what the fact is where the store's label alone invites a
+    wrong reading. It is shown to the understand step beside the label and
+    is empty for most facts.
     """
 
     key: str
@@ -60,6 +65,7 @@ class StoreFactDef:
     complete: bool
     ids: tuple[int, ...] = ()
     player_tags: tuple[str, ...] = ()
+    note: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -116,7 +122,9 @@ stored field fits, and the reading is always "cannot tell"."""
 class Want:
     """One thing the player asked for, or asked to avoid.
 
-    ``words`` are the player's own and are always kept. ``partial`` marks a
+    ``words`` are the player's own, an unbroken stretch of one of their
+    messages, and are always kept; the understand step's validation checks
+    them against the conversation. ``partial`` marks a
     want its target covers only in part: nothing says how a game runs on one
     laptop, but performance complaints are evidence against, so such a want
     can fail and can never match. ``compared_to`` holds the player's words
@@ -145,27 +153,39 @@ class Want:
 class NamedGame:
     """A game the player named, and what they said about it.
 
-    ``app_id`` is the library game the name resolves to, or ``None`` for a
-    game that is not measured. Code resolves it against the library; the
-    model never does. ``liked_parts`` are the player's words and are empty
-    when they did not say, which is when the chat may ask.
+    ``words`` are what the player typed and ``title`` is the fuller title the
+    understand step wrote for them ("bg3" becomes "Baldur's Gate 3"), or
+    ``None`` when it could not tell which game was meant. Code matches both
+    against the library's titles; the model never sees the library and never
+    decides whether it holds the game.
+
+    ``app_id`` is the library game the name resolves to, and ``match`` says
+    how it was found. A name that several library titles hold resolves to
+    none of them: ``app_id`` is ``None`` and ``candidates`` lists them, so
+    the chat can ask which one. ``liked_parts`` are the player's words and
+    are empty when they did not say, which is when the chat may ask.
     """
 
     words: str
     app_id: int | None
+    match: NameMatch
     role: NamedGameRole
     feeling: Feeling
     liked_parts: tuple[str, ...] = ()
+    title: str | None = None
+    candidates: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
 class Subject:
-    """What a discussion turn asks about one game.
+    """One thing the player's latest message asks about.
 
-    The same kinds of target as a want, with no firmness and no stance,
-    since nothing is being matched. The player's question is never passed to
-    a search as typed: a term subject carries search words the understand
-    step wrote.
+    On a turn about one game it is a question about that game, with the same
+    kinds of target as a want and no firmness or stance, since nothing is
+    being matched. The player's question is never passed to a search as
+    typed: a term subject carries search words the understand step wrote. On
+    a turn about what the numbers mean it holds the question's words with no
+    target, so the words reach the step that answers.
     """
 
     words: str
@@ -176,20 +196,23 @@ class Subject:
 class PlayerRequest:
     """One chat turn's request, rebuilt from the whole conversation.
 
-    ``wants`` belong to a recommendation and ``subject`` to a discussion of
-    one game. ``substitutes_ruled_out`` records a player who said a
-    neighbouring kind of game will not do, which decides whether a "nothing
-    fits" reply may ask about one. ``show_evidence`` is set only when the
-    player asks what reviewers actually say, or for numbers.
+    ``wants`` are everything the player wants from a game that still stands,
+    whatever the latest message asks for. ``subjects`` are the questions of
+    a turn about one game or about the numbers, one entry each, and are
+    empty on a recommendation. ``substitutes_ruled_out`` records a player
+    who said a neighbouring kind of game will not do, which decides whether
+    a "nothing fits" reply may ask about one. ``show_evidence`` is set only
+    when the player asks to be shown what reviewers wrote, or the figures on
+    a game; asking what a number means does not set it.
 
     >>> request = PlayerRequest(intent=RequestIntent.RECOMMEND)
-    >>> request.wants, request.show_evidence
-    ((), False)
+    >>> request.wants, request.subjects, request.show_evidence
+    ((), (), False)
     """
 
     intent: RequestIntent
     named_games: tuple[NamedGame, ...] = ()
     wants: tuple[Want, ...] = ()
-    subject: Subject | None = None
+    subjects: tuple[Subject, ...] = ()
     substitutes_ruled_out: bool = False
     show_evidence: bool = False

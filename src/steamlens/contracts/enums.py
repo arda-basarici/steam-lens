@@ -82,10 +82,13 @@ class SentimentGroup(StrEnum):
 class RequestIntent(StrEnum):
     """What a chat turn asks for — the recommender chat's scope gate, in one field.
 
-    ``RECOMMEND`` asks for games and carries wants. ``ABOUT_GAME`` discusses
-    one library game and carries a subject in place of wants, since nothing
-    is being matched. ``ABOUT_NUMBERS`` asks what the tab's own figures mean.
+    It names what the player's latest message asks for. ``RECOMMEND`` asks
+    for games. ``ABOUT_GAME`` asks about one game and carries its questions
+    as subjects. ``ABOUT_NUMBERS`` asks what the tab's own figures mean.
     ``OUT_OF_SCOPE`` is everything else and is answered with a fixed refusal.
+    The wants a request carries are whatever still stands in the
+    conversation, under any intent: a question about one game does not
+    withdraw them, and "would it suit me" is answered against them.
 
     >>> RequestIntent.ABOUT_GAME == "about-game"
     True
@@ -146,6 +149,59 @@ class Feeling(StrEnum):
     LIKED = "liked"
     DISLIKED = "disliked"
     UNKNOWN = "unknown"
+
+
+class NameMatch(StrEnum):
+    """How a game the player named was found among the library's titles.
+
+    ``EXACT`` is the whole title. ``PARTIAL`` is a name that is part of one
+    longer title ("disco elysium" for "Disco Elysium - The Final Cut"); it
+    resolves, and it can be a different game of the same series ("doom" finds
+    the library's only DOOM), so a reply names the title it took. ``SEVERAL``
+    is a name more than one library title holds ("dark souls"), which
+    resolves to none of them: the chat asks. ``NOT_IN_LIBRARY`` is a game
+    with no measured report. ``UNCLEAR`` is a reference the understand step
+    could not tie to a game ("that one" after several were mentioned): it is
+    not an unmeasured game, and the chat asks which one was meant.
+    """
+
+    EXACT = "exact"
+    PARTIAL = "partial"
+    SEVERAL = "several"
+    NOT_IN_LIBRARY = "not-in-library"
+    UNCLEAR = "unclear"
+
+
+class ChatRole(StrEnum):
+    """Who wrote a message in a chat conversation: the player, or the chat."""
+
+    PLAYER = "player"
+    CHAT = "chat"
+
+
+class UnderstandOutcome(StrEnum):
+    """How the understand step ended for one turn.
+
+    ``UNDERSTOOD`` is a valid request on the first call and ``RETRIED`` one
+    on the corrective retry. ``SALVAGED`` is a request that still had a
+    fault after the retry. A want with a faulty target keeps the player's
+    words, loses the target and reads "cannot tell"; a want whose words are
+    not the player's stays as it is. Either way no want disappears, and the
+    faults are recorded.
+    The last two carry no request and are answered with a fixed text:
+    ``UNREADABLE`` when the output's structure could not be read or the
+    generation was cut off, ``UNAVAILABLE`` when the spend cap refused the
+    call or provider trouble outlasted the client's retries.
+
+    >>> UnderstandOutcome.SALVAGED == "salvaged"
+    True
+    """
+
+    UNDERSTOOD = "understood"
+    RETRIED = "retried"
+    SALVAGED = "salvaged"
+    UNREADABLE = "unreadable"
+    UNAVAILABLE = "unavailable"
 
 
 class StoreFactSource(StrEnum):
@@ -264,8 +320,9 @@ class LlmStage(StrEnum):
     classification to a paid tier at the milestone-exit decision) is a config
     edit, never a code change. ``CLASSIFY`` labels survey reviews, ``JUDGE`` is
     the eval harness's calibrated judge, ``COMPOSE`` writes report prose over
-    the minted numbers, ``INVESTIGATE`` drives the event investigator. The set
-    grows as stages land; a new member plus a route is the whole cost.
+    the minted numbers, ``INVESTIGATE`` drives the event investigator,
+    ``UNDERSTAND`` turns a chat conversation into a structured request. The
+    set grows as stages land; a new member plus a route is the whole cost.
 
     >>> LlmStage.CLASSIFY == "classify"
     True
@@ -275,6 +332,7 @@ class LlmStage(StrEnum):
     JUDGE = "judge"
     COMPOSE = "compose"
     INVESTIGATE = "investigate"
+    UNDERSTAND = "understand"
 
 
 class SpanKind(StrEnum):

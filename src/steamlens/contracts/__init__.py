@@ -16,10 +16,12 @@ internal navigation aid, not part of the contract.
 """
 
 from steamlens.contracts.aggregate import AspectAggregate, SentimentCounts
+from steamlens.contracts.chat import ChatMessage, Understanding
 from steamlens.contracts.classification import AspectMention, ReviewClassification
 from steamlens.contracts.compose import ComposedNarrative, EvidenceQuote, GroundedSpan
 from steamlens.contracts.enums import (
     AspectSlot,
+    ChatRole,
     Feeling,
     FinishReason,
     Firmness,
@@ -27,6 +29,7 @@ from steamlens.contracts.enums import (
     LlmStage,
     MustStanding,
     NamedGameRole,
+    NameMatch,
     NarrativeOutcome,
     Origin,
     PathOutcome,
@@ -40,6 +43,7 @@ from steamlens.contracts.enums import (
     StageKind,
     Stance,
     StoreFactSource,
+    UnderstandOutcome,
     WantFinding,
     WantStatus,
 )
@@ -133,6 +137,9 @@ __all__ = [
     "Stance",
     "NamedGameRole",
     "Feeling",
+    "NameMatch",
+    "ChatRole",
+    "UnderstandOutcome",
     "StoreFactSource",
     "WantStatus",
     "WantFinding",
@@ -171,6 +178,9 @@ __all__ = [
     "AspectTarget",
     "TermTarget",
     "StoreFactDef",
+    # the chat conversation and the understand step's result
+    "ChatMessage",
+    "Understanding",
     # the cross-game sheet
     "SheetCell",
     "LibraryGame",
