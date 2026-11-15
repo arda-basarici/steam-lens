@@ -13,9 +13,11 @@ positive that talk is.
 
 The rest is the sheet itself. A ``LibraryGame`` is everything stored about
 one game that a request can be read against. A ``WantReading`` is one want
-read on one game. A ``SheetRow`` is a game with a reading per want, and a
-``Sheet`` is every library game as a row. The sheet is a reading handed to
-the chat's judge, not a selection: no game is left off it on evidence.
+read on one game, with a ``SideFinding`` for each game of a comparison when
+the want is relative to a named game. A ``SheetRow`` is a game with a
+reading per want, and a ``Sheet`` is every library game as a row. The sheet
+is a reading handed to the chat's judge, not a selection: no game is left
+off it on evidence.
 """
 
 from __future__ import annotations
@@ -95,6 +97,20 @@ class LibraryGame:
 
 
 @dataclass(frozen=True, slots=True)
+class SideFinding:
+    """What a want's target shows on one of the two games of a comparison.
+
+    The finding the target would get on that game if the want were not
+    relative, and the group when the target is an aspect. It holds no status
+    and no match count: code gives a relative want no verdict, and two
+    counts are never set side by side.
+    """
+
+    finding: WantFinding
+    group: SentimentGroup | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class WantReading:
     """One want read on one game: the status, and what was looked at.
 
@@ -102,12 +118,28 @@ class WantReading:
     criticised" from "opinions are divided" under the same status. ``hits``
     is set for a want on a search term: how many of the game's counted
     reviews match, which is also how many the judge could read.
+
+    A want relative to a named game always reads "cannot tell" and carries
+    neither of those. ``on_game`` is what its target shows on this game and
+    ``on_named_game`` what it shows on the named one, which is absent when
+    the library has not measured that game. The comparison is made in words
+    by the step that reads reviews of both.
+
+    >>> reading = WantReading(
+    ...     WantStatus.CANNOT_TELL, WantFinding.RELATIVE_TO_NAMED_GAME,
+    ...     on_game=SideFinding(WantFinding.TERM_BELOW_CLUSTER),
+    ...     on_named_game=SideFinding(WantFinding.NOT_WRITTEN_ABOUT),
+    ... )
+    >>> reading.hits is None
+    True
     """
 
     status: WantStatus
     finding: WantFinding
     group: SentimentGroup | None = None
     hits: int | None = None
+    on_game: SideFinding | None = None
+    on_named_game: SideFinding | None = None
 
 
 @dataclass(frozen=True, slots=True)

@@ -203,11 +203,15 @@ class PlayerRequest:
     who said a neighbouring kind of game will not do, which decides whether
     a "nothing fits" reply may ask about one. ``show_evidence`` is set only
     when the player asks to be shown what reviewers wrote, or the figures on
-    a game; asking what a number means does not set it.
+    a game; asking what a number means does not set it. ``other_games``
+    records a player who asked for games other than the ones the chat
+    already offered ("anything else?"). Like an already-played game it is
+    the player's say and not evidence, and it is what leaves the earlier
+    offers out of the next suggestions.
 
     >>> request = PlayerRequest(intent=RequestIntent.RECOMMEND)
-    >>> request.wants, request.subjects, request.show_evidence
-    ((), (), False)
+    >>> request.wants, request.subjects, request.show_evidence, request.other_games
+    ((), (), False, False)
     """
 
     intent: RequestIntent
@@ -216,3 +220,4 @@ class PlayerRequest:
     subjects: tuple[Subject, ...] = ()
     substitutes_ruled_out: bool = False
     show_evidence: bool = False
+    other_games: bool = False

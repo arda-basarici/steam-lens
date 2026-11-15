@@ -179,6 +179,24 @@ class ChatRole(StrEnum):
     CHAT = "chat"
 
 
+class ChatMessageKind(StrEnum):
+    """What a message the chat wrote was, recorded so code can count without reading prose.
+
+    A ``QUESTION`` only asks: nothing is suggested or answered in it. An
+    ``ANSWER`` suggests games or answers about one, and stays an answer when
+    it puts a question alongside. ``FIXED`` is a text written in advance
+    that code sends as it stands: the refusal, and the replies to a turn
+    that could not be read or could not be served.
+
+    >>> ChatMessageKind.QUESTION == "question"
+    True
+    """
+
+    QUESTION = "question"
+    ANSWER = "answer"
+    FIXED = "fixed"
+
+
 class UnderstandOutcome(StrEnum):
     """How the understand step ended for one turn.
 
@@ -257,6 +275,12 @@ class WantFinding(StrEnum):
     ``WRITTEN_ABOUT_ELSEWHERE`` when reviews of enough other library games
     use the phrase and ``NOT_WRITTEN_ABOUT`` when they do not.
 
+    Wants relative to a named game ("less frantic than Hades") get no
+    verdict from code, whatever their target: ``RELATIVE_TO_NAMED_GAME``,
+    with what the target shows on each of the two games carried beside it,
+    and ``NAMED_GAME_NOT_IN_LIBRARY`` when the library has not measured the
+    named game, so there is nothing to compare with.
+
     ``NO_DATA`` is a want that maps to no stored field at all.
     """
 
@@ -274,6 +298,8 @@ class WantFinding(StrEnum):
     TERM_BELOW_CLUSTER = "term-below-cluster"
     WRITTEN_ABOUT_ELSEWHERE = "written-about-elsewhere"
     NOT_WRITTEN_ABOUT = "not-written-about"
+    RELATIVE_TO_NAMED_GAME = "relative-to-named-game"
+    NAMED_GAME_NOT_IN_LIBRARY = "named-game-not-in-library"
     NO_DATA = "no-data"
 
 
@@ -321,8 +347,11 @@ class LlmStage(StrEnum):
     edit, never a code change. ``CLASSIFY`` labels survey reviews, ``JUDGE`` is
     the eval harness's calibrated judge, ``COMPOSE`` writes report prose over
     the minted numbers, ``INVESTIGATE`` drives the event investigator,
-    ``UNDERSTAND`` turns a chat conversation into a structured request. The
-    set grows as stages land; a new member plus a route is the whole cost.
+    ``UNDERSTAND`` turns a chat conversation into a structured request,
+    ``PICK`` chooses candidate games from the sheet and ``ANSWER`` writes the
+    chat's reply. The chat's two judging calls are named for what each does,
+    since ``JUDGE`` is the eval harness's. The set grows as stages land; a
+    new member plus a route is the whole cost.
 
     >>> LlmStage.CLASSIFY == "classify"
     True
@@ -333,6 +362,8 @@ class LlmStage(StrEnum):
     COMPOSE = "compose"
     INVESTIGATE = "investigate"
     UNDERSTAND = "understand"
+    PICK = "pick"
+    ANSWER = "answer"
 
 
 class SpanKind(StrEnum):
