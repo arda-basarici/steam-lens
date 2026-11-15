@@ -75,6 +75,7 @@ from steamlens.contracts import (
     WantTarget,
 )
 from steamlens.core.game_names import referenced_game, resolve_name
+from steamlens.core.json_answer import decode_json_object
 from steamlens.core.store_facts import STORE_FACTS, store_fact
 
 UNDERSTAND_PROMPT_VERSION: Final = "understand-v1"
@@ -88,7 +89,6 @@ UNREADABLE_REPLY: Final = "I could not make sense of that. Could you say it anot
 UNAVAILABLE_REPLY: Final = "The chat cannot answer right now. Please try again in a little while."
 
 _STORE_KEYS: Final = frozenset(fact.key for fact in STORE_FACTS)
-_FENCED_BLOCK: Final = re.compile(r"```(?:json)?\s*(.*?)```", re.DOTALL)
 _APOSTROPHES: Final = re.compile("['‘’`]")
 
 _TASK_FRAMING: Final = """\
@@ -634,7 +634,7 @@ def parse_understand_response(
     says which words were not found.
     """
     try:
-        data = _decode_object(response_text)
+        data = decode_json_object(response_text)
     except json.JSONDecodeError as error:
         return ParsedUnderstanding(None, (f"the answer is not valid JSON: {error}",))
     if not isinstance(data, dict):
@@ -755,35 +755,6 @@ def _message_row(message: ChatMessage, titles: Mapping[int, str]) -> dict[str, o
         for number, app_id in enumerate(message.offered, start=1)
     ]
     return row
-
-
-def _decode_object(response_text: str) -> object:
-    """The answer's JSON value, tolerating prose and a code fence around it.
-
-    Strict decode first. Failing that, the first fenced block that decodes,
-    then one JSON value decoded forward from each "{", so text after the
-    object cannot defeat it. The tolerance is about where the payload sits;
-    a root that is not an object still reaches the caller and fails there.
-    Raises the strict attempt's ``JSONDecodeError`` when nothing decodes.
-    """
-    try:
-        return json.loads(response_text)
-    except json.JSONDecodeError:
-        for block in _FENCED_BLOCK.findall(response_text):
-            try:
-                return json.loads(block)
-            except json.JSONDecodeError:
-                continue
-        decoder = json.JSONDecoder()
-        start = response_text.find("{")
-        while start >= 0:
-            try:
-                value, _ = decoder.raw_decode(response_text, start)
-            except json.JSONDecodeError:
-                start = response_text.find("{", start + 1)
-            else:
-                return value
-        raise
 
 
 class _StructureFault(Exception):
