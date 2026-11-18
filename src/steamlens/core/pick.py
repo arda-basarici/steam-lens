@@ -115,14 +115,14 @@ _STANDING_HEADINGS: Final = (
     (MustStanding.CONFLICTS, "Conflicts with a must"),
 )
 
-_STATUS_WORDS: Final = {
+STATUS_WORDS: Final = {
     WantStatus.MATCHES: "matches",
     WantStatus.FAILS: "fails",
     WantStatus.CANNOT_TELL: "cannot tell",
 }
 _STATUS_ORDER: Final = (WantStatus.MATCHES, WantStatus.CANNOT_TELL, WantStatus.FAILS)
 
-_GROUP_WORDS: Final = {
+GROUP_WORDS: Final = {
     SentimentGroup.STRONGLY_POSITIVE: "strongly positive",
     SentimentGroup.MOSTLY_POSITIVE: "mostly positive",
     SentimentGroup.CLEARLY_NEGATIVE: "mostly criticised",
@@ -360,9 +360,9 @@ def build_pick_prompt(
     """
     sections = (
         *_STABLE_SECTIONS,
-        f"<request>\n{_as_data(render_wants(request))}\n</request>",
+        f"<request>\n{as_data(render_wants(request))}\n</request>",
         "<sheet>\n"
-        + _as_data(render_pick_sheet(request, sheet, inner_order=inner_order))
+        + as_data(render_pick_sheet(request, sheet, inner_order=inner_order))
         + "\n</sheet>",
     )
     return "\n\n".join(sections) + "\n"
@@ -613,7 +613,7 @@ def render_pick_sheet(
         for pattern, members in _by_pattern(rows):
             if pattern:
                 statuses = ", ".join(
-                    f"w{number} {_STATUS_WORDS[status]}"
+                    f"w{number} {STATUS_WORDS[status]}"
                     for number, status in enumerate(pattern, start=1)
                 )
                 lines.append(f"-- {statuses} ({_games(len(members))})")
@@ -703,7 +703,7 @@ def _reading_words(reading: WantReading, game: LibraryGame) -> str:
     if reading.on_game is not None:
         return _side_words(reading.on_game)
     if reading.finding is WantFinding.ASPECT_GROUP:
-        return _GROUP_WORDS[reading.group or SentimentGroup.TOO_FEW_MENTIONS]
+        return GROUP_WORDS[reading.group or SentimentGroup.TOO_FEW_MENTIONS]
     if reading.hits:
         tail = "a cluster" if reading.finding is WantFinding.TERM_CLUSTERS else "too few to count"
         return f"{reading.hits} of {game.sample_size} reviews use the words, {tail}"
@@ -712,7 +712,7 @@ def _reading_words(reading: WantReading, game: LibraryGame) -> str:
 
 def _side_words(side: SideFinding) -> str:
     if side.finding is WantFinding.ASPECT_GROUP:
-        return _GROUP_WORDS[side.group or SentimentGroup.TOO_FEW_MENTIONS]
+        return GROUP_WORDS[side.group or SentimentGroup.TOO_FEW_MENTIONS]
     return _FINDING_WORDS[side.finding]
 
 
@@ -741,7 +741,7 @@ def _target_words(want: Want) -> str:
             return ("to be avoided, looked for as " if avoided else "") + looked_for + relative
 
 
-def _as_data(text: str) -> str:
+def as_data(text: str) -> str:
     """``text`` with "<" written as its entity, so it cannot spell a tag."""
     return text.replace("<", "&lt;")
 
