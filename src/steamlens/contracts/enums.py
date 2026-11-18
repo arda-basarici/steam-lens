@@ -247,6 +247,32 @@ class PickOutcome(StrEnum):
     UNAVAILABLE = "unavailable"
 
 
+class AnswerOutcome(StrEnum):
+    """How the answer step ended for one turn.
+
+    ``ANSWERED`` is a valid reply on the first call and ``RETRIED`` one on
+    the corrective retry. ``SALVAGED`` is a reply that still had a fault
+    after the retry, kept with what was faulty removed: a cited identifier
+    that was never issued, a want number the request does not have, a
+    statement about a game the turn's material does not hold, an offer of a
+    game that is not a candidate. The faults are recorded.
+    The last two carry no reply and are answered with a fixed text:
+    ``UNREADABLE`` when the output's structure could not be read, no
+    statement was left once its faults were removed, or the generation was
+    cut off; ``UNAVAILABLE`` when the spend cap refused the call or provider
+    trouble outlasted the client's retries.
+
+    >>> AnswerOutcome.SALVAGED == "salvaged"
+    True
+    """
+
+    ANSWERED = "answered"
+    RETRIED = "retried"
+    SALVAGED = "salvaged"
+    UNREADABLE = "unreadable"
+    UNAVAILABLE = "unavailable"
+
+
 class ReadState(StrEnum):
     """Whether a game's reviews were read on one want, and why not when they were not.
 

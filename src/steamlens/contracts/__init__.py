@@ -17,6 +17,8 @@ internal navigation aid, not part of the contract.
 
 from steamlens.contracts.aggregate import AspectAggregate, SentimentCounts
 from steamlens.contracts.chat import (
+    Answer,
+    AnswerBasis,
     AskDecision,
     AspectStanding,
     CandidatesDecision,
@@ -25,19 +27,25 @@ from steamlens.contracts.chat import (
     CitedExcerpt,
     Excerpt,
     GameMaterial,
+    LeftOut,
     NamedSideMaterial,
     NothingFitsDecision,
+    NothingFitsMaterial,
     OneGameMaterial,
     Pick,
     PickCandidate,
     PickDecision,
+    Reply,
+    ReplyStatement,
     SubjectMaterial,
     Understanding,
+    WantAcrossLibrary,
     WantMaterial,
 )
 from steamlens.contracts.classification import AspectMention, ReviewClassification
 from steamlens.contracts.compose import ComposedNarrative, EvidenceQuote, GroundedSpan
 from steamlens.contracts.enums import (
+    AnswerOutcome,
     AspectSlot,
     ChatMessageKind,
     ChatRole,
@@ -164,6 +172,7 @@ __all__ = [
     "ChatMessageKind",
     "UnderstandOutcome",
     "PickOutcome",
+    "AnswerOutcome",
     "ReadState",
     "StoreFactSource",
     "WantStatus",
@@ -217,10 +226,17 @@ __all__ = [
     "WantMaterial",
     "GameMaterial",
     "NamedSideMaterial",
+    "LeftOut",
     "CandidatesMaterial",
     "SubjectMaterial",
     "AspectStanding",
     "OneGameMaterial",
+    "WantAcrossLibrary",
+    "NothingFitsMaterial",
+    "AnswerBasis",
+    "ReplyStatement",
+    "Reply",
+    "Answer",
     # the cross-game sheet
     "SheetCell",
     "LibraryGame",

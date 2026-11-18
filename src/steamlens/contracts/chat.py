@@ -23,6 +23,16 @@ its reading on every want in words, and the excerpts read, each under an
 identifier the reply cites. ``OneGameMaterial`` is the same for a turn that
 asks about one game: a line per thing asked, and the game read against the
 standing wants when the player asked whether it would suit them.
+``NothingFitsMaterial`` is what a reply that offers nothing is written from:
+how the library divides on each want, in words.
+
+``Reply`` is what the answer call writes, as data: ordered statements, each
+with the game it is about, whether it offers that game, the wants it speaks
+to and the excerpts it cites.
+The reply stays a record until it is shown, so the games a message offered
+and the reviews behind a sentence are read from fields and never back out of
+prose. ``Answer`` is the answer step's result, the reply with the rung that
+produced it.
 """
 
 from __future__ import annotations
@@ -30,6 +40,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from steamlens.contracts.enums import (
+    AnswerOutcome,
     ChatMessageKind,
     ChatRole,
     MustStanding,
@@ -224,7 +235,8 @@ class GameMaterial:
     The title appears here for the first time in a turn: the pick call chose
     the game without it. ``description`` is the store's short description,
     empty when none is held. ``wants`` are in the order of the request's
-    wants, one each.
+    wants, one each. ``release_year`` is the store's, absent when no date is
+    held; a reply may state it, and it is the one figure here.
     """
 
     app_id: int
@@ -232,6 +244,7 @@ class GameMaterial:
     description: str
     standing: MustStanding
     wants: tuple[WantMaterial, ...]
+    release_year: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -250,16 +263,75 @@ class NamedSideMaterial:
 
 
 @dataclass(frozen=True, slots=True)
+class LeftOut:
+    """The games left off the sheet on the player's say, by title.
+
+    ``already_played`` are the games the player said they had played, and
+    ``earlier_offers`` the ones the chat had offered before the player asked
+    for other games, in the order first offered. Neither was left out on
+    evidence, and a reply says that it left them out, so it needs their
+    titles.
+    """
+
+    already_played: tuple[str, ...] = ()
+    earlier_offers: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
 class CandidatesMaterial:
     """Everything fetched for a recommendation turn's candidates.
 
     ``games`` are in the pick's order. ``named_sides`` holds one entry for
     each relative want that was read for some candidate and whose named game
-    the library holds.
+    the library holds. ``left_out`` names the games that were never on the
+    sheet.
     """
 
     games: tuple[GameMaterial, ...]
     named_sides: tuple[NamedSideMaterial, ...] = ()
+    left_out: LeftOut = LeftOut()
+
+
+@dataclass(frozen=True, slots=True)
+class WantAcrossLibrary:
+    """How the library's games divide on one want, with no count.
+
+    ``matched``, ``failed`` and ``undecided`` each say whether at least one
+    game that could be offered has that status on the want. "None" and
+    "some" are the only amounts: a reply that offers nothing names no game
+    and no figure, so a count would have nowhere to go but into a sentence
+    it should not be in. A game the player named as "like this" is not among
+    the games counted, since it is never offered.
+
+    ``findings`` are the distinct findings the want has across those games.
+    Some hold for the whole library (hardly any review anywhere uses the
+    words; the game the want is relative to was never measured), and the
+    reply's wording depends on them.
+    """
+
+    matched: bool
+    failed: bool
+    undecided: bool
+    findings: tuple[WantFinding, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class NothingFitsMaterial:
+    """What a "nothing fits" reply is written from.
+
+    ``wants`` are in the order of the request's wants, one each. ``unmet``
+    are the positions the pick call named as the wants the library could not
+    meet. ``met_only_apart`` is set when every unmet want is matched by some
+    game and no game matches them all, which is a different thing to tell a
+    player than "the library holds no such game". The difference between a
+    want the stored data goes against and one nothing could decide is in
+    each want's line.
+    """
+
+    wants: tuple[WantAcrossLibrary, ...]
+    unmet: tuple[int, ...]
+    met_only_apart: bool = False
+    left_out: LeftOut = LeftOut()
 
 
 @dataclass(frozen=True, slots=True)
@@ -315,3 +387,92 @@ class OneGameMaterial:
     standing_wants: GameMaterial | None = None
     named_sides: tuple[NamedSideMaterial, ...] = ()
     overview: tuple[AspectStanding, ...] = ()
+
+
+type AnswerBasis = CandidatesMaterial | NothingFitsMaterial | AskDecision | OneGameMaterial
+"""What one reply is written from: the candidates' material, the library's
+standing on the wants when nothing fits, the pick call's decision to ask, or
+one game's material. An "ask" needs nothing fetched, so the decision itself
+is the basis."""
+
+
+@dataclass(frozen=True, slots=True)
+class ReplyStatement:
+    """One statement of a reply: a sentence or a few, resting on the same evidence.
+
+    ``game`` is the app id of the game the statement is about, or ``None``
+    for a statement about none: an opening line, a question. ``offers`` says
+    whether the statement puts that game to the player as a suggestion. The
+    two are kept apart because a reply also speaks about games it does not
+    suggest: a candidate it set aside and says why, the game the player
+    named for a comparison, the one game a turn is about. Each of those has
+    reviews behind it, and a statement that names its game can be held to
+    citing that game's reviews.
+
+    ``wants`` are the positions, in the request's wants, of the wants the
+    statement speaks to. A want with no review behind it cannot be reached
+    through a cite, and this is what lets code see that a mismatch or an
+    undecided must was said and not passed over.
+
+    ``cites`` are identifiers of the turn's excerpts, the reviews the
+    statement rests on. The text holds no quote and no figure; what is shown
+    of the evidence is supplied by code from these.
+    """
+
+    text: str
+    game: int | None = None
+    offers: bool = False
+    wants: tuple[int, ...] = ()
+    cites: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class Reply:
+    """What the chat says in one turn, before it is shown.
+
+    ``kind`` is ``QUESTION`` for a reply that only asks and ``ANSWER``
+    otherwise. ``statements`` are in the order they are read.
+
+    >>> reply = Reply(ChatMessageKind.ANSWER, (
+    ...     ReplyStatement("Two of these are close to what you asked for."),
+    ...     ReplyStatement("The first is slow and quiet.", game=620, offers=True, cites=("e3",)),
+    ...     ReplyStatement("The second is shorter.", game=400, offers=True, wants=(2,)),
+    ...     ReplyStatement("Its music is praised too.", game=620, offers=True, cites=("e9",)),
+    ...     ReplyStatement("A third has timed dialogue.", game=730, cites=("e12",)),
+    ... ))
+    >>> reply.offered
+    (620, 400)
+    """
+
+    kind: ChatMessageKind
+    statements: tuple[ReplyStatement, ...]
+
+    @property
+    def offered(self) -> tuple[int, ...]:
+        """The games the reply offers, each once, in the order first offered.
+
+        Derived from the statements that offer a game, so the list a later
+        turn reads "the second one" against cannot disagree with what the
+        reply said, and a game the reply only spoke about is not on it.
+        """
+        games = (statement.game for statement in self.statements if statement.offers)
+        return tuple(dict.fromkeys(game for game in games if game is not None))
+
+
+@dataclass(frozen=True, slots=True)
+class Answer:
+    """One turn's reply, with the rung of the ladder that produced it.
+
+    ``reply`` is present for ``ANSWERED``, ``RETRIED`` and ``SALVAGED`` and
+    absent for ``UNREADABLE`` and ``UNAVAILABLE``. ``faults`` are the faults
+    still standing when the step ended, in words: for a salvaged reply what
+    was removed from it, for an unreadable one what was wrong with the
+    answer.
+
+    >>> Answer(AnswerOutcome.UNAVAILABLE, None).faults
+    ()
+    """
+
+    outcome: AnswerOutcome
+    reply: Reply | None
+    faults: tuple[str, ...] = ()
