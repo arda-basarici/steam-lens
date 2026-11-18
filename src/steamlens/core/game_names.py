@@ -19,6 +19,10 @@ reported as partial.
 
 ``referenced_game`` is the other lookup: from a want that points at a named
 game ("less frantic than Hades") to that game's entry in the same request.
+
+``names_title`` reads the other way, from a sentence the chat wrote to a
+title: whether the sentence names the game at all, in full or the way a
+title is shortened in talk ("Dying Light 2", "Obra Dinn").
 """
 
 from __future__ import annotations
@@ -42,6 +46,10 @@ _ROMAN: Final = {
     "xi": "11", "xii": "12", "xiii": "13", "xiv": "14", "xv": "15",
     "xvi": "16", "xvii": "17", "xviii": "18", "xix": "19", "xx": "20",
 }
+
+# Words a title shares with any sentence. A run made of these and one more
+# word ("return of the") does not show that a sentence names the game.
+_FILLER: Final = frozenset({"a", "an", "and", "at", "for", "in", "of", "on", "the", "to"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -113,7 +121,7 @@ def resolve_name(spellings: Sequence[str], library: Mapping[int, str]) -> NameRe
         if len(exact) == 1:
             return NameResolution(NameMatch.EXACT, exact[0])
         held = exact or sorted(
-            app_id for app_id, title in titles.items() if _holds_run(title, words)
+            app_id for app_id, title in titles.items() if holds_run(title, words)
         )
         if len(held) == 1:
             return NameResolution(NameMatch.PARTIAL, held[0])
@@ -154,7 +162,46 @@ def referenced_game(reference: str, named_games: Sequence[NamedGame]) -> NamedGa
     return None
 
 
-def _holds_run(title: tuple[str, ...], words: tuple[str, ...]) -> bool:
-    """Whether ``words`` appear in ``title`` as one unbroken run."""
-    span = len(words)
-    return any(title[start:start + span] == words for start in range(len(title) - span + 1))
+def names_title(text: str, title: str) -> bool:
+    """Whether ``text`` names the game titled ``title``, in full or shortened.
+
+    A sentence names a game when it holds the title's first word that is
+    not a filler ("Stardew", "the Sims"), or any unbroken run of the title
+    with two or more such words ("Obra Dinn" for "Return of the Obra
+    Dinn"). The rule is generous on purpose. Its caller removes a game the
+    reply offered and never named, so reading a named game as unnamed is
+    the costly mistake, and reading "a return to form" as naming a game
+    only lets a fault pass.
+
+    >>> names_title("Dying Light 2 lists online co-op.", "Dying Light 2 Stay Human")
+    True
+    >>> names_title("Obra Dinn has no clock.", "Return of the Obra Dinn")
+    True
+    >>> names_title("Its reviewers praise the story.", "Return of the Obra Dinn")
+    False
+    """
+    words = title_words(text)
+    wanted = title_words(title)
+    content = [word for word in wanted if word not in _FILLER]
+    if not content:
+        return holds_run(words, wanted)
+    if content[0] in words:
+        return True
+    for start in range(len(wanted)):
+        for end in range(start + 2, len(wanted) + 1):
+            run = wanted[start:end]
+            if sum(word not in _FILLER for word in run) >= 2 and holds_run(words, run):
+                return True
+    return False
+
+
+def holds_run(words: tuple[str, ...], run: tuple[str, ...]) -> bool:
+    """Whether ``run`` appears in ``words`` as one unbroken stretch.
+
+    >>> holds_run(("god", "of", "war", "ragnarok"), ("of", "war"))
+    True
+    >>> holds_run(("god", "of", "war"), ("war", "of"))
+    False
+    """
+    span = len(run)
+    return any(words[start:start + span] == run for start in range(len(words) - span + 1))
