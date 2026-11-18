@@ -20,7 +20,9 @@ is the pick step's result, the decision with the rung that produced it.
 stretch of one review, with the review it came from. ``CandidatesMaterial``
 is what code fetches between the two calls: for each candidate its title,
 its reading on every want in words, and the excerpts read, each under an
-identifier the reply cites.
+identifier the reply cites. ``OneGameMaterial`` is the same for a turn that
+asks about one game: a line per thing asked, and the game read against the
+standing wants when the player asked whether it would suit them.
 """
 
 from __future__ import annotations
@@ -258,3 +260,58 @@ class CandidatesMaterial:
 
     games: tuple[GameMaterial, ...]
     named_sides: tuple[NamedSideMaterial, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class SubjectMaterial:
+    """What the answer call is given on one thing the player asked about a game.
+
+    ``words`` are the player's. ``finding`` is what the subject's target
+    shows on the game, and ``group`` where reviewers stand when the target
+    is an aspect. A question has no stance, so there is no status: "does it
+    have co-op" is answered by the finding, not by a match. ``read`` and
+    ``excerpts`` are as on a want's line; a subject past the number a turn
+    reads is ``CUT_BY_CAP``.
+    """
+
+    words: str
+    finding: WantFinding
+    read: ReadState
+    group: SentimentGroup | None = None
+    excerpts: tuple[CitedExcerpt, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class AspectStanding:
+    """Where a game's reviewers stand on one aspect, as a group and nothing finer."""
+
+    aspect: str
+    group: SentimentGroup
+
+
+@dataclass(frozen=True, slots=True)
+class OneGameMaterial:
+    """Everything fetched for a turn that asks about one game.
+
+    ``subjects`` are in the player's order, one for each thing asked.
+    ``release_year`` is the store's, absent when no date is held.
+
+    ``standing_wants`` is present when the player asked whether the game
+    would suit them: the game read against the wants that still stand, the
+    way a candidate is. ``named_sides`` belong to it, for a standing want
+    that is relative to another game.
+
+    ``overview`` is present when the player asked about the game in general
+    and has stated no wants: the aspects its reviewers praise strongly, then
+    the ones they criticise or are divided on, each list most mentioned
+    first.
+    """
+
+    app_id: int
+    title: str
+    description: str
+    release_year: int | None
+    subjects: tuple[SubjectMaterial, ...]
+    standing_wants: GameMaterial | None = None
+    named_sides: tuple[NamedSideMaterial, ...] = ()
+    overview: tuple[AspectStanding, ...] = ()

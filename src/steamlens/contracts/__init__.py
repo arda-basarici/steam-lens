@@ -18,6 +18,7 @@ internal navigation aid, not part of the contract.
 from steamlens.contracts.aggregate import AspectAggregate, SentimentCounts
 from steamlens.contracts.chat import (
     AskDecision,
+    AspectStanding,
     CandidatesDecision,
     CandidatesMaterial,
     ChatMessage,
@@ -26,9 +27,11 @@ from steamlens.contracts.chat import (
     GameMaterial,
     NamedSideMaterial,
     NothingFitsDecision,
+    OneGameMaterial,
     Pick,
     PickCandidate,
     PickDecision,
+    SubjectMaterial,
     Understanding,
     WantMaterial,
 )
@@ -215,6 +218,9 @@ __all__ = [
     "GameMaterial",
     "NamedSideMaterial",
     "CandidatesMaterial",
+    "SubjectMaterial",
+    "AspectStanding",
+    "OneGameMaterial",
     # the cross-game sheet
     "SheetCell",
     "LibraryGame",
