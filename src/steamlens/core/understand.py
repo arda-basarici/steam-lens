@@ -74,6 +74,7 @@ from steamlens.contracts import (
     Want,
     WantTarget,
 )
+from steamlens.core.conversation import render_conversation
 from steamlens.core.game_names import referenced_game, resolve_name
 from steamlens.core.json_answer import decode_json_object
 from steamlens.core.store_facts import STORE_FACTS, store_fact
@@ -578,7 +579,7 @@ def build_understand_prompt(
         *_stable_sections(ontology),
         _DATA_CHANNEL_NOTE,
         f"The current year is {year}.",
-        f"<conversation>\n{_render_conversation(conversation, library)}\n</conversation>",
+        f"<conversation>\n{render_conversation(conversation, library)}\n</conversation>",
     )
     return "\n\n".join(sections) + "\n"
 
@@ -717,44 +718,11 @@ def _stable_sections(ontology: AspectOntology) -> tuple[str, ...]:
         " when a review is given that label:\n\n" + render_aspects(ontology),
         _OUTPUT_FORMAT,
         "Worked examples:\n\n" + "\n\n".join(
-            f"Conversation:\n{_render_conversation(conversation, _EXAMPLE_TITLES)}\n"
+            f"Conversation:\n{render_conversation(conversation, _EXAMPLE_TITLES)}\n"
             f"Answer:\n{json.dumps(answer, ensure_ascii=False)}"
             for conversation, answer in WORKED_EXAMPLES
         ),
     )
-
-
-def _render_conversation(conversation: Sequence[ChatMessage], titles: Mapping[int, str]) -> str:
-    """The conversation as one line of JSON, with "<" written as its escape.
-
-    A player's message is typed by whoever opens the tab. With "<" escaped,
-    no message can spell the tag that closes the data block and follow it
-    with text that reads as instructions; the JSON still decodes to the same
-    characters.
-
-    A message that offered games lists them under "offered", numbered from
-    one in the order offered, each with its title from ``titles``.
-    """
-    return json.dumps(
-        [_message_row(message, titles) for message in conversation], ensure_ascii=False
-    ).replace("<", "\\u003c")
-
-
-def _message_row(message: ChatMessage, titles: Mapping[int, str]) -> dict[str, object]:
-    row: dict[str, object] = {"role": message.role.value, "text": message.text}
-    if not message.offered:
-        return row
-    unknown = [app_id for app_id in message.offered if app_id not in titles]
-    if unknown:
-        raise ValueError(
-            f"a chat message offered the games {unknown}, which the library does not hold — "
-            "the chat offers library games only, so the message or the library is wrong"
-        )
-    row["offered"] = [
-        {"number": number, "title": titles[app_id]}
-        for number, app_id in enumerate(message.offered, start=1)
-    ]
-    return row
 
 
 class _StructureFault(Exception):
