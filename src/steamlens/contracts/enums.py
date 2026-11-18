@@ -256,7 +256,12 @@ class AnswerOutcome(StrEnum):
     that was never issued, a want number the request does not have, a
     statement about a game the turn's material does not hold, an offer of a
     game that is not a candidate. The faults are recorded.
-    The last two carry no reply and are answered with a fixed text:
+    The same rung holds a reply the check still objected to after the retry,
+    kept without the cite, the statement or the game the objection was
+    about.
+    The last three carry no reply and are answered with a fixed text:
+    ``WITHHELD`` when the check removed every game the reply offered, or
+    every statement it had, so a readable answer was not shown;
     ``UNREADABLE`` when the output's structure could not be read, no
     statement was left once its faults were removed, or the generation was
     cut off; ``UNAVAILABLE`` when the spend cap refused the call or provider
@@ -269,8 +274,68 @@ class AnswerOutcome(StrEnum):
     ANSWERED = "answered"
     RETRIED = "retried"
     SALVAGED = "salvaged"
+    WITHHELD = "withheld"
     UNREADABLE = "unreadable"
     UNAVAILABLE = "unavailable"
+
+
+class CheckRule(StrEnum):
+    """Which rule of the check a reply broke.
+
+    Rules over the record. ``CITE_OUT_OF_PLACE``: a statement cites an
+    excerpt that was not fetched for its game, or the named game's side of
+    a comparison without its own game's side. ``CONFLICT_NOT_CITED``: a
+    game is offered against a must it fails, and no statement about it
+    names that want and cites the reviews read on it.
+    ``WANT_NOT_SPOKEN_TO``: a want the game fails, or a must it could not
+    be decided on, is listed by no statement.
+
+    Rules over the text. ``NUMERAL``: a number that is not in a title, a
+    release year or the player's own words. ``QUOTE``: a passage of a
+    review in quotation marks. ``GAME_NOT_NAMED``: the first statement
+    about an offered game does not hold its title. ``OUTSIDE_GAME_NAMED``:
+    the title of a library game the turn is not about.
+
+    The last three are recorded and cost a reply nothing, since there is
+    nothing to remove or the pattern is too loose to act on:
+    ``RELAYED_WORDING`` (a reviewer's wording carried with a form of
+    "call"), ``WORKING_WORD`` (a label of the material or an identifier)
+    and ``TOO_LONG``.
+
+    >>> CheckRule.CONFLICT_NOT_CITED == "conflict-not-cited"
+    True
+    """
+
+    CITE_OUT_OF_PLACE = "cite-out-of-place"
+    CONFLICT_NOT_CITED = "conflict-not-cited"
+    WANT_NOT_SPOKEN_TO = "want-not-spoken-to"
+    NUMERAL = "numeral"
+    QUOTE = "quote"
+    GAME_NOT_NAMED = "game-not-named"
+    OUTSIDE_GAME_NAMED = "outside-game-named"
+    RELAYED_WORDING = "relayed-wording"
+    WORKING_WORD = "working-word"
+    TOO_LONG = "too-long"
+
+
+class ObjectionRung(StrEnum):
+    """How one objection of the check ended.
+
+    ``CORRECTED``: the corrective retry's answer no longer draws it.
+    ``WITHDRAWN``: the retry's answer no longer offers the game the
+    objection was about, which is the model taking a pick back.
+    ``REMOVED``: it still stood, and code removed the cite, the statement
+    or the game it was about. ``STANDING``: it is still true of the reply
+    that was kept, because its rule removes nothing.
+
+    >>> ObjectionRung.WITHDRAWN == "withdrawn"
+    True
+    """
+
+    CORRECTED = "corrected"
+    WITHDRAWN = "withdrawn"
+    REMOVED = "removed"
+    STANDING = "standing"
 
 
 class ReadState(StrEnum):

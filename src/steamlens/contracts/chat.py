@@ -32,7 +32,8 @@ to and the excerpts it cites.
 The reply stays a record until it is shown, so the games a message offered
 and the reviews behind a sentence are read from fields and never back out of
 prose. ``Answer`` is the answer step's result, the reply with the rung that
-produced it.
+produced it. ``Objection`` is one thing the check found wrong in a readable
+reply, and ``SettledObjection`` the same with how it ended.
 """
 
 from __future__ import annotations
@@ -43,7 +44,9 @@ from steamlens.contracts.enums import (
     AnswerOutcome,
     ChatMessageKind,
     ChatRole,
+    CheckRule,
     MustStanding,
+    ObjectionRung,
     PickOutcome,
     ReadState,
     Sentiment,
@@ -460,14 +463,45 @@ class Reply:
 
 
 @dataclass(frozen=True, slots=True)
+class Objection:
+    """One thing the check found wrong in a readable reply.
+
+    ``rule`` is the rule broken. ``game`` is the app id of the game the
+    objection is about, or ``None`` for one about a statement on no game or
+    about the reply as a whole. ``want`` is the position of the want it is
+    about, for the rules that are about one. The three together identify an
+    objection, so the one raised on a first answer can be found again in
+    the retry's. ``words`` is the sentence the corrective retry names, in
+    the identifiers the answer call was given.
+    """
+
+    rule: CheckRule
+    game: int | None
+    want: int | None
+    words: str
+
+
+@dataclass(frozen=True, slots=True)
+class SettledObjection:
+    """An objection with how it ended, for the record a measurement counts."""
+
+    objection: Objection
+    rung: ObjectionRung
+
+
+@dataclass(frozen=True, slots=True)
 class Answer:
     """One turn's reply, with the rung of the ladder that produced it.
 
     ``reply`` is present for ``ANSWERED``, ``RETRIED`` and ``SALVAGED`` and
-    absent for ``UNREADABLE`` and ``UNAVAILABLE``. ``faults`` are the faults
-    still standing when the step ended, in words: for a salvaged reply what
-    was removed from it, for an unreadable one what was wrong with the
-    answer.
+    absent for ``WITHHELD``, ``UNREADABLE`` and ``UNAVAILABLE``. ``faults``
+    are the faults still standing when the step ended, in words: for a
+    salvaged reply what was removed from it, for an unreadable one what was
+    wrong with the answer.
+
+    ``objections`` are what the check raised over the turn, each once, with
+    how it ended. An objection left standing is true of ``reply`` as it is
+    returned; the others are not.
 
     >>> Answer(AnswerOutcome.UNAVAILABLE, None).faults
     ()
@@ -476,3 +510,4 @@ class Answer:
     outcome: AnswerOutcome
     reply: Reply | None
     faults: tuple[str, ...] = ()
+    objections: tuple[SettledObjection, ...] = ()
