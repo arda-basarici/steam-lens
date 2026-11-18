@@ -11,6 +11,12 @@ cap, read and empty counting as nothing to read); one identifier per
 excerpt, unique across the turn; and the named game's side of a comparison
 once, only when some candidate is read on that comparison and the library
 holds the game.
+
+A turn about one game: each thing asked is read by its target, a store fact
+whether or not the store lists it; a subject past the number a turn reads is
+marked as cut; "would it suit me" brings the game's row on the standing
+wants; and a question about the game in general, with no wants stated,
+brings what its reviewers praise strongly and what they criticise.
 """
 
 from __future__ import annotations
@@ -38,24 +44,33 @@ from steamlens.contracts import (
     RequestIntent,
     Sentiment,
     SentimentCounts,
+    SentimentGroup,
     SheetCell,
     Stance,
     StoreFactTarget,
     StorefrontLabel,
     StorefrontMetadata,
     StorefrontTagCapture,
+    Subject,
     TermTarget,
     Want,
     WantFinding,
     WantStatus,
 )
 from steamlens.core.material import (
+    MAX_SUBJECTS,
     AspectRead,
     NamedSideRead,
+    StandingWantsRead,
     WordsRead,
+    asks_for_an_overview,
+    asks_whether_it_suits,
     candidates_material,
     named_sides_to_read,
+    one_game_material,
     review_read,
+    subject_reading,
+    subjects_to_read,
 )
 from steamlens.core.pick import ReadPlan, read_plan
 from steamlens.core.sheet import read_sheet, sentiment_group
@@ -239,3 +254,127 @@ def test_material_is_put_together_against_the_sheet_the_decision_was_made_from()
     stray = CandidatesDecision((PickCandidate(9999),))
     with pytest.raises(ValueError, match="not a row of the sheet"):
         candidates_material(_REQUEST, _SHEET, stray, ReadPlan(pairs=()), {})
+
+
+# --- a turn about one game ----------------------------------------------------
+
+
+def _cell(aspect: str, mentions: int, positive: int, negative: int) -> SheetCell:
+    counts = SentimentCounts(positive, negative, mentions - positive - negative, 0)
+    return SheetCell(aspect, mentions, 600, counts, sentiment_group(counts, mentions))
+
+
+def _about(*subjects: Subject, wants: tuple[Want, ...] = ()) -> PlayerRequest:
+    return PlayerRequest(intent=RequestIntent.ABOUT_GAME, wants=wants, subjects=subjects)
+
+
+_ASKED = _LIBRARY[1]
+
+
+def test_each_thing_asked_about_a_game_is_read_by_its_target() -> None:
+    """The store lists online co-op for this game and the subject is read
+    all the same: the player asked about it, and reviews say more than the
+    listing. A release year has no reviews behind it, and the year itself
+    is on the material."""
+    request = _about(
+        Subject("how is the music", AspectTarget("music")),
+        Subject("does it have co-op", StoreFactTarget("online-co-op")),
+        Subject("is it a puzzle game", _PUZZLE),
+        Subject("is it recent", ReleaseYearsTarget(first=2019, last=None)),
+    )
+    assert subjects_to_read(request) == (0, 1, 2)
+    readings = [subject_reading(subject, _ASKED, {_PUZZLE: {7004: 120}})
+                for subject in request.subjects]
+    material = one_game_material(
+        request, _ASKED, readings,
+        {0: (_excerpt(7004, "m1"),), 1: (_excerpt(7004, "c1"),),
+         2: (_excerpt(7004, "p1"), _excerpt(7004, "p2"))},
+    )
+
+    assert (material.title, material.release_year) == ("Title 7004", 2020)
+    assert [(s.words, s.finding, s.group, s.read) for s in material.subjects] == [
+        ("how is the music", WantFinding.ASPECT_GROUP, SentimentGroup.STRONGLY_POSITIVE,
+         ReadState.READ),
+        ("does it have co-op", WantFinding.LISTED, None, ReadState.READ),
+        ("is it a puzzle game", WantFinding.TERM_CLUSTERS, None, ReadState.READ),
+        ("is it recent", WantFinding.RELEASED_IN_RANGE, None, ReadState.NOTHING_TO_READ),
+    ]
+    assert [cited.identifier for s in material.subjects for cited in s.excerpts] == [
+        "e1", "e2", "e3", "e4",
+    ]
+    assert material.standing_wants is None and material.overview == ()
+
+
+def test_a_subject_past_the_number_a_turn_reads_is_marked_as_cut() -> None:
+    aspects = ("music", "story", "combat", "art_style", "controls")
+    request = _about(*(Subject(f"how is the {a}", AspectTarget(a)) for a in aspects))
+    assert subjects_to_read(request) == tuple(range(MAX_SUBJECTS))
+    readings = [subject_reading(subject, _ASKED, {}) for subject in request.subjects]
+    material = one_game_material(request, _ASKED, readings, {})
+    assert [s.read for s in material.subjects] == [
+        *[ReadState.NOTHING_TO_READ] * MAX_SUBJECTS, ReadState.CUT_BY_CAP,
+    ]
+
+
+def test_would_it_suit_me_reads_the_game_against_the_standing_wants() -> None:
+    """An untargeted subject on a request with wants. 7002 fails the online
+    co-op must, and its row comes with the conflict and the reviews on it,
+    numbered after the subjects' excerpts."""
+    request = _about(
+        Subject("is it a puzzle game", _PUZZLE), Subject("would it suit me", None),
+        wants=_REQUEST.wants,
+    )
+    assert asks_whether_it_suits(request) and not asks_for_an_overview(request)
+    game = _LIBRARY[0]
+    hits = {_PUZZLE: {7002: 90, 7004: 120}}
+    sheet = read_sheet(request, _LIBRARY, hits)
+    row = next(row for row in sheet.rows if row.game.app_id == 7002)
+    plan = read_plan(CandidatesDecision((PickCandidate(7002),)), request, sheet)
+    material = one_game_material(
+        request, game, [subject_reading(subject, game, hits) for subject in request.subjects],
+        {0: (_excerpt(7002, "p1"),)},
+        StandingWantsRead(row, plan, {(7002, 0): (_excerpt(7002, "b1"),)}),
+    )
+
+    assert material.subjects[1].finding is WantFinding.NO_DATA
+    assert material.subjects[1].read is ReadState.NOTHING_TO_READ
+    standing = material.standing_wants
+    assert standing is not None and standing.standing is MustStanding.CONFLICTS
+    assert standing.wants[0].status is WantStatus.FAILS
+    assert [cited.identifier for cited in standing.wants[0].excerpts] == ["e2"]
+
+
+def test_a_question_about_the_game_in_general_gets_what_reviewers_praise_and_criticise() -> None:
+    """Only from a player who has stated no wants. The strongly praised
+    aspects come first, then the criticised and divided ones, each most
+    mentioned first. An aspect that is only mostly positive is in neither."""
+    cells = (
+        _cell("music", 65, 60, 5), _cell("story", 200, 190, 10),
+        _cell("bugs", 64, 4, 60), _cell("combat", 100, 50, 50), _cell("controls", 100, 62, 38),
+    )
+    assert [cell.group for cell in cells] == [
+        SentimentGroup.STRONGLY_POSITIVE, SentimentGroup.STRONGLY_POSITIVE,
+        SentimentGroup.CLEARLY_NEGATIVE, SentimentGroup.SPLIT, SentimentGroup.MOSTLY_POSITIVE,
+    ]
+    game = _game(7009, *cells)
+    request = _about(Subject("tell me about it", None))
+    assert asks_for_an_overview(request) and not asks_whether_it_suits(request)
+    material = one_game_material(
+        request, game, [subject_reading(request.subjects[0], game, {})], {}
+    )
+    assert [(standing.aspect, standing.group) for standing in material.overview] == [
+        ("story", SentimentGroup.STRONGLY_POSITIVE),
+        ("music", SentimentGroup.STRONGLY_POSITIVE),
+        ("combat", SentimentGroup.SPLIT),
+        ("bugs", SentimentGroup.CLEARLY_NEGATIVE),
+    ]
+
+    with_wants = _about(Subject("tell me about it", None), wants=_REQUEST.wants)
+    readings = [subject_reading(with_wants.subjects[0], game, {})]
+    assert one_game_material(with_wants, game, readings, {}).overview == ()
+
+
+def test_a_turn_about_one_game_has_one_reading_per_subject() -> None:
+    request = _about(Subject("how is the music", AspectTarget("music")))
+    with pytest.raises(ValueError, match="one reading per subject"):
+        one_game_material(request, _ASKED, [], {})

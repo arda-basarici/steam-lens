@@ -19,6 +19,15 @@ or it was read. A planned read that comes back empty counts as nothing to
 read: an aspect too few reviews mention, or matches that all contain
 "spoiler".
 
+A turn about one game has no pick and no plan. Each thing the player asked
+is read by its target the same way, up to a fixed number of subjects, and a
+subject on a store fact is read whether or not the store lists it. Two
+questions have no target of their own. "Would it suit me" reads the game
+against the wants that still stand, as a candidate is read. A question about
+the game in general, from a player who has stated no wants, gets the aspects
+its reviewers praise strongly and the ones they criticise or are divided on,
+as groups.
+
 Every excerpt gets an identifier, ``e1`` and on, in the order the material
 is laid out. Like a game's identifier in the pick call it is made for one
 turn and means nothing outside it; a reply cites it, and the check leads it
@@ -29,27 +38,45 @@ from __future__ import annotations
 
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
+from typing import Final
 
 from steamlens.contracts import (
+    AspectStanding,
     AspectTarget,
     CandidatesDecision,
     CandidatesMaterial,
     CitedExcerpt,
     Excerpt,
+    Firmness,
     GameMaterial,
     LibraryGame,
     NamedSideMaterial,
+    OneGameMaterial,
     PlayerRequest,
     ReadState,
+    SentimentGroup,
     Sheet,
+    SheetRow,
+    Stance,
     StoreFactTarget,
+    Subject,
+    SubjectMaterial,
     TermTarget,
+    Want,
     WantMaterial,
+    WantReading,
     WantTarget,
 )
 from steamlens.core.game_names import referenced_game
 from steamlens.core.pick import ReadPlan
+from steamlens.core.sheet import target_reading
 from steamlens.core.store_facts import store_fact
+
+# Every subject of a turn about one game is read, up to this many, in the
+# player's order. A working value.
+MAX_SUBJECTS: Final = 4
+
+_CRITICISED: Final = (SentimentGroup.CLEARLY_NEGATIVE, SentimentGroup.SPLIT)
 
 
 @dataclass(frozen=True, slots=True)
@@ -150,7 +177,6 @@ def candidates_material(
     Raises ``ValueError`` for a candidate that is not a row of ``sheet``.
     """
     rows = {row.game.app_id: row for row in sheet.rows}
-    cut = set(plan.cut)
     identifiers = _identifiers()
     games: list[GameMaterial] = []
     for candidate in decision.candidates:
@@ -160,49 +186,208 @@ def candidates_material(
                 f"candidate {candidate.app_id} is not a row of the sheet — material is put"
                 " together against the sheet the decision was made from"
             )
-        wants: list[WantMaterial] = []
-        for position, reading in enumerate(row.readings):
-            pair = (candidate.app_id, position)
-            cited = _cited(excerpts.get(pair, ()), identifiers)
-            if cited:
-                state = ReadState.READ
-            elif pair in cut:
-                state = ReadState.CUT_BY_CAP
-            else:
-                state = ReadState.NOTHING_TO_READ
-            wants.append(
-                WantMaterial(
-                    status=reading.status,
-                    finding=reading.finding,
-                    read=state,
-                    group=reading.group,
-                    on_game=reading.on_game,
-                    on_named_game=reading.on_named_game,
-                    excerpts=cited,
-                )
-            )
-        storefront = row.game.storefront
-        games.append(
-            GameMaterial(
-                app_id=row.game.app_id,
-                title=row.game.name,
-                description=storefront.short_description if storefront is not None else "",
-                standing=row.standing,
-                wants=tuple(wants),
+        games.append(_game_material(row, plan, excerpts, identifiers))
+    return CandidatesMaterial(
+        games=tuple(games), named_sides=_named_side_material(named_sides, identifiers)
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class StandingWantsRead:
+    """A game read against the request's standing wants, for "would it suit me".
+
+    ``row`` is the game's row of the sheet, ``plan`` the read plan with the
+    game as its one candidate, ``excerpts`` what the plan's pairs gave, and
+    ``named_sides`` the other side of any standing comparison.
+    """
+
+    row: SheetRow
+    plan: ReadPlan
+    excerpts: Mapping[tuple[int, int], Sequence[Excerpt]]
+    named_sides: Sequence[NamedSideRead] = ()
+
+
+def subject_reading(
+    subject: Subject, game: LibraryGame, term_hits: Mapping[TermTarget, Mapping[int, int]]
+) -> WantReading:
+    """What a subject's target shows on ``game``.
+
+    A subject is read the way a wanted want on the same target is, since the
+    finding and the group are the same either way. Its status is not used: a
+    question has no stance to match. ``term_hits`` holds the hit counts of
+    every search term among the subjects.
+
+    Raises what ``core.sheet.target_reading`` raises, for a term with no
+    supplied counts.
+    """
+    as_want = Want(subject.words, Firmness.WANT, Stance.WANTS, subject.target)
+    return target_reading(as_want, game, term_hits)
+
+
+def subjects_to_read(request: PlayerRequest) -> tuple[int, ...]:
+    """The positions of the subjects whose reviews are read on a one-game turn.
+
+    The first ``MAX_SUBJECTS`` in the player's order, those of them whose
+    target has reviews behind it. A subject on a store fact is among them
+    whether or not the store lists the fact: the player asked about it, and
+    the reviews say more than the listing does.
+    """
+    return tuple(
+        position
+        for position, subject in enumerate(request.subjects[:MAX_SUBJECTS])
+        if review_read(subject.target) is not None
+    )
+
+
+def asks_whether_it_suits(request: PlayerRequest) -> bool:
+    """Whether the turn reads the game against the standing wants.
+
+    A subject with no target, on a request that has wants: "would it suit
+    me", where the wants say what would suit. Code cannot tell that question
+    from another one no stored field fits, so every such subject gets the
+    read; the call that writes the reply has the subject's own words.
+    """
+    return bool(request.wants) and _has_untargeted_subject(request)
+
+
+def asks_for_an_overview(request: PlayerRequest) -> bool:
+    """Whether the turn reads the game in general: an untargeted subject and no wants."""
+    return not request.wants and _has_untargeted_subject(request)
+
+
+def one_game_material(
+    request: PlayerRequest,
+    game: LibraryGame,
+    readings: Sequence[WantReading],
+    excerpts: Mapping[int, Sequence[Excerpt]],
+    standing: StandingWantsRead | None = None,
+) -> OneGameMaterial:
+    """Put the fetched material of a turn about one game together for the answer call.
+
+    ``readings`` hold one reading per subject, in the subjects' order
+    (``subject_reading``), and ``excerpts`` what each subject that was read
+    gave, by its position. ``standing`` is the game read against the
+    standing wants, handed in when the player asked whether it would suit
+    them.
+
+    A subject is ``READ`` when it gave excerpts, ``CUT_BY_CAP`` when it
+    comes after the ``MAX_SUBJECTS`` a turn reads, and ``NOTHING_TO_READ``
+    otherwise. The overview is filled only when ``asks_for_an_overview``
+    holds. Identifiers run through the subjects, then the standing wants,
+    then the named sides.
+
+    Raises ``ValueError`` when ``readings`` are not one per subject.
+    """
+    if len(readings) != len(request.subjects):
+        raise ValueError(
+            f"{len(readings)} readings for {len(request.subjects)} subjects — a turn about"
+            " one game has one reading per subject"
+        )
+    identifiers = _identifiers()
+    subjects: list[SubjectMaterial] = []
+    for position, (subject, reading) in enumerate(zip(request.subjects, readings, strict=True)):
+        cited = _cited(excerpts.get(position, ()), identifiers)
+        subjects.append(
+            SubjectMaterial(
+                words=subject.words,
+                finding=reading.finding,
+                read=_read_state(
+                    cited,
+                    was_cut=position >= MAX_SUBJECTS and review_read(subject.target) is not None,
+                ),
+                group=reading.group,
+                excerpts=cited,
             )
         )
-    return CandidatesMaterial(
-        games=tuple(games),
-        named_sides=tuple(
-            NamedSideMaterial(
-                want=side.want,
-                app_id=side.game.app_id,
-                title=side.game.name,
-                excerpts=_cited(side.excerpts, identifiers),
-            )
-            for side in named_sides
+    released = game.storefront.release_date if game.storefront is not None else None
+    return OneGameMaterial(
+        app_id=game.app_id,
+        title=game.name,
+        description=_description(game),
+        release_year=released.year if released is not None else None,
+        subjects=tuple(subjects),
+        standing_wants=(
+            _game_material(standing.row, standing.plan, standing.excerpts, identifiers)
+            if standing is not None else None
         ),
+        named_sides=(
+            _named_side_material(standing.named_sides, identifiers)
+            if standing is not None else ()
+        ),
+        overview=_overview(game) if asks_for_an_overview(request) else (),
     )
+
+
+def _has_untargeted_subject(request: PlayerRequest) -> bool:
+    return any(subject.target is None for subject in request.subjects[:MAX_SUBJECTS])
+
+
+def _overview(game: LibraryGame) -> tuple[AspectStanding, ...]:
+    """The aspects a game's reviewers praise strongly, then those they criticise or split on.
+
+    Each list most mentioned first. The mention counts order aspects inside
+    one game's report and are not carried: they never order games.
+    """
+    by_mentions = sorted(game.cells, key=lambda cell: (-cell.mentions, cell.aspect))
+    praised = [cell for cell in by_mentions if cell.group is SentimentGroup.STRONGLY_POSITIVE]
+    criticised = [cell for cell in by_mentions if cell.group in _CRITICISED]
+    return tuple(AspectStanding(cell.aspect, cell.group) for cell in (*praised, *criticised))
+
+
+def _game_material(
+    row: SheetRow,
+    plan: ReadPlan,
+    excerpts: Mapping[tuple[int, int], Sequence[Excerpt]],
+    identifiers: Iterator[str],
+) -> GameMaterial:
+    """One game's row as the answer call reads it, a line per want."""
+    cut = set(plan.cut)
+    wants: list[WantMaterial] = []
+    for position, reading in enumerate(row.readings):
+        pair = (row.game.app_id, position)
+        cited = _cited(excerpts.get(pair, ()), identifiers)
+        wants.append(
+            WantMaterial(
+                status=reading.status,
+                finding=reading.finding,
+                read=_read_state(cited, was_cut=pair in cut),
+                group=reading.group,
+                on_game=reading.on_game,
+                on_named_game=reading.on_named_game,
+                excerpts=cited,
+            )
+        )
+    return GameMaterial(
+        app_id=row.game.app_id,
+        title=row.game.name,
+        description=_description(row.game),
+        standing=row.standing,
+        wants=tuple(wants),
+    )
+
+
+def _named_side_material(
+    sides: Sequence[NamedSideRead], identifiers: Iterator[str]
+) -> tuple[NamedSideMaterial, ...]:
+    return tuple(
+        NamedSideMaterial(
+            want=side.want,
+            app_id=side.game.app_id,
+            title=side.game.name,
+            excerpts=_cited(side.excerpts, identifiers),
+        )
+        for side in sides
+    )
+
+
+def _read_state(cited: Sequence[CitedExcerpt], *, was_cut: bool) -> ReadState:
+    if cited:
+        return ReadState.READ
+    return ReadState.CUT_BY_CAP if was_cut else ReadState.NOTHING_TO_READ
+
+
+def _description(game: LibraryGame) -> str:
+    return game.storefront.short_description if game.storefront is not None else ""
 
 
 def _identifiers() -> Iterator[str]:
