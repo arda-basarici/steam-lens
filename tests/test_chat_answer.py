@@ -8,6 +8,15 @@ statement left after the retry, a cut-off generation, the spend cap and
 provider trouble each end the turn with an outcome and never with an
 exception; and a reply that offers more games than a reply may is cut and
 counted without a retry.
+
+The check rides the same round. Its objection is named in the one retry
+beside the parse's faults, and ends as corrected when the retry's answer no
+longer draws it, as withdrawn when the retry takes the offer back, and as
+removed when it still stands and code takes the statement. A reply the
+check leaves nothing of is withheld, which is its own outcome. A rule that
+costs nothing is recorded and asks for no retry, and is named in one that
+runs for another reason. A reply that offers none of its candidates and an
+offer with no review cited are counted.
 Calls flow through the real ``LlmClient`` over a scripted provider, so the
 route and archive-key mechanics are the production ones.
 """
@@ -27,6 +36,7 @@ from steamlens.contracts import (
     ChatMessage,
     ChatMessageKind,
     ChatRole,
+    CheckRule,
     CitedExcerpt,
     Excerpt,
     FinishReason,
@@ -35,6 +45,7 @@ from steamlens.contracts import (
     LlmStage,
     MetricEvent,
     MustStanding,
+    ObjectionRung,
     PlayerRequest,
     ReadState,
     Reply,
@@ -75,11 +86,17 @@ _REQUEST = PlayerRequest(
     wants=(Want("a good story", Firmness.WANT, Stance.WANTS, AspectTarget("story")),),
 )
 _CONVERSATION = (ChatMessage(ChatRole.PLAYER, "something with a good story"),)
-_TEXT = "Players who talk about its story mostly praise it."
 
 
-def _offer(game: str, cite: str) -> dict[str, object]:
-    return {"game": game, "offers": True, "wants": ["w1"], "cites": [cite], "text": _TEXT}
+def _text(game: str) -> str:
+    return f"Players who talk about the story of Title {game[1:]} mostly praise it."
+
+
+def _offer(game: str, cite: str, text: str | None = None) -> dict[str, object]:
+    return {
+        "game": game, "offers": True, "wants": ["w1"], "cites": [cite],
+        "text": text or _text(game),
+    }
 
 
 def _reply(*statements: dict[str, object]) -> str:
@@ -92,8 +109,14 @@ _NOTHING_LEFT = _reply(_offer("g99", "e1"))
 _BROKEN = "I would suggest the second game."
 _KEPT = Reply(
     ChatMessageKind.ANSWER,
-    (ReplyStatement(_TEXT, game=7002, offers=True, wants=(0,), cites=("e2",)),),
+    (ReplyStatement(_text("g2"), game=7002, offers=True, wants=(0,), cites=("e2",)),),
 )
+# A count of reviews, which no reply may hold; and a reviewer's wording
+# relayed, which is recorded and costs nothing.
+_COUNTED = _reply(
+    _offer("g2", "e2", "Title 2 has 40 reviews that praise its story."), _offer("g1", "e1")
+)
+_RELAYED = _reply(_offer("g2", "e2", "Players keep calling the story of Title 2 moving."))
 
 
 def _run(script: AnswerScript, *, budget_usd: float | None = None) -> tuple[Answer, CollectingSink]:
@@ -207,3 +230,84 @@ def test_a_reply_that_offers_too_many_games_is_cut_and_counted_without_a_retry()
     assert answered.reply.offered == (7005, 7004, 7003)
     assert len(script.prompts) == 1
     assert _metrics(sink) == {"answer_cut": 2.0}
+
+
+def _endings(answered: Answer) -> list[tuple[CheckRule, ObjectionRung]]:
+    return [(settled.objection.rule, settled.rung) for settled in answered.objections]
+
+
+def test_an_objection_of_the_check_is_named_in_the_one_retry_and_ends_as_corrected() -> None:
+    script = AnswerScript([_COUNTED, _CLEAN])
+    answered, sink = _run(script)
+    assert answered.outcome is AnswerOutcome.RETRIED
+    assert answered.faults == ()
+    assert len(script.prompts) == 2
+    assert 'statement 1 holds the numeral "40"' in script.prompts[1]
+    assert _endings(answered) == [(CheckRule.NUMERAL, ObjectionRung.CORRECTED)]
+    assert _metrics(sink) == {"answer_faults": 1.0, "check_numeral_corrected": 1.0}
+
+
+def test_an_objection_still_standing_after_the_retry_costs_its_statement() -> None:
+    script = AnswerScript([_COUNTED, _COUNTED])
+    answered, sink = _run(script)
+    assert answered.outcome is AnswerOutcome.SALVAGED
+    assert answered.reply is not None
+    assert answered.reply.offered == (7001,)
+    assert len(answered.faults) == 1
+    assert _endings(answered) == [(CheckRule.NUMERAL, ObjectionRung.REMOVED)]
+    assert _metrics(sink)["answer_salvaged"] == 1.0
+    assert _metrics(sink)["check_numeral_removed"] == 1.0
+
+
+def test_a_retry_that_takes_the_offer_back_ends_the_objection_as_withdrawn() -> None:
+    script = AnswerScript([_COUNTED, _reply(_offer("g1", "e1"))])
+    answered, _ = _run(script)
+    assert answered.outcome is AnswerOutcome.RETRIED
+    assert answered.reply is not None
+    assert answered.reply.offered == (7001,)
+    assert _endings(answered) == [(CheckRule.NUMERAL, ObjectionRung.WITHDRAWN)]
+
+
+def test_a_reply_the_check_leaves_nothing_of_is_withheld() -> None:
+    only = _reply(_offer("g2", "e2", "Title 2 has 40 reviews that praise its story."))
+    script = AnswerScript([only, only])
+    answered, sink = _run(script)
+    assert answered.outcome is AnswerOutcome.WITHHELD
+    assert answered.reply is None
+    assert len(answered.faults) == 1
+    assert _endings(answered) == [(CheckRule.NUMERAL, ObjectionRung.REMOVED)]
+    assert len(script.prompts) == 2
+    assert _metrics(sink)["answer_withheld"] == 1.0
+
+
+def test_a_rule_that_costs_nothing_asks_for_no_retry_and_rides_one_that_runs() -> None:
+    script = AnswerScript([_RELAYED])
+    answered, sink = _run(script)
+    assert answered.outcome is AnswerOutcome.ANSWERED
+    assert len(script.prompts) == 1
+    assert _endings(answered) == [(CheckRule.RELAYED_WORDING, ObjectionRung.STANDING)]
+    assert _metrics(sink) == {"check_relayed_wording_standing": 1.0}
+
+    both = _reply(_offer("g2", "e2", "Players keep calling Title 2 one of the 40 best."))
+    script = AnswerScript([both, _CLEAN])
+    answered, _ = _run(script)
+    assert "relays reviewers' wording" in script.prompts[1]
+    assert _endings(answered) == [
+        (CheckRule.NUMERAL, ObjectionRung.CORRECTED),
+        (CheckRule.RELAYED_WORDING, ObjectionRung.CORRECTED),
+    ]
+
+
+def test_a_reply_that_offers_no_candidate_and_an_offer_with_no_cite_are_counted() -> None:
+    set_aside = _reply({
+        "game": "g2", "offers": False, "wants": ["w1"], "cites": ["e2"],
+        "text": "Title 2 has a praised story, though it is not the kind of game you asked for.",
+    })
+    answered, sink = _run(AnswerScript([set_aside]))
+    assert answered.outcome is AnswerOutcome.ANSWERED
+    assert _metrics(sink) == {"answer_no_offer": 1.0}
+
+    uncited = _reply({**_offer("g2", "e2"), "cites": []})
+    answered, sink = _run(AnswerScript([uncited]))
+    assert answered.outcome is AnswerOutcome.ANSWERED
+    assert _metrics(sink) == {"answer_uncited_offers": 1.0}

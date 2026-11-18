@@ -18,11 +18,23 @@ are dropped, and the rest of the reply stands; when the retry itself fails
 the first answer is salvaged the same way. An answer that leaves no
 statement after the retry ends the turn with a fixed reply.
 
-There is one round, and it is the only one the answer call gets. The faults
-it names today are the ones that keep an answer from being read as a record
-over the turn's material. Whether a readable reply keeps the chat's rules
-is the check's question, and its objections belong in this same round
-beside the parse's faults, so a turn's answer is called twice at most.
+There is one round, and it is the only one the answer call gets. Two kinds
+of fault share it. The parse's are the ones that keep an answer from being
+read as a record over the turn's material. The check's (``core.check``) are
+the rules a readable record still has to keep: a cite fetched for the game
+it is used for, a conflict with a must named and cited, a miss spoken to,
+no numeral and no quote. Both are named in the one retry, so a turn's
+answer is called twice at most. What the check still objects to after it
+is removed by the smallest unit it is in, a cite, a statement or a game,
+and the rest of the reply stands. A reply that offered games and has none
+left after that, or no statement left, is withheld: the turn ends with a
+fixed reply and its own outcome, since a readable answer that was not
+shown is a different thing to count than a broken one.
+
+Three of the check's rules cost nothing and do not ask for the retry by
+themselves: relayed wording, a working word and length. They are named in
+a retry that runs for another reason and are recorded either way. Every
+objection is journalled by its rule and by how it ended.
 
 A reply that offers more games than a reply may is not on the ladder. The
 games past the cap are cut in the model's own order and counted, with no
@@ -41,6 +53,7 @@ so.
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Mapping, Sequence
 from typing import Final
 
@@ -48,11 +61,14 @@ from steamlens.contracts import (
     Answer,
     AnswerBasis,
     AnswerOutcome,
+    CandidatesMaterial,
     ChatMessage,
     LlmRequest,
     LlmStage,
     MetricEvent,
     PlayerRequest,
+    Reply,
+    SettledObjection,
     Sink,
     StageKind,
 )
@@ -61,6 +77,14 @@ from steamlens.core.answer import (
     build_answer_prompt,
     corrective_answer_prompt,
     parse_answer_response,
+)
+from steamlens.core.check import (
+    Enforced,
+    Raised,
+    check_reply,
+    enforce,
+    settle,
+    turn_evidence,
 )
 from steamlens.dispatch import narrate
 from steamlens.dispatch.census_arm import MODEL_ID, PROVIDER
@@ -109,44 +133,84 @@ def answer(
     material, the library's standing on the wants when nothing fits, the
     pick call's decision to ask, or one game's material. ``titles`` maps
     each library game's app id to its title. Every rung narrates, and
-    faults, salvages, cuts and unreadable answers are journalled as metrics.
+    faults, objections, salvages, cuts and unreadable answers are journalled
+    as metrics.
 
-    The result always says how it was reached. A caller answers with a fixed
-    text when it holds no reply.
+    The result always says how it was reached, and carries what the check
+    objected to with how each objection ended. A caller answers with a
+    fixed text when it holds no reply.
 
     Raises ``ValueError`` when a chat message offered a game ``titles`` does
     not hold.
     """
     prompt = build_answer_prompt(conversation, request, basis, titles)
+    turn = turn_evidence(request, basis, conversation, titles)
     first = _attempt(client, prompt, request, basis, sink)
     if isinstance(first, Answer):
         return first
-    if not first.faults:
-        return _replied(AnswerOutcome.ANSWERED, first, sink)
+    raised = check_reply(first.reply, turn) if first.reply is not None else ()
+    if first.reply is not None and not first.faults and not _asks_for_retry(raised):
+        standing = Enforced(first.reply, (), tuple(found.objection for found in raised))
+        return _replied(
+            AnswerOutcome.ANSWERED, first.reply, (), settle(standing), first.cut, basis, sink
+        )
 
-    _count(sink, "answer_faults", len(first.faults))
+    named = (*first.faults, *(found.objection.words for found in raised))
+    _count(sink, "answer_faults", len(named))
     narrate(
         sink, ANSWER_STAGE, StageKind.WARN,
-        f"the answer had {len(first.faults)} faults — corrective retry",
+        f"the answer had {len(named)} faults — corrective retry",
     )
-    second = _attempt(
-        client, corrective_answer_prompt(prompt, first.faults), request, basis, sink
-    )
+    second = _attempt(client, corrective_answer_prompt(prompt, named), request, basis, sink)
+    retried = tuple(found.objection for found in raised)
+    offered_before = first.reply.offered if first.reply is not None else ()
     if isinstance(second, ParsedAnswer):
-        if not second.faults:
+        again = check_reply(second.reply, turn) if second.reply is not None else ()
+        if second.reply is not None and not second.faults and not _asks_for_retry(again):
             narrate(sink, ANSWER_STAGE, StageKind.DONE, "the corrective retry read cleanly")
-            return _replied(AnswerOutcome.RETRIED, second, sink)
-        _count(sink, "answer_faults", len(second.faults))
-
-    for parsed in (second, first):
-        if isinstance(parsed, ParsedAnswer) and parsed.reply is not None:
-            _count(sink, "answer_salvaged", len(parsed.faults))
-            narrate(
-                sink, ANSWER_STAGE, StageKind.WARN,
-                f"{len(parsed.faults)} faults still standing — the reply is kept without"
-                " what was faulty",
+            standing = Enforced(second.reply, (), tuple(found.objection for found in again))
+            objections = settle(
+                standing, retried=retried, offered_before=offered_before,
+                offered_after=second.reply.offered,
             )
-            return _replied(AnswerOutcome.SALVAGED, parsed, sink)
+            return _replied(
+                AnswerOutcome.RETRIED, second.reply, (), objections, second.cut, basis, sink
+            )
+        _count(
+            sink, "answer_faults",
+            len(second.faults) + sum(found.asks_for_retry for found in again),
+        )
+
+    withheld: Answer | None = None
+    for parsed, corrected in ((second, retried), (first, ())):
+        if not isinstance(parsed, ParsedAnswer) or parsed.reply is None:
+            continue
+        enforced = enforce(parsed.reply, turn)
+        objections = settle(
+            enforced, retried=corrected, offered_before=offered_before,
+            offered_after=parsed.reply.offered,
+        )
+        faults = (*parsed.faults, *(objection.words for objection in enforced.removed))
+        if enforced.reply is None:
+            withheld = withheld or Answer(AnswerOutcome.WITHHELD, None, faults, objections)
+            continue
+        _count(sink, "answer_salvaged", len(faults))
+        narrate(
+            sink, ANSWER_STAGE, StageKind.WARN,
+            f"{len(faults)} faults still standing — the reply is kept without"
+            " what was faulty",
+        )
+        return _replied(
+            AnswerOutcome.SALVAGED, enforced.reply, faults, objections, parsed.cut, basis, sink
+        )
+    if withheld is not None:
+        _count(sink, "answer_withheld", 1)
+        _count_objections(sink, withheld.objections)
+        narrate(
+            sink, ANSWER_STAGE, StageKind.WARN,
+            "the check removed what the answer offered — fixed reply",
+        )
+        return withheld
     if isinstance(second, Answer):
         return second
     _count(sink, "answer_unreadable", 1)
@@ -157,16 +221,51 @@ def answer(
     return Answer(AnswerOutcome.UNREADABLE, None, second.faults)
 
 
-def _replied(outcome: AnswerOutcome, parsed: ParsedAnswer, sink: Sink) -> Answer:
-    """The step's result for an answer that holds a reply, with any cut journalled."""
-    if parsed.cut:
-        _count(sink, "answer_cut", parsed.cut)
+def _asks_for_retry(raised: Sequence[Raised]) -> bool:
+    return any(found.asks_for_retry for found in raised)
+
+
+def _replied(
+    outcome: AnswerOutcome,
+    reply: Reply,
+    faults: tuple[str, ...],
+    objections: tuple[SettledObjection, ...],
+    cut: int,
+    basis: AnswerBasis,
+    sink: Sink,
+) -> Answer:
+    """The step's result for a turn that holds a reply, with what there is to count journalled.
+
+    Beside the cut and the objections, two things a later stage rules on
+    are counted on a turn that had candidates: a reply that offers none of
+    them, and the offered games no statement cites a review for.
+    """
+    if cut:
+        _count(sink, "answer_cut", cut)
         narrate(
             sink, ANSWER_STAGE, StageKind.WARN,
-            f"the reply offered {parsed.cut} more games than a reply may — cut from the"
+            f"the reply offered {cut} more games than a reply may — cut from the"
             " end of its own order",
         )
-    return Answer(outcome, parsed.reply, parsed.faults)
+    _count_objections(sink, objections)
+    if isinstance(basis, CandidatesMaterial):
+        cited = {statement.game for statement in reply.statements if statement.cites}
+        uncited = sum(game not in cited for game in reply.offered)
+        if not reply.offered:
+            _count(sink, "answer_no_offer", 1)
+        if uncited:
+            _count(sink, "answer_uncited_offers", uncited)
+    return Answer(outcome, reply, faults, objections)
+
+
+def _count_objections(sink: Sink, objections: Sequence[SettledObjection]) -> None:
+    """One count for each rule and ending, such as ``check_numeral_removed``."""
+    ended = Counter(
+        f"check_{settled.objection.rule.value}_{settled.rung.value}".replace("-", "_")
+        for settled in objections
+    )
+    for name, count in sorted(ended.items()):
+        _count(sink, name, count)
 
 
 def _attempt(
