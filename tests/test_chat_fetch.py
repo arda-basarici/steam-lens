@@ -5,7 +5,10 @@ sample and labels. The claims: every planned pair is read the way its target
 calls for (an aspect by label, a term and a store fact's search words
 through the keyword index); the named game's side of a comparison is read
 once, from that game's reviews; what was read is journalled; and a pair the
-cap leaves unread is journalled and marked as cut, not as empty.
+cap leaves unread is journalled and marked as cut, not as empty. And a turn
+about one game reads each thing asked from that game's reviews, and the
+game against the standing wants when the player asked whether it would suit
+them.
 
 The reports are seeded with a direct insert, as the evidence reads' tests
 do, since the fetch uses only a report's identity, versions and aggregate
@@ -22,7 +25,7 @@ from pathlib import Path
 import pytest
 from fakes import CollectingSink
 
-from steamlens.chat.fetch import FETCH_STAGE, fetch_candidates
+from steamlens.chat.fetch import FETCH_STAGE, fetch_about_game, fetch_candidates
 from steamlens.chat.sheet import load_library, sheet_for
 from steamlens.contracts import (
     AspectMention,
@@ -48,6 +51,7 @@ from steamlens.contracts import (
     Sentiment,
     Stance,
     StoreFactTarget,
+    Subject,
     TermTarget,
     Want,
 )
@@ -217,3 +221,57 @@ def test_a_pair_the_cap_leaves_unread_is_journalled_and_marked_as_cut(
     assert material.named_sides == ()
     assert metrics["fetch_pairs_cut"] == 2.0
     assert metrics["fetch_pairs_read"] == 1.0
+
+
+# A turn about the candidate: is it grindy (a term), does it have co-op (a
+# store fact), would it suit me (no target; the standing want is a good story).
+_ABOUT_REQUEST = PlayerRequest(
+    intent=RequestIntent.ABOUT_GAME,
+    named_games=(
+        NamedGame(
+            "the candidate", _CANDIDATE, NameMatch.EXACT, NamedGameRole.ASK_ABOUT,
+            Feeling.UNKNOWN,
+        ),
+    ),
+    wants=(Want("a good story", Firmness.WANT, Stance.WANTS, AspectTarget("story")),),
+    subjects=(
+        Subject("is it grindy", TermTarget(("grind", "grindy"))),
+        Subject("does it have co-op", StoreFactTarget("online-co-op")),
+        Subject("would it suit me", None),
+    ),
+)
+
+
+def test_a_turn_about_one_game_reads_each_subject_and_the_standing_wants(
+    store_path: Path,
+) -> None:
+    """The two targeted subjects are read from the game's own reviews, by
+    words. The third has no target and the request has a want, so the game
+    is read against that want the way a candidate is."""
+    sink = CollectingSink()
+    with Store(store_path) as store:
+        library = load_library(store)
+        game = next(game for game in library if game.app_id == _CANDIDATE)
+        material = fetch_about_game(store, _ABOUT_REQUEST, game, library, sink)
+
+    assert material.title == "The Candidate"
+    grindy, coop, suits = material.subjects
+    assert {cited.excerpt.review_id for cited in grindy.excerpts} == {"c1", "c6"}
+    assert [cited.excerpt.review_id for cited in coop.excerpts] == ["c2"]
+    assert (suits.read, suits.excerpts) == (ReadState.NOTHING_TO_READ, ())
+
+    standing = material.standing_wants
+    assert standing is not None
+    (story,) = standing.wants
+    assert story.read is ReadState.READ
+    assert {cited.excerpt.review_id for cited in story.excerpts} == {"c1", "c2", "c3", "c4", "c5"}
+
+    identifiers = [cited.identifier for subject in material.subjects for cited in subject.excerpts]
+    identifiers += [cited.identifier for cited in story.excerpts]
+    assert identifiers == [f"e{number}" for number in range(1, len(identifiers) + 1)]
+    metrics = {
+        event.name: event.value
+        for event in sink.events
+        if isinstance(event, MetricEvent) and event.stage == FETCH_STAGE
+    }
+    assert metrics == {"fetch_pairs_read": 3.0, "fetch_excerpts": float(len(identifiers))}
