@@ -10,10 +10,12 @@ Each step's rules are pure and live in ``core``; what a step does here is the
 reading and the calling. Built so far: the understand step's call and its
 ladder (``chat.understand``), the library read behind the sheet
 (``chat.sheet``), the pick step's call and its ladder (``chat.pick``), the
-review excerpts a reply is written from (``chat.evidence``) and the fetch
-that reads them for a turn (``chat.fetch``).
+review excerpts a reply is written from (``chat.evidence``), the fetch that
+reads them for a turn (``chat.fetch``) and the answer step's call and its
+ladder (``chat.answer``), which writes every reply.
 """
 
+from steamlens.chat.answer import ANSWER_STAGE, answer, answer_route
 from steamlens.chat.evidence import EXCERPTS_PER_READ, aspect_excerpts, term_excerpts
 from steamlens.chat.fetch import FETCH_STAGE, fetch_about_game, fetch_candidates
 from steamlens.chat.pick import PICK_STAGE, pick, pick_route
@@ -41,4 +43,8 @@ __all__ = [
     "EXCERPTS_PER_READ",
     "aspect_excerpts",
     "term_excerpts",
+    # the answer step
+    "ANSWER_STAGE",
+    "answer",
+    "answer_route",
 ]
