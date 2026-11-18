@@ -36,6 +36,7 @@ from steamlens.contracts import (
     ClassifierVersions,
     Feeling,
     Firmness,
+    LeftOut,
     MetricEvent,
     NamedGame,
     NamedGameRole,
@@ -221,6 +222,25 @@ def test_a_pair_the_cap_leaves_unread_is_journalled_and_marked_as_cut(
     assert material.named_sides == ()
     assert metrics["fetch_pairs_cut"] == 2.0
     assert metrics["fetch_pairs_read"] == 1.0
+
+
+def test_a_game_the_player_already_played_reaches_the_reply_by_title(store_path: Path) -> None:
+    """The sheet leaves the game off, so no candidate's line would mention
+    it. The material names it, and the reply can say it was left out."""
+    played = NamedGame(
+        "that game", _NAMED, NameMatch.EXACT, NamedGameRole.NOT_THIS, Feeling.UNKNOWN
+    )
+    request = PlayerRequest(
+        intent=RequestIntent.RECOMMEND,
+        named_games=(played,),
+        wants=(Want("a good story", Firmness.WANT, Stance.WANTS, AspectTarget("story")),),
+    )
+    with Store(store_path) as store:
+        sheet = sheet_for(store, request)
+        material = fetch_candidates(
+            store, request, sheet, _DECISION, load_library(store), CollectingSink()
+        )
+    assert material.left_out == LeftOut(already_played=("The Named Game",))
 
 
 # A turn about the candidate: is it grindy (a term), does it have co-op (a

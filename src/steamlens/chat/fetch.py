@@ -47,6 +47,7 @@ from steamlens.core.material import (
     StandingWantsRead,
     asks_whether_it_suits,
     candidates_material,
+    left_out_games,
     named_sides_to_read,
     one_game_material,
     review_read,
@@ -89,7 +90,11 @@ def fetch_candidates(
     excerpts = _read_pairs(store, request, plan, games)
     named_sides = _read_named_sides(store, request, plan, games)
     _journal(sink, plan, [*excerpts.values(), *(side.excerpts for side in named_sides)])
-    return candidates_material(request, sheet, decision, plan, excerpts, named_sides)
+    titles = {app_id: game.name for app_id, game in games.items()}
+    return candidates_material(
+        request, sheet, decision, plan, excerpts, named_sides,
+        left_out=left_out_games(sheet, titles),
+    )
 
 
 def fetch_about_game(

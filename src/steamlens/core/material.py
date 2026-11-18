@@ -28,6 +28,11 @@ the game in general, from a player who has stated no wants, gets the aspects
 its reviewers praise strongly and the ones they criticise or are divided on,
 as groups.
 
+A reply that offers nothing has no reviews to read, and still has to tell
+"the store lists no such game" from "nothing stored could decide it". It
+gets how the library divides on each want, as presence and never as a
+count: whether any game matches, fails, or could not be decided.
+
 Every excerpt gets an identifier, ``e1`` and on, in the order the material
 is laid out. Like a game's identifier in the pick call it is made for one
 turn and means nothing outside it; a reply cites it, and the check leads it
@@ -49,8 +54,11 @@ from steamlens.contracts import (
     Excerpt,
     Firmness,
     GameMaterial,
+    LeftOut,
     LibraryGame,
     NamedSideMaterial,
+    NothingFitsDecision,
+    NothingFitsMaterial,
     OneGameMaterial,
     PlayerRequest,
     ReadState,
@@ -63,8 +71,11 @@ from steamlens.contracts import (
     SubjectMaterial,
     TermTarget,
     Want,
+    WantAcrossLibrary,
+    WantFinding,
     WantMaterial,
     WantReading,
+    WantStatus,
     WantTarget,
 )
 from steamlens.core.game_names import referenced_game
@@ -161,12 +172,17 @@ def candidates_material(
     plan: ReadPlan,
     excerpts: Mapping[tuple[int, int], Sequence[Excerpt]],
     named_sides: Sequence[NamedSideRead] = (),
+    *,
+    left_out: LeftOut,
 ) -> CandidatesMaterial:
     """Put a recommendation turn's fetched material together for the answer call.
 
     ``plan`` is the read plan of ``decision`` (``core.pick.read_plan``) and
     ``excerpts`` what each of its pairs gave, keyed by app id and want
     position. ``named_sides`` are the named games' sides, read once each.
+    ``left_out`` names the games the sheet left off (``left_out_games``); it
+    has no default, since a reply that does not hear of them cannot say it
+    left them out.
 
     A want's ``read`` is ``READ`` when its pair gave excerpts,
     ``CUT_BY_CAP`` when the plan cut the pair, and ``NOTHING_TO_READ``
@@ -188,7 +204,78 @@ def candidates_material(
             )
         games.append(_game_material(row, plan, excerpts, identifiers))
     return CandidatesMaterial(
-        games=tuple(games), named_sides=_named_side_material(named_sides, identifiers)
+        games=tuple(games),
+        named_sides=_named_side_material(named_sides, identifiers),
+        left_out=left_out,
+    )
+
+
+def left_out_games(sheet: Sheet, titles: Mapping[int, str]) -> LeftOut:
+    """The games ``sheet`` left off on the player's say, by title.
+
+    ``titles`` maps each library game's app id to its title. The sheet
+    leaves off the games the player said they had played and, when the
+    player asked for other games, the ones the chat already offered.
+
+    Raises ``ValueError`` for a left-off game ``titles`` does not hold: the
+    sheet only leaves library games off, so the two do not belong together.
+    """
+    def title(app_id: int) -> str:
+        if app_id not in titles:
+            raise ValueError(
+                f"the sheet left game {app_id} off and the library's titles do not hold it — "
+                "titles are taken from the library the sheet was read from"
+            )
+        return titles[app_id]
+
+    return LeftOut(
+        already_played=tuple(title(app_id) for app_id in sheet.already_played),
+        earlier_offers=tuple(title(app_id) for app_id in sheet.earlier_offers),
+    )
+
+
+def nothing_fits_material(
+    decision: NothingFitsDecision, sheet: Sheet, left_out: LeftOut
+) -> NothingFitsMaterial:
+    """How the library divides on each want, for a reply that offers nothing.
+
+    ``sheet`` is the one ``decision`` was made from. Each want gets whether
+    any game matches it, fails it, or could not be decided on it, and the
+    findings behind those statuses. No number is carried: the reply names no
+    game and no figure. The game the player named as "like this" is left
+    out of the reading, since it is never offered and "some games match"
+    must not be true because of it alone.
+
+    ``met_only_apart`` is set when the unmet wants are each matched by some
+    game and no one game matches them all.
+
+    Raises ``ValueError`` for an unmet position the sheet has no want for.
+    """
+    wants = len(sheet.tallies)
+    stray = [position for position in decision.unmet if not 0 <= position < wants]
+    if stray:
+        raise ValueError(
+            f"the decision names the unmet wants {stray} and the sheet was read against"
+            f" {wants} wants — the decision is read against the sheet it was made from"
+        )
+    offerable = [row for row in sheet.rows if not row.like_this]
+    lines = tuple(
+        _across_library([row.readings[position] for row in offerable])
+        for position in range(wants)
+    )
+    met_together = any(
+        all(row.readings[position].status is WantStatus.MATCHES for position in decision.unmet)
+        for row in offerable
+    )
+    return NothingFitsMaterial(
+        wants=lines,
+        unmet=decision.unmet,
+        met_only_apart=(
+            bool(decision.unmet)
+            and all(lines[position].matched for position in decision.unmet)
+            and not met_together
+        ),
+        left_out=left_out,
     )
 
 
@@ -299,12 +386,11 @@ def one_game_material(
                 excerpts=cited,
             )
         )
-    released = game.storefront.release_date if game.storefront is not None else None
     return OneGameMaterial(
         app_id=game.app_id,
         title=game.name,
         description=_description(game),
-        release_year=released.year if released is not None else None,
+        release_year=_release_year(game),
         subjects=tuple(subjects),
         standing_wants=(
             _game_material(standing.row, standing.plan, standing.excerpts, identifiers)
@@ -363,6 +449,19 @@ def _game_material(
         description=_description(row.game),
         standing=row.standing,
         wants=tuple(wants),
+        release_year=_release_year(row.game),
+    )
+
+
+def _across_library(readings: Sequence[WantReading]) -> WantAcrossLibrary:
+    """Which statuses and findings one want has across ``readings``, as presence only."""
+    statuses = {reading.status for reading in readings}
+    found = {reading.finding for reading in readings}
+    return WantAcrossLibrary(
+        matched=WantStatus.MATCHES in statuses,
+        failed=WantStatus.FAILS in statuses,
+        undecided=WantStatus.CANNOT_TELL in statuses,
+        findings=tuple(finding for finding in WantFinding if finding in found),
     )
 
 
@@ -388,6 +487,11 @@ def _read_state(cited: Sequence[CitedExcerpt], *, was_cut: bool) -> ReadState:
 
 def _description(game: LibraryGame) -> str:
     return game.storefront.short_description if game.storefront is not None else ""
+
+
+def _release_year(game: LibraryGame) -> int | None:
+    released = game.storefront.release_date if game.storefront is not None else None
+    return released.year if released is not None else None
 
 
 def _identifiers() -> Iterator[str]:

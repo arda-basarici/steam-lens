@@ -17,6 +17,12 @@ whether or not the store lists it; a subject past the number a turn reads is
 marked as cut; "would it suit me" brings the game's row on the standing
 wants; and a question about the game in general, with no wants stated,
 brings what its reviewers praise strongly and what they criticise.
+
+A reply that offers nothing: the games left off the sheet on the player's
+say reach it by title; and it gets how the library divides on each want as
+presence with no count, the game named as "like this" not among the games
+read, and wants met by different games told apart from a want no game
+meets.
 """
 
 from __future__ import annotations
@@ -32,11 +38,13 @@ from steamlens.contracts import (
     Excerpt,
     Feeling,
     Firmness,
+    LeftOut,
     LibraryGame,
     MustStanding,
     NamedGame,
     NamedGameRole,
     NameMatch,
+    NothingFitsDecision,
     PickCandidate,
     PlayerRequest,
     ReadState,
@@ -66,7 +74,9 @@ from steamlens.core.material import (
     asks_for_an_overview,
     asks_whether_it_suits,
     candidates_material,
+    left_out_games,
     named_sides_to_read,
+    nothing_fits_material,
     one_game_material,
     review_read,
     subject_reading,
@@ -148,6 +158,7 @@ def test_candidates_come_in_the_picks_order_with_titles_and_a_line_per_want() ->
             (7002, 1): (_excerpt(7002, "b2"),),
             (7002, 2): (_excerpt(7002, "b3", Sentiment.POSITIVE),),
         },
+        left_out=LeftOut(),
     )
 
     first, second = material.games
@@ -155,6 +166,7 @@ def test_candidates_come_in_the_picks_order_with_titles_and_a_line_per_want() ->
         7004, "Title 7004", "The store's words for 7004.", MustStanding.MEETS,
     )
     assert (second.app_id, second.standing) == (7002, MustStanding.CONFLICTS)
+    assert first.release_year == 2020
 
     assert [(want.status, want.finding, want.read) for want in first.wants] == [
         (WantStatus.MATCHES, WantFinding.LISTED, ReadState.NOTHING_TO_READ),
@@ -177,7 +189,8 @@ def test_no_count_reaches_the_answer_call() -> None:
     state or to set beside another game's."""
     assert _SHEET.rows[0].readings[1].hits == 120
     material = candidates_material(
-        _REQUEST, _SHEET, _DECISION, read_plan(_DECISION, _REQUEST, _SHEET), {}
+        _REQUEST, _SHEET, _DECISION, read_plan(_DECISION, _REQUEST, _SHEET), {},
+        left_out=LeftOut(),
     )
     for game in material.games:
         for want in game.wants:
@@ -193,7 +206,8 @@ def test_a_pair_the_cap_cut_is_told_apart_from_one_with_nothing_to_read() -> Non
     A reply may not treat that as the reviews saying nothing."""
     plan = ReadPlan(pairs=((7004, 1),), cut=((7004, 2), (7002, 1)))
     material = candidates_material(
-        _REQUEST, _SHEET, _DECISION, plan, {(7004, 1): (_excerpt(7004, "a1"),)}
+        _REQUEST, _SHEET, _DECISION, plan, {(7004, 1): (_excerpt(7004, "a1"),)},
+        left_out=LeftOut(),
     )
     first, second = material.games
     assert [want.read for want in first.wants] == [
@@ -226,6 +240,7 @@ def test_the_named_games_side_is_read_once_when_a_candidate_is_read_on_the_compa
         request, sheet, decision, plan,
         {(7004, 0): (_excerpt(7004, "a1"),), (7004, 1): (_excerpt(7004, "a2"),)},
         (NamedSideRead(1, _LIBRARY[0], (_excerpt(7002, "n1"), _excerpt(7002, "n2"))),),
+        left_out=LeftOut(),
     )
     (side,) = material.named_sides
     assert (side.want, side.app_id, side.title) == (1, 7002, "Title 7002")
@@ -253,7 +268,74 @@ def test_no_named_side_is_read_for_a_game_the_library_lacks_or_a_comparison_left
 def test_material_is_put_together_against_the_sheet_the_decision_was_made_from() -> None:
     stray = CandidatesDecision((PickCandidate(9999),))
     with pytest.raises(ValueError, match="not a row of the sheet"):
-        candidates_material(_REQUEST, _SHEET, stray, ReadPlan(pairs=()), {})
+        candidates_material(
+            _REQUEST, _SHEET, stray, ReadPlan(pairs=()), {}, left_out=LeftOut()
+        )
+
+
+# --- what was left out, and a reply that offers nothing -------------------------
+
+
+def test_the_games_left_off_the_sheet_reach_the_reply_by_title() -> None:
+    """7002 was already played and 7004 was offered before the player asked
+    for other games. Both are off the sheet, and a reply has to be able to
+    say so."""
+    played = NamedGame("that one", 7002, NameMatch.EXACT, NamedGameRole.NOT_THIS, Feeling.UNKNOWN)
+    request = dataclasses.replace(_REQUEST, named_games=(played,), other_games=True)
+    sheet = read_sheet(request, _LIBRARY, {_PUZZLE: {}}, offered=(7004,))
+    assert sheet.rows == ()
+
+    left_out = left_out_games(sheet, {7002: "Title 7002", 7004: "Title 7004"})
+    assert left_out == LeftOut(already_played=("Title 7002",), earlier_offers=("Title 7004",))
+
+    with pytest.raises(ValueError, match="do not hold it"):
+        left_out_games(sheet, {7004: "Title 7004"})
+
+
+def test_a_reply_that_offers_nothing_reads_how_the_library_divides_with_no_count() -> None:
+    """Online co-op: one game lists it and one does not. The puzzle words
+    cluster in both. Music: one game is praised for it, and the other has
+    too few mentions to say."""
+    material = nothing_fits_material(NothingFitsDecision((0,)), _SHEET, LeftOut())
+    coop, puzzle, music = material.wants
+    assert (coop.matched, coop.failed, coop.undecided) == (True, True, False)
+    assert coop.findings == (WantFinding.LISTED, WantFinding.NOT_LISTED)
+    assert (puzzle.matched, puzzle.failed, puzzle.undecided) == (True, False, False)
+    assert (music.matched, music.failed, music.undecided) == (True, False, True)
+    assert material.unmet == (0,)
+    for line in material.wants:
+        values = [getattr(line, field.name) for field in dataclasses.fields(line)]
+        assert not any(type(value) is int for value in values)
+
+
+def test_wants_met_by_different_games_are_told_apart_from_a_want_no_game_meets() -> None:
+    """7004 has online co-op and 7002 does not; give 7002 the praised music
+    and 7004 none. Each want is met by some game and no game meets both."""
+    library = (_game(7002, _music(60, 5)), _game(7004, online_coop=True))
+    request = dataclasses.replace(_REQUEST, wants=(_REQUEST.wants[0], _REQUEST.wants[2]))
+    sheet = read_sheet(request, library, {})
+    apart = nothing_fits_material(NothingFitsDecision((0, 1)), sheet, LeftOut())
+    assert apart.met_only_apart
+
+    one_want = nothing_fits_material(NothingFitsDecision((0,)), sheet, LeftOut())
+    assert not one_want.met_only_apart
+
+    with pytest.raises(ValueError, match="read against 2 wants"):
+        nothing_fits_material(NothingFitsDecision((5,)), sheet, LeftOut())
+
+
+def test_the_game_named_as_like_this_is_not_among_the_games_the_library_is_read_over() -> None:
+    """Only 7004 lists online co-op, and the player named it as the kind of
+    game they want. It is never offered, so "some game matches" would be
+    true for a game the reply cannot give."""
+    liked = NamedGame("that one", 7004, NameMatch.EXACT, NamedGameRole.LIKE_THIS, Feeling.LIKED)
+    request = dataclasses.replace(_REQUEST, named_games=(liked,))
+    sheet = read_sheet(request, _LIBRARY, {_PUZZLE: {7002: 90, 7004: 120}})
+    assert any(row.like_this for row in sheet.rows)
+
+    material = nothing_fits_material(NothingFitsDecision((0,)), sheet, LeftOut())
+    assert not material.wants[0].matched
+    assert material.wants[0].failed
 
 
 # --- a turn about one game ----------------------------------------------------
