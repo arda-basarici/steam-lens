@@ -17,7 +17,10 @@ it was made from; the reply is written afterwards by another call. ``Pick``
 is the pick step's result, the decision with the rung that produced it.
 
 ``Excerpt`` is the unit of review evidence that reply is written from: a
-stretch of one review, with the review it came from.
+stretch of one review, with the review it came from. ``CandidatesMaterial``
+is what code fetches between the two calls: for each candidate its title,
+its reading on every want in words, and the excerpts read, each under an
+identifier the reply cites.
 """
 
 from __future__ import annotations
@@ -27,11 +30,17 @@ from dataclasses import dataclass
 from steamlens.contracts.enums import (
     ChatMessageKind,
     ChatRole,
+    MustStanding,
     PickOutcome,
+    ReadState,
     Sentiment,
+    SentimentGroup,
     UnderstandOutcome,
+    WantFinding,
+    WantStatus,
 )
 from steamlens.contracts.request import PlayerRequest
+from steamlens.contracts.sheet import SideFinding
 
 
 @dataclass(frozen=True, slots=True)
@@ -168,3 +177,84 @@ class Pick:
     outcome: PickOutcome
     decision: PickDecision | None
     faults: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class CitedExcerpt:
+    """An excerpt as the answer call reads it, under the identifier it is cited by.
+
+    The identifier (``e1``, ``e2`` and on) is issued for one turn's material
+    and means nothing outside it. A reply cites it, and it leads back to the
+    review and the game through ``excerpt``.
+    """
+
+    identifier: str
+    excerpt: Excerpt
+
+
+@dataclass(frozen=True, slots=True)
+class WantMaterial:
+    """What the answer call is given on one want for one game.
+
+    The reading in words: ``status``, ``finding``, and ``group`` for a want
+    on an aspect; for a want relative to a named game, what its target
+    shows on each side. There is no count here by construction. The reply
+    is written from groups and excerpts, and a match count or a mention
+    count that never reaches the call cannot be stated or compared.
+
+    ``read`` says whether reviews were read on the want, and ``excerpts``
+    holds them when they were.
+    """
+
+    status: WantStatus
+    finding: WantFinding
+    read: ReadState
+    group: SentimentGroup | None = None
+    on_game: SideFinding | None = None
+    on_named_game: SideFinding | None = None
+    excerpts: tuple[CitedExcerpt, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class GameMaterial:
+    """One candidate as the answer call reads it.
+
+    The title appears here for the first time in a turn: the pick call chose
+    the game without it. ``description`` is the store's short description,
+    empty when none is held. ``wants`` are in the order of the request's
+    wants, one each.
+    """
+
+    app_id: int
+    title: str
+    description: str
+    standing: MustStanding
+    wants: tuple[WantMaterial, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class NamedSideMaterial:
+    """The named game's side of one comparison, read once for the turn.
+
+    ``want`` is the position of the want that is relative to the game. A
+    comparison is made in words from reviews of both games, and this is the
+    half that is the same for every candidate.
+    """
+
+    want: int
+    app_id: int
+    title: str
+    excerpts: tuple[CitedExcerpt, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class CandidatesMaterial:
+    """Everything fetched for a recommendation turn's candidates.
+
+    ``games`` are in the pick's order. ``named_sides`` holds one entry for
+    each relative want that was read for some candidate and whose named game
+    the library holds.
+    """
+
+    games: tuple[GameMaterial, ...]
+    named_sides: tuple[NamedSideMaterial, ...] = ()

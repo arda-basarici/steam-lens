@@ -19,13 +19,18 @@ from steamlens.contracts.aggregate import AspectAggregate, SentimentCounts
 from steamlens.contracts.chat import (
     AskDecision,
     CandidatesDecision,
+    CandidatesMaterial,
     ChatMessage,
+    CitedExcerpt,
     Excerpt,
+    GameMaterial,
+    NamedSideMaterial,
     NothingFitsDecision,
     Pick,
     PickCandidate,
     PickDecision,
     Understanding,
+    WantMaterial,
 )
 from steamlens.contracts.classification import AspectMention, ReviewClassification
 from steamlens.contracts.compose import ComposedNarrative, EvidenceQuote, GroundedSpan
@@ -45,6 +50,7 @@ from steamlens.contracts.enums import (
     Origin,
     PathOutcome,
     PickOutcome,
+    ReadState,
     ReferenceKind,
     RequestIntent,
     RollupUnit,
@@ -155,6 +161,7 @@ __all__ = [
     "ChatMessageKind",
     "UnderstandOutcome",
     "PickOutcome",
+    "ReadState",
     "StoreFactSource",
     "WantStatus",
     "WantFinding",
@@ -203,6 +210,11 @@ __all__ = [
     "PickDecision",
     "Pick",
     "Excerpt",
+    "CitedExcerpt",
+    "WantMaterial",
+    "GameMaterial",
+    "NamedSideMaterial",
+    "CandidatesMaterial",
     # the cross-game sheet
     "SheetCell",
     "LibraryGame",

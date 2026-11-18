@@ -247,6 +247,26 @@ class PickOutcome(StrEnum):
     UNAVAILABLE = "unavailable"
 
 
+class ReadState(StrEnum):
+    """Whether a game's reviews were read on one want, and why not when they were not.
+
+    The three are different things to say in a reply. ``READ``: there are
+    excerpts, and the reply speaks from them. ``CUT_BY_CAP``: the game has
+    reviews on the want and the turn's read budget did not reach them, so
+    nothing is known of what they say. ``NOTHING_TO_READ``: no review could
+    be read on it, because the want has no reviews behind it (a release
+    year, a store fact the store settles, a want no stored field fits) or
+    because the read came back empty.
+
+    >>> ReadState.CUT_BY_CAP == "cut-by-cap"
+    True
+    """
+
+    READ = "read"
+    CUT_BY_CAP = "cut-by-cap"
+    NOTHING_TO_READ = "nothing-to-read"
+
+
 class StoreFactSource(StrEnum):
     """Which part of a game's stored store metadata a store fact is read from.
 
