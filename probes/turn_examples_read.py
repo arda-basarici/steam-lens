@@ -30,13 +30,24 @@ and carry a note saying what the second stage adds.
 Each example runs under one fixed seed, printed with it, since the pick
 follows the order of the games on its sheet and the seed fixes that order.
 ``--seed`` runs the set under another. ``--sheets`` also prints the wants
-and the sheet as the pick call read them.
+and the sheet as the pick call read them. ``--material`` also prints the
+material as the answer call read it: every want's line for every game and
+every excerpt fetched, with the cited ones marked. A sentence that says how
+a part of a game is received in general rests on a want's line, and a
+sentence can rest on an excerpt its statement did not cite; neither can be
+judged from the cited excerpts alone.
+
+The run closes with two counts that are kept apart: how each step ended,
+which says whether a turn was delivered, and what the check recorded
+against the replies, which says how they read. A turn that ended on a
+written reply can still carry objections.
 
 This makes paid calls: three per turn at most times two, since each step
 may retry once. Answers are archived in the database it is given, so a
 second run on the same copy and seed costs nothing.
 
-Run:  python probes/turn_examples_read.py <path to a database copy> [--sheets] [--seed NAME]
+Run:  python probes/turn_examples_read.py <path to a database copy>
+          [--sheets] [--material] [--seed NAME]
 
 The copy must be at the current schema; opening it migrates it forward, so
 point this at a scratch copy and never at the dated copies under ``data/``.
@@ -47,6 +58,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import sqlite3
 import sys
 import time
@@ -74,7 +86,7 @@ from steamlens.contracts import (
     Reply,
     Turn,
 )
-from steamlens.core.answer import ANSWER_PROMPT_VERSION
+from steamlens.core.answer import ANSWER_PROMPT_VERSION, render_basis
 from steamlens.core.pick import (
     PICK_PROMPT_VERSION,
     render_pick_sheet,
@@ -305,8 +317,25 @@ def print_reply(reply: Reply, basis: AnswerBasis | None, names: dict[int, str]) 
         print(f"      left out unmentioned: {', '.join(silent) or 'none'}")
 
 
+_EXCERPT_LINE = re.compile(r"^\s+(e\d+) ")
+
+
+def print_material(result: Turn) -> None:
+    """The material as the answer call read it, with the excerpts the reply cites starred."""
+    request, basis = result.understanding.request, result.basis
+    if request is None or basis is None:
+        return
+    reply = result.answer.reply if result.answer is not None else None
+    cited = {cite for statement in reply.statements for cite in statement.cites} if reply else set()
+    print("   the material, as the answer call read it (* marks an excerpt the reply cites):")
+    for line in render_basis(request, basis).splitlines():
+        found = _EXCERPT_LINE.match(line)
+        mark = "*" if found is not None and found.group(1) in cited else " "
+        print(f"      |{mark} {line}")
+
+
 def print_turn(
-    result: Turn, seconds: float, names: dict[int, str], *, sheets: bool
+    result: Turn, seconds: float, names: dict[int, str], *, sheets: bool, material: bool
 ) -> None:
     understanding = result.understanding
     print(f"   understand: {understanding.outcome.value}")
@@ -328,6 +357,8 @@ def print_turn(
             print(f"      fault: {fault}")
     if isinstance(result.basis, OneGameMaterial):
         print(f"   about one game: {result.basis.title}")
+    if material:
+        print_material(result)
     if result.answer is not None:
         print(f"   answer: {result.answer.outcome.value}")
         for fault in result.answer.faults:
@@ -351,7 +382,17 @@ def print_turn(
         print_reply(result.answer.reply, result.basis, names)
 
 
-def main(db_path: str, *, sheets: bool, seed_name: str) -> None:
+def step_outcomes(result: Turn) -> list[str]:
+    """How each step the turn reached ended, as "step outcome"."""
+    steps = [f"understand {result.understanding.outcome.value}"]
+    if result.pick is not None:
+        steps.append(f"pick {result.pick.outcome.value}")
+    if result.answer is not None:
+        steps.append(f"answer {result.answer.outcome.value}")
+    return steps
+
+
+def main(db_path: str, *, sheets: bool, material: bool, seed_name: str) -> None:
     key = os.environ.get(KEY_ENV)
     if not key:
         raise SystemExit(f"{KEY_ENV} is not set — the probe calls the real model and needs it")
@@ -372,6 +413,8 @@ def main(db_path: str, *, sheets: bool, seed_name: str) -> None:
         )
         finished: dict[int, list[ChatMessage]] = {}
         endings: Counter[str] = Counter()
+        outcomes: Counter[str] = Counter()
+        objections: Counter[str] = Counter()
         durations: list[float] = []
         for example in EXAMPLES:
             seed = f"{seed_name}-{example.number}"
@@ -401,7 +444,13 @@ def main(db_path: str, *, sheets: bool, seed_name: str) -> None:
                 seconds = time.perf_counter() - clock
                 durations.append(seconds)
                 endings[result.ending.value] += 1
-                print_turn(result, seconds, names, sheets=sheets)
+                outcomes.update(step_outcomes(result))
+                if result.answer is not None:
+                    objections.update(
+                        f"{settled.objection.rule.value} {settled.rung.value}"
+                        for settled in result.answer.objections
+                    )
+                print_turn(result, seconds, names, sheets=sheets, material=material)
                 conversation.append(result.message)
                 print()
             finished[example.number] = conversation
@@ -409,6 +458,14 @@ def main(db_path: str, *, sheets: bool, seed_name: str) -> None:
     print(
         f"{len(durations)} turns · endings: "
         + ", ".join(f"{count} {ending}" for ending, count in sorted(endings.items()))
+    )
+    print(
+        "how the steps ended: "
+        + ", ".join(f"{count} {outcome}" for outcome, count in sorted(outcomes.items()))
+    )
+    print(
+        "what the check recorded against the replies: "
+        + (", ".join(f"{count} {name}" for name, count in sorted(objections.items())) or "nothing")
     )
     print(f"seconds a turn: median {median(durations):.1f}, longest {max(durations):.1f}")
     rows = sqlite3.connect(db_path).execute(
@@ -431,6 +488,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
     parser.add_argument("database", help="a scratch copy of the serving database")
     parser.add_argument("--sheets", action="store_true", help="print the pick's wants and sheet")
+    parser.add_argument(
+        "--material", action="store_true", help="print the material the answer call read"
+    )
     parser.add_argument("--seed", default="example", help="the seed's name; the number is added")
     arguments = parser.parse_args()
-    main(arguments.database, sheets=arguments.sheets, seed_name=arguments.seed)
+    main(
+        arguments.database, sheets=arguments.sheets, material=arguments.material,
+        seed_name=arguments.seed,
+    )
