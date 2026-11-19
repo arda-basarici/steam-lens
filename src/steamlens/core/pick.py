@@ -399,7 +399,12 @@ def parse_pick_response(response_text: str, request: PlayerRequest, sheet: Sheet
     decision.
 
     A candidate is removed, and named as a fault, when its identifier is
-    not on the sheet or it is the game the player named as "like this". A
+    not on the sheet, when it is the game the player named as "like this",
+    or when it fails a must on anything but avoided words that cluster in
+    its reviews. The last is the prompt's own rule, held by code: the
+    store's answer, a release year and where a game's reviewers stand are
+    not changed by reading more reviews, so such a game has nothing a reply
+    could cite against the reading. A
     want number that is not one of the request's is removed the same way. A
     game named twice is kept once, where it first stands. When every
     candidate was removed there is no decision. A "nothing-fits" answer that
@@ -787,6 +792,14 @@ def _parsed_candidates(
                 " never put forward"
             )
             continue
+        closed = _closed_must(request, sheet_row)
+        if closed is not None:
+            faults.append(
+                f"{where} is {name}, which fails w{closed + 1}, a must, and not on avoided"
+                " words that cluster in its reviews; a game with such a failed must is"
+                " never put forward"
+            )
+            continue
         wants = _want_positions(item.get("read"), f"{where} ({name})", "read", request, faults)
         kept.setdefault(sheet_row.game.app_id, PickCandidate(sheet_row.game.app_id, wants))
     if not kept:
@@ -797,6 +810,23 @@ def _parsed_candidates(
         tuple(faults),
         cut=max(0, len(candidates) - MAX_CANDIDATES),
     )
+
+
+def _closed_must(request: PlayerRequest, row: SheetRow) -> int | None:
+    """The first must ``row`` fails with nothing a review could set aside, or ``None``.
+
+    One kind of failed must stays open: a must that avoids words, failed
+    because the words cluster in the game's reviews, where the reviewers may
+    be writing that the game has none of it.
+    """
+    for position, (want, reading) in enumerate(zip(request.wants, row.readings, strict=True)):
+        if (
+            want.firmness is Firmness.MUST
+            and reading.status is WantStatus.FAILS
+            and reading.finding is not WantFinding.TERM_CLUSTERS
+        ):
+            return position
+    return None
 
 
 def _needs(row: Mapping[str, object]) -> tuple[str, ...]:

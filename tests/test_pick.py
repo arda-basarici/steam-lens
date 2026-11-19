@@ -585,3 +585,40 @@ def test_a_want_the_pick_listed_outranks_one_it_did_not_under_the_cap() -> None:
 def test_a_decision_is_read_against_the_sheet_it_was_made_from() -> None:
     with pytest.raises(ValueError, match="not a row of the sheet"):
         read_plan(_decision((9999, ())), _REQUEST, _sheet())
+
+
+def test_a_game_that_fails_a_must_no_review_could_set_aside_is_never_a_candidate() -> None:
+    """The prompt lets one kind of failed must be put forward, avoided words
+    that cluster, since the reviews may say the game has none of it. The
+    store's answer and where reviewers stand are not changed by reading
+    more, so code holds the rule the prompt states."""
+    parsed = _parse(_candidates(("g2", ["w2"]), ("g4", ["w2"])))
+    assert parsed.decision == CandidatesDecision((PickCandidate(7004, (1,)),))
+    assert parsed.faults == (
+        "candidates[0] is g2, which fails w1, a must, and not on avoided words that cluster"
+        " in its reviews; a game with such a failed must is never put forward",
+    )
+    assert _parse(_candidates(("g2", []), ("g3", []))).decision is None
+
+    criticised = PlayerRequest(
+        intent=RequestIntent.RECOMMEND,
+        wants=(_want("great music", AspectTarget("music"), Firmness.MUST),),
+    )
+    assert _parse(_candidates(("g3", ["w1"])), criticised).decision is None
+
+    # A softer want a game fails is a near miss the pick may put forward.
+    softer = PlayerRequest(
+        intent=RequestIntent.RECOMMEND,
+        wants=(_want("great music", AspectTarget("music"), Firmness.WANT),),
+    )
+    assert _parse(_candidates(("g3", ["w1"])), softer).faults == ()
+
+    # "puzzle" clusters in 7002: a must that avoids it fails there on words,
+    # which is the one conflict the next step can read reviews against.
+    avoided = PlayerRequest(
+        intent=RequestIntent.RECOMMEND,
+        wants=(_want("no puzzles", _PUZZLE, Firmness.MUST, Stance.AVOIDS),),
+    )
+    kept = _parse(_candidates(("g2", ["w1"])), avoided)
+    assert kept.faults == ()
+    assert kept.decision == CandidatesDecision((PickCandidate(7002, (0,)),))

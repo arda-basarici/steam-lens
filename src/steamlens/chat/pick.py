@@ -10,10 +10,11 @@ The ladder is the understand step's. A valid answer is used as it stands.
 An answer with any fault gets one corrective retry that names the faults,
 which is a new question at temperature 0 and so a real second call. If
 faults remain, what can be read is kept: a candidate the sheet does not
-hold, or one the player named as "like this", is removed and the rest of
-the decision stands, and when the retry itself fails the first answer is
-salvaged the same way. An answer that leaves no decision after the retry
-ends the turn with a fixed reply.
+hold, one the player named as "like this", or one that fails a must no
+review could set aside is removed and the rest of the decision stands, and
+when the retry itself fails the first answer is salvaged the same way. An
+answer that leaves no decision after the retry ends the turn with a fixed
+reply.
 
 An answer over a cap is not on the ladder. It is cut in the model's own
 order and counted, with no retry spent on it.
