@@ -338,6 +338,40 @@ class ObjectionRung(StrEnum):
     STANDING = "standing"
 
 
+class TurnEnding(StrEnum):
+    """How one chat turn ended: with the answer call's reply, or with which fixed text.
+
+    ``REPLIED`` is a turn whose message is the reply the answer step wrote.
+    Every other ending is a text written in advance, and the message's kind
+    is ``FIXED`` for all of them, so this is where they are told apart.
+
+    ``OUT_OF_SCOPE`` is the refusal. ``NOT_UNDERSTOOD``: the understand step
+    could not read the conversation into a request. ``UNAVAILABLE``: a step
+    could not be served, whichever step it was. ``NO_ANSWER``: the request
+    was read and no reply came of it, because the pick held no decision, the
+    answer could not be read, or the check left nothing of it; the steps'
+    own outcomes say which.
+
+    The last three are stand-ins for replies the first stage does not write
+    yet. ``GAME_UNCLEAR``: a turn about one game whose game did not resolve
+    to one library title. ``GAME_NOT_MEASURED``: a turn about a game the
+    library does not hold. ``NUMBERS_UNEXPLAINED``: a question about what
+    the numbers mean.
+
+    >>> TurnEnding.GAME_NOT_MEASURED == "game-not-measured"
+    True
+    """
+
+    REPLIED = "replied"
+    OUT_OF_SCOPE = "out-of-scope"
+    NOT_UNDERSTOOD = "not-understood"
+    UNAVAILABLE = "unavailable"
+    NO_ANSWER = "no-answer"
+    GAME_UNCLEAR = "game-unclear"
+    GAME_NOT_MEASURED = "game-not-measured"
+    NUMBERS_UNEXPLAINED = "numbers-unexplained"
+
+
 class ReadState(StrEnum):
     """Whether a game's reviews were read on one want, and why not when they were not.
 

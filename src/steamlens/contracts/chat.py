@@ -34,6 +34,9 @@ and the reviews behind a sentence are read from fields and never back out of
 prose. ``Answer`` is the answer step's result, the reply with the rung that
 produced it. ``Objection`` is one thing the check found wrong in a readable
 reply, and ``SettledObjection`` the same with how it ended.
+
+``Turn`` is one whole turn: the message the chat appends to the
+conversation, how the turn ended, and what each step made on the way.
 """
 
 from __future__ import annotations
@@ -51,12 +54,13 @@ from steamlens.contracts.enums import (
     ReadState,
     Sentiment,
     SentimentGroup,
+    TurnEnding,
     UnderstandOutcome,
     WantFinding,
     WantStatus,
 )
 from steamlens.contracts.request import PlayerRequest
-from steamlens.contracts.sheet import SideFinding
+from steamlens.contracts.sheet import Sheet, SideFinding
 
 
 @dataclass(frozen=True, slots=True)
@@ -511,3 +515,42 @@ class Answer:
     reply: Reply | None
     faults: tuple[str, ...] = ()
     objections: tuple[SettledObjection, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class Turn:
+    """One chat turn: the message to append, and what each step made on the way.
+
+    ``message`` is what the chat says, with the games it offered and its
+    kind, ready to be appended to the conversation. ``ending`` says whether
+    it is the answer call's reply or which fixed text. ``seed`` is the
+    conversation's seed the turn ran under, kept so the pick can be
+    regenerated from the request, the sheet and the seed.
+
+    The rest is each step's result as it ran, absent for a step the turn did
+    not reach: the understanding, the sheet the pick was made from, the
+    pick, the material the reply was written from, and the answer. A turn
+    about one game has no sheet and no pick. A turn that ended on a fixed
+    text after the understand step has neither material nor answer.
+
+    A page reads its links off the record: the report of each game in
+    ``message.offered``, the game of a ``OneGameMaterial``, and the link for
+    adding a game under a reply written from a ``NothingFitsMaterial``.
+
+    >>> fixed = ChatMessage(ChatRole.CHAT, "Try again later.", kind=ChatMessageKind.FIXED)
+    >>> turn = Turn(
+    ...     fixed, TurnEnding.UNAVAILABLE, "conversation-a",
+    ...     Understanding(UnderstandOutcome.UNAVAILABLE, None),
+    ... )
+    >>> turn.pick is None and turn.answer is None
+    True
+    """
+
+    message: ChatMessage
+    ending: TurnEnding
+    seed: str
+    understanding: Understanding
+    sheet: Sheet | None = None
+    pick: Pick | None = None
+    basis: AnswerBasis | None = None
+    answer: Answer | None = None
