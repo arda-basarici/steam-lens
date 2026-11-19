@@ -7,10 +7,10 @@ the fixed vision-phase snapshot (2026-07-07) and is not updated as the design mo
 How it's built → ARCHITECTURE; the pitch → README. Executed experiments appear here
 as conclusions with citations to their runs of record.
 
-*Living snapshot · last updated 2026-11-15 · the project closed complete at
+*Living snapshot · last updated 2026-11-19 · the project closed complete at
 deployment (M3), live at steamlens.ardabasarici.dev; the chat milestone (M4) is
-reopened as a recommender tab, designed and not yet built (the recommender chat
-section).*
+reopened as a recommender tab, whose steps are built and whose page is not (the
+recommender chat section).*
 
 ---
 
@@ -31,7 +31,7 @@ One line per section, what's decided there:
 - **The redirect & the product frame** — the investigator deferred, the grounded chat as the story channel, the M3 closure ruling, and the chat reopened as a recommender tab.
 - **The sampling study (M2)** — the certified draw: the windowed policy, the measured tolerances, the shipped interval rule.
 - **Deployment (M3)** — the serving skeleton · persistence · model prose · episode markers · the frontend · the box · the spend breaker · observability.
-- **The recommender chat (M4)** — designed, not built: fit to stated requirements, numbers read across games in groups, a fixed pipeline with the model judging, keyword retrieval first and the vector comparison as a committed stage.
+- **The recommender chat (M4)** — the steps of a turn built, the tab not: fit to stated requirements, numbers read across games in groups, a fixed pipeline with the model judging inside bounds code checks, keyword retrieval first and the vector comparison as a committed stage.
 - **Standing rules · Scope & non-goals · Open questions** — what always holds, what's deliberately out, what's parked with a trigger.
 
 ---
@@ -2353,10 +2353,11 @@ afternoon on a hosted free tier, not this box.
 
 ## The recommender chat (M4)
 
-*Designed 2026-11-14, not built. Figures in this section were read from the
-2026-09-24 copy of the serving database (53 reports, 27,163 stored reviews)
-unless a different date is given. They illustrate the design and are not
-published readings.*
+*Designed 2026-11-14. The steps of a turn are built and run end to end without
+the page since 2026-11-19; the tab, its caps and the second stage are not
+built. Figures in this section were read from the 2026-09-24 copy of the
+serving database (53 reports, 27,163 stored reviews) unless a different date
+is given. They illustrate the design and are not published readings.*
 
 **One tab: recommending games, and discussing one.** A player describes what
 they want and the chat suggests games from the library of measured reports.
@@ -2403,11 +2404,18 @@ link to the ordinary report flow so the player can have it analysed, and a
 question about what they like in it. The model may use what it knows of an
 unmeasured game to ask that question well, and for nothing else. Suggesting
 from that knowledge was declined: the model's memory of a game is not
-evidence, and for a game newer than the model it is invention.
+evidence, and for a game newer than the model it is invention. The first
+stage does not write this answer: a turn about an unmeasured game ends on a
+short text that says the library holds nothing measured for it (the turn and
+how it ends).
 
 A comparison with a named game ("less frantic than X") is the model's
-judgment, made in words from review evidence on both games. The check requires
-a comparative statement to point at evidence from both. Ranking the two on how
+judgment, made in words from review evidence on both games. Code gives such a
+want no verdict: it reads "cannot tell" on every game, whatever its target
+shows, because "less frantic than Hades" read as "not frantic" would fail
+every game where the word clusters. The check holds a statement that cites
+the named game's reviews to citing its own game's as well; a comparison made
+in words with only one side cited is not seen by code. Ranking the two on how
 often a word appears was declined as noise: "frantic", "hectic" and "chaotic"
 appear in 86 of the library's reviews across 49 games. That the judgment did
 not come from the model's memory cannot be checked by code, so comparative
@@ -2446,20 +2454,25 @@ alone: the store does not list Dark Souls III as an RPG, and a cluster of
 "timer" can be reviewers writing that a game has none. So the sheet holds
 every library game with its reading on every want, grouped by whether the
 game meets the musts, is "cannot tell" on one, or conflicts with one, and the
-judge picks with the conflicts in front of it. When the judge offers a game
-that conflicts with a must, the check objects once and states the reading.
-The pick stands only if the reply cites reviews of that game that speak to
-the want, and the game is then offered with the conflict named, never as a
-fit. A justification in the model's own words does not count, because a model
+pick is made with the conflicts in front of it. One kind of conflict may be
+put forward: a must that avoids words, failed because the words cluster. A
+store fact that fails, a release year outside the range and a criticised or
+divided aspect are the store's answer or the reviewers', and a candidate that
+fails a must on one of those is a fault of the pick's answer, named in its one
+retry and removed after it. When a reply offers a game that conflicts with a
+must, the offer stands only if a statement about the game names the want and
+cites reviews of that game read on it, and the game is then offered with the
+conflict named, never as a fit. A reply that does not do so draws the check's
+objection, which states the reading, at most once; if the fault still stands
+after the retry, code removes the game. A justification in the model's own
+words does not count, because a model
 asked to justify a pick always can. A pick with no review to cite cannot be
 made, which is how a farming game stays out of a racing request. Two rules
 have no exception: only library games are offered, and a game the player said
 they had already played is left off the sheet. The cost is that "a must is
 never relaxed" becomes "a must is never relaxed silently". Code checks that
-the conflict was named and that the cited reviews exist and belong to the
-game. Whether they support the offer is read by hand. The wording of an
-objection and what follows a second failure are settled with the judge and
-check steps.
+the statement lists the want and that a cited excerpt was fetched for that
+game and that want. Whether the excerpts support the offer is read by hand.
 
 "Cannot tell" counts for neither side: few mentions of grind is not evidence
 of little grind. A game that is "cannot tell" on a must may still be offered,
@@ -2491,13 +2504,15 @@ Indifference ("don't mind if it's long") is not a want.
 
 **The structured request.** The understand step fills one fixed structure from
 the whole conversation on every turn, so a want the player withdrew is absent
-from the next one and no state is carried but the conversation. It holds the
+from the next one, and nothing is carried from turn to turn but the
+conversation and the seed that orders the sheet the pick call reads. It holds the
 intent (a recommendation, a discussion of one game, a question about what the
 numbers mean, or out of scope); the games the player named, each with the
 library game it resolves to if any, its role (like this, not this, or the
 subject of a question), how the player felt about it (liked, disliked or
 unknown) and the parts they liked; the wants; whether substitutes were ruled
-out; and whether the player asked to see quotes or numbers. A want keeps the
+out; whether the player asked for other games than the ones already offered;
+and whether the player asked to see quotes or numbers. A want keeps the
 player's own words, its firmness, whether it is wanted or avoided, and exactly
 one target: a store fact from a curated vocabulary, a range of release years,
 one of the pinned aspects, a search term given as the spelling variants of
@@ -2532,6 +2547,7 @@ want: "does it have a good story?" asks, and "it needs a good story" wants.
 | search term | wanted | the term clusters | never | no cluster |
 | search term | avoided | never | the term clusters | no cluster |
 | nothing | either | never | never | always |
+| any target, relative to a named game | either | never | never | always, with what the target shows on each of the two games |
 
 An aspect has no avoided form. It says how well a part is received, so "not
 buggy" is a wish that `bugs` read well. An avoided release range reads the
@@ -2743,7 +2759,9 @@ strings.
   or "cannot tell" and never "matches". The same holds for `performance` (2
   positive, 11 clearly negative, 85 too few).
 - *No order inside a group.* The sheet lists a group's games in an order
-  unrelated to the share.
+  unrelated to the share. Where the pick call reads the sheet, games that read
+  alike are in an order shuffled by a seed from the conversation (the sheet as
+  the pick call reads it).
 
 Two limits on comparing across games. The library was labelled by two models
 (51 reports on the earlier one, 56 on the current), and whether they detect an
@@ -2759,20 +2777,35 @@ survey number and is never shown.
    every library game and removes none on evidence. At library size the sheet
    covers all of them, so review search nominates only for wants the aspect
    vocabulary cannot express.
-3. *Judge.* A model reads the sheet and picks: which games fit, which near miss
-   is worth offering, when the request is too vague and a question is the
-   answer, when nothing fits. It cites evidence by identifier.
-4. *Check.* Code verifies that the evidence the model chose exists and belongs
-   to the game it is used for, and supplies each link. When quotes or numbers
-   are shown, code supplies them from those identifiers, so a quote or figure
-   cannot be misstated. It rejects an answer that names a game outside the
-   library, drops a want, offers a game that conflicts with a must without
-   reviews cited on that want, makes a comparison without evidence on both
-   games, or carries a quote the spoiler rule forbids.
+3. *Pick.* A model reads the request and the sheet and returns one decision
+   as data: candidates to read reviews on, a question, or the finding that
+   nothing fits. Which games fit and which near miss is worth reading is its
+   judgment.
+4. *Fetch.* Code reads the candidates' reviews on the wants, inside a cap, and
+   puts together what the reply is written from.
+5. *Answer.* A second model call writes the reply as ordered statements, each
+   citing by identifier the excerpts it rests on. It may set a candidate aside
+   after reading.
+6. *Check.* Code verifies that each cited excerpt was fetched for the game it
+   is used for, and holds the reply to the rules it can see: a conflict with a
+   must named and cited, a missed want spoken to, an offered game named, no
+   numeral and no quote, no library game outside the turn. Its objections go
+   back to the answer call once, together with the faults of the parse, and
+   what still stands after that is removed.
+
+A turn about one game has no pick: code fetches reviews for what the player
+asked about that game, reading it against the sheet only when the player
+asked whether it would suit them, and the answer and the check run as above.
+The paragraphs after the understand step's take the pick, the fetch, the
+answer, the check and the turn one by one.
 
 The check establishes source integrity and constraint compliance. Whether the
 cited evidence supports the sentence built on it is a judgment, and it is
-measured in the evaluation instead of being claimed as a guarantee.
+measured in the evaluation instead of being claimed as a guarantee. No step
+writes a link into the text: the links to a game's report are read off the
+reply's record by the page. Quotes and numbers shown on request are supplied
+by code from the cited identifiers, so a quote or figure cannot be misstated,
+and that part belongs to the second stage.
 
 **The steps live in their own package, below the shells that run them.**
 *Ruled 2026-11-15.* The tab's route is one caller of the chat's steps. The
@@ -2895,12 +2928,11 @@ six close wordings with no related kind of game and no stronger or weaker
 form, because the sheet reads a cluster as the thing being present; words
 that fetch evidence in both directions would make a cluster mean nothing.
 
-One reading is left to the judge step. A want that is relative to a named
-game ("less frantic than Hades") is written as an avoided term with the
-game it is compared with, and the sheet reads that term on its own: a game
-whose reviews call it frantic fails the want even when it is calmer than
-Hades. The comparison is the judge's, from reviews of both games, and what
-the sheet should say for such a want is settled there.
+A want that is relative to a named game ("less frantic than Hades") is
+written as an avoided term with the game it is compared with. Read on its
+own, that term would fail a game whose reviews call it frantic even when it
+is calmer than Hades, so the sheet gives such a want no verdict and the
+comparison is made in the reply, from reviews of both games.
 
 The conversation reaches the prompt as one delimited block of both sides'
 messages, introduced as data and never instructions, with "<" escaped so a
@@ -2916,7 +2948,8 @@ conversations (16 player turns), the last two with contrast pairs added (24
 and 27 turns). Each run is one pass read by hand against reference
 readings, so what follows is observation and not a rate, and the twelve
 are development cases from here on.* Every answer was valid on the first
-call in all three runs, so the retry ladder has run only in tests. A call
+call in all three runs, so in these runs the retry ladder ran only in tests;
+it first fired on the real model in the revision described below. A call
 took 0.7 to 1.8 seconds. The prompt is about 6,300 tokens, and the provider
 served about 6,100 of them from its prefix cache on every call after a
 run's first: the first call cost about $0.0011 and the others $0.0001 to
@@ -2960,13 +2993,498 @@ answer, the aspect `replayability`, follows that aspect's definition
 the aspect `realism` is accepted. "A really good story" is a want, since
 "really" there is a degree and not stress.
 
+**The understand step was revised once for the judge.** *2026-11-15.* Three
+changes went in together, and the example conversations and contrast pairs
+were run again on the same probe before the commit. A want that is compared
+with a game, or that names the game a liked part belongs to, has to point at
+one of the request's named games. A miss goes to the corrective retry, and a
+comparison that still points at none loses its target and reads "cannot
+tell". The conversation block shows each chat
+message's offered games as a numbered list with the library's exact titles,
+written by code from the message's record, so "the second one" is read
+against that list and never against the reply's prose, where a game
+mentioned and turned down can come first. And one field records that the
+player asked for other games, read from the latest message only.
+
+The re-run found one regression: "no timers please" was read again as
+avoiding the store fact "Playable without timed input". Changing the
+prompt's worked example repaired it and moved another reading, a want that
+became a must, so the prompt was left as it was and a code check holds the
+case. That one fact has no avoided form, and an answer that avoids it
+carries a target fault, which goes to the corrective retry. This is where
+the ladder first fired on the real model. A ban on the avoided form of every
+store fact stays declined, since "no in-app purchases" is a real want.
+
+**The judge is two calls, with code reading reviews between them.** *Ruled
+2026-11-15, built by 2026-11-19 and not yet measured.* The pick call reads
+the request and the sheet and returns one decision as data: candidates to
+read reviews on, a question with what it needs to know, or the finding that
+nothing fits with the wants that could not be met. Code fetches reviews for
+the candidates. The answer call writes the reply, cites by identifier, and
+may set a candidate aside after reading. One call was declined: it can cite
+counts and never a review, so reading the reviews behind a "cannot tell",
+citing reviews against a conflict with a must, and a comparison from
+evidence on both games have nothing to stand on, and loading reviews ahead
+for the likeliest games is a shortlist made by code. A tool loop was
+declined too, for unbounded cost and latency and for stages that can no
+longer be measured apart. The accepted cost is a second model call on every
+recommendation turn. The pick cannot go back for another game after
+reading, which is answered by picking more candidates than a reply offers,
+six against three.
+
+The pick call does not read the conversation. Picking stays a function of
+the request and the sheet, so a pick can be scored against the sheet it was
+made from and regenerated. The answer call gets the conversation as a data
+block, the way the understand step does, with the request stated as the
+reading of record, so the reply follows what was said. Giving both calls
+the conversation was declined: a pick could then depend on text the request
+does not hold, and a wrong pick would no longer be traceable to one stage.
+The cost is that a detail the understand step missed cannot change which
+games are picked, which raises the weight of the understand measurement.
+
+Every reply is written by the answer call, a question and a "nothing fits"
+reply included. There is one writer, so the wording rules and the check
+apply in one place, and the pick call's output is a pure decision that can
+be scored, including whether it was right to ask. Fixed texts for those two
+replies were declined: they depend on the request and would read like a
+form.
+
+Both calls start on the labeler's model at temperature 0 with thinking off,
+each on a route of its own. Temperature 0 keeps every reply regenerable
+from its inputs. A stronger model for the answer call from the start was
+declined as a guess, and thinking on for the pick call as an unmeasured
+latency cost on every recommendation turn; the register below says what
+reopens each. The two stages are named for the calls, pick and answer,
+because "judge" already names the evaluation harness's second annotator.
+
+**The sheet as the pick call reads it.** The sheet is laid out so the games
+worth reading come first without code choosing among them. Rows are grouped
+by standing on the musts, and inside a standing by pattern: the statuses a
+game has across the wants. Patterns are ordered by a plain count, fewest
+fails first and then most matches, which never looks at firmness, since
+weighing a must against a nice-to-have is the near-miss judgment the model
+is there for. Every row stays on the sheet. One line per game in app-id
+order was declined, since the oldest games would lead every request, and so
+was a shortlist made by code, which is the filter already ruled out. The
+accepted cost is that the count order is a soft ranking that counts a
+nice-to-have match like a want match.
+
+Inside a pattern the games read alike, and the model takes the ones it
+meets first. The pick call was run on handwritten requests with those games
+in app-id order and in the reverse, in a run made outside the repository
+and not reproducible from it, and the picked games changed wherever more
+games read alike than a decision can hold. In app-id order that is the same
+oldest games for every player. So the order inside a pattern is a shuffle
+seeded by the conversation, which breaks the tie differently for each
+conversation and keeps a pick regenerable from its inputs. A game's place
+depends on the seed and the game alone, so leaving a game off the sheet
+moves no other game past another. The costs are that two players with the
+same request get different suggestions, and that every pick measurement
+fixes or records its seed.
+
+A game's line carries an identifier, its store genres, its release year and
+what was found on each want. It carries no title and no app id. The
+identifier is made for one render and means nothing outside it, so a pick
+can only come from what the sheet says about a game and never from what a
+model remembers of it. The cost is known: without a title the model cannot
+tell that a game whose reviews say "puzzle" is not a puzzle game, and rests
+on the match counts. A want relative to a named game shows what its target
+found on each side in words and no counts, since two counts side by side
+would invite the comparison of shares that is declined everywhere else. A
+relative must therefore never narrows: every game is open on it, and none
+is called a fit on that want.
+
+Three kinds of game are handled on the player's say and never on evidence.
+A game the player said they had already played is left off. When the player
+asked for other games, the games the chat already offered in this
+conversation are left off too, and the reply says it left them out; without
+that request they stay, so a player who adds a want can be offered a game
+they were shown before. A game named as "like this" stays on the sheet,
+marked, since its readings serve the comparison, and is never a candidate:
+the pick's parse removes it.
+
+The pick's bounds are working values, and the judging inside them is the
+model's: at most six candidates, and at most three things a question may
+need to know. A decision over a cap is not a fault. It is cut in the
+model's own order, so its first choices survive and no retry is spent. A
+faulty answer is handled as the understand step handles one: one corrective
+retry that names the faults, then the faulty item removed and the rest of
+the decision kept. An answer that leaves no decision after the retry ends
+the turn on a fixed text and is never turned into "nothing fits" by code.
+
+**Code owns what is read.** The first ruling had the pick call name, for
+each candidate, the wants it wanted reviews on, with code capping the pairs.
+On the real model that list was not steady, in runs made outside the
+repository: under one wording of the instruction the same request got every
+want in one order of the sheet and only the want in doubt in the other, and
+under a second wording a request for a story and characters asked to read
+nothing for any of its six candidates. A third wording was the tempting
+fix. Nothing is being judged there, since the question is one of budget
+with an obvious answer whenever everything fits, so code took it and the
+pick's list was kept as an order.
+
+The reads are scheduled in three ranks. A must comes first, listed or not:
+a game offered against a conflict has to cite reviews on that want, a
+game open on a must is offered with what was found said beside it, and a
+must matched on searched words is matched on how often the words come up,
+which does not say what the reviews say with them. Then the wants the pick
+listed, in its order. Then every other want, so that a reply can say what
+reviewers wrote on each thing the player asked for without the model having
+to remember to ask. At most 24 pairs of a game and a want are read. The cap
+is filled rank by rank and, inside a rank, candidate by candidate. On a
+short request everything fits and the pick's list changes nothing; on a
+long one it decides what survives, and a request with enough musts leaves
+some of them unread for its last candidates. A pair known to have no
+reviews uses no place: a want with no target, a release year, a store fact
+the game already matches on, and searched words none of the game's reviews
+use. Two kinds of pair take a place whatever they return: an aspect, which
+reads nothing when too few of the game's reviews mention it, and a want
+relative to a named game, unless that want has no target or names release
+years.
+The named game's own side of a comparison is read once for the turn,
+outside the count. The pairs the cap cut are journalled, and the three ways
+a want can have no excerpts reach the answer call apart, because a reply
+has to say different things for them: its reviews were read, the read budget did
+not reach them, or there was nothing to read.
+
+The unit of evidence is an excerpt under the report page's display rule:
+the stored span grown to its containing sentence, capped at 300 characters,
+so the chat and the report it links to show the same sentence for the same
+review. A review found by search has no stored span, and its sentence is
+grown from the words the search matched. Whole reviews were declined, since
+the long ones dominate and are mostly off the want, and so was the label's
+evidence quote alone, which is too short to support a comparison or say
+why. The accepted cost is that code chooses the cut, so a qualification
+outside the window can make a review read more positive than it is.
+
+A want is read one of two ways, by its target. An aspect is read by label:
+the reviews the classifier marked with it, six of them, by a draw in
+proportion to their sentiments, since the labels give no query to rank by,
+seeded so the same game and aspect give the same excerpts every time. None
+is drawn for an aspect with fewer than five mentions in the game, the
+report page's own floor. Everything else that has reviews is read by words:
+a search term's phrases, and for a store fact the search words its
+vocabulary entry carries, taking the game's six best-ranked matches. Six is
+enough to see an off-meaning use of a word. At six, a sentiment held by
+fewer than about one review in ten will usually not appear in a draw, and
+the group states it. The index's rank favours short reviews that repeat the
+term, which is why a seeded draw over the matches is one cell of the
+retrieval experiment.
+
+Each of the forty store facts carries a short list of search words, 145
+phrases in all, written once in the vocabulary and read by hand. Having the
+pick call write the words was declined: they would differ from call to call
+and could not be tested ahead, and "timer" showed how a plausible word
+matches the wrong thing. A match does not say which way it points, so the
+excerpts are read and code does not count them. Read against the store's
+own listing on the 115-game copy of 2026-11-14
+(`probes/store_fact_words_probe.py`), the facts reviewers name are covered:
+45 of the 46 games the store lists as RPGs have a review to read, and 37 of
+37 for co-op. LAN play, Remote Play Together, a level editor, split screen,
+timed input and subtitle options stay thin whatever the words.
+
+A turn about one game has no pick. Each thing the player asked is read by
+its target the same way, up to four subjects in the player's order, and a
+subject on a store fact is read whether or not the store lists it. Two
+questions have no target of their own. "Would it suit me" reads the game
+against the wants that still stand, as a candidate is read, under the same
+ranks and cap; it is skipped for a game that is off the sheet, which is one
+the player said they had played. A question
+about the game in general, from a player who has stated no wants, gets the
+aspects its reviewers praise strongly and the ones they criticise or are
+divided on, as groups, and no review is read for it. A planning call for
+the one game was declined as another call on every such turn, and so was
+the player's message as the search query: the built search matches literal
+phrases, so a whole question matches almost nothing.
+
+**A reply is ordered statements.** The answer is data, not prose: ordered
+statements, each with the game it is about, whether it offers that game,
+the wants it speaks to and the excerpts it cites. Structured output is
+chosen over a citation markup in running text for the reason the composed
+narrative stores spans: the games a reply offered and the reviews behind a
+sentence are then fields, read without parsing prose a model wrote. The
+offered games are derived from the offering statements, in order, and are
+what the chat message stores. A separate list of offers beside the
+statements was declined, since two places would say which games are offered
+and could disagree.
+
+What a statement is about and whether it offers it are two fields because a
+reply speaks about games it does not suggest: a candidate set aside with a
+reason, the game the player named for a comparison, the one game a turn is
+about. Run with one field for both, a reply that explained why it left a
+game out had nothing it could cite. Only a candidate of a recommendation
+turn can be offered, and at most three; a reply that offers more is cut in
+the model's own order with no retry. A statement lists the wants it speaks
+to because a want with nothing to read cannot be reached through a cite: a
+want no stored field fits, a release year, a store fact that fails. Code
+checks that label and not the sentence, which is the limit a cite already
+has.
+
+The call's input carries readings in words and no count. Each want's line
+says what was found in a sentence the reply can be worded from, so which of
+the things there are to say about an undecided want is chosen by what code
+found and never by the model. A line says what was looked at and stops
+there: "none of the reviews held use these words" is what a search can
+show, and "its reviewers never bring it up" is not. An excerpt is shown
+without the sentiment its review was labelled with. Where reviewers stand
+is the group's to say, and six labels would be a second, coarser statement
+of it that can be counted. The cost is that a sarcastic or mixed excerpt is
+read on its text alone. A game has a title here for the first time in a
+turn, since a reply has to name it, and the games left off the sheet on the
+player's say are listed by title so the reply can say it left them out.
+
+A reply that offers nothing has no reviews to read, and still has to tell
+"the store lists no such game" from "nothing stored could decide it". It
+gets how the library divides on each want, as presence and never as a
+count: whether any game matches, fails, or could not be decided. The three
+counts per want were declined. They would be the first counts the answer
+call sees, with only the check's numeral rule between them and a sentence
+that states one. The game named as "like this" is left out of that tally,
+so "some games match" is never true because of it alone.
+
+The message a turn appends is the statements' text joined in order by one
+space, with the reply's offered games and its kind. That text is what later
+turns read as the conversation. A paragraph for each game was declined as a
+layout choice inside the stored text. On a recommendation turn the kind is
+code's, from the pick's decision; on a turn about one game the model
+reports whether it answered or asked.
+
+**The check runs inside the answer's one round.** *Built 2026-11-19 and not
+yet measured.* The answer call's output is read twice before it is shown.
+The parse asks whether the answer can be read as a record over the turn's
+material, and the check asks whether a readable record keeps the chat's
+rules. The first answer is parsed and checked, and every fault of both kinds
+goes into one corrective retry. Code then removes what is still faulty. The
+worst case is two answer calls a turn. Two ladders, a retry on parse faults
+and then an objection round of the check's own, were declined: three or four
+answer calls a turn, on the largest prompt of the three. The cost of one
+round is that when the first answer cannot be read at all, the retry's
+answer gets its first check with no round left, and code removes what fails.
+
+One bound holds every rule: a reply that follows the answer prompt as
+committed draws no objection. A rule stricter than the prompt would send the
+model back to correct what it was told to write.
+
+The parse leaves the check nothing to add on four points. A statement's game
+is one the turn put in front of the call. Only a candidate of a
+recommendation turn can be offered, so a game named as "like this" never is.
+Every cite was issued for this turn and every want number is the request's.
+At most three games are offered.
+
+The check's rules are of two kinds. Rules over the record are certain,
+because they read fields: where a cited excerpt was fetched from, which
+wants a statement says it speaks to, which games are offered. Rules over the
+text see a pattern and not a meaning: a numeral, a passage in quotation
+marks, a title. Neither kind says whether a sentence is true to the reviews
+behind it. That is read by hand.
+
+Each rule names what its fault costs when it still stands after the retry:
+
+| Rule | If the fault stands |
+|---|---|
+| A cite is in place: its excerpt was fetched for the statement's game | the cite is removed and the statement stays |
+| An offered game that fails a must has a statement about it that lists the want and cites an excerpt fetched for that game and want | the game is removed |
+| Every other want an offered game fails, and every must it is "cannot tell" on, is listed by a statement about that game or about no game | the game is removed |
+| The first statement about an offered game names it: its title whole, the title's first distinctive word, or a run of its words that holds two or more distinctive ones | the game is removed |
+| No numeral, unless the same digits are in the title of one of the turn's games, are a release year in the material or in a want, or are in one of the player's messages | the statement is removed |
+| No passage in quotation marks, two words or more, that appears in one of the turn's excerpts | the statement is removed |
+| No whole title of a library game that is none of the turn's games | the statement is removed; a one-word title is only recorded |
+| Reviewers' wording relayed with "call" as a verb; one of the material's labels or a working word; more than 150 words | nothing, and the fault is recorded |
+
+Removal is by the smallest unit the fault is in. After a removal the rules
+are run again on what is left, until nothing changes, which is how a game
+loses its offer when the statement that named it or named its conflict was
+the one removed. Always removing the whole game was declined, since one
+relayed word would cost an offer. Cutting single sentences inside a
+statement, as the compose stage does, was declined too: the statement's
+wants and cites would then label text that is gone. A reply that offered
+games and offers none after the removals, or has no statement left, is
+withheld. When the retry's answer is withheld or holds no reply, the first
+answer is put through the same removals, and the turn answers with a fixed text only when
+neither leaves a reply. A withheld reply is counted apart from
+an unreadable answer, since a broken answer and a check that removed what a
+readable one said are different things to count.
+
+Three points of the rules carry a decision of their own. An excerpt of the
+named game's side of a comparison may be cited by a statement about another
+game; that statement is a comparison to code, and it has to list the
+relative want the side belongs to and cite at least one excerpt of its own
+game fetched for that want. A statement about no game may cite any of the
+turn's excerpts and may carry a limit that holds for every offered game, so
+the limit is said once and the check does not ask for the repetition the
+voice rule forbids. And the wants a reply has to speak to are the ones where
+silence would mislead: a want the game matches and the reply does not
+mention draws no objection. On a turn about one game that asks whether it
+would suit the player, the same is asked for the musts only, and since
+nothing is offered there, a fault that stands is recorded and the reply is
+kept.
+
+The three recorded rules are named in the retry when one runs and do not ask
+for one by themselves. Two trial runs, made outside the repository and not
+reproducible from it, are behind that. With thinking off, relayed wording
+was in most replies, so a retry on it alone would be a second answer call on
+most turns. And with the three rules asking, the retry removed the faults it
+was given and also changed sentences no fault named, in one reply dropping a
+statement an earlier ruling asks for. Whether a rule asks is one value per
+rule, and the setting is compared on the answer measurement.
+
+Two replies with little in them are allowed in the first stage. A reply that
+cites nothing because nothing was read (a request the store's facts settle,
+or "tell me about it" with no wants standing) stands under the text rules,
+and its offered games with no cite are counted for the second stage's rule
+that every offer cites a review. A reply that offers no game on a turn that
+had candidates, by the answer call's own choice, stands and is counted;
+asking for an offer would go against offering fewer when fewer are worth
+offering.
+
+Every objection is recorded with how it ended: corrected by the retry,
+withdrawn (the retry no longer offers the game), removed by code, or left
+standing. That record is what the measurement of the picks counts.
+
+The compose stage's grounding gate is not called. It certifies each numeral
+against a minted value at the numeral's own precision and refuses every
+quotation outside its evidence. A chat reply has no minted value to match
+and keeps no certificate: its numeral is either the digits of a title, a
+year or the player's own number, or it is not allowed. The spoiler rules
+need no rule of their own in the first stage. A review that contains
+"spoiler" never reaches a turn's material, and a reply holds no quote of any
+aspect, by the quote rule.
+
+What code does not see. A number written as a word. A title's numeral or the
+player's number used for something else. A library title shortened in a
+sentence about another game, and a game outside the library named from
+memory. A comparison made in words with only one side cited. A reviewer's
+wording carried without quotation marks, except where "call" marks it. For
+an offer against a failed must, code checks that the want is listed and
+where the cite came from; whether the excerpt shows the reading is wrong is
+read by hand, and the misattribution rate of the labels and the looseness of
+a word match are the known weaknesses of "fetched for that want".
+
+**The turn, and how it ends.** *Built 2026-11-19.* A turn is one function.
+It takes a conversation, a seed and the year, runs the steps in their fixed
+order and returns a record: the message the chat appends, how the turn
+ended, the seed, and what each step made on the way, a step the turn did not
+reach being absent. It is the one entry for an evaluation run and for the
+page's route, which is not built, so a reply read by hand goes the same way
+a reply shown on the page will. A
+turn that returns the message only, with the evaluation composing the steps
+itself, was declined: the hand reading would then run on a second copy of
+the routing. Nothing is stored by the turn. The conversation is the
+caller's, and so are the seed and the clock. The library is read once a
+turn, so the titles the understand step resolved a name against are the
+titles of the games the sheet and the fetch read.
+
+A request for games goes to the sheet and the pick, and then follows the
+pick's decision: reviews are fetched for candidates, the library's standing
+on the wants is put together when nothing fits, and a decision to ask goes
+on as it is. A request about one game goes on when the game it asks about
+resolved to a library title. When several games are asked about in one
+message, the first in the player's order is read and the others are
+counted. A recommendation turn never ends on a name: a named game that did
+not resolve is read through the sheet's own finding for it, and the pick
+decides what the request can still give.
+
+Every way a turn can end has a name, and every ending but a written reply
+has one text written in advance:
+
+| The turn ended | When |
+|---|---|
+| on the answer call's reply | the steps ran and a reply was kept |
+| on the refusal | the request is out of scope |
+| not understood | the understand step could not read the conversation into a request |
+| unavailable | a step could not be served, whichever step it was |
+| with no answer | the request was read and no reply came of it: the pick held no decision, the answer could not be read, or the check left nothing of it |
+| asking for the title | a turn about one game whose name fits several library titles or could not be tied to a game, or whose request marks no game as the one asked about |
+| saying the game is not measured | a turn about a game the library does not hold |
+| saying the numbers are not explained yet | a question about what the numbers mean |
+
+The record carries the ending as a field of its own. Every text written in
+advance has the same message kind, so without the field a caller that wants
+to tell "asks for the title" from "not measured" would run the routing
+again. The three cases with no answer share one text, which says no answer
+could be put together and asks the player to put it another way; a text for
+each was declined, since the player can do nothing different with the
+difference, and the three stay apart where they are counted. The understand
+step's text for a message it could not read is not used for them: there the
+request was read, and the text would put the fault on the player's message.
+
+The last three endings are stand-ins. The first stage does not write the
+question that lists the titles a name could mean, the answer for a game the
+library has not measured, or the explanation of what the numbers mean. A
+turn that needs one of them ends on a short text that says so, with no model
+call. Each stand-in is replaced by the reply it stands for when that reply
+is built, and the ending's name stays. The out-of-scope refusal was declined
+for the three, since they are in scope and that text says the chat does
+them, and so was the answer call with nothing to write from. The costs are
+that an unclear "the second one" gets the question with no titles listed,
+and that the refusal already says the chat can explain what the numbers on a
+report mean, which the first stage does not do.
+
+**The first end-to-end run.** *2026-11-19, `probes/turn_examples_read.py` on
+the copy of the serving database taken on the evening of 2026-11-14 (115
+games) and the labeler's model: the twelve example conversations, fourteen
+turns, one fixed seed for each example. One run, so each line is an
+observation and not a rate, and the reading by hand that assesses the
+replies had not been made when this was written.* 13 turns ended on a
+written reply and 1 on the stand-in for the numbers. No step used its retry
+in 14 understand, 12 pick and 13 answer calls, and the check raised no
+objection that costs a reply anything. Two replies ran over 150 words, at
+159 and 160, and relayed wording was recorded in most of them. A turn took
+a median 5.5 seconds and 6.3 at the longest, and the run's 38 paid calls
+cost $0.0159, one answer having come from the response archive.
+
+The routing held: "the second one" resolved to the second game the first
+example's reply had offered, with that conversation's three wants still
+standing. Five things were seen that the stage measurements now count. A
+request with a wanted word no review of any game uses went forward as six
+candidates to be read, and the reply offered none of them. Two readings the
+understand step is known to get wrong reached a reply: a wish to play alone kept beside a new must
+for online co-op, and "scary" weakened from a must to a want. Two replies
+rested a sentence on an excerpt their statement did not cite, which shows
+only when the material is printed whole and not the cited excerpts alone.
+One reply attributed to a game a passage that is about its predecessor. And
+one reply offered two games that are "cannot tell" on a stressed must and
+whose own excerpts describe the unwanted thing, which follows the answer
+prompt as committed and goes against the reply ruled for that example.
+
+Four rulings wait on the reading by hand: whether a game undecided on a
+stressed must is set aside when its excerpts show the unwanted thing;
+whether a message that asks about several games reads the first, as built,
+or gets a text asking for one at a time; whether a liked game the library
+has not measured, on a request with no wants, stays a recommendation turn,
+where the reply said the game is unmeasured before asking, or goes to the
+stand-in; and the refusal's claim about the numbers. One revision of the
+answer prompt follows the reading, compared with the committed prompt on
+the same cases.
+
+**Ruled for the second stage, and not built.** The first stage answers
+under the base rules only. What the second stage adds is ruled in outline
+and enters this section with its reasons when it is built: an allowance of
+questions asked before suggesting, counted by code from the pick's stored
+decisions (one for a request that carries something, up to three for one
+that carries nothing), with "ask" withheld from the pick once it is spent; a
+question put alongside suggestions, outside that allowance and at most one
+a reply; the question that lists the titles a name could mean, a text
+filled in by code; for a liked game with no parts stated, its strongly
+positive aspects added to the sheet as columns that are never musts; the
+starting set for a request that carries nothing; quotes and figures
+appended by code beneath a statement when the player asks, with the report
+link in their place for the story aspects and search match counts never
+shown; a review cited behind every offered game; and the full title in the
+reply for a partial match and for a game left off the sheet. Until then the
+pick may always ask, so two questions in a row are possible, and a game the
+player said they had played is left off only when its name resolved to one
+title.
+
 **The chat talks, and the evidence works underneath.** In the chat the player
 reads natural talk, in plain words scoped to the people who mentioned the
 thing: "players who talk about the story mostly praise it". It carries no
-review quotes and no numbers. The mechanism still uses both: every statement
-about a game is tied to specific reviews and counts the model picked, code
-verifies them, and they are kept for the evaluation. Quotes and numbers are
-shown when the player asks. Each suggested game links to its report, where the
+review quotes and no numbers. The evidence is still underneath: a statement
+cites by identifier the review excerpts it rests on, code verifies where each
+was fetched from, and the record is kept for the evaluation. No count reaches
+the call that writes the reply, which reads groups and findings in words.
+Quotes and numbers are shown when the player asks, supplied by code, which is
+the second stage's to build. Each suggested game links to its report, where the
 full evidence already sits, and the survey mint remains the only source of any
 number the chat shows. The first design had code insert quotes into every
 answer; that made the tab read like a report. The cost of the change is
@@ -2979,31 +3497,48 @@ not the player asks for that, and a player who asks to be spoiled changes
 nothing. It holds in three parts. For the story aspects (story, characters,
 writing, lore, emotional impact) the chat shows no review quote, even on
 request; it describes in plain words and links the report. A review that
-contains the word "spoiler" is never quoted anywhere; 514 of the library's
-reviews across 87 games contain it. And the model is instructed never to state
-plot events in its own sentences. The first two are checked by code. The third
-cannot be, since a spoiler can come from the model as well as from a quote, so
-it is read by hand. The report pages already show quotes picked with no regard
-for spoilers; whether any reveal plot has not been checked.
+contains the word "spoiler" is never read: both reads leave it out, so it is
+never an excerpt, reaches no prompt and can be neither quoted nor
+paraphrased; 514 of the library's reviews across 87 games contain it.
+Leaving it as a rule about quotes was declined, since the model's paraphrase
+of what it read is then the leak. And the model is instructed never to state
+plot events in its own sentences, a rule that also covers what it takes from
+the store's description. The first two are held by code: the spoiler filter
+sits in the reads, and in the first stage no reply carries a review quote at
+all, by the check's quote rule. The third cannot be, since a spoiler can come
+from the model as well as from a quote, and a reviewer can reveal plot
+without using the word, so it is read by hand. The report pages already show
+quotes picked with no regard for spoilers; whether any reveal plot has not been checked.
 
 **Scope and the gate.** In scope: recommendations from the library, questions
 about a library game, and questions about what the tab's numbers mean.
 Everything else gets a fixed refusal written in advance. The gate is a model
-and can be talked around, and review text reaches the prompt without passing
-it, so the protection is layered: the understand step returns a fixed
-structure; the model holds no tool that changes anything and no secret; an
-answer without evidence is not shown; turns, message length, requests per
-address and daily spend are capped under the existing spend breaker; review
-text enters the prompt as quoted material. The gate is measured in both
+and can be talked around, and review text, the store's descriptions and the
+player's own messages reach the answer call without passing it, so the
+protection is layered. The understand step returns a fixed structure. The
+pick call reads the request and the sheet and never the conversation, so
+player text reaches it only inside the request. The answer call can
+offer only the pick's candidates, so an injection there can change the
+wording and which candidates are offered and cannot add a game. The model
+holds no tool that changes anything and no secret. A game offered against a
+failed must without cited reviews is removed from the reply. The
+conversation, the request and the fetched material enter a prompt as
+delimited blocks introduced as data, with "<" escaped. Turns, message length,
+requests per address and daily spend are capped under the existing spend
+breaker, which is the tab's to build. The gate is measured in both
 directions, attempts stopped and real requests wrongly refused.
 
 **Retrieval starts with the stored samples and keyword search.** The pool is
 each report's own sample, already on the box and already labelled, so what the
-chat can discuss is what the report was built from. A follow-up question is
-restricted to its game; the aspect labels are tried as a filter and as a
-ranking boost, and the measurement decides, since a mistaken label used as a
-filter hides a relevant review. The first version ranks with SQLite's built-in
-full-text search behind one search interface. Vector retrieval is a committed
+chat can discuss is what the report was built from. Every read is restricted
+to one game. A read driven by words, which is a search term or the search
+words a store fact carries, takes the game's best-ranked matches from SQLite's
+built-in full-text search behind one search interface. A want on an aspect
+has no query, so the reviews labelled with it are read by a seeded draw in
+proportion to their sentiments. Using the label as a filter there is the
+first stage's default; filter, ranking boost or unused stays the retrieval
+experiment's measurement, since a mistaken label used as a filter hides a
+relevant review. Vector retrieval is a committed
 second stage: a small open embedding model run locally with its version pinned
 (a retired or silently changed provider model would orphan every stored
 vector), chosen by a test of two or three candidates on these reviews, with the
@@ -3148,7 +3683,7 @@ only.
 | "Reviewers do write about it" | the phrase appears in ten of the library's games | `core/sheet.py` | one constant | the reply reporting an empty search as a finding, or refusing to report a real one |
 | Which store facts every game declares | play modes, platforms, early access and genres; thirteen features are declared by choice | `core/store_facts.py` | one flag per fact | a feature most games turn out to declare, or a play mode some do not |
 | A player tag withholds a genre failure | the genre's own tag and the tags naming a kind of it | `core/store_facts.py` | the tag list per genre | mistagged games crowding the "cannot tell" group, or tagged games still read as failures |
-| No game removed on evidence | the sheet holds every library game; a conflict with a must is answered with cited reviews | `core/sheet.py`; the objection is not built (the check) | a filter over the statuses | offers against a conflict that the hand reading finds unsupported, or a sheet too long for the judge to read |
+| No game removed on evidence | the sheet holds every library game; a conflict with a must is answered with cited reviews | `core/sheet.py`; the objection in `core/check.py` | a filter over the statuses | offers against a conflict that the hand reading finds unsupported, or a sheet too long for the judge to read |
 | Default firmness | by target: a store fact and a term that says what the game is are a must; an aspect, an amount, a release range and a want with no target are a want | the prompt in `core/understand.py` | a prompt rule; re-run the understand measurement | near misses on the kind of game, good games withheld, or a want that names the kind of game reading as soft because its evidence is an aspect ("a game where my choices change the story") |
 | A want's words | one unbroken stretch of a player message, checked by code on letters and digits | `core/understand.py` | the check, or the contract to "a faithful description" | retries spent on harmless rewordings, or details lost because they sit apart from the want |
 | Aspect vocabulary shown to the understand model | each label with its one-line definition | `core/understand.py` | one render function; the compact codebook is the named alternative | wants landing on a neighbouring aspect |
@@ -3157,13 +3692,28 @@ only.
 | A faulty answer | one corrective retry, then the faulty target removed and the want kept | `chat/understand.py`, `core/understand.py` | the ladder's rungs | turns lost to unreadable answers, or musts read as "cannot tell" after a salvage |
 | Out-of-scope reply | one fixed text for every reason | `core/understand.py` | a reason field and a text per reason | refused players misled about what the tab does |
 | Named-game matching | the model writes the title; code matches literally, whole title then a run of words | `core/game_names.py` | the matching rule | library games answered as "not measured", or a wrong game taken without the reply naming it |
-| Questions before answering | one, or up to three for a request with nothing in it | not built (the judge step) | a prompt rule | players leaving before a suggestion, or suggestions with nothing behind them |
-| Quotes and numbers in the chat | only when the player asks | not built (the answer step) | an interface addition | hand reading that finds claims the player could not have checked |
+| Questions before answering | one, or up to three for a request with nothing in it | not built (the second stage); until then the pick may always ask | a prompt rule | players leaving before a suggestion, or suggestions with nothing behind them |
+| Quotes and numbers in the chat | only when the player asks | not built (the second stage); the first stage shows none | an interface addition | hand reading that finds claims the player could not have checked |
 | Search matching | literal phrases, no stemming, variants listed | `store/review_search.py`, the schema's tokenizer | drop and refill the index | wants missed for spelling |
 | Index kept by a trigger | yes | schema step 10 | drop the trigger, add a refresh | any job failure traced to the index write |
 | Store facts captured after the publish, failing soft | yes | `serve/storefront_capture.py` | one call site | library games left without facts |
 | Tags kept from the judge and the player | yes; code reads them only to withhold a genre failure | `core/store_facts.py` | a design decision at the retrieval report | kinds of game the reviews do not name |
 | Retrieval method | keyword only | the two search reads | the vector stage | the retrieval experiment's result |
+| Models of the pick and the answer call | the labeler's model, temperature 0, thinking off, a route each | `chat/pick.py`, `chat/answer.py` | one route each | picks that break the sheet's rules or show poor judgment on a hand reading (thinking on, or a stronger model, for the pick); replies that read like a report or state what the excerpts do not support (the answer prompt first, then a stronger model, kept cross-family from the judge) |
+| Candidates a pick may name | 6, twice what a reply offers | `core/pick.py` | one constant | good games never read on a broad request, or a prompt too long to pick well from |
+| Games offered in a reply | 3 | `core/answer.py` | one constant | replies too long to read, or sound candidates cut |
+| Things a question may need to know | 3 | `core/pick.py` | one constant | questions that read as a questionnaire |
+| Pairs of a game and a want read a turn | 24, musts first, then the pick's list, then the rest | `core/pick.py` | one constant; the ranks are a rule | pairs cut on requests of ordinary length |
+| Excerpts a read | 6, each capped at 300 characters; an aspect is read by label from five mentions up | `chat/evidence.py`, `core/excerpt.py` | one constant each; the cap and the floor are the report page's | replies resting on too little, or six excerpts that misstate an aspect's balance |
+| Subjects read on a turn about one game | 4, in the player's order | `core/material.py` | one constant | questions left unread |
+| Order inside a pattern of the pick's sheet | shuffled by a seed from the conversation | `core/pick.py` | one function; app-id order is the alternative it replaced | picks that still follow position, or a need for one request to give every player the same games |
+| A game's line in the pick's sheet | an identifier, genres, release year and readings, with no title | `core/pick.py` | one render function | picks of the wrong kind of game on a word match |
+| Which failed must may be put forward | only an avoided word that clusters | the pick's parse in `core/pick.py` | one rule | sound offers against a store fact or an aspect found removed |
+| Reply length | about 150 words, recorded and not enforced | `core/check.py` | one constant | replies players stop reading |
+| A quote of a review | two words or more in quotation marks that appear in one of the turn's excerpts | `core/check.py` | one constant | single quoted words carrying a reviewer's phrase, or ordinary phrases refused |
+| Recorded rules asking for the retry | no: relayed wording, a working word and length are named in a retry that runs for another reason | `core/check.py` | one value per rule | the answer measurement, weighing faults removed against sentences changed |
+| Fixed texts of a turn | one text for a turn that was read and got no answer; three stand-ins for replies the first stage does not write | `core/turn.py` | the wording | players misled about what went wrong, and each stand-in when its reply is built |
+| The game a turn about one game reads | the first game asked about; any others are counted | `core/turn.py` | one rule | messages that ask about two games |
 
 Not on this list, because they are not switches: the library's size, the
 stored sample as the only pool, the aspect vocabulary, and the fixed order of
@@ -3192,8 +3742,8 @@ as code. The test for any addition stays: does *this product* need it?
   positive-share timeline (episode detection stored, not rendered), the
   trust panel, Docker/FastAPI/SQLite/CI deployment,
   the evaluation methodology as a public artifact, the ops story as a public
-  artifact. The recommender chat is designed and not built (the recommender chat
-  section): in the design, not in the shipped scope.
+  artifact. The recommender chat's steps are built and its tab is not (the
+  recommender chat section): in the design, not in the shipped scope.
 - Deliberately out: fake-review verdicts (tombstoned under Data access) ·
   multilingual evaluation claims (post-launch experiment, unverified if shipped) ·
   Kubernetes/Terraform/cloud MLOps (zero marginal signal for a portfolio app) ·
@@ -3208,8 +3758,8 @@ as code. The test for any addition stays: does *this product* need it?
 
 ## Open questions / deferred
 
-- **LLM tier for the chat's stages** — the understand and judge steps each get
-  their model by measurement on the development cases, per the tier rule (the
+- **LLM tier for the chat's stages** — the understand, pick and answer calls
+  each get their model by measurement on the development cases, per the tier rule (the
   recommender chat section). The survey-labeling stage is decided (the
   labeler ruling); the composition stage is decided (the deployment design:
   v4-flash, cross-family from the judge). The judge stays exempt: always a

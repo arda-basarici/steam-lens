@@ -4,10 +4,11 @@ How it's built and why that structure: a narrative snapshot, edited in place.
 Decisions and their rationale → [DESIGN.md](DESIGN.md) (cited by name); the pitch →
 [README.md](README.md).
 
-*Snapshot of the completed project · last updated 2026-08-12 · milestones M0–M3
+*Snapshot of the completed project · last updated 2026-11-19 · milestones M0–M3
 shipped; the app is live at steamlens.ardabasarici.dev. The chat milestone (M4)
-is reopened as a recommender tab, designed and not built (DESIGN: the recommender
-chat), and gets its own architecture pass when it is built.*
+is reopened as a recommender tab (DESIGN: the recommender chat). The steps of a
+chat turn are built and are described here; the page that will call them is
+not built.*
 
 ---
 
@@ -225,6 +226,48 @@ sub-second poll is invisible to a viewer, while per-viewer listener queues would
 be lifecycle machinery buying imperceptible latency (DESIGN: narration streams
 over SSE).
 
+### The life of a chat turn
+
+The recommender chat's path, from a conversation to the message that answers
+it (DESIGN: a fixed order of steps · the turn, and how it ends):
+
+```mermaid
+%%{init: {"flowchart": {"diagramPadding": 150}}}%%
+flowchart TD
+    CONV(["conversation + seed"]) --> U["`understand
+    model call → the structured request`"]
+    U -->|"a request for games"| SHEET["`the sheet
+    code: every library game read against the request`"]
+    U -->|"about one library game"| ONE["`fetch
+    code reads reviews on what was asked`"]
+    U -->|"no request, out of scope, the numbers, a game that did not resolve"| FIXED["a text written in advance"]
+    SHEET --> PICK["`pick
+    model call → candidates, a question, or nothing fits`"]
+    PICK -->|"candidates"| FETCH["`fetch
+    code reads reviews under the read plan`"]
+    PICK -->|"a question, nothing fits"| ANSWER
+    PICK -->|"no decision"| FIXED
+    FETCH --> ANSWER["`answer
+    model call → ordered statements,
+    parsed and checked, one corrective retry`"]
+    ONE --> ANSWER
+    ANSWER -->|"a reply is kept"| TURN(["the message + the turn's record"])
+    ANSWER -->|"unreadable, withheld, unavailable"| FIXED
+    FIXED --> TURN
+```
+
+A turn is one function, `chat.turn.turn`, and nothing in it knows about HTTP.
+No route calls it yet: until the page is built its callers are the tests and
+the end-to-end probe (`probes/turn_examples_read.py`), which is the point of
+keeping the steps in a package of their own below the entry shells. Every
+box is split the same way: the rules (a prompt's render, the validation of
+an answer, the read plan, the check, the routing) are pure and live in
+`core`, and the half that reads the store or calls a model lives in `chat`.
+The three model calls go through the one model door, each on a stage of its
+own (`UNDERSTAND`, `PICK`, `ANSWER`) with its own route, so moving one step
+to another model is one route's edit. The turn stores nothing: the
+conversation, the seed and the clock are the caller's.
+
 ### The life of an offline run
 
 Every dispatch run (census, judge, experiment cell) is regenerable from its
@@ -259,7 +302,7 @@ renders the reference; regen script committed, output never hand-edited).
 
 | module | single job |
 | --- | --- |
-| `contracts/` | the frozen-dataclass records crossing every seam (reviews · classification · aggregates · sampling plans · reports · ops rows · provenance · LLM and Steam door records · eval runs · telemetry), plus the enums and the `Sink` narration protocol |
+| `contracts/` | the frozen-dataclass records crossing every seam (reviews · classification · aggregates · sampling plans · reports · ops rows · provenance · LLM and Steam door records · eval runs · telemetry · the chat's request, sheet, material, reply and turn), plus the enums and the `Sink` narration protocol |
 | `core/normalize` | two-slot label resolution: surface index over the pinned vocabulary, conservative match keys, candidates preserved in reviewer wording |
 | `core/classify` | the versioned classify prompt build + strict response parse with per-idx salvage (the LLM call itself stays in the shell) |
 | `core/aggregate` | the number mint: label pool + scope → per-game aspect aggregates, raw tallies only |
@@ -277,9 +320,23 @@ renders the reference; regen script committed, output never hand-edited).
 | `dispatch/` | generic run machinery, study-blind: tee'd narration sink · run/config/code stamps · the run-shell context · the chunk/pass batch engine · `census_arm`, the production annotator as a citable instrument with its extra-routes door |
 | `core/store_facts` | the curated store-fact vocabulary a chat want may name, and how each fact reads on a game: complete facts, facts declared by choice, genres with the player tags that withhold a failure |
 | `core/sheet` | the sheet's rules: a report's aggregates into per-aspect groups above a mention floor, the cluster rule for a search term, one game's status on one want, the library read against a request with no game removed on evidence |
-| `core/game_names` | matching a named game against the library's titles: titles folded to plain words, a whole title first, then a run of words inside one longer title, the match kind reported |
+| `core/game_names` | matching a named game against the library's titles: titles folded to plain words, a whole title first, then a run of words inside one longer title, the match kind reported; and whether a sentence names a game, by its title whole or shortened |
 | `core/understand` | the understand step's prompt (stable part first, the conversation as a data block) and the validation of a model's answer into a request: structure faults, target faults repaired by removing the target, the fixed replies |
-| `chat/` | the recommender chat's steps, composed by the serving route and by evaluation runs; so far the understand step's call with its retry ladder, and the library read behind the sheet (every game's newest report, store facts and tags, and one keyword search per term in a request) |
+| `core/conversation` | a conversation rendered as one data block for the two steps that read it, each earlier reply's offered games as a numbered list of library titles |
+| `core/json_answer` | the tolerant decode of a model answer that is one JSON object, written once for the chat's steps |
+| `core/pick` | the pick step's pure half: the request and the sheet rendered for the pick call (by standing, then by pattern, a seeded order inside a pattern, no titles), the answer validated into a decision, the bounds, and the read plan that says which pairs of a game and a want are read |
+| `core/excerpt` | cutting a review down to what is read, one rule for the report page and the chat: the stored span grown to its sentence and capped, the anchor for a search match, the spoiler test, the seeded draw |
+| `core/material` | the fetch's pure half: how a want or a subject is read by its target, and the material the answer call reads put together (for candidates, for one game, for a reply that offers nothing), with an identifier per excerpt |
+| `core/answer` | the answer step's pure half: the request, the material and the conversation rendered for the answer call, and the answer validated into a reply of ordered statements, faulty references repaired by removal |
+| `core/check` | what a readable reply is held to before it is shown: where each cited excerpt was fetched from, the rules over the record and over the text, removal by the smallest unit with the rules run again, and how each objection ended |
+| `core/turn` | the turn's rules: which way a reading goes (a recommendation, one library game, or a fixed ending), the text of every ending that is not a written reply, and a reply joined into its message |
+| `chat/understand` | the understand step's shell: the model call, with one corrective retry and salvage |
+| `chat/sheet` | the library read behind the sheet: every game's newest report, store facts and tags, and one keyword search per term in a request |
+| `chat/evidence` | the two reads of a game's reviews: an aspect by label through the seeded draw, words through the keyword search, reviews that contain "spoiler" left out first |
+| `chat/pick` | the pick step's shell: the model call on its own route, one corrective retry, then what can be read kept |
+| `chat/fetch` | the fetch: runs the read plan and the two reads against the store, for a recommendation turn and for a turn about one game, and journals what the cap left unread |
+| `chat/answer` | the answer step's shell: the model call on its own route and the one corrective round the parse's faults and the check's objections share, removal after it, and the withheld outcome |
+| `chat/turn` | one chat turn: the steps composed in their fixed order for one conversation, the library read once, the ending journalled, and the three routes by stage |
 | `serve/` | the serving shell: the job + one-at-a-time queue · the runner (the analysis pipeline over certified seams) · the submit gate · SSE encoding and replay-then-follow · the compose-call shell with its failure ladder · config dials · the composition root (`serve.main`, env-wired) |
 | `serve/web` | the renderer, the one module a frontend rewrite touches: Jinja templates, static assets, view models for report and ops pages, the CSP stamp |
 | `studies/` | offline entry shells: census labeling + aggregate minting · the sampling study's simulation and measurement drivers · the detect calibration pass · the allowance-constant mint arithmetic |
@@ -441,6 +498,15 @@ never learns the box's address.
   `/openapi.json` shipped as an unexamined framework default and were declined
   deliberately once seen (no consumer exists), and the absence is pinned by test
   (DESIGN: the Content-Security-Policy pass).
-- **No investigation machinery.** The investigator is deferred whole. The
-  recommender chat (M4) is designed and not built; its retrieval modules get
-  their own architecture pass when they are.
+- **No shared retry ladder for the chat's steps.** The understand and the
+  pick shell walk the same rungs (an answer with faults, one retry, what can
+  be read kept, a fixed reply), about sixty lines each. The answer shell
+  validates twice, removes in passes that can leave nothing, has a rung of
+  its own for a withheld reply and settles each objection against the first
+  answer. A shared walk would fit two of the three, or carry the answer's
+  steps as hooks and hide little. Revisit on a fourth ladder of the plain
+  shape, or a fix that has to be made in all three.
+- **No investigation machinery.** The investigator is deferred whole. Of the
+  recommender chat (M4) the steps of a turn are built (the life of a chat
+  turn); its page, its caps and its vector retrieval are not, and get their
+  architecture when they are.
