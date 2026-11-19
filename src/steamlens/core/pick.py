@@ -470,7 +470,7 @@ class ReadPlan:
 def read_plan(decision: CandidatesDecision, request: PlayerRequest, sheet: Sheet) -> ReadPlan:
     """The pairs of a game and a want whose reviews are read for ``decision``.
 
-    Code owns what is read, in three ranks. A must is always read, listed
+    Code owns what is read, in three ranks. A must comes first, listed
     or not: a game offered against a conflict has to cite reviews on that
     want, a game open on a must is offered with what was found said beside
     it, and a must matched on searched words is matched on how often the
@@ -483,8 +483,9 @@ def read_plan(decision: CandidatesDecision, request: PlayerRequest, sheet: Sheet
     A pair that has no reviews to read is left out and uses no place: a
     want with no target, a release year, a store fact the game already
     matches on, and searched words none of the game's reviews use. A want
-    relative to a named game is always read, since the comparison is made
-    from reviews. The named game's own side of a comparison is not a pair:
+    relative to a named game is read whatever its own side shows, since the
+    comparison is made from reviews, unless it has no target or names
+    release years. The named game's own side of a comparison is not a pair:
     it is read once for the turn, outside this count.
 
     At most ``MAX_READ_PAIRS`` pairs are read. The cap is filled rank by

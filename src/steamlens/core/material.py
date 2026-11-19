@@ -19,7 +19,7 @@ or it was read. A planned read that comes back empty counts as nothing to
 read: an aspect too few reviews mention, or matches that all contain
 "spoiler".
 
-A turn about one game has no pick and no plan. Each thing the player asked
+A turn about one game has no pick. Each thing the player asked
 is read by its target the same way, up to a fixed number of subjects, and a
 subject on a store fact is read whether or not the store lists it. Two
 questions have no target of their own. "Would it suit me" reads the game

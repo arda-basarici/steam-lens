@@ -3,9 +3,10 @@
 The steps are built one by one in this package: understand, the sheet, the
 pick, the fetch, the answer with its check. ``turn`` runs them in their
 fixed order for one conversation and returns a ``Turn``: the message the
-chat appends, how the turn ended, and what each step made on the way. The
-serving route and an evaluation run both call it, so a reply read by hand
-went the same way a reply shown on the page did.
+chat appends, how the turn ended, and what each step made on the way. It is
+the one entry for an evaluation run and for the serving route, which is not
+built yet, so a reply read by hand goes the same way a reply shown on the
+page will.
 
 Which way a reading goes, and the text of every ending that is not a
 written reply, are rules and live in ``core.turn``. This module reads the
@@ -14,8 +15,9 @@ library, calls the steps and journals how the turn ended.
 A recommendation turn builds the sheet, asks the pick, and then follows
 the pick's decision: reviews are fetched for candidates, the library's
 standing on the wants is put together when nothing fits, and a decision to
-ask goes on as it is. A turn about one game has no sheet and no pick: the
-reviews are fetched for what the player asked about that game. Either way
+ask goes on as it is. A turn about one game has no pick: the reviews are
+fetched for what the player asked about that game, which the fetch reads
+against the sheet only when the player asked whether it would suit them. Either way
 the answer step writes the reply. A step that ends with no result ends the
 turn on a fixed text, and so does a reading the first stage has no reply
 for.

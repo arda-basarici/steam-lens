@@ -1,7 +1,8 @@
 """A chat conversation, and what the chat's steps make of it.
 
-A conversation is the only state the recommender chat carries: every turn
-the understand step reads all of it and fills a fresh ``PlayerRequest``.
+A conversation is the state the recommender chat carries, with the seed its
+caller keeps beside it: every turn the understand step reads all of the
+conversation and fills a fresh ``PlayerRequest``.
 What a later turn needs to know about an earlier reply is therefore recorded
 on the message itself, as data: the games it offered and what kind of
 message it was. Nothing is read back out of the reply's prose.

@@ -11,7 +11,8 @@ pool.
 Two reads. ``game_hit_counts`` answers, across the library, how many of each
 game's counted reviews match: the input for nominating games on a want the
 aspect vocabulary cannot express. ``search_game`` answers, inside one game,
-which counted reviews match best: the retrieval behind a follow-up question.
+which counted reviews match best: the retrieval behind every read by words,
+for a candidate of a recommendation and for a question about one game.
 Both return identifiers and counts, never text; the caller reads the reviews
 it wants through ``ReviewStore``.
 

@@ -1,10 +1,10 @@
 """The structured request — what a chat turn asks for, in a fixed shape.
 
 The recommender chat's understand step fills a ``PlayerRequest`` from the
-whole conversation on every turn. Nothing else carries state between turns,
-so a want the player withdrew is simply absent from the next request. Code
-reads the sheet from it, the judge reads both, and the check uses it to see
-that no want was dropped.
+whole conversation on every turn. No reading is carried from one turn to the
+next, so a want the player withdrew is simply absent from the next request.
+Code reads the sheet from it, the pick call reads both, and the check uses it
+to see that the wants an offered game misses are spoken to.
 
 A ``Want`` keeps the player's own words and names exactly one target: a store
 fact from a closed vocabulary, a range of release years, one pinned aspect, a
@@ -143,7 +143,7 @@ class Want:
     laptop, but performance complaints are evidence against, so such a want
     can fail and can never match. ``compared_to`` holds the player's words
     for a named game the want is relative to ("less frantic than Hades");
-    the comparison itself is the judge's, from reviews of both games.
+    the comparison itself is made in the reply, from reviews of both games.
     ``liked_in`` holds the words for a named game when the want is a part the
     player said they liked in it.
 

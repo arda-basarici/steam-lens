@@ -11,7 +11,7 @@ live in ``core.excerpt``; this module does the reading.
 
 Both reads cover the reviews the game's newest report counted and nothing
 else, the pool every number on the sheet was counted over. And both leave
-out a review that contains "spoiler" before anything is chosen or cut, so
+out a review that contains "spoiler" before an excerpt is cut from it, so
 such a review reaches no prompt and can be neither quoted nor paraphrased.
 """
 

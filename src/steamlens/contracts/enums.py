@@ -159,10 +159,11 @@ class NameMatch(StrEnum):
     resolves, and it can be a different game of the same series ("doom" finds
     the library's only DOOM), so a reply names the title it took. ``SEVERAL``
     is a name more than one library title holds ("dark souls"), which
-    resolves to none of them: the chat asks. ``NOT_IN_LIBRARY`` is a game
-    with no measured report. ``UNCLEAR`` is a reference the understand step
-    could not tie to a game ("that one" after several were mentioned): it is
-    not an unmeasured game, and the chat asks which one was meant.
+    resolves to none of them. ``NOT_IN_LIBRARY`` is a game with no measured
+    report. ``UNCLEAR`` is a reference the understand step could not tie to
+    a game ("that one" after several were mentioned): it is not an
+    unmeasured game. A turn about a game that is ``SEVERAL`` or ``UNCLEAR``
+    asks for the title; a recommendation turn does not stop on either.
     """
 
     EXACT = "exact"
@@ -185,8 +186,10 @@ class ChatMessageKind(StrEnum):
     A ``QUESTION`` only asks: nothing is suggested or answered in it. An
     ``ANSWER`` suggests games or answers about one, and stays an answer when
     it puts a question alongside. ``FIXED`` is a text written in advance
-    that code sends as it stands: the refusal, and the replies to a turn
-    that could not be read or could not be served.
+    that code sends as it stands: the refusal, the replies to a turn that
+    could not be read, could not be served or got no answer, and the
+    stand-ins for replies the first stage does not write. ``TurnEnding``
+    tells them apart.
 
     >>> ChatMessageKind.QUESTION == "question"
     True
@@ -298,8 +301,8 @@ class CheckRule(StrEnum):
 
     The last three are recorded and cost a reply nothing, since there is
     nothing to remove or the pattern is too loose to act on:
-    ``RELAYED_WORDING`` (a reviewer's wording carried with a form of
-    "call"), ``WORKING_WORD`` (a label of the material or an identifier)
+    ``RELAYED_WORDING`` (a reviewer's wording carried with "call" as a
+    verb), ``WORKING_WORD`` (a label of the material or an identifier)
     and ``TOO_LONG``.
 
     >>> CheckRule.CONFLICT_NOT_CITED == "conflict-not-cited"
@@ -481,8 +484,10 @@ class MustStanding(StrEnum):
 
     The sheet groups its rows by this and removes none of them. A game that
     ``CONFLICTS`` with a must can still be offered when its reviews speak to
-    that want, flagged and never as a fit; that call is the judge's, and the
-    check asks for the reviews. ``MEETS`` includes a request with no must.
+    that want, flagged and never as a fit. The pick's parse lets one kind of
+    conflict through, a must that avoids words the game's reviews cluster
+    on, and the check asks for the reviews. ``MEETS`` includes a request
+    with no must.
     """
 
     MEETS = "meets"

@@ -180,8 +180,10 @@ class Sheet:
     ``earlier_offers`` in the order they were first offered. The rows are
     grouped by standing (meets the musts, open on a must, conflicts with
     one) and ordered by app id inside a group, an order that carries no
-    reading. ``tallies`` are in the order of the request's wants and count
-    over the rows.
+    reading. That is the record's order: the pick call's render lays the
+    rows out again, by pattern and by a seeded shuffle inside one.
+    ``tallies`` are in the order of the request's wants and count over the
+    rows.
     """
 
     rows: tuple[SheetRow, ...]
