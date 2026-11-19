@@ -30,6 +30,8 @@ withdrawn, removed or standing.
 
 from __future__ import annotations
 
+import pytest
+
 from steamlens.contracts import (
     AskDecision,
     AspectTarget,
@@ -460,6 +462,30 @@ def test_relayed_wording_a_working_word_and_length_are_recorded_and_cost_nothing
     assert enforced.reply == reply
     assert enforced.removed == ()
     assert len(enforced.standing) == 3
+
+
+@pytest.mark.parametrize(
+    ("text", "relays"),
+    [
+        ("Hades players call it frantic.", True),
+        ("Hades players call its combat frantic.", True),
+        ("One Hades reviewer calls the pace relentless.", True),
+        ("Hades gets called a frantic game by its players.", True),
+        ("Its players keep calling Hades one of the best.", True),
+        ("Its players call Hades frantic.", True),
+        ("Hades players describe hard calls that stay with them.", False),
+        ("Hades players say every call is theirs to make.", False),
+        ("Hades players say the last area calls for patience.", False),
+        ("In Hades, players say, death is a close call.", False),
+    ],
+)
+def test_relayed_wording_is_call_as_a_verb_and_not_the_word_alone(
+    text: str, relays: bool
+) -> None:
+    """The rule is recorded to be counted, so a decision a player has to
+    make ("a hard call") must not be counted as a reviewer's wording."""
+    raised = _check(_swap(_GOOD, _HADES_NOTE, _with(_HADES_NOTE, text=text)))
+    assert (CheckRule.RELAYED_WORDING in _rules(raised)) is relays
 
 
 def test_a_turn_that_names_no_game_is_held_to_the_text_rules_only() -> None:

@@ -104,7 +104,18 @@ _QUOTED: Final = re.compile(r'"([^"]+)"')
 _QUOTE_EDGE: Final = re.compile(r"^[\s.,!?;:…]+|[\s.,!?;:…]+$")
 _SPACE: Final = re.compile(r"\s+")
 _TRADEMARKS: Final = re.compile("[™®©]")
-_RELAYED: Final = re.compile(r"\b(?:call|calls|called|calling)\b", re.IGNORECASE)
+# "Call" as the verb that carries a reviewer's wording: "called", "calling",
+# and "call" or "calls" with what is described after it ("call it", "call
+# Hades frantic"). A decision is a call too ("hard calls that stay with
+# you", "every call is yours"), and so is asking for something ("calls for
+# patience"), so those two forms are not counted when what follows shows the
+# word has no object.
+_RELAYED: Final = re.compile(
+    r"\b(?:called|calling)\b"
+    r"|\b(?:call|calls)\b"
+    r"(?!\s+(?:that|to|for|about|on|in|is|are|was|were|you|and|or|which|who)\b|\s*[.,;:!?]|\s*$)",
+    re.IGNORECASE,
+)
 
 # The material's labels as the answer call reads them, and the words of the
 # steps that made the reply. A player should meet neither.
@@ -293,7 +304,7 @@ def check_reply(reply: Reply, turn: TurnEvidence) -> tuple[Raised, ...]:
     - no numeral outside the turn's titles, years and the player's own
       numbers; no passage of a review in quotation marks; no library game
       the turn is not about;
-    - recorded only: reviewers' wording relayed with a form of "call", a
+    - recorded only: reviewers' wording relayed with "call" as a verb, a
       working word, and a reply over ``MAX_REPLY_WORDS``.
 
     Raises ``KeyError`` for a cite the turn's material does not hold, and
