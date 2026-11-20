@@ -534,9 +534,10 @@ class Turn:
     about one game has no sheet and no pick. A turn that ended on a fixed
     text after the understand step has neither material nor answer.
 
-    A page reads its links off the record: the report of each game in
-    ``message.offered``, the game of a ``OneGameMaterial``, and the link for
-    adding a game under a reply written from a ``NothingFitsMaterial``.
+    A page reads its links off the record, by the rule in
+    ``core.turn.turn_links``: the report of each game the reply offers or
+    is about, and the link for adding a game under a reply that found
+    nothing.
 
     >>> fixed = ChatMessage(ChatRole.CHAT, "Try again later.", kind=ChatMessageKind.FIXED)
     >>> turn = Turn(

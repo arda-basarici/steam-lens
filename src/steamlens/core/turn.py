@@ -26,6 +26,12 @@ reply is built, and the ending's name stays.
 A recommendation turn never ends here on a name. A named game that did not
 resolve is read through the sheet's own finding for it, and the pick
 decides what the request can still give.
+
+What a page links under a turn's message is a rule too (``turn_links``),
+since the answer prompt tells the model what the page shows: a link to the
+report of each game a reply offers or is about, and a link for adding a
+game under a reply that found nothing. A page that showed less would make
+the reply's own sentences untrue.
 """
 
 from __future__ import annotations
@@ -37,16 +43,20 @@ from typing import Final
 from steamlens.contracts import (
     Answer,
     AnswerOutcome,
+    CandidatesMaterial,
     ChatMessage,
     ChatMessageKind,
     ChatRole,
     NamedGame,
     NamedGameRole,
     NameMatch,
+    NothingFitsMaterial,
+    OneGameMaterial,
     PickOutcome,
     PlayerRequest,
     Reply,
     RequestIntent,
+    Turn,
     TurnEnding,
     Understanding,
     UnderstandOutcome,
@@ -211,6 +221,66 @@ def fixed_message(ending: TurnEnding) -> ChatMessage:
             " written reply takes its message from the reply"
         )
     return ChatMessage(ChatRole.CHAT, FIXED_TEXTS[ending], kind=ChatMessageKind.FIXED)
+
+
+@dataclass(frozen=True, slots=True)
+class TurnLinks:
+    """What a page links under a turn's message: games by app id, and one flag.
+
+    ``offered`` are the games the reply offers, in its order. ``about`` are
+    the games the reply is about and does not offer, in the order it first
+    speaks of them: a candidate it set aside, the game named for a
+    comparison, the one game a turn asks about. The two are kept apart so a
+    page can label them apart, and a game set aside is not read as a
+    suggestion. Every game in either is a library game with a report.
+    ``add_game`` says whether the link for adding a game to the library is
+    shown.
+    """
+
+    offered: tuple[int, ...] = ()
+    about: tuple[int, ...] = ()
+    add_game: bool = False
+
+
+def turn_links(turn: Turn) -> TurnLinks:
+    """The links a page shows under ``turn.message``.
+
+    A turn that ended on a fixed text links no report. The text that says a
+    game is not measured carries the link for adding one, since that is
+    what the player can do about it.
+
+    A written reply links the report of each game it offers and of each
+    game one of its statements is about. On a turn about one game that game
+    is linked whether or not a statement names it, since the whole reply is
+    about it. The link for adding a game is shown under a reply written
+    from the "nothing fits" material, which the answer prompt promises, and
+    under an answer written from candidates that offers none of them, which
+    can tell the player the same thing. A reply that only asks carries no
+    such link: nothing was looked for yet.
+
+    >>> understanding = Understanding(
+    ...     UnderstandOutcome.UNDERSTOOD, PlayerRequest(RequestIntent.ABOUT_GAME)
+    ... )
+    >>> ended = TurnEnding.GAME_NOT_MEASURED
+    >>> turn_links(Turn(fixed_message(ended), ended, "seed", understanding))
+    TurnLinks(offered=(), about=(), add_game=True)
+    """
+    if turn.ending is TurnEnding.GAME_NOT_MEASURED:
+        return TurnLinks(add_game=True)
+    reply = turn.answer.reply if turn.answer is not None else None
+    if turn.ending is not TurnEnding.REPLIED or reply is None:
+        return TurnLinks()
+    offered = reply.offered
+    spoken_of = [statement.game for statement in reply.statements if statement.game is not None]
+    if isinstance(turn.basis, OneGameMaterial):
+        spoken_of.insert(0, turn.basis.app_id)
+    about = tuple(dict.fromkeys(game for game in spoken_of if game not in offered))
+    found_nothing = isinstance(turn.basis, NothingFitsMaterial) or (
+        isinstance(turn.basis, CandidatesMaterial)
+        and reply.kind is ChatMessageKind.ANSWER
+        and not offered
+    )
+    return TurnLinks(offered=offered, about=about, add_game=found_nothing)
 
 
 def _one_game_plan(request: PlayerRequest) -> OneGameTurn | TurnEnding:

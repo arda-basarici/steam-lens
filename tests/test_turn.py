@@ -6,8 +6,12 @@ goes on whatever games it names; a request about one game goes on only
 when the game it asks about resolved to a library title, and the first
 such game is the one read; every ending but a written reply has exactly
 one text; where the understand step already answers a reading with a fixed
-text, the turn sends the same one; and a written reply becomes a message
-by its statements in order.
+text, the turn sends the same one; a written reply becomes a message by its
+statements in order; and what a page links under a message makes true what
+the answer prompt tells the model the page shows: the report of each game
+a reply offers or is about, the two kept apart, and the link for adding a
+game under a reply that found nothing and under the text for an unmeasured
+game, never under a question.
 """
 
 from __future__ import annotations
@@ -16,19 +20,25 @@ import pytest
 
 from steamlens.contracts import (
     Answer,
+    AnswerBasis,
     AnswerOutcome,
+    AskDecision,
+    CandidatesMaterial,
     ChatMessageKind,
     ChatRole,
     Feeling,
     NamedGame,
     NamedGameRole,
     NameMatch,
+    NothingFitsMaterial,
+    OneGameMaterial,
     PickOutcome,
     PlayerRequest,
     Reply,
     ReplyStatement,
     RequestIntent,
     Subject,
+    Turn,
     TurnEnding,
     Understanding,
     UnderstandOutcome,
@@ -37,12 +47,14 @@ from steamlens.core.turn import (
     FIXED_TEXTS,
     OneGameTurn,
     RecommendTurn,
+    TurnLinks,
     ending_of_answer,
     ending_without_decision,
     fixed_message,
     games_asked_about,
     plan_turn,
     reply_message,
+    turn_links,
 )
 from steamlens.core.understand import fixed_reply
 
@@ -244,3 +256,91 @@ def test_a_reply_that_only_asks_is_a_question_message() -> None:
     reply = Reply(ChatMessageKind.QUESTION, (ReplyStatement("What kind of game are you after?"),))
     message = reply_message(reply)
     assert (message.kind, message.offered) == (ChatMessageKind.QUESTION, ())
+
+
+def _replied(reply: Reply, basis: AnswerBasis) -> Turn:
+    """A turn that ended on ``reply``, written from ``basis``."""
+    return Turn(
+        reply_message(reply), TurnEnding.REPLIED, "seed",
+        _read(RequestIntent.RECOMMEND), basis=basis,
+        answer=Answer(AnswerOutcome.ANSWERED, reply),
+    )
+
+
+_NO_CANDIDATES_READ = CandidatesMaterial(games=())
+_ONE_GAME = OneGameMaterial(
+    app_id=_HADES, title="Hades", description="", release_year=None, subjects=()
+)
+
+
+def test_a_reply_links_the_games_it_offers_apart_from_the_games_it_only_speaks_of() -> None:
+    """The prompt tells the model the page links every game a reply offers
+    or is about. A game set aside is linked too, and on its own list, so it
+    is not read as a suggestion. Each game is linked once, in the order the
+    reply first reaches it."""
+    reply = Reply(
+        ChatMessageKind.ANSWER,
+        (
+            ReplyStatement("Two of these are close."),
+            ReplyStatement("A third has timed dialogue.", game=730),
+            ReplyStatement("The first is slow and quiet.", game=620, offers=True),
+            ReplyStatement("It is unlike the one you named.", game=400),
+            ReplyStatement("The second is shorter.", game=440, offers=True),
+            ReplyStatement("That timer is strict.", game=730),
+            ReplyStatement("Its music is praised too.", game=620, offers=True),
+        ),
+    )
+    assert turn_links(_replied(reply, _NO_CANDIDATES_READ)) == TurnLinks(
+        offered=(620, 440), about=(730, 400)
+    )
+
+
+def test_a_turn_about_one_game_links_that_game_whatever_the_statements_name() -> None:
+    """The whole reply is about the game, so its report is linked even when
+    no statement carries it, and once when several do."""
+    unnamed = Reply(ChatMessageKind.ANSWER, (ReplyStatement("Reviewers call it hard."),))
+    named = Reply(
+        ChatMessageKind.ANSWER,
+        (
+            ReplyStatement("Reviewers call it hard.", game=_HADES),
+            ReplyStatement("Unlike the one you played.", game=400),
+        ),
+    )
+    assert turn_links(_replied(unnamed, _ONE_GAME)) == TurnLinks(about=(_HADES,))
+    assert turn_links(_replied(named, _ONE_GAME)) == TurnLinks(about=(_HADES, 400))
+
+
+def test_a_reply_that_found_nothing_carries_the_link_for_adding_a_game() -> None:
+    """Promised by the prompt under a "nothing fits" reply. An answer that
+    read candidates and offered none can say the same thing to the player
+    (the first end-to-end run's third example did), so it carries the link
+    as well, beside the reports of the games it set aside."""
+    nothing_fits = Reply(ChatMessageKind.ANSWER, (ReplyStatement("The library has no such game."),))
+    none_offered = Reply(
+        ChatMessageKind.ANSWER, (ReplyStatement("This one is not about curling.", game=730),)
+    )
+    assert turn_links(_replied(nothing_fits, NothingFitsMaterial(wants=(), unmet=()))) == (
+        TurnLinks(add_game=True)
+    )
+    assert turn_links(_replied(none_offered, _NO_CANDIDATES_READ)) == TurnLinks(
+        about=(730,), add_game=True
+    )
+
+
+def test_a_reply_that_offers_or_only_asks_carries_no_link_for_adding_a_game() -> None:
+    """A question has looked for nothing yet, whether the pick decided to
+    ask or the answer call asked after reading candidates."""
+    offers = Reply(ChatMessageKind.ANSWER, (ReplyStatement("Try this.", game=620, offers=True),))
+    asks = Reply(ChatMessageKind.QUESTION, (ReplyStatement("What kind of game are you after?"),))
+    assert not turn_links(_replied(offers, _NO_CANDIDATES_READ)).add_game
+    assert turn_links(_replied(asks, AskDecision(needs=("the kind of game",)))) == TurnLinks()
+    assert turn_links(_replied(asks, _NO_CANDIDATES_READ)) == TurnLinks()
+    assert not turn_links(_replied(asks, _ONE_GAME)).add_game
+
+
+@pytest.mark.parametrize("ending", list(FIXED_TEXTS))
+def test_a_fixed_text_links_no_report_and_only_the_unmeasured_game_can_be_added(
+    ending: TurnEnding,
+) -> None:
+    turn = Turn(fixed_message(ending), ending, "seed", _read(RequestIntent.ABOUT_GAME))
+    assert turn_links(turn) == TurnLinks(add_game=ending is TurnEnding.GAME_NOT_MEASURED)

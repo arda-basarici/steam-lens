@@ -57,6 +57,7 @@ from steamlens.contracts import (
     TurnEnding,
     UnderstandOutcome,
 )
+from steamlens.core.conversation import OfferedGameNotInLibrary
 from steamlens.core.pick import build_pick_prompt, shuffled_order
 from steamlens.core.turn import FIXED_TEXTS
 from steamlens.dispatch.census_arm import MODEL_ID, PROVIDER
@@ -434,12 +435,16 @@ def test_a_conversation_that_offered_a_game_outside_the_library_is_refused(
     store_path: Path,
 ) -> None:
     """The chat offers library games only, so this conversation is not one
-    it wrote. The turn says so loudly and answers nothing."""
+    it wrote. The turn says so loudly and answers nothing. The error has a
+    type of its own and names the games, so a caller can end the
+    conversation on this case without taking a step's bug for it."""
     conversation = (
         ChatMessage(ChatRole.CHAT, "Try this one.", offered=(999,), kind=ChatMessageKind.ANSWER),
         ChatMessage(ChatRole.PLAYER, "tell me more"),
     )
     script = AnswerScript([_WANTS_GAMES])
-    with pytest.raises(ValueError, match="the library does not hold"):
+    with pytest.raises(OfferedGameNotInLibrary, match="the library does not hold") as caught:
         _run(store_path, script, conversation)
+    assert caught.value.app_ids == (999,)
+    assert isinstance(caught.value, ValueError)
     assert script.prompts == []

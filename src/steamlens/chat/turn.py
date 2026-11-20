@@ -114,14 +114,22 @@ def turn(
     caller reads the clock.
 
     The result always holds a message to append, and says how the turn
-    ended. A step's failure is an ending and never an exception: every step
-    narrates and journals its own rungs, and the turn journals one count
-    for its ending.
+    ended. The failures a step expects are endings and not exceptions: the
+    spend cap refusing, provider trouble that outlasted the client's
+    retries, a generation that did not finish, an answer that could not be
+    read. Every step narrates and journals its own rungs, and the turn
+    journals one count for its ending.
 
-    Raises ``ValueError`` when an earlier chat message of ``conversation``
-    offered a game the library does not hold. The chat offers library games
-    only, so that is a conversation it did not write, and the caller decides
-    which conversations it accepts.
+    Raises ``OfferedGameNotInLibrary``, a ``ValueError``, when an earlier
+    chat message of ``conversation`` offered a game the library does not
+    hold. The chat offers library games only, so that is a conversation it
+    did not write or one a game has since left, and the caller decides
+    which conversations it accepts. It is raised before any model call.
+
+    Anything else a step does not expect propagates as it is: a provider
+    error that no retry mends (a refused key, an exhausted balance), a
+    client built with a wrong dial, a broken invariant. A caller that
+    serves strangers guards the call.
     """
     library = load_library(store)
     titles = {game.app_id: game.name for game in library}

@@ -23,6 +23,26 @@ from collections.abc import Mapping, Sequence
 from steamlens.contracts import ChatMessage
 
 
+class OfferedGameNotInLibrary(ValueError):
+    """A chat message offered a game the library does not hold.
+
+    The chat offers library games only, so either the conversation was not
+    written by the chat or a game left the library while the conversation
+    was open. It is a ``ValueError`` with a type of its own because the
+    steps raise ``ValueError`` for their own broken invariants too, and a
+    caller that ends the conversation on this case must not take a bug for
+    it. ``app_ids`` are the offered games the library does not hold.
+    """
+
+    def __init__(self, app_ids: Sequence[int]) -> None:
+        self.app_ids: tuple[int, ...] = tuple(app_ids)
+        super().__init__(
+            f"a chat message offered the games {list(self.app_ids)}, which the library does"
+            " not hold — the chat offers library games only, so the message or the library"
+            " is wrong"
+        )
+
+
 def render_conversation(conversation: Sequence[ChatMessage], titles: Mapping[int, str]) -> str:
     """The conversation as one line of JSON, with "<" written as its escape.
 
@@ -32,9 +52,9 @@ def render_conversation(conversation: Sequence[ChatMessage], titles: Mapping[int
 
     A message that offered games lists them under "offered", numbered from
     one in the order offered, each with its title from ``titles``, which
-    maps a library game's app id to its title. Raises ``ValueError`` for an
-    offered game ``titles`` does not hold, since the chat offers library
-    games only.
+    maps a library game's app id to its title. Raises
+    ``OfferedGameNotInLibrary`` for an offered game ``titles`` does not
+    hold, since the chat offers library games only.
 
     >>> from steamlens.contracts import ChatRole
     >>> render_conversation([ChatMessage(ChatRole.PLAYER, "a <b>calm</b> game")], {})
@@ -51,10 +71,7 @@ def _message_row(message: ChatMessage, titles: Mapping[int, str]) -> dict[str, o
         return row
     unknown = [app_id for app_id in message.offered if app_id not in titles]
     if unknown:
-        raise ValueError(
-            f"a chat message offered the games {unknown}, which the library does not hold — "
-            "the chat offers library games only, so the message or the library is wrong"
-        )
+        raise OfferedGameNotInLibrary(unknown)
     row["offered"] = [
         {"number": number, "title": titles[app_id]}
         for number, app_id in enumerate(message.offered, start=1)
