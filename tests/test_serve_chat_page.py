@@ -92,9 +92,12 @@ def test_the_script_sends_only_the_message_and_the_identifier_and_reads_no_marku
     assert "document.cookie" not in script
 
 
-def test_a_game_a_reply_only_speaks_of_is_labelled_apart_only_beside_offered_games() -> None:
-    """On a turn about one game there is no offered row, and its report
-    labelled "also mentioned" reads as an aside (seen on the first trial in
-    a browser). The label is kept for a game set aside next to suggestions."""
+def test_the_script_draws_the_servers_blocks_and_cards_and_decides_no_layout_itself() -> None:
+    """Which block a card heads and which games are plain links is the
+    server's rule. The script walks ``blocks`` and ``about`` as given, so
+    the page cannot show a card the rule did not put there."""
     script = (_STATIC_DIR / "chat.js").read_text(encoding="utf-8")
-    assert 'turn.offered.length > 0 ? "also mentioned" : "reports"' in script
+    assert "showBlocks(reply, turn.blocks)" in script
+    assert "if (block.card) item.append(gameCard(block.card))" in script
+    assert 'linkRow("also mentioned", turn.about)' in script
+    assert "turn.offered" not in script

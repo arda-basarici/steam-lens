@@ -32,6 +32,10 @@ since the answer prompt tells the model what the page shows: a link to the
 report of each game a reply offers or is about, and a link for adding a
 game under a reply that found nothing. A page that showed less would make
 the reply's own sentences untrue.
+
+How a page lays the message out is the last rule here (``reply_blocks``):
+the same text cut where the reply moves to another game, with a card over
+each game it offers.
 """
 
 from __future__ import annotations
@@ -281,6 +285,68 @@ def turn_links(turn: Turn) -> TurnLinks:
         and not offered
     )
     return TurnLinks(offered=offered, about=about, add_game=found_nothing)
+
+
+@dataclass(frozen=True, slots=True)
+class ReplyBlock:
+    """One block of a turn's message as a page lays it out.
+
+    ``text`` is a run of the reply that stays on one game, or on none.
+    ``card`` is the app id of the game whose card heads the block, present
+    on the first block about a game the reply offers and on the block that
+    opens a reply about one game. A block about a game the reply only
+    speaks of has no card: a card reads as a suggestion.
+    """
+
+    text: str
+    card: int | None = None
+
+
+def reply_blocks(turn: Turn) -> tuple[ReplyBlock, ...]:
+    """The turn's message cut into blocks, a new one wherever the reply changes game.
+
+    The stored message is the statements joined into one text, which later
+    turns read as the conversation; a reply about three games is hard to
+    read that way on a page. This is the same text, in the same order, cut
+    where a statement is about a different game from the one before it. The
+    blocks joined by one space are the message again, so nothing is said on
+    the page that the conversation does not hold.
+
+    A turn that ended on a fixed text is one block.
+
+    >>> understanding = Understanding(
+    ...     UnderstandOutcome.UNDERSTOOD, PlayerRequest(RequestIntent.ABOUT_GAME)
+    ... )
+    >>> ended = TurnEnding.GAME_UNCLEAR
+    >>> blocks = reply_blocks(Turn(fixed_message(ended), ended, "seed", understanding))
+    >>> [(block.text == GAME_UNCLEAR_REPLY, block.card) for block in blocks]
+    [(True, None)]
+    """
+    reply = turn.answer.reply if turn.answer is not None else None
+    if turn.ending is not TurnEnding.REPLIED or reply is None:
+        return (ReplyBlock(turn.message.text),)
+
+    runs: list[tuple[int | None, list[str]]] = []
+    for statement in reply.statements:
+        if runs and runs[-1][0] == statement.game:
+            runs[-1][1].append(statement.text)
+        else:
+            runs.append((statement.game, [statement.text]))
+
+    carded = set(reply.offered)
+    asked_about = turn.basis.app_id if isinstance(turn.basis, OneGameMaterial) else None
+    if asked_about is not None:
+        carded.add(asked_about)
+    blocks: list[ReplyBlock] = []
+    for game, texts in runs:
+        heads = game is not None and game in carded
+        blocks.append(ReplyBlock(" ".join(texts), game if heads else None))
+        carded.discard(game)
+    # A reply about one game need not name it in any statement. Its card
+    # then heads the reply, unless the reply opens on another game.
+    if asked_about in carded and blocks and runs[0][0] is None:
+        blocks[0] = ReplyBlock(blocks[0].text, asked_about)
+    return tuple(blocks)
 
 
 def _one_game_plan(request: PlayerRequest) -> OneGameTurn | TurnEnding:

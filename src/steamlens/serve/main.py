@@ -46,12 +46,14 @@ from steamlens.serve import (
     create_app,
     stage_spans,
 )
-from steamlens.serve.chat_api import attach_chat
+from steamlens.serve.chat_api import GameLink, attach_chat
 from steamlens.serve.chat_gate import TurnGate
 from steamlens.serve.chat_turns import TurnRunner
 from steamlens.serve.conversations import ConversationBook
 from steamlens.serve.gate import utc_day_start
+from steamlens.serve.links import report_path
 from steamlens.serve.web import OpsData, ReportPageData, attach_web
+from steamlens.serve.web.view import header_art
 from steamlens.steam_client import SteamClient, SteamClientConfig, SteamTransport
 from steamlens.store import Store, utc_isoformat
 
@@ -188,6 +190,20 @@ def build_app() -> FastAPI:
         with Store(db_path) as store:
             return store.reports.published_names()
 
+    def chat_report_links() -> dict[int, GameLink]:
+        # The chat's cards and links, one per published game. The header art
+        # is the renderer's rule (the stored Steam URL, else the minted
+        # fallback), so it is applied here at the root and the chat's JSON
+        # surface only passes the address on.
+        return {
+            card.app_id: GameLink(
+                title=card.game_name,
+                url=report_path(card.app_id, card.game_name),
+                image_url=header_art(card.header_image, card.app_id),
+            )
+            for card in load_report_cards()
+        }
+
     def admitted_since(since: datetime) -> int:
         with Store(db_path) as store:
             return store.admissions.count_since(since)
@@ -297,7 +313,7 @@ def build_app() -> FastAPI:
             record_refusal=record_refusal,
         ),
         config,
-        published_names,
+        chat_report_links,
         sink,
         is_exempt=gate.is_exempt,
     )

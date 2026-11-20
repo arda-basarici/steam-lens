@@ -1578,3 +1578,56 @@ main:has(> .search) {
 .chat-foot button:hover {
   color: var(--accent-strong);
 }
+
+/* A reply is laid out in blocks, a paragraph for each game it turns to, and
+   a game it offers wears its card above its first paragraph: the library's
+   card plate laid on its side, art left and title right, the whole of it the
+   link to the report. */
+.chat-message .chat-text + .chat-text,
+.chat-message .chat-text + .chat-card {
+  margin-top: 0.9rem;
+}
+
+.chat-card {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  width: fit-content;
+  max-width: 100%;
+  padding-right: 0.9rem;
+  color: inherit;
+  text-decoration: none;
+  background: var(--surface-1);
+  border: 1px solid var(--gridline);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.chat-card:hover {
+  color: inherit;
+  border-color: var(--accent);
+}
+
+.chat-card img {
+  width: 7.5rem;
+  height: auto;
+  aspect-ratio: 460 / 215; /* a missing capsule keeps the slot, not the layout */
+  object-fit: cover;
+  background: var(--neutral-span);
+  border-right: 1px solid var(--gridline);
+}
+
+.chat-card-name {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 1.02rem;
+  line-height: 1.3;
+}
+
+.chat-card:hover .chat-card-name {
+  color: var(--accent-strong);
+}
+
+.chat-card + .chat-text {
+  margin-top: 0.45rem;
+}

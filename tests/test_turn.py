@@ -11,7 +11,10 @@ statements in order; and what a page links under a message makes true what
 the answer prompt tells the model the page shows: the report of each game
 a reply offers or is about, the two kept apart, and the link for adding a
 game under a reply that found nothing and under the text for an unmeasured
-game, never under a question.
+game, never under a question; and a page's layout of a message is the
+message itself, cut where the reply moves to another game, with a card over
+each game it offers and over the one game a turn is about, and over no
+game it only speaks of.
 """
 
 from __future__ import annotations
@@ -47,12 +50,14 @@ from steamlens.core.turn import (
     FIXED_TEXTS,
     OneGameTurn,
     RecommendTurn,
+    ReplyBlock,
     TurnLinks,
     ending_of_answer,
     ending_without_decision,
     fixed_message,
     games_asked_about,
     plan_turn,
+    reply_blocks,
     reply_message,
     turn_links,
 )
@@ -344,3 +349,74 @@ def test_a_fixed_text_links_no_report_and_only_the_unmeasured_game_can_be_added(
 ) -> None:
     turn = Turn(fixed_message(ending), ending, "seed", _read(RequestIntent.ABOUT_GAME))
     assert turn_links(turn) == TurnLinks(add_game=ending is TurnEnding.GAME_NOT_MEASURED)
+
+
+def test_a_reply_is_cut_where_it_moves_to_another_game_and_says_nothing_else() -> None:
+    """Statements in a row about one game are one block. The blocks joined
+    are the stored message, so the page shows what the conversation holds."""
+    reply = Reply(
+        ChatMessageKind.ANSWER,
+        (
+            ReplyStatement("Two of these are close."),
+            ReplyStatement("The first is slow and quiet.", game=620, offers=True),
+            ReplyStatement("Its music is praised too.", game=620, offers=True),
+            ReplyStatement("The second is shorter.", game=440, offers=True),
+            ReplyStatement("Which matters more to you?"),
+        ),
+    )
+    turn = _replied(reply, _NO_CANDIDATES_READ)
+    blocks = reply_blocks(turn)
+    assert blocks == (
+        ReplyBlock("Two of these are close."),
+        ReplyBlock("The first is slow and quiet. Its music is praised too.", card=620),
+        ReplyBlock("The second is shorter.", card=440),
+        ReplyBlock("Which matters more to you?"),
+    )
+    assert " ".join(block.text for block in blocks) == turn.message.text
+
+
+def test_a_card_heads_an_offered_game_once_and_never_a_game_only_spoken_of() -> None:
+    """A card reads as a suggestion. A game set aside gets none, and a game
+    the reply returns to is not given a second one."""
+    reply = Reply(
+        ChatMessageKind.ANSWER,
+        (
+            ReplyStatement("The first is slow and quiet.", game=620, offers=True),
+            ReplyStatement("A third has timed dialogue.", game=730),
+            ReplyStatement("The first has good music too.", game=620, offers=True),
+        ),
+    )
+    cards = [block.card for block in reply_blocks(_replied(reply, _NO_CANDIDATES_READ))]
+    assert cards == [620, None, None]
+
+
+def test_the_one_game_a_turn_is_about_wears_the_card() -> None:
+    """On its first block when a statement names it, and over the opening
+    when none does. A reply that opens on another game gets no card, since
+    the card would sit over the wrong game's sentences."""
+    named = Reply(
+        ChatMessageKind.ANSWER,
+        (
+            ReplyStatement("Here is what reviewers say."),
+            ReplyStatement("They call it hard.", game=_HADES),
+            ReplyStatement("Unlike the one you played.", game=400),
+        ),
+    )
+    unnamed = Reply(ChatMessageKind.ANSWER, (ReplyStatement("Reviewers call it hard."),))
+    opens_elsewhere = Reply(
+        ChatMessageKind.ANSWER,
+        (ReplyStatement("The one you played is easier.", game=400), ReplyStatement("So yes.")),
+    )
+
+    def cards(reply: Reply) -> list[int | None]:
+        return [block.card for block in reply_blocks(_replied(reply, _ONE_GAME))]
+
+    assert cards(named) == [None, _HADES, None]
+    assert cards(unnamed) == [_HADES]
+    assert cards(opens_elsewhere) == [None, None]
+
+
+@pytest.mark.parametrize("ending", list(FIXED_TEXTS))
+def test_a_fixed_text_is_one_block_with_no_card(ending: TurnEnding) -> None:
+    turn = Turn(fixed_message(ending), ending, "seed", _read(RequestIntent.ABOUT_GAME))
+    assert reply_blocks(turn) == (ReplyBlock(FIXED_TEXTS[ending]),)

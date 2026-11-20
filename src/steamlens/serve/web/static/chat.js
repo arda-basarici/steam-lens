@@ -5,7 +5,10 @@
 // sends one back. Nothing of the conversation travels in a request but the
 // identifier and the new message.
 //
-// A reply is plain text. It and everything else here land via textContent:
+// A reply arrives as blocks of plain text, cut by the server where it moves
+// to another game, with a card (the game's art and title, linking to its
+// report) over the first block of each game it offers. The blocks and
+// everything else here land via textContent:
 // the chat's words are a model's, written from reviews, and are hostile
 // input under the same assumption the templates hold. String-to-DOM APIs
 // are banned outright (a CI test scans this file for them).
@@ -51,6 +54,38 @@ function addMessage(speaker, text) {
   return item;
 }
 
+// A game's card: its header art and title, the whole of it a link to the
+// game's report.
+function gameCard(card) {
+  const anchor = document.createElement("a");
+  anchor.className = "chat-card";
+  anchor.href = card.url;
+  const art = document.createElement("img");
+  art.src = card.image_url;
+  art.alt = "";
+  art.loading = "lazy";
+  art.width = 460;
+  art.height = 215;
+  const title = document.createElement("span");
+  title.className = "chat-card-name";
+  title.textContent = card.title;
+  anchor.append(art, title);
+  return anchor;
+}
+
+// The reply's blocks in place of the pending line: each a paragraph, under
+// its card when it has one.
+function showBlocks(item, blocks) {
+  item.querySelector(".chat-text").remove();
+  for (const block of blocks) {
+    if (block.card) item.append(gameCard(block.card));
+    const paragraph = document.createElement("p");
+    paragraph.className = "chat-text";
+    paragraph.textContent = block.text;
+    item.append(paragraph);
+  }
+}
+
 function linkRow(label, links) {
   const row = document.createElement("p");
   row.className = "chat-links";
@@ -68,15 +103,10 @@ function linkRow(label, links) {
 }
 
 // The links the server says belong under this reply: the reports of the
-// games it offers, apart from those of the games it only speaks of, and the
-// way to add a game when it found nothing. "Also mentioned" only means
-// something beside a row of offered games: on a turn about one game, that
-// game's report is simply the report.
+// games it speaks of that no card shows (a game set aside, the one named
+// for a comparison), and the way to add a game when it found nothing.
 function addLinks(item, turn) {
-  if (turn.offered.length > 0) item.append(linkRow("reports", turn.offered));
-  if (turn.about.length > 0) {
-    item.append(linkRow(turn.offered.length > 0 ? "also mentioned" : "reports", turn.about));
-  }
+  if (turn.about.length > 0) item.append(linkRow("also mentioned", turn.about));
   if (turn.add_game_url) {
     item.append(
       linkRow("missing a game?", [{ url: turn.add_game_url, title: "add it to the library" }]),
@@ -138,7 +168,7 @@ async function send(text) {
   conversation = turn.conversation;
   reply.classList.remove("pending");
   reply.dataset.ending = turn.ending;
-  reply.querySelector(".chat-text").textContent = turn.text;
+  showBlocks(reply, turn.blocks);
   addLinks(reply, turn);
   reply.scrollIntoView({ block: "nearest" });
   announce.textContent = turn.text;

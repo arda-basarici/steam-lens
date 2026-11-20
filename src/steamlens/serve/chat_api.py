@@ -5,7 +5,8 @@ and, after the first, the conversation's identifier. It sends nothing else
 of the conversation: what the chat said earlier is the server's own record
 (``conversations``), so a visitor cannot write the chat's lines, the games
 it offered or the number of turns taken. The route answers when the turn
-has ended, with the message and what the page links under it. A stream of
+has ended, with the message, how the page lays it out and what it links
+under it. A stream of
 the steps was declined for a turn that takes a few seconds, and the reply
 cannot be streamed as it is written, since it is checked whole before
 anything is shown.
@@ -55,7 +56,7 @@ from steamlens.contracts import (
     TurnEnding,
 )
 from steamlens.core.conversation import OfferedGameNotInLibrary
-from steamlens.core.turn import turn_links
+from steamlens.core.turn import reply_blocks, turn_links
 from steamlens.core.understand import UNAVAILABLE_REPLY
 from steamlens.dispatch import narrate
 from steamlens.serve.chat_gate import TurnGate, message_refusal
@@ -67,7 +68,6 @@ from steamlens.serve.conversations import (
     ConversationRefusal,
 )
 from steamlens.serve.gate import UNLOCK_COOKIE, client_ip
-from steamlens.serve.links import report_path
 
 CHAT_STAGE: Final = "serve.chat"
 ADD_GAME_URL: Final = "/"
@@ -95,10 +95,27 @@ class ChatTurnRequest:
 
 @dataclass(frozen=True, slots=True)
 class GameLink:
-    """One report link under a reply: the game's title and its report's address."""
+    """One game a reply links: its title, its report's address and its header art.
+
+    The art's address is minted by the renderer's own rule, so the
+    composition root builds these and this module only passes them on.
+    """
 
     title: str
     url: str
+    image_url: str
+
+
+@dataclass(frozen=True, slots=True)
+class ReplyBlockView:
+    """One block of the message as the page lays it out: text under an optional card.
+
+    ``card`` is present on the block that opens what the reply says about a
+    game it offers, and on the block that opens a reply about one game.
+    """
+
+    text: str
+    card: GameLink | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -106,16 +123,20 @@ class ChatTurnReply:
     """One turn's answer, as the page shows it.
 
     ``conversation`` is the identifier the next message sends back.
-    ``text`` is the chat's message, plain text and never markup. ``ending``
-    names how the turn ended, so a page can tell a written reply from each
-    fixed text. ``offered`` are the reports of the games the reply offers
-    and ``about`` those of the games it speaks of without offering, kept
-    apart so the page can label them apart. ``add_game_url`` is present
-    when the page shows the link for adding a game.
+    ``text`` is the chat's message as the conversation holds it, plain text
+    and never markup, and ``blocks`` are the same text cut where the reply
+    moves to another game, each offered game's first block under its card.
+    ``ending`` names how the turn ended, so a page can tell a written reply
+    from each fixed text. ``offered`` are the games the reply offers.
+    ``about`` are the games it speaks of that no card shows, which a page
+    lists as plain links so a game set aside is not read as a suggestion.
+    ``add_game_url`` is present when the page shows the link for adding a
+    game.
     """
 
     conversation: str
     text: str
+    blocks: tuple[ReplyBlockView, ...]
     kind: ChatMessageKind
     ending: TurnEnding
     offered: tuple[GameLink, ...]
@@ -129,7 +150,7 @@ def attach_chat(
     book: ConversationBook,
     gate: TurnGate,
     config: ServeConfig,
-    report_names: Callable[[], Mapping[int, str]],
+    report_links: Callable[[], Mapping[int, GameLink]],
     sink: Sink,
     *,
     is_exempt: Callable[[str | None], bool] | None = None,
@@ -140,8 +161,8 @@ def attach_chat(
     message, under the conversation's seed; the root builds it over the
     store and the model door. ``book`` keeps the conversations and ``gate``
     admits the turns. ``config`` carries the message's length.
-    ``report_names`` is the persistence layer's app-id → name read of every
-    published report, consulted once a turn to title and address the links.
+    ``report_links`` gives every published report's link by app id (title,
+    address, header art), consulted once a turn for the cards and the links.
     ``sink`` takes the route's own narration and its one count, a
     conversation opened. ``is_exempt`` is the submit gate's unlock-cookie
     check; ``None`` composes a route with no exemption.
@@ -201,11 +222,11 @@ def attach_chat(
             sink.emit(
                 MetricEvent(stage=CHAT_STAGE, name="conversation_opened", value=1.0, unit="count")
             )
-        return _reply(claim.identifier, turn, report_names())
+        return _reply(claim.identifier, turn, report_links())
 
 
-def _reply(identifier: str, turn: Turn, names: Mapping[int, str]) -> ChatTurnReply:
-    """The turn as the page shows it, with its links titled and addressed."""
+def _reply(identifier: str, turn: Turn, reports: Mapping[int, GameLink]) -> ChatTurnReply:
+    """The turn as the page shows it: its blocks under their cards, and its links."""
     kind = turn.message.kind
     if kind is None:
         raise ValueError(
@@ -213,26 +234,32 @@ def _reply(identifier: str, turn: Turn, names: Mapping[int, str]) -> ChatTurnRep
             " so the turn that made this one is wrong"
         )
     links = turn_links(turn)
+    laid_out = reply_blocks(turn)
+    blocks = tuple(
+        ReplyBlockView(block.text, reports.get(block.card) if block.card is not None else None)
+        for block in laid_out
+    )
+    # A game whose card the page shows needs no second link among the rest.
+    shown_as_cards = {block.card for block in laid_out if block.card in reports}
     return ChatTurnReply(
         conversation=identifier,
         text=turn.message.text,
+        blocks=blocks,
         kind=kind,
         ending=turn.ending,
-        offered=_game_links(links.offered, names),
-        about=_game_links(links.about, names),
+        offered=_game_links(links.offered, reports),
+        about=_game_links(
+            [game for game in links.about if game not in shown_as_cards], reports
+        ),
         add_game_url=ADD_GAME_URL if links.add_game else None,
     )
 
 
-def _game_links(app_ids: Sequence[int], names: Mapping[int, str]) -> tuple[GameLink, ...]:
-    """A link for each game that has a published report, in the order given.
+def _game_links(app_ids: Sequence[int], reports: Mapping[int, GameLink]) -> tuple[GameLink, ...]:
+    """The link of each game that has a published report, in the order given.
 
-    Every game a reply speaks of is a library game, so a missing name means
+    Every game a reply speaks of is a library game, so a missing link means
     its report was unpublished between the turn and this read. That game
     gets no link.
     """
-    return tuple(
-        GameLink(names[app_id], report_path(app_id, names[app_id]))
-        for app_id in app_ids
-        if app_id in names
-    )
+    return tuple(reports[app_id] for app_id in app_ids if app_id in reports)

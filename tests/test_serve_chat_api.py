@@ -6,8 +6,9 @@ with a scripted turn injected where the composition root puts the real one.
 The claims: a first message opens a conversation and its answer carries the
 identifier the next message sends back; the conversation a turn reads is
 the server's own record, whatever else the request holds; the seed a turn
-runs under is not the identifier; the links under a reply are titled and
-addressed from the published reports; a message that cannot be taken, a
+runs under is not the identifier; a reply is laid out in blocks, a card
+over each game it offers, and the games it only speaks of are plain links,
+all from the published reports; a message that cannot be taken, a
 conversation that cannot go on and a refusal of the gate each answer with
 a line and leave the conversation as it was; a turn that fails outside its
 steps is told as unavailable, appended nowhere and still counted; a
@@ -36,6 +37,7 @@ from steamlens.contracts import (
     ChatRole,
     MetricEvent,
     NothingFitsMaterial,
+    OneGameMaterial,
     PlayerRequest,
     Reply,
     ReplyStatement,
@@ -50,7 +52,7 @@ from steamlens.core.conversation import OfferedGameNotInLibrary
 from steamlens.core.turn import fixed_message, reply_message
 from steamlens.core.understand import UNAVAILABLE_REPLY
 from steamlens.serve import ServeConfig
-from steamlens.serve.chat_api import attach_chat
+from steamlens.serve.chat_api import GameLink, attach_chat
 from steamlens.serve.chat_gate import IP_DAY_USED_MESSAGE, TurnGate
 from steamlens.serve.conversations import (
     AT_LENGTH_MESSAGE,
@@ -61,7 +63,13 @@ from steamlens.serve.conversations import (
 )
 from steamlens.serve.gate import UNLOCK_COOKIE
 
-_NAMES = {620: "Portal 2", 730: "Counter-Strike 2", 400: "Portal"}
+_REPORTS = {
+    620: GameLink("Portal 2", "/reports/620/portal-2", "https://art.test/620.jpg"),
+    730: GameLink(
+        "Counter-Strike 2", "/reports/730/counter-strike-2", "https://art.test/730.jpg"
+    ),
+    400: GameLink("Portal", "/reports/400/portal", "https://art.test/400.jpg"),
+}
 _UNDERSTOOD = Understanding(UnderstandOutcome.UNDERSTOOD, PlayerRequest(RequestIntent.RECOMMEND))
 
 type RunTurn = Callable[[Sequence[ChatMessage], str], Turn]
@@ -123,7 +131,7 @@ class _Tab:
         )
         self.app = FastAPI()
         attach_chat(
-            self.app, run_turn, self.book, self.gate, ServeConfig(), lambda: _NAMES, self.sink,
+            self.app, run_turn, self.book, self.gate, ServeConfig(), lambda: _REPORTS, self.sink,
             is_exempt=lambda cookie: admin_token is not None and cookie == admin_token,
         )
 
@@ -164,14 +172,43 @@ def test_a_first_message_opens_a_conversation_and_the_answer_carries_its_identif
     assert seed == seed_of(body["conversation"]) != body["conversation"]
 
 
-def test_the_links_under_a_reply_are_titled_and_addressed_from_the_published_reports() -> None:
+def test_a_reply_is_laid_out_in_blocks_with_a_card_over_each_game_it_offers() -> None:
+    """The page gets the message cut where it moves to another game. The
+    offered game's block is under its card. The game the reply set aside
+    has no card, which would read as a suggestion, and is a plain link."""
     tab = _Tab(_Turns())
     body = tab.post({"message": "a calm puzzle game"}).json()
-    assert body["offered"] == [{"title": "Portal 2", "url": "/reports/620/portal-2"}]
-    assert body["about"] == [
-        {"title": "Counter-Strike 2", "url": "/reports/730/counter-strike-2"}
+    portal_2 = {
+        "title": "Portal 2", "url": "/reports/620/portal-2",
+        "image_url": "https://art.test/620.jpg",
+    }
+    assert body["blocks"] == [
+        {"text": "One game is close.", "card": None},
+        {"text": "It is slow and quiet.", "card": portal_2},
+        {"text": "Another is all timers.", "card": None},
     ]
+    assert " ".join(block["text"] for block in body["blocks"]) == body["text"]
+    assert body["offered"] == [portal_2]
+    assert [link["title"] for link in body["about"]] == ["Counter-Strike 2"]
     assert body["add_game_url"] is None
+
+
+def test_the_game_a_turn_is_about_wears_its_card_and_is_not_linked_a_second_time() -> None:
+    about_portal = Reply(
+        ChatMessageKind.ANSWER,
+        (
+            ReplyStatement("Reviewers call it short.", game=400),
+            ReplyStatement("Its sequel is longer.", game=620),
+        ),
+    )
+    one_game = OneGameMaterial(
+        app_id=400, title="Portal", description="", release_year=None, subjects=()
+    )
+    tab = _Tab(_Turns(_replied(about_portal, one_game)))
+    body = tab.post({"message": "is Portal long"}).json()
+    cards = [block["card"] for block in body["blocks"]]
+    assert (cards[0]["title"], cards[1]) == ("Portal", None)
+    assert [link["title"] for link in body["about"]] == ["Portal 2"]
 
 
 def test_a_reply_that_found_nothing_carries_the_address_for_adding_a_game() -> None:
