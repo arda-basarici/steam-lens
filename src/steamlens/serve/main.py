@@ -4,8 +4,9 @@ Everything the modules deliberately refuse to own lands here: the credential
 read, the one ``SteamTransport`` (one politeness budget per process, by
 construction), the DeepSeek provider entry, the runner over the store path,
 the job queue, the submit gate over per-call store reads (with its unlock
-token), the per-read report lookup, and the page renderer attached over the
-JSON surface. Run as ``python -m steamlens.serve.main``; every dial
+token), the per-read report lookup, the recommender chat's route with its
+turn runner, conversation book and turn gate, and the page renderer attached
+over the JSON surface. Run as ``python -m steamlens.serve.main``; every dial
 is an environment variable so the containers step overrides without a code
 touch. Pulled forward from the containers step (2026-08-08) because the
 frontend chunk is look-at-it development — judging rendered pages needs a
@@ -45,6 +46,10 @@ from steamlens.serve import (
     create_app,
     stage_spans,
 )
+from steamlens.serve.chat_api import attach_chat
+from steamlens.serve.chat_gate import TurnGate
+from steamlens.serve.chat_turns import TurnRunner
+from steamlens.serve.conversations import ConversationBook
 from steamlens.serve.gate import utc_day_start
 from steamlens.serve.web import OpsData, ReportPageData, attach_web
 from steamlens.steam_client import SteamClient, SteamClientConfig, SteamTransport
@@ -90,6 +95,10 @@ def build_app() -> FastAPI:
         config = replace(config, daily_spend_backstop_usd=float(raw_backstop))
     if (raw_search := os.environ.get("STEAMLENS_SEARCH_PER_MINUTE")) is not None:
         config = replace(config, search_per_minute=int(raw_search))
+    if (raw_turns := os.environ.get("STEAMLENS_CHAT_DAILY_TURN_LIMIT")) is not None:
+        config = replace(config, chat_daily_turn_limit=int(raw_turns))
+    if (raw_ip_turns := os.environ.get("STEAMLENS_CHAT_PER_IP_DAILY_TURN_LIMIT")) is not None:
+        config = replace(config, chat_per_ip_daily_turn_limit=int(raw_ip_turns))
     # `or None`: an empty value in .env must mean "no exemption door", never a
     # token an empty cookie could match. The ascii check is the boot-time half
     # of the gate's guard: compare_digest raises on non-ascii, so a non-ascii
@@ -266,13 +275,36 @@ def build_app() -> FastAPI:
         database_ok=database_ok,
         on_shutdown=[queue.close],
     )
+    ontology = load_ontology(ontology_path)
+    # The recommender chat's one route. It shares three things with the
+    # report flow on purpose: the provider entry, the day's spend wall (the
+    # same ledger read), and the operator's unlock cookie. Its conversations
+    # and its counts live in this process's memory and end with it.
+    attach_chat(
+        app,
+        TurnRunner(entry, db_path, ontology, config.chat_turn_budget_usd, sink),
+        ConversationBook(
+            max_turns=config.chat_turns_per_conversation,
+            max_open=config.chat_max_open_conversations,
+            idle_expiry=timedelta(minutes=config.chat_idle_expiry_minutes),
+        ),
+        TurnGate(
+            daily_turn_limit=config.chat_daily_turn_limit,
+            per_ip_daily_turn_limit=config.chat_per_ip_daily_turn_limit,
+            turns_in_flight=config.chat_turns_in_flight,
+            daily_spend_backstop_usd=config.daily_spend_backstop_usd,
+            spent_since=spent_since,
+            record_refusal=record_refusal,
+        ),
+        config,
+        published_names,
+        sink,
+        is_exempt=gate.is_exempt,
+    )
     # The tag-coloring map reads the same pinned artifact the runner labels
     # with, so the library's families can never disagree with the vocabulary
     # that minted the tags.
-    aspect_categories = {
-        aspect.label: aspect.category
-        for aspect in load_ontology(ontology_path).aspects
-    }
+    aspect_categories = {aspect.label: aspect.category for aspect in ontology.aspects}
     attach_web(
         app,
         load_report_page,
@@ -281,6 +313,7 @@ def build_app() -> FastAPI:
         load_report_cards,
         aspect_categories,
         record_report_view=record_report_view,
+        chat_message_max_chars=config.chat_message_max_chars,
     )
     return app
 
