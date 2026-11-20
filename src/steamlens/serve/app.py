@@ -1,9 +1,10 @@
 """The HTTP shell — request intake and the SSE narration endpoint over the queue.
 
-FastAPI's whole footprint is this module: an app *factory* over injected,
-already-composed dependencies (the queue, the serving dials), so the
-composition root stays outside and a test injects a scripted pipeline exactly
-as the queue tests do. Framework types stop here — nothing below the HTTP
+FastAPI's footprint on the report flow's JSON surface is this module (the
+recommender chat's one route is attached beside it, from ``chat_api``): an
+app *factory* over injected, already-composed dependencies (the queue, the
+serving dials), so the composition root stays outside and a test injects a
+scripted pipeline exactly as the queue tests do. Framework types stop here — nothing below the HTTP
 surface imports FastAPI, and the routes hold to one abstraction level:
 validate at the boundary, delegate to the queue, serialize a typed receipt.
 
