@@ -168,7 +168,9 @@ def _about_notes(unjournaled: UnjournaledTotals) -> tuple[str, ...]:
     reports exist that no job row accounts for, the trace table's scope is
     stated here in numbers — how many reports it cannot list and how much
     ledger spend joins no job, cause-agnostic on the page (the store's read
-    states why the definition is "joins no job") — beside the repricing note
+    states why the definition is "joins no job"; since the recommender chat
+    a turn's calls join no job either, so the line names both sources and
+    never says the whole figure predates the journal) — beside the repricing note
     about the same pre-observability era. The line is absent for a store born after the
     journal, which has nothing to disclose. Per-table captions were folded
     into this block at the 2026-08-14 simplification pass, so a scope note
@@ -182,7 +184,8 @@ def _about_notes(unjournaled: UnjournaledTotals) -> tuple[str, ...]:
             f"journal began 2026-08-09: {unjournaled.reports} published "
             "reports predate it, so they count in reports published but list "
             f"no row there, and {_usd(unjournaled.cost)} of ledger spend "
-            "joins no job row",
+            "joins no job row: those reports' calls, and any call made "
+            "outside a report job",
         )
         if unjournaled.reports
         else ()

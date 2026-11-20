@@ -4,9 +4,8 @@ The steps are built one by one in this package: understand, the sheet, the
 pick, the fetch, the answer with its check. ``turn`` runs them in their
 fixed order for one conversation and returns a ``Turn``: the message the
 chat appends, how the turn ended, and what each step made on the way. It is
-the one entry for an evaluation run and for the serving route, which is not
-built yet, so a reply read by hand goes the same way a reply shown on the
-page will.
+the one entry for an evaluation run and for the serving route, so a reply
+read by hand goes the same way a reply shown on the page does.
 
 Which way a reading goes, and the text of every ending that is not a
 written reply, are rules and live in ``core.turn``. This module reads the

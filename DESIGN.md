@@ -31,7 +31,7 @@ One line per section, what's decided there:
 - **The redirect & the product frame** — the investigator deferred, the grounded chat as the story channel, the M3 closure ruling, and the chat reopened as a recommender tab.
 - **The sampling study (M2)** — the certified draw: the windowed policy, the measured tolerances, the shipped interval rule.
 - **Deployment (M3)** — the serving skeleton · persistence · model prose · episode markers · the frontend · the box · the spend breaker · observability.
-- **The recommender chat (M4)** — the steps of a turn built, the tab not: fit to stated requirements, numbers read across games in groups, a fixed pipeline with the model judging inside bounds code checks, keyword retrieval first and the vector comparison as a committed stage.
+- **The recommender chat (M4)** — the steps of a turn and a first, unlisted tab built: fit to stated requirements, numbers read across games in groups, a fixed pipeline with the model judging inside bounds code checks, keyword retrieval first and the vector comparison as a committed stage.
 - **Standing rules · Scope & non-goals · Open questions** — what always holds, what's deliberately out, what's parked with a trigger.
 
 ---
@@ -44,7 +44,7 @@ computed live at request time on real Steam data, with a rigorous, honest
 evaluation of whether the LLM doing the reading is actually right. The designed next
 channel is a chat tab that recommends from the library of measured reports and answers
 follow-up questions from a game's stored reviews (the recommender chat section; designed
-2026-11-14, not built). **Success
+2026-11-14, built as an unlisted first stage). **Success
 criterion:** a stranger uses the deployed app unassisted and every claim they see is
 attributable: to specific reviews (quotes), to a measured sampling tolerance, or to a
 published error rate; and each shipped milestone ships a standalone postable
@@ -2353,9 +2353,9 @@ afternoon on a hosted free tier, not this box.
 
 ## The recommender chat (M4)
 
-*Designed 2026-11-14. The steps of a turn are built and run end to end without
-the page since 2026-11-19; the tab, its caps and the second stage are not
-built. Figures in this section were read from the 2026-09-24 copy of the
+*Designed 2026-11-14. The steps of a turn are built and run end to end since
+2026-11-19, and the tab with its caps since 2026-11-20, unlisted; the second
+stage is not built. Figures in this section were read from the 2026-09-24 copy of the
 serving database (53 reports, 27,163 stored reviews) unless a different date
 is given. They illustrate the design and are not published readings.*
 
@@ -3365,8 +3365,8 @@ It takes a conversation, a seed and the year, runs the steps in their fixed
 order and returns a record: the message the chat appends, how the turn
 ended, the seed, and what each step made on the way, a step the turn did not
 reach being absent. It is the one entry for an evaluation run and for the
-page's route, which is not built, so a reply read by hand goes the same way
-a reply shown on the page will. A
+page's route, so a reply read by hand goes the same way a reply shown on the
+page does. A
 turn that returns the message only, with the evaluation composing the steps
 itself, was declined: the hand reading would then run on a second copy of
 the routing. Nothing is stored by the turn. The conversation is the
@@ -3523,9 +3523,12 @@ wording and which candidates are offered and cannot add a game. The model
 holds no tool that changes anything and no secret. A game offered against a
 failed must without cited reviews is removed from the reply. The
 conversation, the request and the fetched material enter a prompt as
-delimited blocks introduced as data, with "<" escaped. Turns, message length,
-requests per address and daily spend are capped under the existing spend
-breaker, which is the tab's to build. The gate is measured in both
+delimited blocks introduced as data, with "<" escaped. The conversation is
+kept by the server, so a visitor sends an identifier and a new message and
+cannot write the chat's earlier lines or the games it offered. Turns, message
+length and requests per address are capped by a gate of the chat's own, which
+counts at admission as the spend breaker does, and daily spend by the
+breaker's own backstop, which the chat and the report flow share. The gate is measured in both
 directions, attempts stopped and real requests wrongly refused.
 
 **Retrieval starts with the stored samples and keyword search.** The pool is
@@ -3714,6 +3717,14 @@ only.
 | Recorded rules asking for the retry | no: relayed wording, a working word and length are named in a retry that runs for another reason | `core/check.py` | one value per rule | the answer measurement, weighing faults removed against sentences changed |
 | Fixed texts of a turn | one text for a turn that was read and got no answer; three stand-ins for replies the first stage does not write | `core/turn.py` | the wording | players misled about what went wrong, and each stand-in when its reply is built |
 | The game a turn about one game reads | the first game asked about; any others are counted | `core/turn.py` | one rule | messages that ask about two games |
+| Where a conversation is kept | the server's memory, between turns; a restart ends every open one, and the browser holds only an identifier | `serve/conversations.py` | what sits behind four methods; the database comes with the chat's storage | the storage design, or conversations lost to deploys often enough to matter |
+| A conversation's bounds | 12 turns, a message of 1,000 characters, two idle hours, 500 kept at once | `serve/config.py` | one constant each | players reaching the end mid-thought |
+| Chat turns a day | 60 an address and 300 for everyone, counted at admission, in memory | `serve/chat_gate.py`, `serve/config.py` | one constant each; a table for counts that survive a restart | the shared spend backstop firing on a day of ordinary traffic, or the tab being linked |
+| Chat turns at once | one an address, four in the process | `serve/chat_gate.py` | one constant | waits that read as a hang, or a chat route moved to a provider with a rate quota, which needs a shared pacer |
+| A turn's spend ceiling | $0.05 on a model client built for the turn, with its response archive in memory | `serve/chat_turns.py` | one constant; the archive is one argument | a turn refused for a report job's spend, or the storage design giving the answers a retention period |
+| What the chat's route answers | one request, answered when the turn has ended | `serve/chat_api.py` | a stream of the steps beside it | retried turns common enough that the wait reads as a hang |
+| How the tab stays unlisted | an unlinked address that asks not to be indexed; anyone who has it can use it | `serve/web/` | a pass in front of the page and the route | chat turns or refusals that are not the operator's |
+| What a page links under a reply | the report of each game the reply offers, apart from each it speaks of, and the way to add a game under a reply that found nothing | `core/turn.py` | one rule | a reply whose sentence about the page is untrue |
 
 Not on this list, because they are not switches: the library's size, the
 stored sample as the only pool, the aspect vocabulary, and the fixed order of
@@ -3742,8 +3753,9 @@ as code. The test for any addition stays: does *this product* need it?
   positive-share timeline (episode detection stored, not rendered), the
   trust panel, Docker/FastAPI/SQLite/CI deployment,
   the evaluation methodology as a public artifact, the ops story as a public
-  artifact. The recommender chat's steps are built and its tab is not (the
-  recommender chat section): in the design, not in the shipped scope.
+  artifact. The recommender chat's steps and a first tab are built, and the
+  tab is unlisted (the recommender chat section): in the design, not in the
+  shipped scope.
 - Deliberately out: fake-review verdicts (tombstoned under Data access) ·
   multilingual evaluation claims (post-launch experiment, unverified if shipped) ·
   Kubernetes/Terraform/cloud MLOps (zero marginal signal for a portfolio app) ·

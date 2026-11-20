@@ -4,11 +4,11 @@ How it's built and why that structure: a narrative snapshot, edited in place.
 Decisions and their rationale → [DESIGN.md](DESIGN.md) (cited by name); the pitch →
 [README.md](README.md).
 
-*Snapshot of the completed project · last updated 2026-11-19 · milestones M0–M3
+*Snapshot of the completed project · last updated 2026-11-20 · milestones M0–M3
 shipped; the app is live at steamlens.ardabasarici.dev. The chat milestone (M4)
 is reopened as a recommender tab (DESIGN: the recommender chat). The steps of a
-chat turn are built and are described here; the page that will call them is
-not built.*
+chat turn are built and are described here; the page that calls them is built
+and unlisted, and its modules have no rows below yet.*
 
 ---
 
@@ -257,9 +257,10 @@ flowchart TD
 ```
 
 A turn is one function, `chat.turn.turn`, and nothing in it knows about HTTP.
-No route calls it yet: until the page is built its callers are the tests and
-the end-to-end probe (`probes/turn_examples_read.py`), which is the point of
-keeping the steps in a package of their own below the entry shells. Every
+Its callers are the chat's one route (`serve/chat_api.py`, through the runner
+in `serve/chat_turns.py`), the tests and the end-to-end probe
+(`probes/turn_examples_read.py`), which is the point of keeping the steps in
+a package of their own below the entry shells. Every
 box is split the same way: the rules (a prompt's render, the validation of
 an answer, the read plan, the check, the routing) are pure and live in
 `core`, and the half that reads the store or calls a model lives in `chat`.
