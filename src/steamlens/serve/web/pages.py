@@ -5,8 +5,10 @@ ruling — no SPA, no bundler): the search front door with its recent-reports
 strip, the report page in the ruled top-to-bottom order — header and
 provenance, the narrative with its certificate rendered visibly, aspect
 share bars with calibrated whiskers, the candidate stratum, the timeline
-with its marker layers, and the trust panel — plus the reports library and
-the ops page. The routes stay one abstraction level up: load the bundle
+with its marker layers, and the trust panel — plus the reports library, the
+ops page, and the recommender chat's page, which is unlisted and whose
+conversation is drawn by its script from the chat's JSON route. The routes
+stay one abstraction level up: load the bundle
 through the injected seam, shape it with the pure view builders, hand the
 view to the template.
 
@@ -70,6 +72,7 @@ def attach_web(
     load_report_cards: Callable[[], tuple[ReportCard, ...]] | None = None,
     aspect_categories: Mapping[str, str] | None = None,
     record_report_view: Callable[[str], None] | None = None,
+    chat_message_max_chars: int | None = None,
 ) -> None:
     """Mount the pages and static assets onto ``app`` — the composition root's call.
 
@@ -92,6 +95,10 @@ def attach_web(
     render is the one funnel every door passes through (a search answer
     redirecting, a library click, a pasted link), so counting here counts
     each read exactly once; ``None`` composes an uncounted app (tests).
+    ``chat_message_max_chars`` is the recommender chat's message length, the
+    same dial its route enforces, and passing it mounts the chat page;
+    ``None`` composes an app without the page. The page is unlisted: nothing
+    here links to it.
 
     Attaching also registers the app-wide 404 and 500 pages — here rather
     than on the JSON surface because a styled error page is rendering, and
@@ -195,6 +202,21 @@ def attach_web(
             """The public read-only ops surface — aggregates off the app's own journals."""
             return templates.TemplateResponse(
                 request, "ops.html", {"view": build_ops_view(wired_ops())}
+            )
+
+    if chat_message_max_chars is not None:
+        wired_max_chars = chat_message_max_chars
+
+        @router.get("/chat", response_class=Response)
+        def chat_page(request: Request) -> Response:  # pyright: ignore[reportUnusedFunction]
+            """The recommender chat's page: an empty conversation and one text box.
+
+            Everything a visitor then sees arrives from the chat's JSON
+            route, through the page's script. The server renders no
+            conversation, since it never sends one back.
+            """
+            return templates.TemplateResponse(
+                request, "chat.html", {"max_chars": wired_max_chars}
             )
 
     @app.exception_handler(404)

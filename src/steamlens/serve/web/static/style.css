@@ -1443,3 +1443,138 @@ main:has(> .search) {
   gap: 0.35rem;
   max-width: 46rem;
 }
+
+/* --- chat page: the recommender tab, plain ---------------------------------
+   The first, unpolished cut: a column of messages over one text box, in the
+   page's own tokens. A message is plain text; the links a reply carries sit
+   under it in the mono plate voice, offered games apart from games only
+   mentioned. */
+
+.chat {
+  max-width: 40rem;
+  margin: 0 auto;
+}
+
+.chat-note {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0 0 1.5rem;
+}
+
+.chat-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1.1rem;
+}
+
+.chat-message {
+  padding-left: 0.9rem;
+  border-left: 2px solid var(--gridline);
+}
+
+.chat-message.from-chat {
+  border-left-color: var(--accent);
+}
+
+.chat-speaker {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.chat-text {
+  margin: 0.15rem 0 0;
+  white-space: pre-wrap; /* the player's own line breaks survive; no markup is read */
+  overflow-wrap: anywhere;
+}
+
+.chat-message.pending .chat-text {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.chat-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.9rem;
+  margin: 0.45rem 0 0;
+  font-size: 0.85rem;
+}
+
+.chat-links-label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  align-self: center;
+}
+
+.chat-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.chat-form textarea {
+  flex: 1;
+  font: inherit;
+  font-size: 1.02rem;
+  padding: 0.6rem 0.9rem;
+  color: inherit;
+  background: var(--surface-1);
+  border: 1px solid var(--baseline);
+  border-radius: 6px;
+  resize: vertical;
+}
+
+.chat-form textarea:focus-visible {
+  outline-offset: 0;
+  border-color: var(--accent);
+}
+
+.chat-form button {
+  font: inherit;
+  font-weight: 500;
+  padding: 0.6rem 1.1rem;
+  color: var(--btn-text);
+  background: var(--btn-bg);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.chat-form button:hover {
+  background: var(--btn-bg-hover);
+}
+
+.chat-form button:disabled,
+.chat-form textarea:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.chat-foot {
+  margin-top: 0.75rem;
+  font-size: 0.82rem;
+}
+
+.chat-foot button {
+  font: inherit;
+  padding: 0;
+  color: var(--accent);
+  background: none;
+  border: none;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.chat-foot button:hover {
+  color: var(--accent-strong);
+}

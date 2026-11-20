@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{# The tab is unlisted: nothing links here, no nav entry marks it, and search
+   engines are asked to leave it out. The share card is left off with them,
+   since a preview nobody is sent to has nothing to preview. #}
+{% block share_meta %}
+  <meta name="robots" content="noindex, nofollow">
+{% endblock %}
+{% block title %}chat — steam-lens{% endblock %}
+{% block content %}
+<section class="chat">
+  <h1>chat</h1>
+  <p class="chat-note">An unfinished preview. The chat suggests games from a hand-picked library of measured reports, not from all of Steam, and it can be wrong.</p>
+  <ol class="chat-log" id="chat-log" aria-label="Conversation"></ol>
+  {# The screen reader's channel, present from first paint: a region inserted
+     later is announced unreliably. The script feeds it each reply, each
+     refusal and the start of a wait. #}
+  <p id="chat-announce" class="visually-hidden" role="status"></p>
+  <p class="status" id="chat-status" hidden></p>
+  <form class="chat-form" id="chat-form">
+    <label for="chat-input" class="visually-hidden">Your message</label>
+    <textarea id="chat-input" name="message" rows="2" maxlength="{{ max_chars }}"
+              placeholder="What kind of game are you looking for?" required autofocus></textarea>
+    <button type="submit" id="chat-send">send</button>
+  </form>
+  <p class="chat-foot"><button type="button" id="chat-new">start a new conversation</button></p>
+</section>
+<script src="/static/chat.js?v={{ static_v }}"></script>
+{% endblock %}
