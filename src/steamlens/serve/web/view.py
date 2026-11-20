@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import math
 import re
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Final
@@ -66,6 +66,11 @@ classifier's false-positive background — observed directly (2026-08-14):
 one-and-two-count rows open onto unrelated quotes — so such rows are cut
 from the page entirely, not folded; mislabeled evidence on display costs
 more trust than a missing row. The trust panel states the rule."""
+
+SEARCH_DESCRIPTION_ASPECTS: Final = 3
+"""How many leading aspects the search-result sentence names. A results page
+cuts a description at roughly 160 characters, and three names fit beside the
+denominator and the date for a game name of ordinary length."""
 
 ASPECT_VISIBLE_ROWS: Final = 10
 """How many pinned rows show before the rest fold behind "see more". Purely
@@ -386,6 +391,7 @@ class ReportView:
     game_name: str
     header_image_url: str
     provenance_line: str
+    search_description: str
     narrative: NarrativeView
     aspects: AspectSectionView
     candidates: CandidateSectionView
@@ -439,6 +445,53 @@ def analyzed_line(created_at: datetime, sample_size: int, take_all: bool) -> str
         f"analyzed {date} · sample of {sample_size:,} English reviews across the "
         "whole review history"
     )
+
+
+def search_description(
+    game_name: str,
+    created_at: datetime,
+    sample_size: int,
+    take_all: bool,
+    leading_aspects: Sequence[str],
+) -> str:
+    """The sentence a search result prints under the report's title.
+
+    Stated from stored facts only: the denominator as the provenance line
+    states it (a sample names its n, a take-all is every English review),
+    the aspects the page's own table leads with, and the analysis date. It
+    says what the reviews are about and never which way they lean, so it
+    cannot disagree with the bars. A report with no aspect over the evidence
+    floor names none.
+
+    >>> from datetime import UTC, datetime
+    >>> day = datetime(2026, 8, 10, tzinfo=UTC)
+    >>> search_description("Dota 2", day, 312, True, ())
+    'What all 312 English Steam reviews of Dota 2 say. Analyzed 2026-08-10.'
+    """
+    reviews = (
+        f"all {sample_size:,} English Steam reviews of {game_name} say"
+        if take_all
+        else f"a sample of {sample_size:,} English Steam reviews of {game_name} says"
+    )
+    subject = (
+        f" about {_listed(leading_aspects)}, with the counts and quotes behind each"
+        if leading_aspects
+        else ""
+    )
+    return f"What {reviews}{subject}. Analyzed {created_at.date().isoformat()}."
+
+
+def _listed(names: Sequence[str]) -> str:
+    """One or more names as running prose.
+
+    >>> _listed(("story",))
+    'story'
+    >>> _listed(("story", "voice acting", "pacing"))
+    'story, voice acting and pacing'
+    """
+    if len(names) == 1:
+        return names[0]
+    return f"{', '.join(names[:-1])} and {names[-1]}"
 
 
 def header_art(stored_url: str | None, app_id: int) -> str:
@@ -526,14 +579,24 @@ def build_report_view(page: ReportPageData) -> ReportView:
     """The one entry: a loaded bundle shaped into the page, top to bottom."""
     report = page.report
     spiky = _regime(report)
+    aspects = _aspect_section(page, spiky)
     return ReportView(
         game_name=report.game_name,
         header_image_url=header_art(report.header_image, report.app_id),
         provenance_line=provenance_line(report),
+        # Off the table's own rows, so the sentence can only name an aspect
+        # the page shows, in the order the page shows it.
+        search_description=search_description(
+            report.game_name,
+            report.created_at,
+            report.sample_size,
+            report.take_all,
+            tuple(row.aspect for row in aspects.rows[:SEARCH_DESCRIPTION_ASPECTS]),
+        ),
         narrative=_narrative_section(
             report.narrative, {a.aspect for a in page.aggregates}
         ),
-        aspects=_aspect_section(page, spiky),
+        aspects=aspects,
         candidates=_candidate_section(page.aggregates),
         timeline=_timeline(report.histogram),
         trust_entries=_trust_entries(report, spiky, page.aspect_bearing_reviews),

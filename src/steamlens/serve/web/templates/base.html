@@ -11,17 +11,21 @@
   <meta property="og:title" content="SteamLens — What do players think about a game?">
   <meta property="og:description"
         content="SteamLens reads Steam reviews and shows what people praise and complain about — with numbers, quotes, and a timeline behind the answer.">
-  {# og:image must be absolute, and this app nowhere else knows its own domain —
-     the one hardcoded self-URL, the seed for a base-URL setting if a second
-     consumer ever appears. #}
-  <meta property="og:image" content="https://steamlens.ardabasarici.dev/static/og-home.png?v={{ static_v }}">
+  {# og:image must be absolute (scrapers resolve nothing), so it wears the
+     public origin, which serve.links states once for the whole app. #}
+  <meta property="og:image" content="{{ public_origin }}/static/og-home.png?v={{ static_v }}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:type" content="image/png">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="https://steamlens.ardabasarici.dev/static/og-home.png?v={{ static_v }}">
+  <meta name="twitter:image" content="{{ public_origin }}/static/og-home.png?v={{ static_v }}">
   <meta name="twitter:image:alt" content="The SteamLens home page: the search box and recently analyzed games">
   {% endblock %}
+  {# A route passes canonical_path when its page names its own public address
+     (pages.attach_web says which do). #}
+  {% if canonical_path is defined %}
+  <link rel="canonical" href="{{ public_origin }}{{ canonical_path }}">
+  {% endif %}
   <title>{% block title %}steam-lens{% endblock %}</title>
   <meta name="theme-color" content="#f9f9f7" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">

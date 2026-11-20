@@ -12,12 +12,24 @@ Both HTTP surfaces consume this module (the pages' redirect-to-canonical,
 the submit receipt's ``report_url``), which is why it lives beside them in
 ``serve`` rather than inside ``serve.web``: the JSON surface never imports
 the rendering package.
+
+The site's public origin is said here too, once. Everything a crawler or a
+link scraper reads from outside the page must be absolute: the canonical
+link, the sitemap's locations, the default share image.
 """
 
 from __future__ import annotations
 
 import re
 import unicodedata
+from typing import Final
+
+PUBLIC_ORIGIN: Final = "https://steamlens.ardabasarici.dev"
+"""Scheme and host of the public site, no trailing slash. A constant and not
+read off the request: the app sits behind a proxy and a CDN, so the host a
+request arrives with is not the address the public uses, and a canonical
+link has to name the public address from whichever host rendered the page
+(a development server included)."""
 
 _SLUG_LENGTH_CAP = 80
 """Ceiling on a slug's length — a defensive cut for pathological names; real
@@ -66,3 +78,14 @@ def report_path(app_id: int, game_name: str) -> str:
     """
     slug = game_slug(game_name)
     return f"/reports/{app_id}/{slug}" if slug else f"/reports/{app_id}"
+
+
+def public_url(path: str) -> str:
+    """The absolute public address of a site path.
+
+    >>> public_url("/reports/440/team-fortress-2")
+    'https://steamlens.ardabasarici.dev/reports/440/team-fortress-2'
+    >>> public_url("/")
+    'https://steamlens.ardabasarici.dev/'
+    """
+    return f"{PUBLIC_ORIGIN}{path}"

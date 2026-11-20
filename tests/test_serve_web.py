@@ -22,6 +22,7 @@ import re
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
+from xml.etree import ElementTree
 
 import pytest
 from fastapi import FastAPI
@@ -60,6 +61,7 @@ from steamlens.contracts import (
     WindowAccount,
 )
 from steamlens.core.allowance import shipped_interval
+from steamlens.serve.links import PUBLIC_ORIGIN
 from steamlens.serve.web import OpsData, ReportPageData, attach_web
 from steamlens.serve.web.csp import STEAM_CDN_FAMILY
 from steamlens.serve.web.ops_view import build_ops_view
@@ -68,6 +70,7 @@ from steamlens.serve.web.view import (
     build_report_view,
     narrative_segments,
     provenance_line,
+    search_description,
 )
 
 _SERVE_DIR = Path(__file__).resolve().parent.parent / "src" / "steamlens" / "serve"
@@ -588,6 +591,28 @@ def test_provenance_line_states_the_two_denominators() -> None:
     ), "the lifetime-pooling frame stated where the numbers are introduced"
 
 
+def test_search_description_states_the_denominator_and_the_leading_aspects() -> None:
+    """The sentence under a search result is the report's own facts: a sample
+    names its n where a take-all says "all", the aspects keep the order they
+    were given in, and a report with no aspect to name says so by naming none."""
+    assert search_description(
+        "Dispatch", _STAMP, 1_000, False, ("story", "voice acting", "pacing")
+    ) == (
+        "What a sample of 1,000 English Steam reviews of Dispatch says about "
+        "story, voice acting and pacing, with the counts and quotes behind each. "
+        "Analyzed 2026-08-01."
+    )
+    assert search_description(
+        "Dota 2", _STAMP, 312, True, ("matchmaking", "balance")
+    ) == (
+        "What all 312 English Steam reviews of Dota 2 say about matchmaking and "
+        "balance, with the counts and quotes behind each. Analyzed 2026-08-01."
+    )
+    assert search_description("Dota 2", _STAMP, 312, True, ()) == (
+        "What all 312 English Steam reviews of Dota 2 say. Analyzed 2026-08-01."
+    )
+
+
 # --- the rendered page ----------------------------------------------------------
 
 
@@ -803,7 +828,8 @@ def test_report_render_journals_one_view_per_read() -> None:
 def test_search_page_wears_the_site_default_card() -> None:
     """Pages without per-game data inherit the site-wide card: the plain-
     language pitch and the self-hosted homepage screenshot — whose URL must
-    be absolute (scrapers resolve nothing), the app's one hardcoded self-URL."""
+    be absolute (scrapers resolve nothing), so it wears the public origin,
+    pinned here by its literal value."""
     html = _get(_page_app(None), "/").text
     assert '<meta property="og:site_name" content="SteamLens">' in html
     assert (
@@ -830,6 +856,105 @@ def test_report_addresses_canonicalize_to_the_named_url() -> None:
     canonical = _get(app, "/reports/440/team-fortress-2")
     assert canonical.history == []
     assert canonical.status_code == 200
+
+
+def test_report_page_describes_itself_from_its_own_table() -> None:
+    """A search result reads this report's facts: the description names the
+    three heaviest pinned aspects that clear the evidence floor, worn as
+    display names, and the tab title asks the card's question. The share
+    card keeps its one sentence for every game."""
+    page = _page(
+        aggregates=(
+            _aggregate("story", 120),
+            _aggregate("combat", 300),
+            _aggregate("voice_acting", 200),
+            _aggregate("pacing", 80),
+            _aggregate("user_interface", 4),
+            _aggregate("fan_theory", 500, slot=AspectSlot.CANDIDATE),
+        )
+    )
+    html = _get(_page_app(page), "/reports/440").text
+    assert (
+        '<meta name="description" content="What a sample of 1,000 English Steam '
+        "reviews of Team Fortress 2 says about combat, voice acting and story, "
+        'with the counts and quotes behind each. Analyzed 2026-08-01.">'
+    ) in html
+    assert (
+        "<title>What do players think about Team Fortress 2? — SteamLens</title>"
+    ) in html
+    assert re.search(
+        r'<meta property="og:description"\s+content="See what players praise', html
+    ), "the card's sentence is the same for every game"
+
+
+def test_a_hostile_game_name_stays_inert_in_the_head() -> None:
+    """The stored name reaches the title and two attributes of the head, and
+    a name is whatever Steam's store returned: it renders escaped in all of
+    them."""
+    name = 'A "B" <script>alert(1)</script> & C'
+    html = _get(_page_app(_page(_report(game_name=name))), "/reports/440").text
+    head = html.split("</head>")[0]
+    assert "<script>alert(1)" not in head
+    assert head.count("A &#34;B&#34; &lt;script&gt;alert(1)&lt;/script&gt; &amp; C") == 3
+
+
+def test_indexable_pages_name_their_public_address() -> None:
+    """The front door, the library and a published report each carry one
+    canonical link to their own public address, whatever was appended to the
+    address that reached them (the front door with ``?v=2`` was on record
+    with Google as a duplicate of itself). Pages with no address worth
+    naming carry none."""
+    app = _page_app(_page(), cards=())
+    for address, canonical in (
+        ("/", "/"),
+        ("/?v=2", "/"),
+        ("/reports", "/reports"),
+        ("/reports/440", "/reports/440/team-fortress-2"),
+        ("/reports/440/team-fortress-2?ref=share", "/reports/440/team-fortress-2"),
+    ):
+        html = _get(app, address).text
+        assert html.count('rel="canonical"') == 1
+        assert f'<link rel="canonical" href="{PUBLIC_ORIGIN}{canonical}">' in html
+
+    for unpublished, address in (
+        (_page_app(None), "/reports/440"),
+        (_page_app(None, live=True), "/reports/440"),
+        (_page_app(None), "/no-such-page"),
+    ):
+        assert 'rel="canonical"' not in _get(unpublished, address, accept="text/html").text
+
+
+def test_sitemap_lists_the_library_at_canonical_addresses() -> None:
+    """The sitemap is the front door, the library, and one entry per card at
+    the address the page itself answers on, a name with no ascii letters at
+    its bare id. Only reports carry a date, their completion date. An app
+    composed without the library has no sitemap."""
+    cards = (
+        ReportCard(
+            app_id=440, game_name="Team Fortress 2", header_image=None,
+            created_at=_STAMP, sample_size=1_000, take_all=False, top_aspects=(),
+        ),
+        ReportCard(
+            app_id=1229480, game_name="東方紅魔郷", header_image=None,
+            created_at=datetime(2026, 9, 14, 23, 30, tzinfo=UTC), sample_size=312,
+            take_all=True, top_aspects=(),
+        ),
+    )
+    response = _get(_page_app(None, cards=cards), "/sitemap.xml")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/xml")
+    space = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+    listed = [
+        (url.findtext("s:loc", namespaces=space), url.findtext("s:lastmod", namespaces=space))
+        for url in ElementTree.fromstring(response.content).findall("s:url", space)
+    ]
+    assert listed == [
+        (f"{PUBLIC_ORIGIN}/", None),
+        (f"{PUBLIC_ORIGIN}/reports", None),
+        (f"{PUBLIC_ORIGIN}/reports/440/team-fortress-2", "2026-08-01"),
+        (f"{PUBLIC_ORIGIN}/reports/1229480", "2026-09-14"),
+    ]
+    assert _get(_page_app(None), "/sitemap.xml").status_code == 404
 
 
 def test_reports_index_renders_a_card_per_game() -> None:

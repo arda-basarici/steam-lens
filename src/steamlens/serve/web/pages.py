@@ -32,10 +32,11 @@ from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from steamlens.contracts import ReportCard
-from steamlens.serve.links import report_path
+from steamlens.serve.links import PUBLIC_ORIGIN, report_path
 from steamlens.serve.web.csp import ContentSecurityPolicy, fresh_policy
 from steamlens.serve.web.index_view import build_index_view
 from steamlens.serve.web.ops_view import OpsData, build_ops_view
+from steamlens.serve.web.sitemap import sitemap_xml
 from steamlens.serve.web.view import ReportPageData, build_report_view
 
 _TEMPLATES_DIR: Final = Path(__file__).parent / "templates"
@@ -95,6 +96,13 @@ def attach_web(
     render is the one funnel every door passes through (a search answer
     redirecting, a library click, a pasted link), so counting here counts
     each read exactly once; ``None`` composes an uncounted app (tests).
+    The card loader also mounts ``/sitemap.xml``, the same list of reports
+    stated for crawlers.
+
+    The front door, the library and a published report each name their own
+    public address in a canonical link, so the same page reached with a
+    query string appended is read as the one page it is. No other page
+    passes one.
     ``chat_message_max_chars`` is the recommender chat's message length, the
     same dial its route enforces, and passing it mounts the chat page;
     ``None`` composes an app without the page. The page is unlisted: nothing
@@ -110,7 +118,9 @@ def attach_web(
     app.add_middleware(ContentSecurityPolicy)
     templates = Jinja2Templates(directory=_TEMPLATES_DIR)
     # The stub types env.globals to jinja's own builtins; it is a plain dict.
-    cast(dict[str, object], templates.env.globals)["static_v"] = _static_version()
+    template_globals = cast(dict[str, object], templates.env.globals)
+    template_globals["static_v"] = _static_version()
+    template_globals["public_origin"] = PUBLIC_ORIGIN
     router = APIRouter()
 
     wired_categories: Mapping[str, str] = (
@@ -137,7 +147,9 @@ def attach_web(
             if load_report_cards is not None
             else ()
         )
-        return templates.TemplateResponse(request, "search.html", {"recent": recent})
+        return templates.TemplateResponse(
+            request, "search.html", {"recent": recent, "canonical_path": "/"}
+        )
 
     def _report_response(request: Request, app_id: int) -> Response:
         """The report if published, the live narration if a job runs, else an honest 404.
@@ -161,7 +173,9 @@ def attach_web(
                 # and 404 branches below are not report reads.
                 record_report_view(page.report.run.run_id)
             return templates.TemplateResponse(
-                request, "report.html", {"view": build_report_view(page)}
+                request,
+                "report.html",
+                {"view": build_report_view(page), "canonical_path": canonical},
             )
         if job_live(app_id):
             return templates.TemplateResponse(
@@ -180,8 +194,16 @@ def attach_web(
             return templates.TemplateResponse(
                 request,
                 "reports.html",
-                {"view": build_index_view(wired_cards(), wired_categories)},
+                {
+                    "view": build_index_view(wired_cards(), wired_categories),
+                    "canonical_path": "/reports",
+                },
             )
+
+        @router.get("/sitemap.xml", response_class=Response)
+        def sitemap() -> Response:  # pyright: ignore[reportUnusedFunction]
+            """The front door, the library and every published report, for crawlers."""
+            return Response(sitemap_xml(wired_cards()), media_type="application/xml")
 
     @router.get("/reports/{app_id}", response_class=Response)
     def report_page(request: Request, app_id: int) -> Response:  # pyright: ignore[reportUnusedFunction]

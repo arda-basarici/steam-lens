@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 {% set nav_active = "reports" %}
-{% block title %}{{ view.game_name }} — steam-lens{% endblock %}
+{% block title %}What do players think about {{ view.game_name }}? — SteamLens{% endblock %}
 {% block share_meta %}
-  <meta name="description"
-        content="See what players praise, what they complain about, and the reviews behind the numbers.">
+  {# Two readers, two sentences: a search result gets this report's own
+     facts, a shared link keeps the card's one question for every game. #}
+  <meta name="description" content="{{ view.search_description }}">
   <meta property="og:title" content="What do players think about {{ view.game_name }}? — SteamLens">
   <meta property="og:description"
         content="See what players praise, what they complain about, and the reviews behind the numbers.">
