@@ -16,9 +16,9 @@ from steamlens.contracts import ReportCard
 from steamlens.serve.links import public_url, report_path
 
 _INDEX_PATHS = ("/", "/reports")
-"""The pages listed beside the reports. They carry no modification date:
-both change whenever a report is published, and no stored time says when
-either was last edited as a page."""
+"""The pages listed beside the reports. They carry no modification date. The
+only time on hand is the newest report's completion, which says when the
+list last grew and which that report's own entry already states."""
 
 
 def sitemap_xml(cards: Iterable[ReportCard]) -> str:

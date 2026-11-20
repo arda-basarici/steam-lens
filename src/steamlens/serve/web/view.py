@@ -68,9 +68,10 @@ from the page entirely, not folded; mislabeled evidence on display costs
 more trust than a missing row. The trust panel states the rule."""
 
 SEARCH_DESCRIPTION_ASPECTS: Final = 3
-"""How many leading aspects the search-result sentence names. A results page
-cuts a description at roughly 160 characters, and three names fit beside the
-denominator and the date for a game name of ordinary length."""
+"""How many leading aspects the search-result sentence names: enough to say
+what the reviews are about. A results page prints roughly 160 characters of
+a description and cuts the rest, so every further name costs the sentence
+its end."""
 
 ASPECT_VISIBLE_ROWS: Final = 10
 """How many pinned rows show before the rest fold behind "see more". Purely
@@ -456,28 +457,27 @@ def search_description(
 ) -> str:
     """The sentence a search result prints under the report's title.
 
-    Stated from stored facts only: the denominator as the provenance line
-    states it (a sample names its n, a take-all is every English review),
-    the aspects the page's own table leads with, and the analysis date. It
-    says what the reviews are about and never which way they lean, so it
-    cannot disagree with the bars. A report with no aspect over the evidence
-    floor names none.
+    Stated from stored facts only: the denominator, the aspects the page's
+    own table leads with, and the analysis date. A sampled report says it is
+    a sample. A take-all gives its count and does not say "all": the count
+    is the reviews that could be read and labeled, and a game can have a
+    few more English reviews than that (the trust panel shows both
+    numbers). The sentence says what the reviews are about and never which
+    way they lean, so it cannot disagree with the bars. A report with no
+    aspect over the evidence floor names none. It stays short on purpose: a
+    results page cuts a description from the end, and the end is the date.
 
     >>> from datetime import UTC, datetime
     >>> day = datetime(2026, 8, 10, tzinfo=UTC)
     >>> search_description("Dota 2", day, 312, True, ())
-    'What all 312 English Steam reviews of Dota 2 say. Analyzed 2026-08-10.'
+    'What 312 English Steam reviews of Dota 2 say. Analyzed 2026-08-10.'
     """
     reviews = (
-        f"all {sample_size:,} English Steam reviews of {game_name} say"
+        f"{sample_size:,} English Steam reviews of {game_name} say"
         if take_all
         else f"a sample of {sample_size:,} English Steam reviews of {game_name} says"
     )
-    subject = (
-        f" about {_listed(leading_aspects)}, with the counts and quotes behind each"
-        if leading_aspects
-        else ""
-    )
+    subject = f" about {_listed(leading_aspects)}" if leading_aspects else ""
     return f"What {reviews}{subject}. Analyzed {created_at.date().isoformat()}."
 
 

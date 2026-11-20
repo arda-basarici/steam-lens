@@ -593,23 +593,23 @@ def test_provenance_line_states_the_two_denominators() -> None:
 
 def test_search_description_states_the_denominator_and_the_leading_aspects() -> None:
     """The sentence under a search result is the report's own facts: a sample
-    names its n where a take-all says "all", the aspects keep the order they
-    were given in, and a report with no aspect to name says so by naming none."""
+    says it is one where a take-all gives its count (never "all": the count
+    is the usable reviews, and a game can have a few more), the aspects keep
+    the order they were given in, and a report with no aspect names none."""
     assert search_description(
         "Dispatch", _STAMP, 1_000, False, ("story", "voice acting", "pacing")
     ) == (
         "What a sample of 1,000 English Steam reviews of Dispatch says about "
-        "story, voice acting and pacing, with the counts and quotes behind each. "
-        "Analyzed 2026-08-01."
+        "story, voice acting and pacing. Analyzed 2026-08-01."
     )
     assert search_description(
         "Dota 2", _STAMP, 312, True, ("matchmaking", "balance")
     ) == (
-        "What all 312 English Steam reviews of Dota 2 say about matchmaking and "
-        "balance, with the counts and quotes behind each. Analyzed 2026-08-01."
+        "What 312 English Steam reviews of Dota 2 say about matchmaking and "
+        "balance. Analyzed 2026-08-01."
     )
     assert search_description("Dota 2", _STAMP, 312, True, ()) == (
-        "What all 312 English Steam reviews of Dota 2 say. Analyzed 2026-08-01."
+        "What 312 English Steam reviews of Dota 2 say. Analyzed 2026-08-01."
     )
 
 
@@ -829,8 +829,10 @@ def test_search_page_wears_the_site_default_card() -> None:
     """Pages without per-game data inherit the site-wide card: the plain-
     language pitch and the self-hosted homepage screenshot — whose URL must
     be absolute (scrapers resolve nothing), so it wears the public origin,
-    pinned here by its literal value."""
+    pinned here by its literal value. The front door's tab title is the
+    card's title, the one a search result prints."""
     html = _get(_page_app(None), "/").text
+    assert "<title>SteamLens — What do players think about a game?</title>" in html
     assert '<meta property="og:site_name" content="SteamLens">' in html
     assert (
         '<meta property="og:title" '
@@ -860,27 +862,39 @@ def test_report_addresses_canonicalize_to_the_named_url() -> None:
 
 def test_report_page_describes_itself_from_its_own_table() -> None:
     """A search result reads this report's facts: the description names the
-    three heaviest pinned aspects that clear the evidence floor, worn as
-    display names, and the tab title asks the card's question. The share
-    card keeps its one sentence for every game."""
+    three heaviest pinned aspects, worn as display names, and the tab title
+    leads with the game's name. An aspect under the evidence floor is never
+    named, even when that leaves fewer than three, and neither is a
+    candidate however heavy. The share card keeps its one sentence for
+    every game."""
+    thin = _page(
+        aggregates=(
+            _aggregate("combat", 300),
+            _aggregate("voice_acting", 200),
+            _aggregate("user_interface", 4),
+        )
+    )
+    assert (
+        "of Team Fortress 2 says about combat and voice acting. Analyzed"
+    ) in _get(_page_app(thin), "/reports/440").text, "the floor cuts the third name"
+
     page = _page(
         aggregates=(
             _aggregate("story", 120),
             _aggregate("combat", 300),
             _aggregate("voice_acting", 200),
             _aggregate("pacing", 80),
-            _aggregate("user_interface", 4),
             _aggregate("fan_theory", 500, slot=AspectSlot.CANDIDATE),
         )
     )
     html = _get(_page_app(page), "/reports/440").text
     assert (
         '<meta name="description" content="What a sample of 1,000 English Steam '
-        "reviews of Team Fortress 2 says about combat, voice acting and story, "
-        'with the counts and quotes behind each. Analyzed 2026-08-01.">'
+        "reviews of Team Fortress 2 says about combat, voice acting and story. "
+        'Analyzed 2026-08-01.">'
     ) in html
     assert (
-        "<title>What do players think about Team Fortress 2? — SteamLens</title>"
+        "<title>Team Fortress 2 reviews: what players think — SteamLens</title>"
     ) in html
     assert re.search(
         r'<meta property="og:description"\s+content="See what players praise', html
@@ -976,6 +990,7 @@ def test_reports_index_renders_a_card_per_game() -> None:
     )
     categories = {"combat": "play", "voice_acting": "narrative"}
     html = _get(_page_app(None, cards=cards, categories=categories), "/reports").text
+    assert "<title>All reports — SteamLens</title>" in html
     assert 'href="/reports/440/team-fortress-2"' in html
     assert 'href="/reports/570/dota-2"' in html
     assert f"{HEADER_ART_ORIGIN}/store_item_assets/steam/apps/440/header.jpg" in html

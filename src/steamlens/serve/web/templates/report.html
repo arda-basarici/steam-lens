@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% set nav_active = "reports" %}
-{% block title %}What do players think about {{ view.game_name }}? — SteamLens{% endblock %}
+{# Name first: a row of tabs, a history list and a cut search title all keep
+   the part that tells one report from another. #}
+{% block title %}{{ view.game_name }} reviews: what players think — SteamLens{% endblock %}
 {% block share_meta %}
   {# Two readers, two sentences: a search result gets this report's own
      facts, a shared link keeps the card's one question for every game. #}

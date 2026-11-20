@@ -26,10 +26,11 @@ from typing import Final
 
 PUBLIC_ORIGIN: Final = "https://steamlens.ardabasarici.dev"
 """Scheme and host of the public site, no trailing slash. A constant and not
-read off the request: the app sits behind a proxy and a CDN, so the host a
-request arrives with is not the address the public uses, and a canonical
-link has to name the public address from whichever host rendered the page
-(a development server included)."""
+read off the request: the app sits behind a proxy and a CDN that end TLS
+before it, so a request reaches it over plain http and an address built
+from the request would say ``http://``. A canonical link also has to name
+the public address from whichever host rendered the page, a development
+server included."""
 
 _SLUG_LENGTH_CAP = 80
 """Ceiling on a slug's length — a defensive cut for pathological names; real
