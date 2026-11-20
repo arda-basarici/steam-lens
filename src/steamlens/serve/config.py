@@ -73,6 +73,31 @@ class ServeConfig:
     ration humans — a person searching on submit fires a few a minute, and
     25 stays invisible to them (ruled 2026-08-09; env dial
     ``STEAMLENS_SEARCH_PER_MINUTE``).
+
+    The ``chat_`` dials are the recommender chat's caps, all working values
+    set before the tab had a visitor (DESIGN's register of provisional
+    choices has what would reopen each). ``chat_message_max_chars`` and
+    ``chat_turns_per_conversation`` bound one conversation; the example
+    conversations run to three turns and short messages, so both are
+    generous guesses. ``chat_per_ip_daily_turn_limit`` and
+    ``chat_daily_turn_limit`` are the turn gate's two counts per UTC day,
+    the fairness cap inside the pooled one, as for analyses. The pooled
+    count is not what holds the day's spend: ``daily_spend_backstop_usd``
+    does, shared with the report flow, and the count decides how much of
+    that wall the chat can take. A turn measured $0.0011 on a warm prefix
+    cache off-peak, and the same token counts price to about $0.006 at
+    peak on a cold cache, so 300 turns land between $0.35 and $1.80.
+    ``chat_turns_in_flight`` is how many turns run at once in the process:
+    they share the thread pool with every page and the health check.
+    ``chat_turn_budget_usd`` is the spend ceiling of one turn's client, a
+    tripwire above the roughly $0.03 a turn costs with every step retried
+    and every output at its cap; it also leaves room for a report job's
+    spend in the same seconds, which the client's budget read counts.
+    ``chat_max_open_conversations`` and ``chat_idle_expiry_minutes`` bound
+    the conversations kept in memory, against a script and not for
+    capacity. The two daily counts are env dials
+    (``STEAMLENS_CHAT_DAILY_TURN_LIMIT``,
+    ``STEAMLENS_CHAT_PER_IP_DAILY_TURN_LIMIT``).
     """
 
     take_all_cutoff: int = 2_000
@@ -91,3 +116,11 @@ class ServeConfig:
     per_ip_daily_job_limit: int = 5
     daily_spend_backstop_usd: float = 2.0
     search_per_minute: int = 25
+    chat_message_max_chars: int = 1_000
+    chat_turns_per_conversation: int = 12
+    chat_per_ip_daily_turn_limit: int = 60
+    chat_daily_turn_limit: int = 300
+    chat_turns_in_flight: int = 4
+    chat_turn_budget_usd: float = 0.05
+    chat_max_open_conversations: int = 500
+    chat_idle_expiry_minutes: int = 120
