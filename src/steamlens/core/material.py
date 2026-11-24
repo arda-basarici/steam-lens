@@ -403,8 +403,8 @@ def one_game_material(
     ``readings`` hold one reading per subject, in the subjects' order
     (``subject_reading``), and ``excerpts`` what each subject that was read
     gave, by its position. ``standing`` is the game read against the
-    standing wants, handed in when the player asked whether it would suit
-    them.
+    standing wants, handed in when a question fits no stored field, wants
+    stand and the game is on the sheet.
 
     A subject is ``READ`` when it gave excerpts, ``CUT_BY_CAP`` when it
     comes after the ``MAX_SUBJECTS`` a turn reads, and ``NOTHING_TO_READ``

@@ -184,6 +184,7 @@ def test_two_entries_for_one_library_game_are_one_game_asked_about() -> None:
     by_name = _named(NamedGameRole.ASK_ABOUT)
     typed_twice = _about(by_name, dataclasses.replace(by_name, words="it"))
     assert typed_twice.request is not None
+    assert games_asked_about(typed_twice.request) == (by_name,)
     assert plan_turn(typed_twice) == OneGameTurn(typed_twice.request, _HADES)
 
 

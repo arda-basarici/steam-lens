@@ -158,14 +158,29 @@ def plan_turn(understanding: Understanding) -> TurnPlan:
 
 
 def games_asked_about(request: PlayerRequest) -> tuple[NamedGame, ...]:
-    """The named games the request marks as the ones the latest message asks about.
+    """The games the request marks as the ones the latest message asks about.
 
-    In the player's order. A turn goes on with one. With more it ends on
-    the text that asks which, until a turn can answer about several.
+    In the player's order, a library game once however many entries
+    resolved to it, the first of them kept: the understand step writes an
+    entry for each thing the player typed for a game, so "is Hades good, and
+    is it hard" can come back as two entries for one game. An entry that
+    resolved to no library game is kept as it is, since nothing says two of
+    those are the same game.
+
+    A turn goes on with one. With more it ends on the text that asks which,
+    until a turn can answer about several.
     """
-    return tuple(
-        game for game in request.named_games if game.role is NamedGameRole.ASK_ABOUT
-    )
+    seen: set[int] = set()
+    asked: list[NamedGame] = []
+    for game in request.named_games:
+        if game.role is not NamedGameRole.ASK_ABOUT:
+            continue
+        if game.app_id is not None:
+            if game.app_id in seen:
+                continue
+            seen.add(game.app_id)
+        asked.append(game)
+    return tuple(asked)
 
 
 def ending_without_decision(outcome: PickOutcome) -> TurnEnding:
@@ -360,7 +375,7 @@ def reply_blocks(turn: Turn) -> tuple[ReplyBlock, ...]:
 
 
 def _one_game_plan(request: PlayerRequest) -> OneGameTurn | TurnEnding:
-    match _distinct(games_asked_about(request)):
+    match games_asked_about(request):
         case ():
             return TurnEnding.GAME_UNCLEAR
         case (game,):
@@ -371,22 +386,3 @@ def _one_game_plan(request: PlayerRequest) -> OneGameTurn | TurnEnding:
             return TurnEnding.GAME_UNCLEAR
         case _:
             return TurnEnding.SEVERAL_GAMES
-
-
-def _distinct(asked: tuple[NamedGame, ...]) -> tuple[NamedGame, ...]:
-    """``asked`` with a library game counted once, however many entries resolved to it.
-
-    The understand step writes an entry for each thing the player typed for
-    a game, so "is Hades good, and is it hard" can come back as two entries
-    for one game. An entry that resolved to no library game is kept as it
-    is: nothing says two of those are the same game.
-    """
-    seen: set[int] = set()
-    kept: list[NamedGame] = []
-    for game in asked:
-        if game.app_id is not None:
-            if game.app_id in seen:
-                continue
-            seen.add(game.app_id)
-        kept.append(game)
-    return tuple(kept)
