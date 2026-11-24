@@ -132,7 +132,8 @@ def plan_turn(understanding: Understanding) -> TurnPlan:
     titles share, a reference that could not be tied to a game, and a
     request that marks no game as the one asked about. A request that asks
     about more than one game ends on ``SEVERAL_GAMES``, whether or not each
-    of them resolved.
+    of them resolved. Entries that resolved to the same library game are one
+    game.
 
     >>> plan_turn(Understanding(UnderstandOutcome.UNAVAILABLE, None))
     <TurnEnding.UNAVAILABLE: 'unavailable'>
@@ -359,7 +360,7 @@ def reply_blocks(turn: Turn) -> tuple[ReplyBlock, ...]:
 
 
 def _one_game_plan(request: PlayerRequest) -> OneGameTurn | TurnEnding:
-    match games_asked_about(request):
+    match _distinct(games_asked_about(request)):
         case ():
             return TurnEnding.GAME_UNCLEAR
         case (game,):
@@ -370,3 +371,22 @@ def _one_game_plan(request: PlayerRequest) -> OneGameTurn | TurnEnding:
             return TurnEnding.GAME_UNCLEAR
         case _:
             return TurnEnding.SEVERAL_GAMES
+
+
+def _distinct(asked: tuple[NamedGame, ...]) -> tuple[NamedGame, ...]:
+    """``asked`` with a library game counted once, however many entries resolved to it.
+
+    The understand step writes an entry for each thing the player typed for
+    a game, so "is Hades good, and is it hard" can come back as two entries
+    for one game. An entry that resolved to no library game is kept as it
+    is: nothing says two of those are the same game.
+    """
+    seen: set[int] = set()
+    kept: list[NamedGame] = []
+    for game in asked:
+        if game.app_id is not None:
+            if game.app_id in seen:
+                continue
+            seen.add(game.app_id)
+        kept.append(game)
+    return tuple(kept)

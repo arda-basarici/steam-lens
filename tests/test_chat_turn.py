@@ -402,6 +402,30 @@ def test_a_turn_about_one_game_that_marks_no_game_is_counted_as_that_reading(
     }
 
 
+def test_a_message_about_two_library_games_ends_on_asking_which_with_no_further_call(
+    store_path: Path,
+) -> None:
+    """Both games resolve, and the turn still answers about neither: one
+    model call, the fixed text, and the reading counted."""
+    asked: list[dict[str, object]] = [
+        {"words": title.lower(), "title": title, "role": "ask-about", "feeling": "unknown",
+         "liked_parts": []}
+        for title in ("The First Game", "The Second Game")
+    ]
+    script = AnswerScript([json.dumps({"intent": "about-game", "named_games": asked})])
+    conversation = (ChatMessage(ChatRole.PLAYER, "the first game and the second game: cons?"),)
+    result, metrics = _run(store_path, script, conversation)
+
+    assert len(script.prompts) == 1
+    assert result.ending is TurnEnding.SEVERAL_GAMES
+    assert result.message == ChatMessage(
+        ChatRole.CHAT, FIXED_TEXTS[TurnEnding.SEVERAL_GAMES], kind=ChatMessageKind.FIXED
+    )
+    assert metrics == {
+        "turn_more_games_asked_about": 1.0, "turn_nothing_asked": 1.0, "turn_several_games": 1.0,
+    }
+
+
 def test_games_already_offered_are_left_off_when_the_player_asks_for_others(
     store_path: Path,
 ) -> None:

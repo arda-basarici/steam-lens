@@ -25,10 +25,11 @@ subject on a store fact is read whether or not the store lists it. Two
 questions have no target of their own, and code cannot tell them apart, so a
 question with no target gets what answers either. "Would it suit me" is
 answered by the game read against the wants that still stand, as a candidate
-is read, when any stand. A question about the game in general, or about what
-its reviewers complain of, is answered by the aspects they praise strongly
-and the ones they criticise or are divided on, as groups. The call that
-writes the reply has the question's words and takes the one they ask for.
+is read, when any stand and the game is on the sheet. A question about the
+game in general, or about what its reviewers complain of, is answered by
+the aspects they praise strongly and the ones they criticise or are divided
+on, as groups. The call that writes the reply has the question's words and
+takes the one they ask for.
 
 A candidate can carry one thing the player did not ask about: the part of
 the game its reviewers criticise, when a share of them at or over
@@ -232,12 +233,15 @@ def candidates_material(
 def heavily_criticised(game: LibraryGame, request: PlayerRequest) -> str | None:
     """The aspect an offer of ``game`` says unasked, or ``None`` when there is none.
 
-    The most mentioned of the game's clearly negative aspects, when at least
-    ``CRITICISED_FLOOR`` of its sampled reviews mention it. ``None`` when
-    that aspect is the target of one of the request's wants: its line
-    already carries the reading, and the reply speaks to it there. Only the
-    most mentioned one is looked at, so a game carries one such aspect or
-    none.
+    The most mentioned of the game's clearly negative aspects, the first by
+    name on a tie, when at least ``CRITICISED_FLOOR`` of its sampled reviews
+    mention it. ``None`` when that aspect is the target of one of the
+    request's wants: its line already carries the reading, and the reply
+    speaks to it there. Only the most mentioned one is looked at, so a game
+    carries one such aspect or none, and a second heavily criticised aspect
+    is not said. A want read by search words is not known to be about an
+    aspect: "no crashes" as a term leaves ``stability`` to be carried, where
+    the understand step is asked to read it as that aspect.
     """
     negative = sorted(
         (cell for cell in game.cells if cell.group is SentimentGroup.CLEARLY_NEGATIVE),

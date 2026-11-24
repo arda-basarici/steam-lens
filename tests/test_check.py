@@ -11,8 +11,8 @@ no game. A game offered against a must it fails needs a statement that
 lists the want and cites a review read on it, and cannot stand when none
 was read. A softer want a game fails and a must it could not be decided on
 are spoken to, by a statement about the game or about no game; a want the
-game matches may go unmentioned. On a turn about one game only the musts
-are owed, only for an answer, and the fault costs nothing.
+game matches may go unmentioned. A turn about one game owes no want, even
+when the game was read against the standing wants.
 
 Rules over the text. A numeral outside the turn's titles, years and the
 player's own; a review's passage in quotation marks, where the player's own

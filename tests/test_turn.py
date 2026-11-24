@@ -19,6 +19,8 @@ game it only speaks of.
 
 from __future__ import annotations
 
+import dataclasses
+
 import pytest
 
 from steamlens.contracts import (
@@ -160,17 +162,29 @@ def test_a_message_that_asks_about_several_games_ends_on_asking_which() -> None:
     covered all. A game under another role does not count."""
     unresolved = _named(NamedGameRole.ASK_ABOUT, NameMatch.UNCLEAR, app_id=None)
     resolved = _named(NamedGameRole.ASK_ABOUT)
+    another = _named(NamedGameRole.ASK_ABOUT, app_id=620)
     liked = _named(NamedGameRole.LIKE_THIS, app_id=620)
 
     several = _about(liked, resolved, unresolved)
     assert several.request is not None
     assert games_asked_about(several.request) == (resolved, unresolved)
     assert plan_turn(several) is TurnEnding.SEVERAL_GAMES
-    assert plan_turn(_about(resolved, resolved)) is TurnEnding.SEVERAL_GAMES
+    assert plan_turn(_about(resolved, another)) is TurnEnding.SEVERAL_GAMES
+    assert plan_turn(_about(unresolved, unresolved)) is TurnEnding.SEVERAL_GAMES
 
     one = _about(liked, resolved)
     assert one.request is not None
     assert plan_turn(one) == OneGameTurn(one.request, _HADES)
+
+
+def test_two_entries_for_one_library_game_are_one_game_asked_about() -> None:
+    """The understand step writes an entry for each thing the player typed
+    for a game, so "is Hades good, and is it hard" can name Hades twice.
+    Asking the player which one would be asking about a single game."""
+    by_name = _named(NamedGameRole.ASK_ABOUT)
+    typed_twice = _about(by_name, dataclasses.replace(by_name, words="it"))
+    assert typed_twice.request is not None
+    assert plan_turn(typed_twice) == OneGameTurn(typed_twice.request, _HADES)
 
 
 def test_every_ending_but_a_written_reply_has_one_text_of_its_own() -> None:

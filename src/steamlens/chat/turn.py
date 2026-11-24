@@ -217,7 +217,7 @@ def _ended(
 
 
 def _count_readings(sink: Sink, request: PlayerRequest) -> None:
-    """Count three readings of a turn about a game that send it off the ordinary way.
+    """Count three readings of a turn about one game the understand step is asked not to give.
 
     No game marked as the one asked about, more than one, and nothing asked
     about it. The understand step is asked for none of the three and the

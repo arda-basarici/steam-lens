@@ -6,8 +6,8 @@ in the read plan, the game's reviews on that want, and once per comparison
 the named game's side.
 
 A turn about one game has no pick. ``fetch_about_game`` reads that game on
-each thing the player asked, and, when they asked whether it would suit
-them, against the wants that still stand.
+each thing the player asked, and, when a question fits no stored field and
+wants stand, against those wants.
 
 Either way what comes back is put together into the material the answer
 call reads. No rule lives here. Which pairs are read, and in what order
@@ -108,9 +108,10 @@ def fetch_about_game(
 
     ``game`` is the library game the turn asks about, which the caller has
     resolved from the request's named games, and ``library`` every library
-    game. Each of the first few subjects is read by its target. When the
-    player asked whether the game would suit them, it is also read against
-    the standing wants, as a candidate is. That read is skipped for a game
+    game. Each of the first few subjects is read by its target. When a
+    question fits no stored field and wants stand, the game is also read
+    against those wants, as a candidate is: the question may be whether it
+    would suit the player. That read is skipped for a game
     that is not on the sheet, which is one the player said they had already
     played.
 

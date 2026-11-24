@@ -492,6 +492,18 @@ def test_an_offer_carries_the_aspect_reviewers_criticise_when_enough_of_them_rai
     )
     assert [game.criticised for game in material.games] == [None, "stability"]
 
+    # A turn about that game has the whole list of such aspects instead, so
+    # its row on the standing wants carries none.
+    about = _about(Subject("would it suit me", None), wants=_REQUEST.wants)
+    row = next(row for row in sheet.rows if row.game.app_id == 7002)
+    plan = read_plan(CandidatesDecision((PickCandidate(7002),)), about, sheet)
+    one_game = one_game_material(
+        about, library[0], [subject_reading(about.subjects[0], library[0], {})], {},
+        StandingWantsRead(row, plan, {}),
+    )
+    assert one_game.standing_wants is not None and one_game.standing_wants.criticised is None
+    assert [standing.aspect for standing in one_game.overview] == ["stability"]
+
 
 def test_a_turn_about_one_game_has_one_reading_per_subject() -> None:
     request = _about(Subject("how is the music", AspectTarget("music")))

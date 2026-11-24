@@ -247,7 +247,7 @@ class GameMaterial:
     wants, one each. ``release_year`` is the store's, absent when no date is
     held; a reply may state it, and it is the one figure here.
 
-    ``criticised`` is an aspect the player did not ask about, which the
+    ``criticised`` is an aspect no want of the request targets, which the
     game's reviewers raise often and mostly criticise, or ``None``. An offer
     of the game says it. It is set for a candidate and never for the game a
     turn is about, which has the whole list of such aspects instead.
@@ -386,7 +386,8 @@ class OneGameMaterial:
     A question no stored field fits brings two things, since code cannot
     tell whether it asks about fit or about the game in general.
     ``standing_wants`` is the game read against the wants that still stand,
-    the way a candidate is, present when any stand. ``named_sides`` belong
+    the way a candidate is, present when any stand and the game is on the
+    sheet (a game the player said they had played is not). ``named_sides`` belong
     to it, for a standing want that is relative to another game.
     ``overview`` is the aspects its reviewers praise strongly, then the ones
     they criticise or are divided on, each list most mentioned first.
