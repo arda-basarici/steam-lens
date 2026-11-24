@@ -16,12 +16,13 @@ left nothing of it. Those three are told apart by the steps' outcomes and
 their counts, and the player is told one thing, since there is nothing
 different to do about each.
 
-Three are stand-ins. The first stage of the chat does not write the
+Four are stand-ins. The first stage of the chat does not write the
 question that lists the titles a name could mean, the answer for a game the
-library has not measured, or the explanation of what the numbers mean. A
-turn that needs one of them ends on a short text that says so, with no
-model call. Each stand-in is replaced by the reply it stands for when that
-reply is built, and the ending's name stays.
+library has not measured, the explanation of what the numbers mean, or an
+answer about several games at once. A turn that needs one of them ends on a
+short text that says so, with no model call. Each stand-in is replaced by
+the reply it stands for when that reply is built, and the ending's name
+stays.
 
 A recommendation turn never ends here on a name. A named game that did not
 resolve is read through the sheet's own finding for it, and the pick
@@ -82,6 +83,11 @@ GAME_NOT_MEASURED_REPLY: Final = (
 NUMBERS_UNEXPLAINED_REPLY: Final = (
     "I cannot explain the numbers yet. That part of the chat is not built."
 )
+# Reading the first game and saying nothing of the rest gave a reply about
+# one game of three that read as if it covered all of them.
+SEVERAL_GAMES_REPLY: Final = (
+    "I can go into one game at a time for now. Which one would you like to hear about?"
+)
 
 FIXED_TEXTS: Final[Mapping[TurnEnding, str]] = {
     TurnEnding.OUT_OF_SCOPE: OUT_OF_SCOPE_REPLY,
@@ -91,6 +97,7 @@ FIXED_TEXTS: Final[Mapping[TurnEnding, str]] = {
     TurnEnding.GAME_UNCLEAR: GAME_UNCLEAR_REPLY,
     TurnEnding.GAME_NOT_MEASURED: GAME_NOT_MEASURED_REPLY,
     TurnEnding.NUMBERS_UNEXPLAINED: NUMBERS_UNEXPLAINED_REPLY,
+    TurnEnding.SEVERAL_GAMES: SEVERAL_GAMES_REPLY,
 }
 """The text of every ending that is not a written reply."""
 
@@ -123,7 +130,9 @@ def plan_turn(understanding: Understanding) -> TurnPlan:
     a library title, and ends otherwise: on ``GAME_NOT_MEASURED`` for a
     game the library does not hold, on ``GAME_UNCLEAR`` for a name several
     titles share, a reference that could not be tied to a game, and a
-    request that marks no game as the one asked about.
+    request that marks no game as the one asked about. A request that asks
+    about more than one game ends on ``SEVERAL_GAMES``, whether or not each
+    of them resolved.
 
     >>> plan_turn(Understanding(UnderstandOutcome.UNAVAILABLE, None))
     <TurnEnding.UNAVAILABLE: 'unavailable'>
@@ -150,8 +159,8 @@ def plan_turn(understanding: Understanding) -> TurnPlan:
 def games_asked_about(request: PlayerRequest) -> tuple[NamedGame, ...]:
     """The named games the request marks as the ones the latest message asks about.
 
-    In the player's order. The understand step is asked for one. The turn
-    reads the first and counts the rest.
+    In the player's order. A turn goes on with one. With more it ends on
+    the text that asks which, until a turn can answer about several.
     """
     return tuple(
         game for game in request.named_games if game.role is NamedGameRole.ASK_ABOUT
@@ -350,12 +359,14 @@ def reply_blocks(turn: Turn) -> tuple[ReplyBlock, ...]:
 
 
 def _one_game_plan(request: PlayerRequest) -> OneGameTurn | TurnEnding:
-    asked = games_asked_about(request)
-    if not asked:
-        return TurnEnding.GAME_UNCLEAR
-    game = asked[0]
-    if game.app_id is not None:
-        return OneGameTurn(request, game.app_id)
-    if game.match is NameMatch.NOT_IN_LIBRARY:
-        return TurnEnding.GAME_NOT_MEASURED
-    return TurnEnding.GAME_UNCLEAR
+    match games_asked_about(request):
+        case ():
+            return TurnEnding.GAME_UNCLEAR
+        case (game,):
+            if game.app_id is not None:
+                return OneGameTurn(request, game.app_id)
+            if game.match is NameMatch.NOT_IN_LIBRARY:
+                return TurnEnding.GAME_NOT_MEASURED
+            return TurnEnding.GAME_UNCLEAR
+        case _:
+            return TurnEnding.SEVERAL_GAMES

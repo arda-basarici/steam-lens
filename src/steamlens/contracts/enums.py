@@ -355,11 +355,12 @@ class TurnEnding(StrEnum):
     answer could not be read, or the check left nothing of it; the steps'
     own outcomes say which.
 
-    The last three are stand-ins for replies the first stage does not write
+    The last four are stand-ins for replies the first stage does not write
     yet. ``GAME_UNCLEAR``: a turn about one game whose game did not resolve
     to one library title. ``GAME_NOT_MEASURED``: a turn about a game the
     library does not hold. ``NUMBERS_UNEXPLAINED``: a question about what
-    the numbers mean.
+    the numbers mean. ``SEVERAL_GAMES``: a message that asks about more than
+    one game.
 
     >>> TurnEnding.GAME_NOT_MEASURED == "game-not-measured"
     True
@@ -373,6 +374,7 @@ class TurnEnding(StrEnum):
     GAME_UNCLEAR = "game-unclear"
     GAME_NOT_MEASURED = "game-not-measured"
     NUMBERS_UNEXPLAINED = "numbers-unexplained"
+    SEVERAL_GAMES = "several-games"
 
 
 class ReadState(StrEnum):

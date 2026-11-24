@@ -217,11 +217,13 @@ def _ended(
 
 
 def _count_readings(sink: Sink, request: PlayerRequest) -> None:
-    """Count three readings of a turn about one game the understand step is asked not to give.
+    """Count three readings of a turn about a game that send it off the ordinary way.
 
     No game marked as the one asked about, more than one, and nothing asked
-    about it. The parse lets all three through, so how often they come is
-    read off these counts.
+    about it. The understand step is asked for none of the three and the
+    parse lets all through, so how often they come is read off these
+    counts. With more than one game the turn ends on the text that asks
+    which.
     """
     if request.intent is not RequestIntent.ABOUT_GAME:
         return

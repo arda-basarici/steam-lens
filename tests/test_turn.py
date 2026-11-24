@@ -154,16 +154,23 @@ def test_a_game_named_under_another_role_is_not_taken_as_the_one_asked_about() -
     assert plan_turn(_about(_named(NamedGameRole.NOT_THIS))) is TurnEnding.GAME_UNCLEAR
 
 
-def test_the_first_game_asked_about_decides_when_there_are_several() -> None:
+def test_a_message_that_asks_about_several_games_ends_on_asking_which() -> None:
+    """Whether or not each of them resolved. Reading the first and saying
+    nothing of the rest gave a reply about one game that read as if it
+    covered all. A game under another role does not count."""
     unresolved = _named(NamedGameRole.ASK_ABOUT, NameMatch.UNCLEAR, app_id=None)
     resolved = _named(NamedGameRole.ASK_ABOUT)
     liked = _named(NamedGameRole.LIKE_THIS, app_id=620)
 
-    first_resolved = _about(liked, resolved, unresolved)
-    assert first_resolved.request is not None
-    assert games_asked_about(first_resolved.request) == (resolved, unresolved)
-    assert plan_turn(first_resolved) == OneGameTurn(first_resolved.request, _HADES)
-    assert plan_turn(_about(unresolved, resolved)) is TurnEnding.GAME_UNCLEAR
+    several = _about(liked, resolved, unresolved)
+    assert several.request is not None
+    assert games_asked_about(several.request) == (resolved, unresolved)
+    assert plan_turn(several) is TurnEnding.SEVERAL_GAMES
+    assert plan_turn(_about(resolved, resolved)) is TurnEnding.SEVERAL_GAMES
+
+    one = _about(liked, resolved)
+    assert one.request is not None
+    assert plan_turn(one) == OneGameTurn(one.request, _HADES)
 
 
 def test_every_ending_but_a_written_reply_has_one_text_of_its_own() -> None:
