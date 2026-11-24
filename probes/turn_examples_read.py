@@ -29,7 +29,11 @@ and carry a note saying what the second stage adds.
 
 Each example runs under one fixed seed, printed with it, since the pick
 follows the order of the games on its sheet and the seed fixes that order.
-``--seed`` runs the set under another. ``--sheets`` also prints the wants
+``--seed`` runs the set under another. ``--message`` runs one conversation
+given on the command line in place of the examples: once for each message
+of the player's, in order, with the chat's real replies in between. It has
+no ruled line to print, and its seed is the seed's name with 0 added.
+``--sheets`` also prints the wants
 and the sheet as the pick call read them. ``--material`` also prints the
 material as the answer call read it: every want's line for every game and
 every excerpt fetched, with the cited ones marked. A sentence that says how
@@ -47,7 +51,7 @@ may retry once. Answers are archived in the database it is given, so a
 second run on the same copy and seed costs nothing.
 
 Run:  python probes/turn_examples_read.py <path to a database copy>
-          [--sheets] [--material] [--seed NAME]
+          [--sheets] [--material] [--seed NAME] [--message TEXT ...]
 
 The copy must be at the current schema; opening it migrates it forward, so
 point this at a scratch copy and never at the dated copies under ``data/``.
@@ -63,6 +67,7 @@ import sqlite3
 import sys
 import time
 from collections import Counter
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from statistics import median
@@ -392,7 +397,16 @@ def step_outcomes(result: Turn) -> list[str]:
     return steps
 
 
-def main(db_path: str, *, sheets: bool, material: bool, seed_name: str) -> None:
+def given_conversation(messages: Sequence[str]) -> Example:
+    """A conversation from the command line as an example with no ruled line."""
+    return Example(
+        0, "A conversation given on the command line", tuple(messages), ("",) * len(messages)
+    )
+
+
+def main(
+    db_path: str, examples: Sequence[Example], *, sheets: bool, material: bool, seed_name: str
+) -> None:
     key = os.environ.get(KEY_ENV)
     if not key:
         raise SystemExit(f"{KEY_ENV} is not set — the probe calls the real model and needs it")
@@ -416,7 +430,7 @@ def main(db_path: str, *, sheets: bool, material: bool, seed_name: str) -> None:
         outcomes: Counter[str] = Counter()
         objections: Counter[str] = Counter()
         durations: list[float] = []
-        for example in EXAMPLES:
+        for example in examples:
             seed = f"{seed_name}-{example.number}"
             print(f"{example.number}. {example.title} · seed {seed}")
             if example.stage_two is not None:
@@ -438,7 +452,8 @@ def main(db_path: str, *, sheets: bool, material: bool, seed_name: str) -> None:
             for text, good_reply in zip(example.messages, example.good_reply, strict=True):
                 conversation.append(ChatMessage(ChatRole.PLAYER, text))
                 print(f"   player: {text}")
-                print(f"   a good reply would: {good_reply}")
+                if good_reply:
+                    print(f"   a good reply would: {good_reply}")
                 clock = time.perf_counter()
                 result = turn(client, store, conversation, ontology, sink, seed=seed, year=year)
                 seconds = time.perf_counter() - clock
@@ -492,8 +507,14 @@ if __name__ == "__main__":
         "--material", action="store_true", help="print the material the answer call read"
     )
     parser.add_argument("--seed", default="example", help="the seed's name; the number is added")
+    parser.add_argument(
+        "--message", action="append", default=[],
+        help="a player's message; repeat it for a conversation, which then runs in place of"
+        " the examples",
+    )
     arguments = parser.parse_args()
     main(
-        arguments.database, sheets=arguments.sheets, material=arguments.material,
-        seed_name=arguments.seed,
+        arguments.database,
+        (given_conversation(arguments.message),) if arguments.message else EXAMPLES,
+        sheets=arguments.sheets, material=arguments.material, seed_name=arguments.seed,
     )
