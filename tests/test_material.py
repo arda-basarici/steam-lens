@@ -10,13 +10,14 @@ ways a want can be without excerpts kept apart (nothing to read, cut by the
 cap, read and empty counting as nothing to read); one identifier per
 excerpt, unique across the turn; and the named game's side of a comparison
 once, only when some candidate is read on that comparison and the library
-holds the game.
+holds the game. A candidate also carries the aspect its reviewers criticise
+when enough of them raise it and the player did not ask about it.
 
 A turn about one game: each thing asked is read by its target, a store fact
 whether or not the store lists it; a subject past the number a turn reads is
-marked as cut; "would it suit me" brings the game's row on the standing
-wants; and a question about the game in general, with no wants stated,
-brings what its reviewers praise strongly and what they criticise.
+marked as cut; and a question no stored field fits brings both the game's
+row on the standing wants, when wants stand, and what its reviewers praise
+strongly and what they criticise.
 
 A reply that offers nothing: the games left off the sheet on the player's
 say reach it by title; and it gets how the library divides on each want as
@@ -66,6 +67,7 @@ from steamlens.contracts import (
     WantStatus,
 )
 from steamlens.core.material import (
+    CRITICISED_FLOOR,
     MAX_SUBJECTS,
     AspectRead,
     NamedSideRead,
@@ -74,6 +76,7 @@ from steamlens.core.material import (
     asks_for_an_overview,
     asks_whether_it_suits,
     candidates_material,
+    heavily_criticised,
     left_out_games,
     named_sides_to_read,
     nothing_fits_material,
@@ -401,12 +404,13 @@ def test_a_subject_past_the_number_a_turn_reads_is_marked_as_cut() -> None:
 def test_would_it_suit_me_reads_the_game_against_the_standing_wants() -> None:
     """An untargeted subject on a request with wants. 7002 fails the online
     co-op must, and its row comes with the conflict and the reviews on it,
-    numbered after the subjects' excerpts."""
+    numbered after the subjects' excerpts. The same subject asks for where
+    reviewers stand as well, since code cannot tell the two questions apart."""
     request = _about(
         Subject("is it a puzzle game", _PUZZLE), Subject("would it suit me", None),
         wants=_REQUEST.wants,
     )
-    assert asks_whether_it_suits(request) and not asks_for_an_overview(request)
+    assert asks_whether_it_suits(request) and asks_for_an_overview(request)
     game = _LIBRARY[0]
     hits = {_PUZZLE: {7002: 90, 7004: 120}}
     sheet = read_sheet(request, _LIBRARY, hits)
@@ -427,9 +431,10 @@ def test_would_it_suit_me_reads_the_game_against_the_standing_wants() -> None:
 
 
 def test_a_question_about_the_game_in_general_gets_what_reviewers_praise_and_criticise() -> None:
-    """Only from a player who has stated no wants. The strongly praised
-    aspects come first, then the criticised and divided ones, each most
-    mentioned first. An aspect that is only mostly positive is in neither."""
+    """The strongly praised aspects come first, then the criticised and
+    divided ones, each most mentioned first. An aspect that is only mostly
+    positive is in neither. A player with standing wants gets the same list:
+    "what do people complain about" is not answered by their wants."""
     cells = (
         _cell("music", 65, 60, 5), _cell("story", 200, 190, 10),
         _cell("bugs", 64, 4, 60), _cell("combat", 100, 50, 50), _cell("controls", 100, 62, 38),
@@ -451,9 +456,41 @@ def test_a_question_about_the_game_in_general_gets_what_reviewers_praise_and_cri
         ("bugs", SentimentGroup.CLEARLY_NEGATIVE),
     ]
 
-    with_wants = _about(Subject("tell me about it", None), wants=_REQUEST.wants)
+    with_wants = _about(Subject("what do people complain about", None), wants=_REQUEST.wants)
     readings = [subject_reading(with_wants.subjects[0], game, {})]
-    assert one_game_material(with_wants, game, readings, {}).overview == ()
+    assert one_game_material(with_wants, game, readings, {}).overview == material.overview
+
+    targeted = _about(Subject("how is the music", AspectTarget("music")), wants=_REQUEST.wants)
+    readings = [subject_reading(targeted.subjects[0], game, {})]
+    assert one_game_material(targeted, game, readings, {}).overview == ()
+
+
+def test_an_offer_carries_the_aspect_reviewers_criticise_when_enough_of_them_raise_it() -> None:
+    """The most mentioned clearly negative aspect, from the floor up, and
+    never one the player asked about: that want's own line has the reading.
+    A second negative aspect is not looked at, so a game carries one or
+    none."""
+    at_the_floor = _cell("stability", int(600 * CRITICISED_FLOOR), 2, 58)
+    under_it = _cell("bugs", int(600 * CRITICISED_FLOOR) - 1, 2, 55)
+    assert at_the_floor.group is under_it.group is SentimentGroup.CLEARLY_NEGATIVE
+    praised = _cell("story", 200, 190, 10)
+
+    assert heavily_criticised(_game(7009, praised, at_the_floor, under_it), _REQUEST) == "stability"
+    assert heavily_criticised(_game(7009, praised, under_it), _REQUEST) is None
+    assert heavily_criticised(_game(7009, praised), _REQUEST) is None
+
+    asked_about_it = PlayerRequest(
+        intent=RequestIntent.RECOMMEND,
+        wants=(Want("no crashes", Firmness.MUST, Stance.WANTS, AspectTarget("stability")),),
+    )
+    assert heavily_criticised(_game(7009, at_the_floor, under_it), asked_about_it) is None
+
+    library = (_game(7002, at_the_floor), _game(7004, online_coop=True))
+    sheet = read_sheet(_REQUEST, library, {_PUZZLE: {7002: 90, 7004: 120}})
+    material = candidates_material(
+        _REQUEST, sheet, _DECISION, read_plan(_DECISION, _REQUEST, sheet), {}, left_out=LeftOut()
+    )
+    assert [game.criticised for game in material.games] == [None, "stability"]
 
 
 def test_a_turn_about_one_game_has_one_reading_per_subject() -> None:

@@ -102,6 +102,10 @@ MAX_OFFERS: Final = 3
 
 _WANT_NUMBER: Final = re.compile(r"[wW](\d+)")
 
+# How a candidate's line for a part the player did not ask about begins. The
+# prompt names the line by these words, so the two cannot drift apart.
+_APART_FROM_THE_WANTS: Final = "apart from the wants"
+
 _STANDING_WORDS: Final = {
     MustStanding.MEETS: "meets every must",
     MustStanding.OPEN: "open on a must: at least one must could not be decided",
@@ -253,10 +257,18 @@ Reading the excerpts:
   playtime, an event that is well timed, or a jump that takes timing. When
   an excerpt does not establish the thing the player meant, it settles
   nothing.
+- A passage can be about another game: an earlier game in the series, or a
+  game this one is compared with. Read which game its own words name before
+  you use it. Under a game called Frostline 3, "I played Frostline 2 and
+  gave up on all the reading" says nothing about Frostline 3.
 - Whether a thing is in a game is one question, and whether reviewers like
   it is another. Reviewers who enjoy the grind are still saying the game
   has grind. When the player wants to avoid a thing, praise for it does not
   meet that.
+- A passage that says a thing is or is not in the game is one reviewer's
+  report of it. Say it as that, and that one report does not cover the
+  whole game. Do not speak of how the thing is "received" there: that
+  answers the other question.
 - No passage under a line means only that none is in front of you: the
   reviews were not read on it, or the read found nothing. It never means
   the game's reviews do not discuss it. Say that you have no review
@@ -327,6 +339,21 @@ Choose by what the reviews show.
   a fit. A bare "could not be verified" is not enough: say what was looked
   at, what was found, and what that does not show. The want's line says
   which of these holds, and the reply follows it.
+- Before offering such a game, count the passages under that must that
+  describe this game itself as having the thing the player wants to avoid,
+  or as lacking what they need. With two or more, do not offer the game:
+  set it aside, and you may say why in a statement about it that cites
+  those passages. With one, or with passages that are about another game,
+  it stays open and the rule above holds.
+- A game's block can hold a line that starts "{_APART_FROM_THE_WANTS}": a
+  part of the game the player did not ask about, which its reviewers raise
+  often and mostly criticise. It comes from all of the game's sampled
+  reviews and has no passage under it. When you offer that game, say it in
+  a short clause inside a sentence about the game, as what reviewers say
+  and not as a reason against the game ("though players who bring up
+  stability mostly report trouble"). Say no more of it than the line does:
+  it names the part and not what the trouble is. The clause cites nothing
+  and adds no want to its statement.
 - A game that fails a must is not a fit. Offer it only when its excerpts
   give specific evidence against the failed reading, for instance reviewers
   writing that the game has none of the thing the player wants to avoid. An
@@ -353,7 +380,11 @@ can be suggested. The reply only asks: it suggests nothing and names no
 game. Put the needs as an easy question a person would ask in conversation.
 Needs that ask the same thing are asked once. Several needs are folded into
 one or two sentences and never set out as a form or a numbered list. Do not
-ask for something the conversation already answers.
+ask for something the conversation already answers. One game may be named:
+when the request lists a game the player wants something like and it is not
+measured in the library, say that it is not measured here and ask what they
+like about it. What you know of that game may shape that one question and
+is used for nothing else.
 
 A turn where nothing fits. The material says how the library's games divide
 on each want, and which wants could not be met.
@@ -375,15 +406,27 @@ about it, and what was found for each thing asked.
   excerpts. With no passage under a line, say what the line shows and that
   you have no review evidence on it here. Where a thing asked was not read
   this turn, say it can be gone into if the player asks again.
-- "Would it suit me" is answered against the player's standing wants, the
-  way an offered game is: a must that could not be decided or that the game
-  fails is said, and the game is not called a fit over it.
-- A question about the game in general, when the player has stated no
-  wants, is answered from the parts its reviewers praise strongly and the
-  parts they criticise or are divided on. Those lists leave out the parts
-  received in between, so do not say reviewers praise everything. From the
-  store's description take only what kind of game it is and how it is
-  played.
+- Answer what was asked and stop. This is a later turn of a conversation:
+  do not go through the player's wants again unless the question is whether
+  the game would suit them, and do not repeat what an earlier reply already
+  told the player unless the answer depends on it.
+- A question no stored field fits comes with up to two reads, and the
+  question's own words say which of them answers it. Leave the other one
+  alone.
+- "Would it suit me" is answered from the game read against the player's
+  standing wants, the way an offered game is: a must that could not be
+  decided or that the game fails is said, and the game is not called a fit
+  over it.
+- A question about the game in general, or about what is good or bad in it
+  ("tell me about it", "what do people complain about"), is answered from
+  the parts its reviewers praise strongly and the parts they criticise or
+  are divided on. Those lists come from all of the game's sampled reviews,
+  so they stand without a passage: name the parts and how they are
+  received, and say nothing of what the praise or the trouble is, since no
+  review was read on them. You may end by offering to go into one of them.
+  The lists leave out the parts received in between, so do not say
+  reviewers praise everything. From the store's description take only what
+  kind of game it is and how it is played.
 - "Should I buy it" is answered with what reviewers say about the things
   the player cares about, or with a question about which things matter.
 - The reply may be a question when the thing asked cannot be answered
@@ -409,8 +452,10 @@ its title in the text of the first statement about it.
   offered game fails, and every must it is "cannot tell" on, is spoken to
   in a statement about that game.
 - "cites": the identifiers of the excerpts the statement rests on. A
-  statement that says what reviewers say cites the excerpts it was written
-  from, and only those. A statement cites excerpts of the game it is about.
+  statement that says what reviewers say cites every excerpt a sentence in
+  it rests on, and only those. A sentence about what reviewers say that
+  rests on no excerpt you can cite and on no line is left out. A statement
+  cites excerpts of the game it is about.
   A comparison is a statement about the candidate and cites excerpts of
   both games. A statement that rests on the store's facts, or on a line
   with no passage under it, cites nothing."""
@@ -658,9 +703,9 @@ def render_basis(request: PlayerRequest, basis: AnswerBasis) -> str:
     excerpts read, and the named game's side of a comparison after the
     games, under an identifier of its own. Nothing fits: a line per want
     saying how the library divides on it, in words. An "ask": what is
-    needed. One game: a line per thing asked, the game against the standing
-    wants when that was read, and what its reviewers praise and criticise
-    when the player asked in general.
+    needed. One game: a line per thing asked, and for a question no stored
+    field fits, the game against the standing wants when that was read and
+    what its reviewers praise and criticise.
     """
     match basis:
         case CandidatesMaterial():
@@ -750,17 +795,23 @@ def _render_one_game(material: OneGameMaterial) -> str:
         "What the player asked about it, in their order:",
     ]
     # A question with no stored field of its own is answered from one of the
-    # two reads below when the turn made one, and the line has to say so:
-    # "nothing stored can decide it" would send the reply the wrong way.
+    # two reads below, and the line has to say so: "nothing stored can decide
+    # it" would send the reply the wrong way. Code cannot tell which of the
+    # two the question asks for, so the line names both and what each answers.
+    reads = [
+        *(
+            ["the game is read against the player's standing wants below, which answers it"
+             " when it asks whether the game would suit them"]
+            if material.standing_wants is not None else []
+        ),
+        *(
+            ["where the game's reviewers stand is listed below, which answers a question"
+             " about the game in general or about what is good or bad in it"]
+            if material.overview else []
+        ),
+    ]
     untargeted = (
-        "no stored field fits the question itself; the game is read against the player's"
-        " standing wants below, which answers it when it asks whether the game would suit"
-        " them"
-        if material.standing_wants is not None
-        else "no stored field fits the question itself; where the game's reviewers stand"
-        " is listed below, which answers a question about the game in general"
-        if material.overview
-        else None
+        "no stored field fits the question itself; " + "; and ".join(reads) if reads else None
     )
     for subject in material.subjects:
         lines.extend(_subject_lines(subject, untargeted))
@@ -787,7 +838,14 @@ def _render_one_game(material: OneGameMaterial) -> str:
 
 
 def _game_lines(game: GameMaterial) -> list[str]:
-    return [_description_line(game.description), *_want_lines(game)]
+    criticised = (
+        [
+            f"{_APART_FROM_THE_WANTS} · {game.criticised.replace('_', ' ')}:"
+            f" {GROUP_WORDS[SentimentGroup.CLEARLY_NEGATIVE]}, and raised often in its reviews"
+        ]
+        if game.criticised is not None else []
+    )
+    return [_description_line(game.description), *criticised, *_want_lines(game)]
 
 
 def _description_line(description: str) -> str:

@@ -22,11 +22,19 @@ read: an aspect too few reviews mention, or matches that all contain
 A turn about one game has no pick. Each thing the player asked
 is read by its target the same way, up to a fixed number of subjects, and a
 subject on a store fact is read whether or not the store lists it. Two
-questions have no target of their own. "Would it suit me" reads the game
-against the wants that still stand, as a candidate is read. A question about
-the game in general, from a player who has stated no wants, gets the aspects
-its reviewers praise strongly and the ones they criticise or are divided on,
-as groups.
+questions have no target of their own, and code cannot tell them apart, so a
+question with no target gets what answers either. "Would it suit me" is
+answered by the game read against the wants that still stand, as a candidate
+is read, when any stand. A question about the game in general, or about what
+its reviewers complain of, is answered by the aspects they praise strongly
+and the ones they criticise or are divided on, as groups. The call that
+writes the reply has the question's words and takes the one they ask for.
+
+A candidate can carry one thing the player did not ask about: the part of
+the game its reviewers criticise, when a share of them at or over
+``CRITICISED_FLOOR`` raise it. A reply that offered a game for its story and
+said nothing of the crashes its reviewers report would be true to the
+request and no help to the player.
 
 A reply that offers nothing has no reviews to read, and still has to tell
 "the store lists no such game" from "nothing stored could decide it". It
@@ -88,6 +96,13 @@ from steamlens.core.store_facts import store_fact
 MAX_SUBJECTS: Final = 4
 
 _CRITICISED: Final = (SentimentGroup.CLEARLY_NEGATIVE, SentimentGroup.SPLIT)
+
+# The share of a game's sampled reviews that have to raise a clearly
+# negative aspect before an offer of the game carries it unasked. A working
+# value: at a tenth, about one library game in four carries a line; at a
+# fifth, the game whose crashes raised the rule (raised in 16% of its
+# sample) would have carried none.
+CRITICISED_FLOOR: Final = 0.10
 
 
 @dataclass(frozen=True, slots=True)
@@ -202,12 +217,37 @@ def candidates_material(
                 f"candidate {candidate.app_id} is not a row of the sheet — material is put"
                 " together against the sheet the decision was made from"
             )
-        games.append(_game_material(row, plan, excerpts, identifiers))
+        games.append(
+            _game_material(
+                row, plan, excerpts, identifiers, criticised=heavily_criticised(row.game, request)
+            )
+        )
     return CandidatesMaterial(
         games=tuple(games),
         named_sides=_named_side_material(named_sides, identifiers),
         left_out=left_out,
     )
+
+
+def heavily_criticised(game: LibraryGame, request: PlayerRequest) -> str | None:
+    """The aspect an offer of ``game`` says unasked, or ``None`` when there is none.
+
+    The most mentioned of the game's clearly negative aspects, when at least
+    ``CRITICISED_FLOOR`` of its sampled reviews mention it. ``None`` when
+    that aspect is the target of one of the request's wants: its line
+    already carries the reading, and the reply speaks to it there. Only the
+    most mentioned one is looked at, so a game carries one such aspect or
+    none.
+    """
+    negative = sorted(
+        (cell for cell in game.cells if cell.group is SentimentGroup.CLEARLY_NEGATIVE),
+        key=lambda cell: (-cell.mentions, cell.aspect),
+    )
+    if not negative or negative[0].mention_share < CRITICISED_FLOOR:
+        return None
+    aspect = negative[0].aspect
+    asked = {want.target.aspect for want in request.wants if isinstance(want.target, AspectTarget)}
+    return None if aspect in asked else aspect
 
 
 def left_out_games(sheet: Sheet, titles: Mapping[int, str]) -> LeftOut:
@@ -338,8 +378,13 @@ def asks_whether_it_suits(request: PlayerRequest) -> bool:
 
 
 def asks_for_an_overview(request: PlayerRequest) -> bool:
-    """Whether the turn reads the game in general: an untargeted subject and no wants."""
-    return not request.wants and _has_untargeted_subject(request)
+    """Whether the turn hands over where the game's reviewers stand: an untargeted subject.
+
+    Whether or not wants stand. With wants the same subject also gets the
+    read against them (``asks_whether_it_suits``), since "what do people
+    complain about" and "would it suit me" are the same to code.
+    """
+    return _has_untargeted_subject(request)
 
 
 def one_game_material(
@@ -359,9 +404,9 @@ def one_game_material(
 
     A subject is ``READ`` when it gave excerpts, ``CUT_BY_CAP`` when it
     comes after the ``MAX_SUBJECTS`` a turn reads, and ``NOTHING_TO_READ``
-    otherwise. The overview is filled only when ``asks_for_an_overview``
-    holds. Identifiers run through the subjects, then the standing wants,
-    then the named sides.
+    otherwise. The overview is filled when ``asks_for_an_overview`` holds.
+    Identifiers run through the subjects, then the standing wants, then the
+    named sides.
 
     Raises ``ValueError`` when ``readings`` are not one per subject.
     """
@@ -425,6 +470,8 @@ def _game_material(
     plan: ReadPlan,
     excerpts: Mapping[tuple[int, int], Sequence[Excerpt]],
     identifiers: Iterator[str],
+    *,
+    criticised: str | None = None,
 ) -> GameMaterial:
     """One game's row as the answer call reads it, a line per want."""
     cut = set(plan.cut)
@@ -450,6 +497,7 @@ def _game_material(
         standing=row.standing,
         wants=tuple(wants),
         release_year=_release_year(row.game),
+        criticised=criticised,
     )
 
 

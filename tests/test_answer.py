@@ -187,6 +187,22 @@ def test_a_candidate_is_read_under_its_title_with_a_line_per_want_and_its_excerp
     assert 'store description: "The store\'s words for 7004."' in first
     assert _lines(second, "w")[0] == "w1 fails · the store does not list it"
     assert answer_identifiers(_MATERIAL) == {7004: "g1", 7002: "g2"}
+    assert "apart from the wants" not in render
+
+
+def test_a_candidate_whose_reviewers_criticise_a_part_unasked_has_a_line_for_it() -> None:
+    """In words and with no count, under the store's description and above
+    the wants, and worded as the prompt names it."""
+    game = dataclasses.replace(_MATERIAL.games[0], criticised="platform_access")
+    render = render_basis(_REQUEST, CandidatesMaterial((game,)))
+    (line,) = _lines(render, "apart from the wants")
+    assert line == (
+        "apart from the wants · platform access: mostly criticised, and raised often in its"
+        " reviews"
+    )
+    lines = render.splitlines()
+    assert lines.index(line) == lines.index(_lines(render, "store description")[0]) + 1
+    assert 'starts "apart from the wants"' in _prompt()
 
 
 def test_no_count_and_no_sentiment_label_reach_the_answer_call() -> None:
@@ -385,16 +401,25 @@ def test_a_turn_about_one_game_reads_a_line_per_thing_asked() -> None:
 def test_a_question_no_stored_field_fits_points_at_the_read_that_answers_it() -> None:
     """ "Would it suit me" and "tell me about it" have no field of their own.
     Each is answered from a read the turn made, and a line that only said
-    nothing could decide it would send the reply the wrong way."""
+    nothing could decide it would send the reply the wrong way. With wants
+    standing both reads are there, and the line says what each answers,
+    since the question's words are the only thing that tells them apart."""
     asked = SubjectMaterial("tell me about it", WantFinding.NO_DATA, ReadState.NOTHING_TO_READ)
     in_general = dataclasses.replace(_ONE_GAME, subjects=(asked,))
     (line,) = _lines(render_basis(_REQUEST, in_general), '- "tell me')
     assert "where the game's reviewers stand is listed below" in line
+    assert "standing wants" not in line
 
     standing = GameMaterial(7004, "Title 7004", "", MustStanding.MEETS, _MATERIAL.games[0].wants)
-    suits = dataclasses.replace(_ONE_GAME, subjects=(asked,), standing_wants=standing)
+    both = dataclasses.replace(_ONE_GAME, subjects=(asked,), standing_wants=standing)
+    (line,) = _lines(render_basis(_REQUEST, both), '- "tell me')
+    assert "read against the player's standing wants below" in line
+    assert "; and where the game's reviewers stand is listed below" in line
+
+    suits = dataclasses.replace(both, overview=())
     (line,) = _lines(render_basis(_REQUEST, suits), '- "tell me')
     assert "read against the player's standing wants below" in line
+    assert "reviewers stand" not in line
 
     neither = dataclasses.replace(_ONE_GAME, subjects=(asked,), overview=())
     (line,) = _lines(render_basis(_REQUEST, neither), '- "tell me')
@@ -451,7 +476,7 @@ def test_the_prompt_wording_is_pinned_to_its_version() -> None:
     pin is simply moved with the edit; after it, the version moves too."""
     content_hash = hashlib.sha256(_prompt().encode("utf-8")).hexdigest()
     assert ANSWER_PROMPT_VERSION == "answer-v1"
-    assert content_hash == "4ccc0258ed6c18710e692f671fe3e9885f4d9d2d3c88d601e9b4608c54170a25"
+    assert content_hash == "ab921d622962cda25ac6d37e89c5d750e40b2b05b474a03548b35a0f30ff3cdf"
 
 
 def test_the_corrective_prompt_is_the_same_prompt_with_the_faults_named() -> None:

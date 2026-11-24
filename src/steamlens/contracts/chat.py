@@ -22,8 +22,9 @@ stretch of one review, with the review it came from. ``CandidatesMaterial``
 is what code fetches between the two calls: for each candidate its title,
 its reading on every want in words, and the excerpts read, each under an
 identifier the reply cites. ``OneGameMaterial`` is the same for a turn that
-asks about one game: a line per thing asked, and the game read against the
-standing wants when the player asked whether it would suit them.
+asks about one game: a line per thing asked, and for a question no stored
+field fits, the game read against the standing wants and where its
+reviewers stand.
 ``NothingFitsMaterial`` is what a reply that offers nothing is written from:
 how the library divides on each want, in words.
 
@@ -245,6 +246,11 @@ class GameMaterial:
     empty when none is held. ``wants`` are in the order of the request's
     wants, one each. ``release_year`` is the store's, absent when no date is
     held; a reply may state it, and it is the one figure here.
+
+    ``criticised`` is an aspect the player did not ask about, which the
+    game's reviewers raise often and mostly criticise, or ``None``. An offer
+    of the game says it. It is set for a candidate and never for the game a
+    turn is about, which has the whole list of such aspects instead.
     """
 
     app_id: int
@@ -253,6 +259,7 @@ class GameMaterial:
     standing: MustStanding
     wants: tuple[WantMaterial, ...]
     release_year: int | None = None
+    criticised: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -376,15 +383,13 @@ class OneGameMaterial:
     ``subjects`` are in the player's order, one for each thing asked.
     ``release_year`` is the store's, absent when no date is held.
 
-    ``standing_wants`` is present when the player asked whether the game
-    would suit them: the game read against the wants that still stand, the
-    way a candidate is. ``named_sides`` belong to it, for a standing want
-    that is relative to another game.
-
-    ``overview`` is present when the player asked about the game in general
-    and has stated no wants: the aspects its reviewers praise strongly, then
-    the ones they criticise or are divided on, each list most mentioned
-    first.
+    A question no stored field fits brings two things, since code cannot
+    tell whether it asks about fit or about the game in general.
+    ``standing_wants`` is the game read against the wants that still stand,
+    the way a candidate is, present when any stand. ``named_sides`` belong
+    to it, for a standing want that is relative to another game.
+    ``overview`` is the aspects its reviewers praise strongly, then the ones
+    they criticise or are divided on, each list most mentioned first.
     """
 
     app_id: int
