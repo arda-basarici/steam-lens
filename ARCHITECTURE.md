@@ -240,7 +240,7 @@ flowchart TD
     code: every library game read against the request`"]
     U -->|"about one library game"| ONE["`fetch
     code reads reviews on what was asked`"]
-    U -->|"no request, out of scope, the numbers, a game that did not resolve"| FIXED["a text written in advance"]
+    U -->|"no request, out of scope, the numbers, a game that did not resolve, several games asked about"| FIXED["a text written in advance"]
     SHEET --> PICK["`pick
     model call → candidates, a question, or nothing fits`"]
     PICK -->|"candidates"| FETCH["`fetch

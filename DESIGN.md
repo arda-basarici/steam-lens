@@ -2478,7 +2478,16 @@ game and that want. Whether the excerpts support the offer is read by hand.
 of little grind. A game that is "cannot tell" on a must may still be offered,
 because most real requests carry one condition that cannot be checked. It is
 never called a fit, and a bare "unverified" is not enough: the reply says what
-was looked at, what was found, and what that does not show. Which sentence is
+was looked at, what was found, and what that does not show. It is not offered
+when two or more of the passages read on that must describe the game itself
+as going against it, such as reviewers describing the thing the player wants
+to avoid, and the reply may then say it was left out and cite them. *Ruled
+2026-11-24*, from a reply that offered two games against a stressed "not much
+reading" with a warning, where the ruling on near misses has a stressed want
+never be the one that gives. One such passage is not enough, nor is a passage
+about another game. The judgment is the answer call's, code cannot check it,
+and on the revision's own comparison run the call did not make it: under both
+wordings tried it still offered such a game with a warning. Which sentence is
 used is decided by a count and not by the model. Read on the library's 60,514
 counted reviews, "timer" and its variants appear in 133 reviews across 59
 games and "red dress" in none. So when reviewers do write about the thing
@@ -2794,8 +2803,9 @@ survey number and is never shown.
    what still stands after that is removed.
 
 A turn about one game has no pick: code fetches reviews for what the player
-asked about that game, reading it against the sheet only when the player
-asked whether it would suit them, and the answer and the check run as above.
+asked about that game, reading it against the sheet as well when a question
+fits no stored field and wants stand, and the answer and the check run as
+above.
 The paragraphs after the understand step's take the pick, the fetch, the
 answer, the check and the turn one by one.
 
@@ -3125,7 +3135,8 @@ pick's list was kept as an order.
 
 The reads are scheduled in three ranks. A must comes first, listed or not:
 a game offered against a conflict has to cite reviews on that want, a
-game open on a must is offered with what was found said beside it, and a
+game open on a must is offered with what was found said beside it or set
+aside when its passages show it going against the must, and a
 must matched on searched words is matched on how often the words come up,
 which does not say what the reviews say with them. Then the wants the pick
 listed, in its order. Then every other want, so that a reply can say what
@@ -3186,13 +3197,20 @@ timed input and subtitle options stay thin whatever the words.
 A turn about one game has no pick. Each thing the player asked is read by
 its target the same way, up to four subjects in the player's order, and a
 subject on a store fact is read whether or not the store lists it. Two
-questions have no target of their own. "Would it suit me" reads the game
-against the wants that still stand, as a candidate is read, under the same
-ranks and cap; it is skipped for a game that is off the sheet, which is one
-the player said they had played. A question
-about the game in general, from a player who has stated no wants, gets the
-aspects its reviewers praise strongly and the ones they criticise or are
-divided on, as groups, and no review is read for it. A planning call for
+questions have no target of their own, and code cannot tell one from the
+other, so a question with no target gets what answers either (*revised
+2026-11-24*). "Would it suit me" is answered by the game read against the
+wants that still stand, as a candidate is read, under the same ranks and
+cap; that read is made when wants stand and is skipped for a game that is
+off the sheet, which is one the player said they had played. A question
+about the game in general, or about what its reviewers complain of, is
+answered by the aspects they praise strongly and the ones they criticise or
+are divided on, as groups, and no review is read for it. The answer call has
+the question's words and uses the one they ask for. The list was first given
+only to a player who had stated no wants. A player with wants standing who
+asked what people complain about in an offered game was then told its
+reviews carried no complaints, of a game whose report has stability
+criticised in 107 of the 112 reviews that raise it. A planning call for
 the one game was declined as another call on every such turn, and so was
 the player's message as the search query: the built search matches literal
 phrases, so a whole question matches almost nothing.
@@ -3314,10 +3332,13 @@ turn's excerpts and may carry a limit that holds for every offered game, so
 the limit is said once and the check does not ask for the repetition the
 voice rule forbids. And the wants a reply has to speak to are the ones where
 silence would mislead: a want the game matches and the reply does not
-mention draws no objection. On a turn about one game that asks whether it
-would suit the player, the same is asked for the musts only, and since
-nothing is offered there, a fault that stands is recorded and the reply is
-kept.
+mention draws no objection. A turn about one game owes none of this
+(*revised 2026-11-24*). The game read against the standing wants comes with
+every question no stored field fits, so code cannot tell a question about
+fit, where the prompt has an undecided must named, from one about what
+reviewers criticise, where naming it again is the retelling the prompt
+forbids. The rule had asked for the musts there, and a reply that followed
+the revised prompt would have been sent back to say them.
 
 The three recorded rules are named in the retry when one runs and do not ask
 for one by themselves. Two trial runs, made outside the repository and not
@@ -3330,7 +3351,7 @@ rule, and the setting is compared on the answer measurement.
 
 Two replies with little in them are allowed in the first stage. A reply that
 cites nothing because nothing was read (a request the store's facts settle,
-or "tell me about it" with no wants standing) stands under the text rules,
+or "tell me about it") stands under the text rules,
 and its offered games with no cite are counted for the second stage's rule
 that every offer cites a review. A reply that offers no game on a turn that
 had candidates, by the answer call's own choice, stands and is counted;
@@ -3379,8 +3400,14 @@ pick's decision: reviews are fetched for candidates, the library's standing
 on the wants is put together when nothing fits, and a decision to ask goes
 on as it is. A request about one game goes on when the game it asks about
 resolved to a library title. When several games are asked about in one
-message, the first in the player's order is read and the others are
-counted. A recommendation turn never ends on a name: a named game that did
+message, the turn ends on a text that asks for one at a time (*revised
+2026-11-24*): reading the first and counting the rest gave a reply about
+one game of three that read as if it covered all. The understand step is
+still asked for one game, so the text shows only when the step returns
+several against its prompt; reading "these games" as several is left to
+that step's own revision, since a one-line edit to its prompt for this
+moved the search words of unrelated wants. A recommendation turn
+never ends on a name: a named game that did
 not resolve is read through the sheet's own finding for it, and the pick
 decides what the request can still give.
 
@@ -3397,6 +3424,7 @@ has one text written in advance:
 | asking for the title | a turn about one game whose name fits several library titles or could not be tied to a game, or whose request marks no game as the one asked about |
 | saying the game is not measured | a turn about a game the library does not hold |
 | saying the numbers are not explained yet | a question about what the numbers mean |
+| asking for one game at a time | a message that asks about more than one game |
 
 The record carries the ending as a field of its own. Every text written in
 advance has the same message kind, so without the field a caller that wants
@@ -3408,13 +3436,14 @@ difference, and the three stay apart where they are counted. The understand
 step's text for a message it could not read is not used for them: there the
 request was read, and the text would put the fault on the player's message.
 
-The last three endings are stand-ins. The first stage does not write the
+The last four endings are stand-ins. The first stage does not write the
 question that lists the titles a name could mean, the answer for a game the
-library has not measured, or the explanation of what the numbers mean. A
+library has not measured, the explanation of what the numbers mean, or an
+answer about several games at once. A
 turn that needs one of them ends on a short text that says so, with no model
 call. Each stand-in is replaced by the reply it stands for when that reply
 is built, and the ending's name stays. The out-of-scope refusal was declined
-for the three, since they are in scope, and so was the answer call with
+for them, since they are in scope, and so was the answer call with
 nothing to write from. The cost is that an unclear "the second one" gets the
 question with no titles listed. The refusal named the explanation of the
 numbers until 2026-11-24, which sent a player who asked for it to the
@@ -3448,15 +3477,24 @@ one reply offered two games that are "cannot tell" on a stressed must and
 whose own excerpts describe the unwanted thing, which follows the answer
 prompt as committed and goes against the reply ruled for that example.
 
-Four rulings wait on the reading by hand: whether a game undecided on a
-stressed must is set aside when its excerpts show the unwanted thing;
-whether a message that asks about several games reads the first, as built,
-or gets a text asking for one at a time; whether a liked game the library
-has not measured, on a request with no wants, stays a recommendation turn,
-where the reply said the game is unmeasured before asking, or goes to the
-stand-in; and the refusal's claim about the numbers. One revision of the
-answer prompt follows the reading, compared with the committed prompt on
-the same cases.
+Four rulings waited on the reading by hand and were made on 2026-11-24. A
+game undecided on a stressed must is set aside when its excerpts plainly
+show the unwanted thing. A message that asks about several games gets a
+text asking for one at a time, until a turn can answer about each. A liked
+game the library has not measured, on a request with no wants, stays a
+recommendation turn, and the question names the game and asks what the
+player likes about it. And the refusal no longer names the explanation of
+the numbers. They were ruled on those four cases; the run as a whole has
+not been read by hand. One revision of the answer prompt followed, compared
+with the committed prompt on the same fourteen turns and on one
+conversation from the public page (`probes/turn_examples_read.py`, with
+`--message` for the latter; one run and one seed each, so observations).
+What hands the answer call new material showed in the replies: the list of
+praised and criticised parts answered a general question about a game where
+the standing wants had been walked again, and every offered game that
+carried a heavily criticised part had it said. What asks the call to judge
+or to hold back was kept unsteadily: the undecided must set aside was not
+kept at all, and a follow-up still retold one want in two runs of three.
 
 **Ruled for the second stage, and not built.** The first stage answers
 under the base rules only. What the second stage adds is ruled in outline
@@ -3710,14 +3748,17 @@ only.
 | Pairs of a game and a want read a turn | 24, musts first, then the pick's list, then the rest | `core/pick.py` | one constant; the ranks are a rule | pairs cut on requests of ordinary length |
 | Excerpts a read | 6, each capped at 300 characters; an aspect is read by label from five mentions up | `chat/evidence.py`, `core/excerpt.py` | one constant each; the cap and the floor are the report page's | replies resting on too little, or six excerpts that misstate an aspect's balance |
 | Subjects read on a turn about one game | 4, in the player's order | `core/material.py` | one constant | questions left unread |
+| Reviews read for a general question about a game | none: the reply names the parts reviewers praise and criticise and may offer to go into one | `core/material.py` | a read plan and cite rules for that turn | answers that read as empty, detail filled in from the model's memory, or the retrieval experiment's result |
+| Passages that set an undecided game aside | two or more that describe the game itself as going against a must | the answer prompt in `core/answer.py` | the wording, with its pin | the answer measurement: the call did not keep it on the comparison run |
+| An offered game's criticism said unasked | its most mentioned clearly negative aspect, when a tenth of the sample or more mention it and no want is on it | `core/material.py` | one constant | replies crowded by the clause, or a heavily criticised game offered with none |
 | Order inside a pattern of the pick's sheet | shuffled by a seed from the conversation | `core/pick.py` | one function; app-id order is the alternative it replaced | picks that still follow position, or a need for one request to give every player the same games |
 | A game's line in the pick's sheet | an identifier, genres, release year and readings, with no title | `core/pick.py` | one render function | picks of the wrong kind of game on a word match |
 | Which failed must may be put forward | only an avoided word that clusters | the pick's parse in `core/pick.py` | one rule | sound offers against a store fact or an aspect found removed |
 | Reply length | about 150 words, recorded and not enforced | `core/check.py` | one constant | replies players stop reading |
 | A quote of a review | two words or more in quotation marks that appear in one of the turn's excerpts | `core/check.py` | one constant | single quoted words carrying a reviewer's phrase, or ordinary phrases refused |
 | Recorded rules asking for the retry | no: relayed wording, a working word and length are named in a retry that runs for another reason | `core/check.py` | one value per rule | the answer measurement, weighing faults removed against sentences changed |
-| Fixed texts of a turn | one text for a turn that was read and got no answer; three stand-ins for replies the first stage does not write | `core/turn.py` | the wording | players misled about what went wrong, and each stand-in when its reply is built |
-| The game a turn about one game reads | the first game asked about; any others are counted | `core/turn.py` | one rule | messages that ask about two games |
+| Fixed texts of a turn | one text for a turn that was read and got no answer; four stand-ins for replies the first stage does not write | `core/turn.py` | the wording | players misled about what went wrong, and each stand-in when its reply is built |
+| A message that asks about several games | a fixed text asking for one at a time | `core/turn.py` | one rule; an answer about each is ruled for the second stage | that build, or players put off by being asked |
 | Where a conversation is kept | the server's memory, between turns; a restart ends every open one, and the browser holds only an identifier | `serve/conversations.py` | what sits behind four methods; the database comes with the chat's storage | the storage design, or conversations lost to deploys often enough to matter |
 | A conversation's bounds | 12 turns, a message of 1,000 characters, two idle hours, 500 kept at once | `serve/config.py` | one constant each | players reaching the end mid-thought |
 | Chat turns a day | 60 an address and 300 for everyone, counted at admission, in memory | `serve/chat_gate.py`, `serve/config.py` | one constant each; a table for counts that survive a restart | the shared spend backstop firing on a day of ordinary traffic, or the tab being linked |
