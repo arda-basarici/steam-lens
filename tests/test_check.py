@@ -347,23 +347,12 @@ _ONE_GAME_TURN = turn_evidence(
 )
 
 
-def test_on_a_turn_about_one_game_only_the_musts_are_owed_and_the_fault_costs_nothing() -> None:
-    said = ReplyStatement(
-        "Timers come up in its reviews, and nothing here says how it runs on a laptop.",
-        game=HARBOR, wants=(_TIMER, _LAPTOP),
-    )
-    assert _check(Reply(ChatMessageKind.ANSWER, (said,)), _ONE_GAME_TURN) == ()
-
+def test_a_turn_about_one_game_owes_no_want_even_with_the_standing_wants_read() -> None:
+    # The standing-wants read comes with every question no stored field fits,
+    # so a reply that answers the question and leaves an undecided must unsaid
+    # has followed the prompt.
     unsaid = ReplyStatement("Its pace is described as slow.", game=HARBOR, cites=("e4",))
-    raised = _check(Reply(ChatMessageKind.ANSWER, (unsaid,)), _ONE_GAME_TURN)
-    assert [(found.objection.want, found.cost) for found in raised] == [
-        (_TIMER, Cost.NOTHING), (_LAPTOP, Cost.NOTHING),
-    ]
-    assert all(found.asks_for_retry for found in raised)
-    assert enforce(Reply(ChatMessageKind.ANSWER, (unsaid,)), _ONE_GAME_TURN).reply is not None
-
-    asks_back = Reply(ChatMessageKind.QUESTION, (ReplyStatement("What matters most to you?"),))
-    assert _check(asks_back, _ONE_GAME_TURN) == ()
+    assert _check(Reply(ChatMessageKind.ANSWER, (unsaid,)), _ONE_GAME_TURN) == ()
 
 
 # --- rules over the text ---------------------------------------------------------

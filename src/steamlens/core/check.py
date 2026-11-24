@@ -60,7 +60,6 @@ from steamlens.contracts import (
     AnswerBasis,
     CandidatesMaterial,
     ChatMessage,
-    ChatMessageKind,
     ChatRole,
     CheckRule,
     CitedExcerpt,
@@ -298,8 +297,11 @@ def check_reply(reply: Reply, turn: TurnEvidence) -> tuple[Raised, ...]:
       the want and cites an excerpt fetched for that game and want;
     - every other want an offered game fails, and every must it could not
       be decided on, is listed by a statement about that game or about no
-      game. On a turn about one game that asks whether it would suit the
-      player, the same holds for the musts;
+      game. A turn about one game owes none of this: the game read against
+      the standing wants is handed over for every question no stored field
+      fits, so code cannot tell a question about fit, where the prompt has
+      a must named, from one that asks what reviewers criticise, where
+      naming it again is the retelling the prompt forbids;
     - the first statement about an offered game names it;
     - no numeral outside the turn's titles, years and the player's own
       numbers; no passage of a review in quotation marks; no library game
@@ -584,29 +586,6 @@ def _wants_not_spoken_to(reply: Reply, turn: TurnEvidence) -> Iterator[Raised]:
             yield Raised(
                 Objection(CheckRule.WANT_NOT_SPOKEN_TO, game.app_id, position, words), Cost.GAME
             )
-
-    basis = turn.basis
-    if (
-        not isinstance(basis, OneGameMaterial)
-        or basis.standing_wants is None
-        or reply.kind is not ChatMessageKind.ANSWER
-    ):
-        return
-    listed = _wants_listed(reply, basis.app_id)
-    for position, (want, line) in enumerate(_lines(turn.request, basis.standing_wants)):
-        if want.firmness is not Firmness.MUST or line.status is WantStatus.MATCHES:
-            continue
-        if position in listed:
-            continue
-        number = _want_number(position)
-        state = "fails" if line.status is WantStatus.FAILS else "could not be decided on"
-        words = (
-            f"the game {state} {number} ({_quoted(want.words)}), a must, and no statement"
-            f" lists {number}; say it, and list {number} in that statement"
-        )
-        yield Raised(
-            Objection(CheckRule.WANT_NOT_SPOKEN_TO, basis.app_id, position, words), Cost.NOTHING
-        )
 
 
 def _games_not_named(reply: Reply, turn: TurnEvidence) -> Iterator[Raised]:
