@@ -3414,11 +3414,12 @@ library has not measured, or the explanation of what the numbers mean. A
 turn that needs one of them ends on a short text that says so, with no model
 call. Each stand-in is replaced by the reply it stands for when that reply
 is built, and the ending's name stays. The out-of-scope refusal was declined
-for the three, since they are in scope and that text says the chat does
-them, and so was the answer call with nothing to write from. The costs are
-that an unclear "the second one" gets the question with no titles listed,
-and that the refusal already says the chat can explain what the numbers on a
-report mean, which the first stage does not do.
+for the three, since they are in scope, and so was the answer call with
+nothing to write from. The cost is that an unclear "the second one" gets the
+question with no titles listed. The refusal named the explanation of the
+numbers until 2026-11-24, which sent a player who asked for it to the
+stand-in. It now names only what the chat does, and the clause returns when
+the explanation is built.
 
 **The first end-to-end run.** *2026-11-19, `probes/turn_examples_read.py` on
 the copy of the serving database taken on the evening of 2026-11-14 (115

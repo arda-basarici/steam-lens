@@ -81,10 +81,12 @@ from steamlens.core.store_facts import STORE_FACTS, store_fact
 
 UNDERSTAND_PROMPT_VERSION: Final = "understand-v1"
 
+# Names only what the chat does today. The explanation of a report's numbers
+# was named here before it was built, which sent a player who asked for it to
+# the stand-in that says it is not built; the clause returns with that reply.
 OUT_OF_SCOPE_REPLY: Final = (
     "That is outside what this chat does. It can suggest games from the SteamLens "
-    "library, tell you what reviewers say about one of them, or explain what the "
-    "numbers on a report mean."
+    "library, or tell you what reviewers say about one of them."
 )
 UNREADABLE_REPLY: Final = "I could not make sense of that. Could you say it another way?"
 UNAVAILABLE_REPLY: Final = "The chat cannot answer right now. Please try again in a little while."
